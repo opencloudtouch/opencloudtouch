@@ -32,7 +32,9 @@
 }
 @media (min-width: 769px) {
   .setup-wizard-page {
-    padding-top: var(--space-lg); /* the title sits 24 px below the header, like on every other page */
+    padding-top: var(
+      --space-lg
+    ); /* the title sits 24 px below the header, like on every other page */
   }
   .wizard-content-v2 {
     padding-inline: var(--space-lg);

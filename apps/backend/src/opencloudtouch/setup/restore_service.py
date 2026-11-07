@@ -59,7 +59,12 @@ def _tar_flags(archive_path: str, operation: str) -> str:
 
 
 # Map filename volume suffix to VolumeType value
-_VOLUME_MAP = {"rootfs": "rootfs", "nv": "persistent", "update": "update", "config": "config"}
+_VOLUME_MAP = {
+    "rootfs": "rootfs",
+    "nv": "persistent",
+    "update": "update",
+    "config": "config",
+}
 
 
 class RestoreService:
@@ -144,7 +149,9 @@ class RestoreService:
             key = (f.device_id, f.backup_date)
             per_volume = groups.setdefault(key, {})
             known = per_volume.get(f.volume_type)
-            if known is None or (f.filename.endswith(".tar") and not known.filename.endswith(".tar")):
+            if known is None or (
+                f.filename.endswith(".tar") and not known.filename.endswith(".tar")
+            ):
                 per_volume[f.volume_type] = f
 
         sets = []

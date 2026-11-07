@@ -36,7 +36,8 @@ export default function BackupScan({
 
   const scanResult = data as ScanBackupsResponse | undefined;
   // A corrupt or empty archive must not be restored: the button stays disabled until another backup is chosen
-  const hasInvalidFile = scanResult?.selected_set?.files.some((f) => f.validation_status === "invalid") ?? false;
+  const hasInvalidFile =
+    scanResult?.selected_set?.files.some((f) => f.validation_status === "invalid") ?? false;
 
   return (
     <WizardStep

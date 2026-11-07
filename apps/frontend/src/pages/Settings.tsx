@@ -76,8 +76,13 @@ export default function Settings() {
   });
 
   // Discovery
-  const { isDiscovering, devicesFound, completed, error: discoveryError, startDiscovery } =
-    useDiscoveryStream();
+  const {
+    isDiscovering,
+    devicesFound,
+    completed,
+    error: discoveryError,
+    startDiscovery,
+  } = useDiscoveryStream();
   const queryClient = useQueryClient();
   const { show } = useToast();
 

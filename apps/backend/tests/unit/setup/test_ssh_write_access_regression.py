@@ -29,7 +29,9 @@ from opencloudtouch.setup.ssh_client import (
 class FakeDevice:
     """Records every command and simulates /proc/mounts with live remount behaviour."""
 
-    def __init__(self, options: dict[str, str], failing_remounts: set[str] | None = None):
+    def __init__(
+        self, options: dict[str, str], failing_remounts: set[str] | None = None
+    ):
         self.options = dict(options)
         self.commands: list[str] = []
         self.failing_remounts = failing_remounts or set()
@@ -44,7 +46,9 @@ class FakeDevice:
         if command.startswith("mount -o remount,"):
             mode, mount_point = command[len("mount -o remount,") :].split(" ", 1)
             if mount_point in self.failing_remounts and mode == "rw":
-                return CommandResult(success=False, output="", exit_code=1, error="busy")
+                return CommandResult(
+                    success=False, output="", exit_code=1, error="busy"
+                )
             self.options[mount_point] = mode + ",relatime"
             return CommandResult(success=True, output="", exit_code=0)
         return CommandResult(success=True, output="", exit_code=0)
@@ -114,12 +118,16 @@ async def test_a_writable_mount_is_never_set_read_only():
 
 @pytest.mark.asyncio
 async def test_other_mount_points_are_never_touched():
-    device = FakeDevice({"/": "ro", "/mnt/nv": "ro", "/media/sda1": "rw", "/mnt/update": "ro"})
+    device = FakeDevice(
+        {"/": "ro", "/mnt/nv": "ro", "/media/sda1": "rw", "/mnt/update": "ro"}
+    )
 
     async with _client(device).write_access():
         pass
 
-    assert all("/media/sda1" not in c and "/mnt/update" not in c for c in device.remounts)
+    assert all(
+        "/media/sda1" not in c and "/mnt/update" not in c for c in device.remounts
+    )
     assert device.options["/mnt/update"] == "ro"  # not unlocked, not changed
 
 
@@ -131,8 +139,12 @@ async def test_writes_happen_while_unlocked_and_never_after_the_restore():
         device.commands.append("<write>")
         assert device.options["/mnt/nv"].startswith("rw")
 
-    assert device.commands.index("mount -o remount,rw /mnt/nv") < device.commands.index("<write>")
-    assert device.commands.index("<write>") < device.commands.index("mount -o remount,ro /mnt/nv")
+    assert device.commands.index("mount -o remount,rw /mnt/nv") < device.commands.index(
+        "<write>"
+    )
+    assert device.commands.index("<write>") < device.commands.index(
+        "mount -o remount,ro /mnt/nv"
+    )
     assert device.options["/mnt/nv"].startswith("ro")
 
 
@@ -154,8 +166,13 @@ async def test_restore_runs_when_the_block_raises():
         async with _client(device).write_access():
             raise ValueError("write failed")
 
-    assert device.options["/"].startswith("ro") and device.options["/mnt/nv"].startswith("ro")
-    assert device.remounts[-2:] == ["mount -o remount,ro /mnt/nv", "mount -o remount,ro /"]
+    assert device.options["/"].startswith("ro") and device.options[
+        "/mnt/nv"
+    ].startswith("ro")
+    assert device.remounts[-2:] == [
+        "mount -o remount,ro /mnt/nv",
+        "mount -o remount,ro /",
+    ]
 
 
 @pytest.mark.asyncio
@@ -195,7 +212,10 @@ async def test_nested_blocks_restore_only_what_each_block_changed():
             pass
         assert device.options["/mnt/nv"].startswith("rw")
 
-    assert device.remounts == ["mount -o remount,rw /mnt/nv", "mount -o remount,ro /mnt/nv"]
+    assert device.remounts == [
+        "mount -o remount,rw /mnt/nv",
+        "mount -o remount,ro /mnt/nv",
+    ]
 
 
 # --- coupling to the SSH login: ssh_operation(write=True) ----------------------------
@@ -221,10 +241,16 @@ async def test_ssh_operation_write_unlocks_and_restores_around_the_body():
     device = FakeDevice({"/": "ro", "/mnt/nv": "ro"})
 
     with _patch_login(device):
-        async with wizard_helpers.ssh_operation("10.0.0.5", "modify-config", write=True) as ssh:
+        async with wizard_helpers.ssh_operation(
+            "10.0.0.5", "modify-config", write=True
+        ) as ssh:
             await ssh.execute("touch /mnt/nv/remote_services")
 
-    sequence = [c for c in device.commands if "remount" in c or c.startswith("touch") or c == "<close>"]
+    sequence = [
+        c
+        for c in device.commands
+        if "remount" in c or c.startswith("touch") or c == "<close>"
+    ]
     assert sequence == [
         "mount -o remount,rw /",
         "mount -o remount,rw /mnt/nv",
@@ -278,7 +304,9 @@ async def test_every_write_operation_asks_for_write_access():
     }
     for rel, operation in expected.items():
         source = (root / rel).read_text(encoding="utf-8")
-        assert re.search(rf'ssh_operation\([^)]*"{operation}",\s*write=True', source), rel
+        assert re.search(
+            rf'ssh_operation\([^)]*"{operation}",\s*write=True', source
+        ), rel
 
     routes = (root / "setup/routes.py").read_text(encoding="utf-8")
     assert "ssh_client.write_access()" in routes

@@ -108,7 +108,9 @@ export default function DeviceSwiper({
   const [dotsWidth, setDotsWidth] = useState(0);
 
   // phones (<= 600 px) need 44 px per dot; kept in state so the render stays pure
-  const [phone, setPhone] = useState(() => typeof window.matchMedia === "function" && window.matchMedia(PHONE_QUERY).matches);
+  const [phone, setPhone] = useState(
+    () => typeof window.matchMedia === "function" && window.matchMedia(PHONE_QUERY).matches
+  );
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return;
     const query = window.matchMedia(PHONE_QUERY);

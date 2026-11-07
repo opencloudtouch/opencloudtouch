@@ -237,7 +237,9 @@ class SoundTouchSSHClient:
         remounted: list[str] = []
         for mount_point in mount_points:
             if await self.is_mount_read_only(mount_point):
-                result = await self.execute(f"mount -o remount,rw {shlex.quote(mount_point)}")
+                result = await self.execute(
+                    f"mount -o remount,rw {shlex.quote(mount_point)}"
+                )
                 if result.success:
                     remounted.append(mount_point)
                 else:
@@ -253,7 +255,9 @@ class SoundTouchSSHClient:
             if remounted:
                 await self.execute("sync")
             for mount_point in reversed(remounted):
-                result = await self.execute(f"mount -o remount,ro {shlex.quote(mount_point)}")
+                result = await self.execute(
+                    f"mount -o remount,ro {shlex.quote(mount_point)}"
+                )
                 if not result.success:
                     logger.warning(
                         "remount ro of %s failed on %s: %s",

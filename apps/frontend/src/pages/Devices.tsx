@@ -254,7 +254,6 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
       setSearchOpen(false);
       showToast(t("presets.presetSaved", { number: presetNumber }), "success");
     } catch (err) {
-
       if (station.stationuuid.startsWith("manual-")) {
         throw err;
       }
@@ -705,7 +704,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
         onClose={() => {
           setSearchOpen(false);
           setAssigningPreset(null);
-            }}
+        }}
         onStationSelect={handleStationSelect}
         onDelete={handleDeletePreset}
         presetNumber={assigningPreset}

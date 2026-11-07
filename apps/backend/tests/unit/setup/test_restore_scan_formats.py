@@ -59,14 +59,21 @@ def test_the_preference_does_not_depend_on_the_listing_order(order):
 
     (backup_set,) = RestoreService._group_into_sets(files)
 
-    assert [f.filename for f in backup_set.files] == ["soundtouch-ABC123-20261105-rootfs.tar"]
+    assert [f.filename for f in backup_set.files] == [
+        "soundtouch-ABC123-20261105-rootfs.tar"
+    ]
 
 
 @pytest.mark.asyncio
 async def test_scan_validates_only_the_selected_set():
     service = RestoreService()
     files = [
-        _file("soundtouch-OTHER99-20261101-rootfs.tar", "rootfs", device="OTHER99", date="20261101"),
+        _file(
+            "soundtouch-OTHER99-20261101-rootfs.tar",
+            "rootfs",
+            device="OTHER99",
+            date="20261101",
+        ),
         _file("soundtouch-ABC123-20261105-rootfs.tar", "rootfs"),
         _file("soundtouch-ABC123-20261105-nv.tar", "persistent"),
     ]
@@ -82,7 +89,9 @@ async def test_scan_validates_only_the_selected_set():
     with (
         patch.object(service, "_find_usb_backups", AsyncMock(return_value=files)),
         patch.object(service, "_validate_archive", side_effect=fake_validate),
-        patch("opencloudtouch.setup.restore_service.ssh_operation", return_value=mock_ctx),
+        patch(
+            "opencloudtouch.setup.restore_service.ssh_operation", return_value=mock_ctx
+        ),
     ):
         result = await service.scan_backups("192.168.1.100", "ABC123")
 
@@ -97,13 +106,23 @@ async def test_scan_validates_only_the_selected_set():
 @pytest.mark.asyncio
 async def test_scan_without_a_matching_set_reads_no_archive():
     service = RestoreService()
-    files = [_file("soundtouch-OTHER99-20261101-rootfs.tar", "rootfs", device="OTHER99", date="20261101")]
+    files = [
+        _file(
+            "soundtouch-OTHER99-20261101-rootfs.tar",
+            "rootfs",
+            device="OTHER99",
+            date="20261101",
+        )
+    ]
     validate = AsyncMock()
 
     with (
         patch.object(service, "_find_usb_backups", AsyncMock(return_value=files)),
         patch.object(service, "_validate_archive", validate),
-        patch("opencloudtouch.setup.restore_service.ssh_operation", return_value=MagicMock()),
+        patch(
+            "opencloudtouch.setup.restore_service.ssh_operation",
+            return_value=MagicMock(),
+        ),
     ):
         result = await service.scan_backups("192.168.1.100", "ABC123")
 

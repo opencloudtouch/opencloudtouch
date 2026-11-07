@@ -241,7 +241,8 @@ export default function Step5ConfigModification({
       }
     } catch (err) {
       // A rejected input (HTTP 422) is shown at the input; everything else as a translated error
-      const rejected = isApiErrorInstance(err) && (err.status === 422 || err.fieldErrors.length > 0);
+      const rejected =
+        isApiErrorInstance(err) && (err.status === 422 || err.fieldErrors.length > 0);
       if (rejected) {
         setValidationError(t("setup.wizard.step5.validationInvalid"));
       } else {

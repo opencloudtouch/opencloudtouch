@@ -592,7 +592,10 @@ class TestArchivePrefixSearchAwk:
             "update": ["mnt/update/", "mnt/update/fw.bin"],
         }
         for name, entries in listings.items():
-            same = name == volume or {name, volume} == {"rootfs", "config"}  # both live under opt/Bose/
+            same = name == volume or {name, volume} == {
+                "rootfs",
+                "config",
+            }  # both live under opt/Bose/
             expected = "1" if same else "0"
             assert self._scan(_EXPECTED_ARCHIVE_PREFIXES[volume], entries) == expected
 
@@ -1076,12 +1079,15 @@ class TestStepMessageCodes:
         step = await service._reboot_device(AsyncMock())
         assert step.message_code == "reboot_sent"
 
+
 class TestTarAndTgzArchives:
     """New backups are plain .tar, older ones are .tgz: both must be found, validated and restored."""
 
     @pytest.mark.parametrize("ext", ["tar", "tgz"])
     def test_modern_names_with_both_extensions_are_parsed(self, ext):
-        info = RestoreService._parse_backup_filename(f"soundtouch-ABC123DEF456-20250512-rootfs.{ext}")
+        info = RestoreService._parse_backup_filename(
+            f"soundtouch-ABC123DEF456-20250512-rootfs.{ext}"
+        )
         assert info is not None
         assert info.device_id == "ABC123DEF456"
         assert info.volume_type == "rootfs"
@@ -1093,7 +1099,12 @@ class TestTarAndTgzArchives:
         assert info.device_id is None
 
     def test_other_extensions_are_rejected(self):
-        assert RestoreService._parse_backup_filename("soundtouch-ABC123-20250512-rootfs.zip") is None
+        assert (
+            RestoreService._parse_backup_filename(
+                "soundtouch-ABC123-20250512-rootfs.zip"
+            )
+            is None
+        )
 
     @pytest.mark.parametrize(
         "path, op, expected",
@@ -1124,7 +1135,9 @@ class TestTarAndTgzArchives:
         mock_ctx.__aenter__.return_value = mock_ssh
         mock_ctx.__aexit__.return_value = False
 
-        with patch("opencloudtouch.setup.restore_service.ssh_operation", return_value=mock_ctx):
+        with patch(
+            "opencloudtouch.setup.restore_service.ssh_operation", return_value=mock_ctx
+        ):
             files = await service._find_usb_backups("192.168.1.100")
 
         listing_cmd = mock_ssh.execute.await_args_list[1][0][0]
@@ -1134,13 +1147,17 @@ class TestTarAndTgzArchives:
             "soundtouch-ABC123-20260101-rootfs.tar",
         ]
 
-    @pytest.mark.parametrize("name, listing", [("a.tar", "tar tf "), ("a.tgz", "tar tzf ")])
+    @pytest.mark.parametrize(
+        "name, listing", [("a.tar", "tar tf "), ("a.tgz", "tar tzf ")]
+    )
     async def test_validation_lists_with_the_right_flags(self, name, listing):
         from opencloudtouch.setup.restore_models import BackupFileInfo
 
         service = RestoreService()
         mock_ssh = AsyncMock()
-        mock_ssh.execute.return_value = MagicMock(output="opt/Bose/\n", exit_code=0, success=True)
+        mock_ssh.execute.return_value = MagicMock(
+            output="opt/Bose/\n", exit_code=0, success=True
+        )
         info = BackupFileInfo(
             filename=name,
             volume_type="rootfs",
@@ -1152,31 +1169,44 @@ class TestTarAndTgzArchives:
         commands = [c[0][0] for c in mock_ssh.execute.await_args_list]
         assert commands and all(c.startswith(listing) for c in commands)
 
-    @pytest.mark.parametrize("name, extract", [("a.tar", "tar xf "), ("a.tgz", "tar xzf ")])
+    @pytest.mark.parametrize(
+        "name, extract", [("a.tar", "tar xf "), ("a.tgz", "tar xzf ")]
+    )
     async def test_extraction_uses_the_right_flags(self, name, extract):
         service = RestoreService()
         mock_ssh = AsyncMock()
         mock_ssh.execute.return_value = MagicMock(output="", exit_code=0)
-        backup_set = {"files": [{"file_path": f"/media/sda1/oct-backup/{name}", "volume_type": "rootfs"}]}
+        backup_set = {
+            "files": [
+                {"file_path": f"/media/sda1/oct-backup/{name}", "volume_type": "rootfs"}
+            ]
+        }
 
         await service._extract_config_from_backup(mock_ssh, backup_set, [])
 
         assert mock_ssh.execute.await_args_list[0][0][0].startswith(extract)
 
 
-
 from opencloudtouch.setup.restore_models import BackupFileInfo as _BFI
 
 
 def _file_info(name, volume):
-    return _BFI(filename=name, volume_type=volume, file_path=f'/media/sda1/oct-backup/{name}', device_id='ABC123', backup_date='20261105')
+    return _BFI(
+        filename=name,
+        volume_type=volume,
+        file_path=f"/media/sda1/oct-backup/{name}",
+        device_id="ABC123",
+        backup_date="20261105",
+    )
 
 
 class TestConfigArchiveRestore:
     """The restore uses the small config archive when the backup has one, else the rootfs archive."""
 
     def test_config_names_are_parsed(self):
-        info = RestoreService._parse_backup_filename("soundtouch-ABC123-20261105-config.tar")
+        info = RestoreService._parse_backup_filename(
+            "soundtouch-ABC123-20261105-config.tar"
+        )
         assert info is not None and info.volume_type == "config"
 
     async def test_config_is_extracted_from_the_config_archive_not_the_rootfs(self):
@@ -1194,21 +1224,28 @@ class TestConfigArchiveRestore:
         await service._extract_config_from_backup(ssh, backup_set, [])
 
         commands = [c[0][0] for c in ssh.execute.await_args_list]
-        assert any("/m/b-config.tar" in c and "SoundTouchSdkPrivateCfg.xml" in c for c in commands)
+        assert any(
+            "/m/b-config.tar" in c and "SoundTouchSdkPrivateCfg.xml" in c
+            for c in commands
+        )
         assert not any("/m/b-rootfs.tar" in c for c in commands)
 
     async def test_older_backups_without_config_archive_use_the_rootfs_archive(self):
         service = RestoreService()
         ssh = AsyncMock()
         ssh.execute.return_value = MagicMock(output="", exit_code=0)
-        backup_set = {"files": [{"file_path": "/m/b-rootfs.tgz", "volume_type": "rootfs"}]}
+        backup_set = {
+            "files": [{"file_path": "/m/b-rootfs.tgz", "volume_type": "rootfs"}]
+        }
 
         await service._extract_config_from_backup(ssh, backup_set, [])
 
         commands = [c[0][0] for c in ssh.execute.await_args_list]
         assert any(c.startswith("tar xzf /m/b-rootfs.tgz") for c in commands)
 
-    async def test_scan_does_not_list_the_big_rootfs_archive_when_a_config_archive_exists(self):
+    async def test_scan_does_not_list_the_big_rootfs_archive_when_a_config_archive_exists(
+        self,
+    ):
         service = RestoreService()
         files = [
             _file_info("soundtouch-ABC123-20261105-rootfs.tar", "rootfs"),
@@ -1226,9 +1263,16 @@ class TestConfigArchiveRestore:
         with (
             patch.object(service, "_find_usb_backups", AsyncMock(return_value=files)),
             patch.object(service, "_validate_archive", side_effect=fake_validate),
-            patch("opencloudtouch.setup.restore_service.ssh_operation", return_value=ctx),
+            patch(
+                "opencloudtouch.setup.restore_service.ssh_operation", return_value=ctx
+            ),
         ):
             result = await service.scan_backups("192.168.1.100", "ABC123")
 
-        assert sorted(validated) == ["soundtouch-ABC123-20261105-config.tar", "soundtouch-ABC123-20261105-nv.tar"]
-        assert len(result.selected_set.files) == 3  # the rootfs file is still part of the set
+        assert sorted(validated) == [
+            "soundtouch-ABC123-20261105-config.tar",
+            "soundtouch-ABC123-20261105-nv.tar",
+        ]
+        assert (
+            len(result.selected_set.files) == 3
+        )  # the rootfs file is still part of the set

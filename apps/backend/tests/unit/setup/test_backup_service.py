@@ -188,7 +188,9 @@ class TestBackupVolume:
 
 
 class TestBackupAll:
-    async def test_backs_up_all_volumes_including_the_config_archive(self, service, mock_ssh):
+    async def test_backs_up_all_volumes_including_the_config_archive(
+        self, service, mock_ssh
+    ):
         # find_usb_mount + mkdir + (tar + size) x 4: rootfs, config, persistent, update
         mock_ssh.execute.side_effect = [
             _ok("/media/sda1"),  # find_usb_mount
@@ -336,15 +338,18 @@ class TestUncompressedBackup:
         name = _backup_filename(VolumeType.ROOTFS, "AA:BB:CC")
         assert name.startswith("soundtouch-AABBCC-") and name.endswith("-rootfs.tar")
 
-    async def test_size_is_read_with_stat_not_by_reading_the_file(self, service, mock_ssh):
+    async def test_size_is_read_with_stat_not_by_reading_the_file(
+        self, service, mock_ssh
+    ):
         mock_ssh.execute.side_effect = [_ok(), _ok("144475648")]
 
-        result = await service._backup_volume(VolumeType.ROOTFS, "/media/sda1/oct-backup")
+        result = await service._backup_volume(
+            VolumeType.ROOTFS, "/media/sda1/oct-backup"
+        )
 
         size_cmd = mock_ssh.execute.await_args_list[1][0][0]
         assert size_cmd.startswith("stat -c %s ")
         assert result.size_bytes == 144475648
-
 
 
 class TestConfigArchive:
@@ -353,7 +358,9 @@ class TestConfigArchive:
     async def test_config_archive_contains_only_the_sdk_config(self, service, mock_ssh):
         mock_ssh.execute.side_effect = [_ok(), _ok("2048")]
 
-        result = await service._backup_volume(VolumeType.CONFIG, "/media/sda1/oct-backup", "ABC")
+        result = await service._backup_volume(
+            VolumeType.CONFIG, "/media/sda1/oct-backup", "ABC"
+        )
 
         cmd = mock_ssh.execute.await_args_list[0][0][0]
         assert "opt/Bose/etc/SoundTouchSdkPrivateCfg.xml" in cmd
@@ -361,25 +368,45 @@ class TestConfigArchive:
         assert result.backup_path.endswith("-config.tar")
         assert result.success is True
 
-    async def test_a_missing_config_archive_does_not_fail_the_backup(self, service, mock_ssh):
+    async def test_a_missing_config_archive_does_not_fail_the_backup(
+        self, service, mock_ssh
+    ):
         mock_ssh.execute.side_effect = [
             _ok("/media/sda1"),
             _ok(),
-            _ok(), _ok("61341696"),  # rootfs
-            _fail("tar: can't open"), _ok("0"),  # config: file missing on this firmware
-            _ok(), _ok("10240"),  # persistent
-            _ok(), _ok("954966"),  # update
+            _ok(),
+            _ok("61341696"),  # rootfs
+            _fail("tar: can't open"),
+            _ok("0"),  # config: file missing on this firmware
+            _ok(),
+            _ok("10240"),  # persistent
+            _ok(),
+            _ok("954966"),  # update
         ]
 
         results = await service.backup_all()
 
-        assert [r.volume for r in results] == [VolumeType.ROOTFS, VolumeType.PERSISTENT, VolumeType.UPDATE]
+        assert [r.volume for r in results] == [
+            VolumeType.ROOTFS,
+            VolumeType.PERSISTENT,
+            VolumeType.UPDATE,
+        ]
         assert all(r.success for r in results)
 
-    async def test_config_archive_is_created_after_the_rootfs_archive(self, service, mock_ssh):
+    async def test_config_archive_is_created_after_the_rootfs_archive(
+        self, service, mock_ssh
+    ):
         mock_ssh.execute.side_effect = [
-            _ok("/media/sda1"), _ok(),
-            _ok(), _ok("1"), _ok(), _ok("1"), _ok(), _ok("1"), _ok(), _ok("1"),
+            _ok("/media/sda1"),
+            _ok(),
+            _ok(),
+            _ok("1"),
+            _ok(),
+            _ok("1"),
+            _ok(),
+            _ok("1"),
+            _ok(),
+            _ok("1"),
         ]
 
         results = await service.backup_all()

@@ -165,7 +165,10 @@ class TestRenameDeviceViaSSH:
     async def test_requests_write_access(self, fake_ssh, monkeypatch):
         """The rename runs inside ssh_operation(write=True) so the partitions are writable."""
         fake_ssh.execute = AsyncMock(
-            side_effect=[FakeCommandResult(success=True, output=SAMPLE_XML), FakeCommandResult(success=True)]
+            side_effect=[
+                FakeCommandResult(success=True, output=SAMPLE_XML),
+                FakeCommandResult(success=True),
+            ]
         )
         seen = {}
 
@@ -186,7 +189,7 @@ def _fake_ctx(fake_ssh, seen=None):
     @asynccontextmanager
     async def _ctx(device_ip, operation_name, write=False):
         if seen is not None:
-            seen['write'] = write
+            seen["write"] = write
         yield fake_ssh
 
     return _ctx

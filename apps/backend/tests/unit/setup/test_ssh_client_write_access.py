@@ -18,7 +18,9 @@ def _client(mounts: dict[str, str]):
         if "/proc/mounts" in command:
             for mount_point, options in mounts.items():
                 if f"m={mount_point} " in command or f"m='{mount_point}' " in command:
-                    return CommandResult(success=True, output=options + "\n", exit_code=0)
+                    return CommandResult(
+                        success=True, output=options + "\n", exit_code=0
+                    )
             return CommandResult(success=True, output="\n", exit_code=0)
         return CommandResult(success=True, output="", exit_code=0)
 
