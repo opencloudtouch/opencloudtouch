@@ -96,9 +96,6 @@
 .st-ip-msg {
   min-height: 39px;
 } /* two lines of 13px: hint and error share one slot */
-.st-ip-msg > * {
-  margin: 0;
-}
 
 /* log level: native select, custom chevron (an inline SVG, so it also shows in forced-colors) */
 .st-level {

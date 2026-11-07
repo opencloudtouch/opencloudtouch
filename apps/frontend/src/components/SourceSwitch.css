@@ -17,12 +17,6 @@
   min-width: 0;
   flex: 1;
 }
-.si-b-left .si-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .si-b {
   display: flex;
   flex: none;

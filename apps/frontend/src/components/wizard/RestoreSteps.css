@@ -227,22 +227,6 @@
   color: var(--text-primary);
   overflow-wrap: anywhere;
 }
-.restore-execution__error-detail {
-  grid-area: detail;
-  min-width: 0;
-  margin-top: 4px;
-  padding: 8px 10px;
-  background: var(--color-bg-darker);
-  border: 1px solid rgba(244, 67, 54, 0.5);
-  border-radius: 4px;
-  font:
-    13px/1.5 ui-monospace,
-    Menlo,
-    Consolas,
-    monospace;
-  color: #ff8a80;
-  overflow-wrap: anywhere;
-}
 /* Phones: label and duration in one row left only ~120px for the label ("Konfigurationsdateien" broke mid-word);
    the duration moves to its own line below the label and words only break when longer than the full row. */
 @media (max-width: 480px) {
@@ -396,9 +380,6 @@
 .restore-completion__section--failed h4 .wz-icon,
 .restore-completion__section--failed li > .wz-icon {
   color: var(--color-danger);
-}
-.restore-completion__error {
-  color: #ff8a80;
 }
 .restore-completion__note {
   margin: 0;

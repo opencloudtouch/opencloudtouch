@@ -606,41 +606,6 @@
   overflow-wrap: anywhere;
 }
 
-.wz-numlist {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-.wz-numlist > li {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  min-width: 0;
-}
-.wz-num {
-  flex: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  font-weight: var(--font-weight-bold);
-  background: rgba(var(--primary-rgb), 0.15);
-  color: var(--primary-text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.wz-numlist-title {
-  font-size: var(--fs-body);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-}
-.wz-numlist-text {
-  font-size: var(--fs-md);
-  line-height: 1.5;
-  color: var(--color-text-secondary);
-  overflow-wrap: anywhere;
-}
-
 .verify-checklist {
   display: flex;
   flex-direction: column;
@@ -723,26 +688,8 @@
   font-size: var(--fs-small);
   line-height: 1.6;
 }
-.wz-diff .del {
-  color: var(--color-danger);
-}
 .wz-diff .add {
   color: var(--color-success);
-}
-.wz-chip {
-  display: inline-block;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  padding: 6px 10px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
-  font:
-    13px/1.5 ui-monospace,
-    Menlo,
-    Consolas,
-    monospace;
-  color: var(--text-primary);
 }
 
 /* choice cards (also used for .risk-card and RestoreChoice) */
