@@ -16,9 +16,49 @@ describe("Page states", () => {
     cy.contains(".app-state .btn", /./, { timeout: 12000 }).should("be.visible");
   });
 
+  describe("Welcome", () => {
+    const sse = (data: object) => ({
+      statusCode: 200,
+      headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
+      body: `event: error
+data: ${JSON.stringify(data)}
+
+`,
+    });
+
+    it("answers a scan that is already running with an info hint, not an error", () => {
+      cy.intercept("GET", "/api/devices", { statusCode: 200, body: { count: 0, devices: [] } });
+      cy.intercept(
+        "GET",
+        "/api/devices/discover/stream*",
+        sse({ message: "Discovery already in progress", code: "discovery_in_progress" })
+      );
+      cy.visit("/welcome");
+      cy.get('[data-test="discover-button"]').click();
+      cy.get(".toast-info").should("be.visible");
+      cy.get(".toast-error").should("not.exist");
+    });
+
+    it("reports any other scan failure as an error", () => {
+      cy.intercept("GET", "/api/devices", { statusCode: 200, body: { count: 0, devices: [] } });
+      cy.intercept(
+        "GET",
+        "/api/devices/discover/stream*",
+        sse({ message: "Backend discovery process crashed" })
+      );
+      cy.visit("/welcome");
+      cy.get('[data-test="discover-button"]').click();
+      cy.get(".toast-error").should("be.visible");
+      cy.get(".toast-info").should("not.exist");
+    });
+  });
+
   describe("About", () => {
     beforeEach(() => {
-      cy.intercept("GET", "/api/devices", { statusCode: 200, body: { count: 1, devices: [DEVICES[0]] } });
+      cy.intercept("GET", "/api/devices", {
+        statusCode: 200,
+        body: { count: 1, devices: [DEVICES[0]] },
+      });
     });
 
     it("announces a newer release with a link to it", () => {
@@ -28,11 +68,17 @@ describe("Page states", () => {
       });
       cy.intercept("GET", "https://api.github.com/repos/**", {
         statusCode: 200,
-        body: { tag_name: "v9.9.9", html_url: "https://github.com/scheilch/opencloudtouch/releases/tag/v9.9.9" },
+        body: {
+          tag_name: "v9.9.9",
+          html_url: "https://github.com/scheilch/opencloudtouch/releases/tag/v9.9.9",
+        },
       });
       cy.visit("/about");
       cy.get(".ab-update .ab-update-body", { timeout: 10000 }).should("be.visible");
-      cy.get(".ab-update .btn.btn-sm").should("be.visible").and("have.attr", "href").and("include", "v9.9.9");
+      cy.get(".ab-update .btn.btn-sm")
+        .should("be.visible")
+        .and("have.attr", "href")
+        .and("include", "v9.9.9");
       cy.get(".btn .ab-ext").should("exist");
       cy.get(".ab-build-time").should("be.visible");
     });
@@ -40,7 +86,10 @@ describe("Page states", () => {
 
   describe("Diagnostics", () => {
     it("shows an explanation instead of an empty device list", () => {
-      cy.intercept("GET", "/api/devices", { statusCode: 200, body: { count: 1, devices: [DEVICES[0]] } });
+      cy.intercept("GET", "/api/devices", {
+        statusCode: 200,
+        body: { count: 1, devices: [DEVICES[0]] },
+      });
       cy.intercept("GET", "/api/diagnostics", {
         statusCode: 200,
         body: {
@@ -64,7 +113,10 @@ describe("Page states", () => {
     });
 
     it("marks the download button as busy and disabled while the report is built", () => {
-      cy.intercept("GET", "/api/devices", { statusCode: 200, body: { count: 1, devices: [DEVICES[0]] } });
+      cy.intercept("GET", "/api/devices", {
+        statusCode: 200,
+        body: { count: 1, devices: [DEVICES[0]] },
+      });
       cy.intercept("POST", "/api/bug-report/diagnostics", (req) => {
         req.reply({ delay: 2000, statusCode: 500, body: {} });
       });
@@ -76,7 +128,10 @@ describe("Page states", () => {
 
   describe("Settings", () => {
     it("shows why the log download failed", () => {
-      cy.intercept("GET", "/api/devices", { statusCode: 200, body: { count: 1, devices: [DEVICES[0]] } });
+      cy.intercept("GET", "/api/devices", {
+        statusCode: 200,
+        body: { count: 1, devices: [DEVICES[0]] },
+      });
       cy.intercept("POST", "/api/logs/backend", { statusCode: 500, body: {} });
       cy.visit("/settings");
       cy.get(".st-download-btn").click();

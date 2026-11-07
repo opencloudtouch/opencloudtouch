@@ -39,6 +39,8 @@ export interface DiscoveryState {
   devicesFound: Device[];
   completed: boolean;
   error: string | null;
+  /** "alreadyRunning": the backend refused because a scan is running; "failed": anything else. */
+  errorKind: "failed" | "alreadyRunning" | null;
   stats: {
     discovered: number;
     synced: number;
@@ -65,6 +67,7 @@ export function useDiscoveryStream() {
     devicesFound: [],
     completed: false,
     error: null,
+    errorKind: null,
     stats: { discovered: 0, synced: 0, failed: 0 },
   });
 
@@ -81,6 +84,7 @@ export function useDiscoveryStream() {
       devicesFound: [],
       completed: false,
       error: null,
+      errorKind: null,
       stats: { discovered: 0, synced: 0, failed: 0 },
     });
 
@@ -187,9 +191,11 @@ export function useDiscoveryStream() {
       if (!(e instanceof MessageEvent)) return;
       serverErrorHandled = true;
       let errorMessage = "Discovery failed";
+      let errorKind: DiscoveryState["errorKind"] = "failed";
       try {
         const data = JSON.parse(e.data);
         errorMessage = data.message || errorMessage;
+        if (data.code === "discovery_in_progress") errorKind = "alreadyRunning";
       } catch {
         // parse error - use default message
       }
@@ -200,6 +206,7 @@ export function useDiscoveryStream() {
         ...prev,
         isDiscovering: false,
         error: errorMessage,
+        errorKind,
       }));
 
       // Close connection
@@ -213,20 +220,14 @@ export function useDiscoveryStream() {
       if (serverErrorHandled) return;
       console.error("[SSE] Connection error:", e);
 
-      // Check if it was a 409 (already in progress)
-      if ((e.target as EventSource).readyState === EventSource.CLOSED) {
-        setState((prev) => ({
-          ...prev,
-          isDiscovering: false,
-          error: "Discovery already in progress",
-        }));
-      } else {
-        setState((prev) => ({
-          ...prev,
-          isDiscovering: false,
-          error: "Connection lost",
-        }));
-      }
+      // A closed connection can be a 500, a proxy error or a dropped network: the browser does not say which.
+      // ("already running" arrives as a regular error event, see above.)
+      setState((prev) => ({
+        ...prev,
+        isDiscovering: false,
+        error: "Connection lost",
+        errorKind: "failed",
+      }));
 
       eventSource.close();
       eventSourceRef.current = null;

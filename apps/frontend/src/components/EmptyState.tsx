@@ -31,6 +31,7 @@ export default function EmptyState() {
     devicesFound,
     completed,
     error: discoveryError,
+    errorKind: discoveryErrorKind,
     stats,
     startDiscovery,
   } = useDiscoveryStream();
@@ -55,13 +56,13 @@ export default function EmptyState() {
   // Show error toast (must be in useEffect, not render phase)
   useEffect(() => {
     if (discoveryError) {
-      const isAlreadyRunning = discoveryError.includes("already in progress");
+      const isAlreadyRunning = discoveryErrorKind === "alreadyRunning";
       showToast(
         isAlreadyRunning ? t("discovery.alreadyRunning") : t("discovery.failed"),
         isAlreadyRunning ? "info" : "error"
       );
     }
-  }, [discoveryError, showToast, t]);
+  }, [discoveryError, discoveryErrorKind, showToast, t]);
 
   // Show completion toast if no devices found (must be in useEffect, not render phase)
   useEffect(() => {

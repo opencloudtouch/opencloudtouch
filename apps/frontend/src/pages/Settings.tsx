@@ -81,6 +81,7 @@ export default function Settings() {
     devicesFound,
     completed,
     error: discoveryError,
+    errorKind: discoveryErrorKind,
     startDiscovery,
   } = useDiscoveryStream();
   const queryClient = useQueryClient();
@@ -132,12 +133,12 @@ export default function Settings() {
   // A failed scan is reported (it used to end silently); "already running" is only a hint
   useEffect(() => {
     if (!discoveryError) return;
-    const alreadyRunning = discoveryError.includes("already in progress");
+    const alreadyRunning = discoveryErrorKind === "alreadyRunning";
     show(
       alreadyRunning ? t("discovery.alreadyRunning") : t("discovery.failed"),
       alreadyRunning ? "info" : "error"
     );
-  }, [discoveryError, show, t]);
+  }, [discoveryError, discoveryErrorKind, show, t]);
 
   const handleScan = () => {
     knownDeviceIdsRef.current = new Set(
