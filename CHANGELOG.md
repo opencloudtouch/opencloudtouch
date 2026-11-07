@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- DLNA playback API reports automatic track advancement availability via `auto_advance` (#510)
 - Redesigned setup and restore wizards with a shared design, progress tracker, focus management and full keyboard and screen-reader support
 - Redesigned app shell, presets page, local control, zones, firmware, settings, diagnostics, about and licenses pages with swipe navigation between devices, a sticky device switch bar and a native `<dialog>` based modal
 - Remove button with a confirmation dialog for online and offline devices in presets and local control; saved presets are kept (#520)
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings: a failed log download shows a translated reason instead of failing silently (#527)
 
 ### Fixed
+- Guard DLNA service shutdown when startup did not initialize the service (#510)
 - Layout overflow and overlap on the presets, local control, multi-room and settings pages, the swiper, the navigation and the empty state
 - False "unexpected content" warnings when validating a restore archive
 - Accessibility: skip link and `main` landmark, heading order, contrast tokens, translated `aria-label`s, `html lang` sync, toast roles and reduced-motion support

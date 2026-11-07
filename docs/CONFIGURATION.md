@@ -65,7 +65,7 @@ See [`deployment/README.md`](../deployment/README.md#build-arguments) for build 
 
 ## DLNA Playback and Automatic Track Advancement
 
-DLNA playback uses AVTransport event callbacks from the SoundTouch device to advance to the next track. The device must be able to reach OCT's callback address. This currently assumes Docker host networking and IPv4; Docker bridge networking, NAT, or a reverse proxy may prevent callbacks from reaching OCT or cause the source-IP check to reject them. Playback can still start without a working event subscription, but automatic track advancement will not work.
+DLNA playback uses AVTransport event callbacks from the SoundTouch device to advance to the next track. The device must be able to reach OCT's callback address. This currently assumes Docker host networking and IPv4; Docker bridge networking, NAT, or a reverse proxy may prevent callbacks from reaching OCT or cause the source-IP check to reject them. Playback can still start without a working event subscription, but automatic track advancement will not work. The `POST /api/dlna/devices/{device_id}/play` response includes `auto_advance`: `false` when no active AVTransport subscription exists for the speaker at response time, and `true` when one exists (including a previously established subscription). `true` does not guarantee that later callbacks will arrive or that the subscription will remain available.
 
 ## Also See
 

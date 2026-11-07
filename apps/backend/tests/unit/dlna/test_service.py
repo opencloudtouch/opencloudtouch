@@ -1,7 +1,7 @@
 """Tests for the DLNA application service."""
 
 import asyncio
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -429,6 +429,9 @@ async def test_play_uses_cached_server_and_closes_subscriptions():
     service = DlnaService(discovery=discovery, client=client, playback=playback)
     service.subscriptions.ensure = AsyncMock()
     service.subscriptions.close = AsyncMock()
+    active_subscription = MagicMock(device_ip="192.0.2.20")
+    active_subscription.renewal_task.done.return_value = False
+    service.subscriptions.get = MagicMock(return_value=active_subscription)
 
     await service.get_servers()
     result = await service.play(
@@ -440,7 +443,8 @@ async def test_play_uses_cached_server_and_closes_subscriptions():
         callback_base_url="http://192.0.2.30:7777",
     )
 
-    assert result == item
+    assert result.item == item
+    assert result.auto_advance is True
     discovery.discover.assert_awaited_once()
     service.subscriptions.ensure.assert_awaited_once_with(
         device_id="device-1",
@@ -488,7 +492,8 @@ async def test_play_continues_when_event_subscription_fails():
         callback_base_url="http://192.0.2.30:7777",
     )
 
-    assert result == item
+    assert result.item == item
+    assert result.auto_advance is False
     service.playback.play.assert_awaited_once()
     service.subscriptions.ensure.assert_awaited_once()
 
@@ -521,7 +526,8 @@ async def test_play_skips_subscription_without_callback_address():
         callback_base_url=None,
     )
 
-    assert result == item
+    assert result.item == item
+    assert result.auto_advance is False
     service.subscriptions.ensure.assert_not_awaited()
     service.playback.play.assert_awaited_once_with(
         device_id="device-1",
@@ -530,3 +536,49 @@ async def test_play_skips_subscription_without_callback_address():
         items=[item],
         object_id="track-1",
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("subscription_ip", "renewal_done", "expected"),
+    [
+        ("192.0.2.20", False, True),
+        ("192.0.2.20", True, False),
+        ("192.0.2.99", False, False),
+    ],
+)
+async def test_play_reports_existing_subscription_without_callback_address(
+    subscription_ip, renewal_done, expected
+):
+    """Report a retained subscription only when it is live for this speaker."""
+    item = DlnaItem(
+        id="track-1",
+        parent_id="folder",
+        title="Song",
+        is_container=False,
+        resource_url="http://192.0.2.10/song.mp3",
+    )
+    service = DlnaService(
+        discovery=AsyncMock(),
+        client=AsyncMock(),
+        playback=AsyncMock(),
+    )
+    service.browse = AsyncMock(return_value=[item])
+    service.playback.play.return_value = item
+    service.subscriptions.ensure = AsyncMock()
+    subscription = MagicMock(device_ip=subscription_ip)
+    subscription.renewal_task.done.return_value = renewal_done
+    service.subscriptions.get = MagicMock(return_value=subscription)
+
+    result = await service.play(
+        device_id="device-1",
+        device_ip="192.0.2.20",
+        server_id="server-1",
+        parent_id="folder",
+        object_id="track-1",
+        callback_base_url=None,
+    )
+
+    assert result.item == item
+    assert result.auto_advance is expected
+    service.subscriptions.ensure.assert_not_awaited()

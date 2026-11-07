@@ -4,6 +4,7 @@ import asyncio
 import logging
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 
 from opencloudtouch.dlna.client import DlnaClient
 from opencloudtouch.dlna.discovery import DlnaDiscovery
@@ -12,6 +13,14 @@ from opencloudtouch.dlna.playback import DlnaPlaybackService
 from opencloudtouch.dlna.models import DlnaItem, DlnaServer
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class DlnaPlayResult:
+    """Playback item and subscription status at response time."""
+
+    item: DlnaItem
+    auto_advance: bool
 
 
 class DlnaService:
@@ -106,7 +115,7 @@ class DlnaService:
         parent_id: str,
         object_id: str,
         callback_base_url: str | None,
-    ) -> DlnaItem:
+    ) -> DlnaPlayResult:
         """Play a DLNA item, creating a queue from its parent container."""
         items = await self.browse(server_id, parent_id)
         if callback_base_url is not None:
@@ -125,13 +134,21 @@ class DlnaService:
                     device_id,
                     exc_info=True,
                 )
-        return await self.playback.play(
+        item = await self.playback.play(
             device_id=device_id,
             device_ip=device_ip,
             server_id=server_id,
             items=items,
             object_id=object_id,
         )
+        subscription = self.subscriptions.get(device_id)
+        auto_advance = bool(
+            subscription is not None
+            and subscription.device_ip == device_ip
+            and subscription.renewal_task is not None
+            and not subscription.renewal_task.done()
+        )
+        return DlnaPlayResult(item=item, auto_advance=auto_advance)
 
     async def pause(self, device_id: str, device_ip: str) -> None:
         await self.playback.pause(device_id, device_ip)

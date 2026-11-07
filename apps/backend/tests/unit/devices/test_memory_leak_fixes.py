@@ -497,6 +497,20 @@ class TestShutdownRadioAdapters:
         mock_health_check.stop.assert_awaited_once()
         mock_dlna.close.assert_awaited_once()
 
+    @pytest.mark.asyncio
+    async def test_shutdown_without_dlna_service(self):
+        """Shutdown handles partial startup without the DLNA service."""
+        from opencloudtouch.main import _shutdown
+
+        mock_health_check = AsyncMock()
+        mock_app = MagicMock()
+        mock_app.state = SimpleNamespace(health_check=mock_health_check)
+
+        import logging
+
+        await _shutdown(mock_app, {}, logging.getLogger("test"))
+        mock_health_check.stop.assert_awaited_once()
+
 
 # ---------------------------------------------------------------------------
 # DeviceStateManager — QueueFull branch + _icy_poll_loop cleanup

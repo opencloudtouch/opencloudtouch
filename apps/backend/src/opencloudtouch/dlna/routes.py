@@ -59,6 +59,12 @@ class DlnaItemResult(BaseModel):
     item: DlnaItemResponse
 
 
+class DlnaPlayResponse(DlnaItemResult):
+    """Playback response with the AVTransport subscription status."""
+
+    auto_advance: bool
+
+
 class DlnaCurrentResponse(BaseModel):
     device_id: str
     item: DlnaItemResponse | None
@@ -170,7 +176,7 @@ class DlnaPlayRequest(BaseModel):
 
 
 @router.post(
-    "/devices/{device_id}/play", response_model=DlnaItemResult, responses=DLNA_ERRORS
+    "/devices/{device_id}/play", response_model=DlnaPlayResponse, responses=DLNA_ERRORS
 )
 async def play_dlna_item(
     request: Request,
@@ -182,7 +188,7 @@ async def play_dlna_item(
     device_ip = await _get_device_ip(request, device_id)
 
     try:
-        item = await service.play(
+        result = await service.play(
             device_id=device_id,
             device_ip=device_ip,
             server_id=payload.server_id,
@@ -199,7 +205,8 @@ async def play_dlna_item(
 
     return {
         "device_id": device_id,
-        "item": asdict(item),
+        "item": asdict(result.item),
+        "auto_advance": result.auto_advance,
     }
 
 

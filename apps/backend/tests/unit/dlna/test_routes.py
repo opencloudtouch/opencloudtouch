@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from opencloudtouch.core.dependencies import get_dlna_service
 from opencloudtouch.dlna import routes
 from opencloudtouch.dlna.models import DlnaItem, DlnaServer
+from opencloudtouch.dlna.service import DlnaPlayResult
 
 
 @pytest.mark.asyncio
@@ -168,7 +169,7 @@ async def test_play_dlna_item(monkeypatch):
     )
 
     service = AsyncMock()
-    service.play.return_value = item
+    service.play.return_value = DlnaPlayResult(item=item, auto_advance=True)
 
     monkeypatch.setattr(
         routes,
@@ -204,6 +205,7 @@ async def test_play_dlna_item(monkeypatch):
     assert result["device_id"] == "device-1"
     assert result["item"]["id"] == "track-1"
     assert result["item"]["title"] == "Track"
+    assert result["auto_advance"] is True
 
     service.play.assert_awaited_once_with(
         device_id="device-1",
@@ -417,16 +419,20 @@ async def test_avtransport_notify_ignores_malformed_bose_lastchange():
     service.playback.handle_transport_state.assert_not_awaited()
 
 
-def test_http_play_route_with_slash_object_id(monkeypatch):
+@pytest.mark.parametrize("auto_advance", [True, False])
+def test_http_play_route_with_slash_object_id(monkeypatch, auto_advance):
     app = FastAPI()
     app.include_router(routes.router)
     service = AsyncMock()
-    service.play.return_value = DlnaItem(
-        id="folder/track$1",
-        parent_id="folder",
-        title="Track",
-        is_container=False,
-        resource_url="http://server/track.mp3",
+    service.play.return_value = DlnaPlayResult(
+        item=DlnaItem(
+            id="folder/track$1",
+            parent_id="folder",
+            title="Track",
+            is_container=False,
+            resource_url="http://server/track.mp3",
+        ),
+        auto_advance=auto_advance,
     )
     app.state.device_service = MagicMock()
     app.state.device_service.get_device_by_id = AsyncMock(
@@ -448,6 +454,7 @@ def test_http_play_route_with_slash_object_id(monkeypatch):
         )
     assert response.status_code == 200
     assert response.json()["item"]["id"] == "folder/track$1"
+    assert response.json()["auto_advance"] is auto_advance
     assert service.play.await_args.kwargs["object_id"] == "folder/track$1"
 
 
@@ -534,12 +541,15 @@ def test_http_play_callback_address_failure_still_plays(monkeypatch, socket_erro
     app = FastAPI()
     app.include_router(routes.router)
     service = AsyncMock()
-    service.play.return_value = DlnaItem(
-        id="folder/track$1",
-        parent_id="folder",
-        title="Track",
-        is_container=False,
-        resource_url="http://192.0.2.20/track.mp3",
+    service.play.return_value = DlnaPlayResult(
+        item=DlnaItem(
+            id="folder/track$1",
+            parent_id="folder",
+            title="Track",
+            is_container=False,
+            resource_url="http://192.0.2.20/track.mp3",
+        ),
+        auto_advance=False,
     )
     app.state.device_service = MagicMock()
     app.state.device_service.get_device_by_id = AsyncMock(
@@ -573,6 +583,7 @@ def test_http_play_callback_address_failure_still_plays(monkeypatch, socket_erro
 
     assert response.status_code == 200
     assert response.json()["item"]["id"] == "folder/track$1"
+    assert response.json()["auto_advance"] is False
     service.play.assert_awaited_once_with(
         device_id="device-1",
         device_ip="192.0.2.10",

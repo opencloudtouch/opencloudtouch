@@ -173,7 +173,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DlnaItemResult'
+                $ref: '#/components/schemas/DlnaPlayResponse'
         '404':
           description: Device, server or object not found
         '409':
@@ -4240,6 +4240,23 @@ components:
       - object_id
       - parent_id
       title: DlnaPlayRequest
+    DlnaPlayResponse:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+        item:
+          $ref: '#/components/schemas/DlnaItemResponse'
+        auto_advance:
+          type: boolean
+          title: Auto Advance
+      type: object
+      required:
+      - device_id
+      - item
+      - auto_advance
+      title: DlnaPlayResponse
+      description: Playback response with the AVTransport subscription status.
     DlnaServerResponse:
       properties:
         id:
