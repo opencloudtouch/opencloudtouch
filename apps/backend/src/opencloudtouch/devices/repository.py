@@ -3,11 +3,15 @@ Database models and repository for device management
 Uses aiosqlite for async SQLite operations
 """
 
+import asyncio
 import json
 import logging
 import unicodedata
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from typing import Any, List, Optional
+from functools import wraps
+from pathlib import Path
+from typing import Any, Concatenate, List, Optional, ParamSpec, TypeVar
 
 import aiosqlite
 
@@ -94,8 +98,29 @@ class Device:
         }
 
 
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+
+
+def _serialize_device_write(
+    method: Callable[Concatenate["DeviceRepository", _P], Awaitable[_R]],
+) -> Callable[Concatenate["DeviceRepository", _P], Awaitable[_R]]:
+    @wraps(method)
+    async def wrapped(
+        repo: "DeviceRepository", *args: _P.args, **kwargs: _P.kwargs
+    ) -> _R:
+        async with repo._write_lock:
+            return await method(repo, *args, **kwargs)
+
+    return wrapped
+
+
 class DeviceRepository(BaseRepository):
     """Repository for device persistence."""
+
+    def __init__(self, db_path: str | Path) -> None:
+        super().__init__(db_path)
+        self._write_lock = asyncio.Lock()
 
     async def _create_schema(self) -> None:
         """Create devices table, indexes, and apply migrations."""
@@ -168,6 +193,7 @@ class DeviceRepository(BaseRepository):
 
         await self._conn.commit()
 
+    @_serialize_device_write
     async def upsert(self, device: Device) -> Device:
         """
         Insert or update device.
@@ -321,6 +347,7 @@ class DeviceRepository(BaseRepository):
             return None
         return self._row_to_device(row)
 
+    @_serialize_device_write
     async def update_setup_status(
         self,
         device_id: str,
@@ -375,6 +402,7 @@ class DeviceRepository(BaseRepository):
             return None
         return self._row_to_device(row)
 
+    @_serialize_device_write
     async def update_marge_account_uuid(
         self, device_id: str, marge_account_uuid: str, uuid_source: str | None = None
     ) -> None:
@@ -388,42 +416,46 @@ class DeviceRepository(BaseRepository):
         }:
             raise ValueError("Invalid UUID source")
 
-        cursor = await db.execute(
-            """
-            UPDATE devices
-            SET marge_account_uuid = ?,
-                uuid_source = CASE
-                    WHEN ? IS NOT NULL AND uuid_source != 'unknown'
-                         AND marge_account_uuid = ? THEN uuid_source
-                    WHEN ? IS NOT NULL THEN ?
-                    WHEN marge_account_uuid != ? THEN 'unknown'
-                    ELSE uuid_source
-                END,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE device_id = ?
-              AND NOT EXISTS (
-                  SELECT 1 FROM devices AS other
-                  WHERE other.marge_account_uuid = ?
-                    AND other.device_id != ?
-              )
-            """,
-            (
-                marge_account_uuid,
-                uuid_source,
-                marge_account_uuid,
-                uuid_source,
-                uuid_source,
-                marge_account_uuid,
-                device_id,
-                marge_account_uuid,
-                device_id,
-            ),
-        )
+        try:
+            cursor = await db.execute(
+                """
+                UPDATE devices
+                SET marge_account_uuid = ?,
+                    uuid_source = CASE
+                        WHEN ? IS NOT NULL AND uuid_source != 'unknown'
+                             AND marge_account_uuid = ? THEN uuid_source
+                        WHEN ? IS NOT NULL THEN ?
+                        WHEN marge_account_uuid != ? THEN 'unknown'
+                        ELSE uuid_source
+                    END,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE device_id = ?
+                  AND NOT EXISTS (
+                      SELECT 1 FROM devices AS other
+                      WHERE other.marge_account_uuid = ?
+                        AND other.device_id != ?
+                  )
+                """,
+                (
+                    marge_account_uuid,
+                    uuid_source,
+                    marge_account_uuid,
+                    uuid_source,
+                    uuid_source,
+                    marge_account_uuid,
+                    device_id,
+                    marge_account_uuid,
+                    device_id,
+                ),
+            )
+            await db.commit()
+        except BaseException:
+            await db.rollback()
+            raise
         if cursor.rowcount == 0:
             raise ValueError(
                 f"UUID collision or device not found: {marge_account_uuid}"
             )
-        await db.commit()
         logger.info(
             "Updated marge_account_uuid for %s: %s", device_id, marge_account_uuid
         )
@@ -460,6 +492,7 @@ class DeviceRepository(BaseRepository):
             return None
         return self._row_to_device(row)
 
+    @_serialize_device_write
     async def delete_all(self) -> int:
         """Delete all devices from database. Returns number of deleted rows."""
         db = self._ensure_initialized()
@@ -472,6 +505,7 @@ class DeviceRepository(BaseRepository):
 
         return deleted_count
 
+    @_serialize_device_write
     async def delete_by_device_id(self, device_id: str) -> None:
         db = self._ensure_initialized()
 
