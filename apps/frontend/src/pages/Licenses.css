@@ -36,10 +36,6 @@
   flex-direction: column;
   gap: 12px;
 }
-.lic-list {
-  list-style: none;
-  padding: 4px var(--space-md);
-}
 .lic-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

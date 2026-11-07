@@ -110,54 +110,9 @@
   }
 }
 
-/* ====== LEGACY V1 STYLES (DEPRECATED) ====== */
-/* These styles are kept for reference during transition but should not be used */
-
-/* Header */
-.wizard-header {
-  max-width: 1200px;
-  margin: 0 auto 3rem;
-  text-align: center;
-  color: white;
-}
-
-.wizard-main-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-.wizard-subtitle {
-  font-size: 1.125rem;
-  opacity: 0.9;
-  margin: 0 0 2rem;
-}
-
-/* Progress Indicator */
-.wizard-progress {
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-/* Content */
-.wizard-content {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding-bottom: 3rem;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .setup-wizard-page {
     padding: 1rem;
-  }
-
-  .wizard-main-title {
-    font-size: 1.75rem;
-  }
-
-  .wizard-subtitle {
-    font-size: 1rem;
   }
 }
