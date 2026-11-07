@@ -280,6 +280,7 @@ async def test_ssh_operation_restores_the_mode_when_the_operation_fails():
     device = FakeDevice({"/": "rw", "/mnt/nv": "ro"})
 
     with _patch_login(device):
+
         async def failing_operation():
             async with wizard_helpers.ssh_operation("10.0.0.5", "finalize", write=True):
                 raise RuntimeError("boom")
