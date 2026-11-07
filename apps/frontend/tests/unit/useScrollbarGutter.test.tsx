@@ -64,7 +64,7 @@ describe("flag images are loaded up front (F10)", () => {
     );
     const preload = container.querySelector(".lang-flag-preload");
     expect(preload).not.toBeNull();
-    expect(preload!.querySelectorAll(".fi").length).toBe(UI_LOCALES.length);
+    expect(preload!.querySelectorAll(".fi")).toHaveLength(UI_LOCALES.length);
     expect(preload).toHaveAttribute("aria-hidden", "true");
   });
 });

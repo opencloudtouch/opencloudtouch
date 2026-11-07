@@ -162,13 +162,15 @@ async def test_failed_unlock_is_not_reported_as_changed_and_not_locked_again():
 async def test_restore_runs_when_the_block_raises():
     device = FakeDevice({"/": "ro", "/mnt/nv": "ro"})
 
-    with pytest.raises(ValueError):
+    async def failing_block():
         async with _client(device).write_access():
             raise ValueError("write failed")
 
-    assert device.options["/"].startswith("ro") and device.options[
-        "/mnt/nv"
-    ].startswith("ro")
+    with pytest.raises(ValueError):
+        await failing_block()
+
+    assert device.options["/"].startswith("ro")
+    assert device.options["/mnt/nv"].startswith("ro")
     assert device.remounts[-2:] == [
         "mount -o remount,ro /mnt/nv",
         "mount -o remount,ro /",
@@ -278,9 +280,12 @@ async def test_ssh_operation_restores_the_mode_when_the_operation_fails():
     device = FakeDevice({"/": "rw", "/mnt/nv": "ro"})
 
     with _patch_login(device):
-        with pytest.raises(SSHOperationError):
+        async def failing_operation():
             async with wizard_helpers.ssh_operation("10.0.0.5", "finalize", write=True):
                 raise RuntimeError("boom")
+
+        with pytest.raises(SSHOperationError):
+            await failing_operation()
 
     assert device.options["/mnt/nv"].startswith("ro")
     assert device.options["/"].startswith("rw")

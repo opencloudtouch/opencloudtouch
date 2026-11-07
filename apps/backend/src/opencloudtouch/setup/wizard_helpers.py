@@ -50,11 +50,10 @@ async def ssh_operation(
     token = device_timing.current_operation.set(operation_name)
     try:
         with device_timing.measure("ssh_session", operation_name, host=device_ip):
-            async with SoundTouchSSHClient(device_ip) as ssh:
-                async with AsyncExitStack() as stack:
-                    if write:
-                        await stack.enter_async_context(ssh.write_access())
-                    yield ssh
+            async with SoundTouchSSHClient(device_ip) as ssh, AsyncExitStack() as stack:
+                if write:
+                    await stack.enter_async_context(ssh.write_access())
+                yield ssh
     except (SSHConnectionError, SSHOperationError):
         raise  # propagate domain exceptions unchanged
     except OSError:

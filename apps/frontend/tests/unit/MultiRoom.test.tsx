@@ -210,7 +210,7 @@ describe("MultiRoom - Zone Creation", () => {
     await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith("Zone could not be created", "error"));
     expect(screen.queryByText(/Error loading/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Simulated failure/)).not.toBeInTheDocument();
-    expect(screen.getAllByRole("checkbox").length).toBe(checkboxes.length);
+    expect(screen.getAllByRole("checkbox")).toHaveLength(checkboxes.length);
   });
 
   test("should allow deselecting devices", async () => {

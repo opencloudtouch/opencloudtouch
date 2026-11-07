@@ -321,7 +321,8 @@ class TestUncompressedBackup:
 
         cmd = mock_ssh.execute.await_args_list[0][0][0]
         assert "tar cf " in cmd
-        assert "czf" not in cmd and "gzip" not in cmd
+        assert "czf" not in cmd
+        assert "gzip" not in cmd
         assert ".tgz" not in cmd
 
     @pytest.mark.parametrize("volume", list(VolumeType))
@@ -336,7 +337,8 @@ class TestUncompressedBackup:
         from opencloudtouch.setup.backup_service import _backup_filename
 
         name = _backup_filename(VolumeType.ROOTFS, "AA:BB:CC")
-        assert name.startswith("soundtouch-AABBCC-") and name.endswith("-rootfs.tar")
+        assert name.startswith("soundtouch-AABBCC-")
+        assert name.endswith("-rootfs.tar")
 
     async def test_size_is_read_with_stat_not_by_reading_the_file(
         self, service, mock_ssh
@@ -364,7 +366,8 @@ class TestConfigArchive:
 
         cmd = mock_ssh.execute.await_args_list[0][0][0]
         assert "opt/Bose/etc/SoundTouchSdkPrivateCfg.xml" in cmd
-        assert "tar cf " in cmd and "czf" not in cmd
+        assert "tar cf " in cmd
+        assert "czf" not in cmd
         assert result.backup_path.endswith("-config.tar")
         assert result.success is True
 

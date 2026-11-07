@@ -66,9 +66,12 @@ async def test_only_the_read_only_mount_is_changed_and_restored():
 async def test_mode_is_restored_when_the_block_raises():
     client, calls = _client({"/": "rw", "/mnt/nv": "ro"})
 
-    with pytest.raises(RuntimeError):
+    async def failing_block():
         async with client.write_access():
             raise RuntimeError("write failed")
+
+    with pytest.raises(RuntimeError):
+        await failing_block()
 
     assert calls[-1] == "mount -o remount,ro /mnt/nv"
 

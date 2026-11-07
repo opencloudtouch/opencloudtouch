@@ -8,9 +8,9 @@ import { Icon } from "./Icon";
 import "./wizard-base.css"; // replaces DeviceInfoHeader.css
 
 interface DeviceInfoHeaderProps {
-  device: Device;
+  readonly device: Device;
   /** Disables the reboot button (e.g. while a restore is running). */
-  rebootLocked?: boolean;
+  readonly rebootLocked?: boolean;
 }
 
 export default function DeviceInfoHeader({ device, rebootLocked = false }: DeviceInfoHeaderProps) {

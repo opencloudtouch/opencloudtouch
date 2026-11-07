@@ -52,7 +52,7 @@ class ControllableEventSource {
 
   /** Simulate an SSE event dispatched to all listeners of `type`. */
   emit(type: string, data: string) {
-    const event = { data } as MessageEvent;
+    const event = new MessageEvent(type, { data });
     for (const handler of this.listeners[type] || []) {
       handler(event);
     }
@@ -285,6 +285,21 @@ describe("useDiscoveryStream - BUG-35: SSE URL must not be localhost", () => {
     expect(result.current.isDiscovering).toBe(false);
     expect(result.current.error).toBe("Discovery failed");
     expect(es.close).toHaveBeenCalled();
+  });
+
+  it("keeps the server's error message when onerror fires for the same failure", () => {
+    const { result } = renderHook(() => useDiscoveryStream(), { wrapper: QueryWrapper });
+    act(() => {
+      result.current.startDiscovery();
+    });
+    const es = ControllableEventSource.instances[ControllableEventSource.instances.length - 1];
+
+    act(() => {
+      es.emit("error", JSON.stringify({ message: "Backend discovery process crashed" }));
+      es.onerror!({ target: es } as unknown as Event);
+    });
+
+    expect(result.current.error).toBe("Backend discovery process crashed");
   });
 
   it("reports 'Discovery already in progress' when onerror fires with readyState CLOSED", () => {

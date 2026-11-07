@@ -70,7 +70,15 @@ class SoundTouchSSHClient:
     async def connect(self, timeout: float = 10.0) -> SSHConnectionResult:
         """Establish the SSH connection and record how long it took."""
         start = time.perf_counter()
-        result = await self._connect(timeout)
+        try:
+            async with asyncio.timeout(timeout):
+                result = await self._connect()
+        except TimeoutError:
+            error = (
+                f"SSH connection timeout after {timeout}s to {self.host}:{self.port}"
+            )
+            logger.error(error)
+            result = SSHConnectionResult(success=False, error=error)
         device_timing.record(
             "ssh_connect",
             self.host,
@@ -79,7 +87,7 @@ class SoundTouchSSHClient:
         )
         return result
 
-    async def _connect(self, timeout: float = 10.0) -> SSHConnectionResult:
+    async def _connect(self) -> SSHConnectionResult:
         """
         Establish SSH connection to device.
 
@@ -103,39 +111,31 @@ class SoundTouchSSHClient:
 
             logger.info("Connecting to %s:%s via SSH...", self.host, self.port)
             logger.debug(
-                "SSH params: user=root, timeout=%.1fs, "
+                "SSH params: user=root, "
                 "host_key_algs=[ssh-rsa,rsa-sha2-512,rsa-sha2-256,ssh-dss], "
                 "kex=[dh-group1-sha1,dh-group14-sha1,dh-gex-sha256,ecdh-nistp256], "
-                "ciphers=[aes128-cbc,3des-cbc,aes128-ctr,aes256-ctr]",
-                timeout,
+                "ciphers=[aes128-cbc,3des-cbc,aes128-ctr,aes256-ctr]"
             )
 
             # Connect with no password (SoundTouch root has no password)
             # Enable legacy algorithms for old SoundTouch firmware
             # Type: ignore needed because asyncssh returns _ACMWrapper which mypy can't resolve
-            self._connection = await asyncio.wait_for(  # type: ignore[func-returns-value]
-                asyncssh.connect(  # type: ignore[arg-type]
-                    self.host,
-                    port=self.port,
-                    username="root",
-                    password="",
-                    known_hosts=None,  # Skip host key verification for embedded devices
-                    server_host_key_algs=_SSH_HOST_KEY_ALGS,
-                    kex_algs=_SSH_KEX_ALGS,
-                    encryption_algs=_SSH_ENCRYPTION_ALGS,
-                ),
-                timeout=timeout,
+            self._connection = await asyncssh.connect(  # type: ignore[func-returns-value,arg-type]
+                self.host,
+                port=self.port,
+                username="root",
+                password="",
+                known_hosts=None,  # Skip host key verification for embedded devices
+                server_host_key_algs=_SSH_HOST_KEY_ALGS,
+                kex_algs=_SSH_KEX_ALGS,
+                encryption_algs=_SSH_ENCRYPTION_ALGS,
             )
 
             logger.info("SSH connection established to %s", self.host)
             return SSHConnectionResult(success=True, output="Connected")
 
-        except asyncio.TimeoutError:
-            error = (
-                f"SSH connection timeout after {timeout}s to {self.host}:{self.port}"
-            )
-            logger.error(error)
-            return SSHConnectionResult(success=False, error=error)
+        except TimeoutError:
+            raise  # the deadline set by connect()
         except Exception as e:
             error = f"SSH connection failed to {self.host}:{self.port}: {type(e).__name__}: {e}"
             logger.error(error)
@@ -144,7 +144,19 @@ class SoundTouchSSHClient:
     async def execute(self, command: str, timeout: float = 30.0) -> CommandResult:
         """Execute a command over SSH and record how long it took."""
         start = time.perf_counter()
-        result = await self._execute(command, timeout)
+        try:
+            async with asyncio.timeout(timeout):
+                result = await self._execute(command)
+        except TimeoutError:
+            logger.error(
+                "SSH command timeout after %.0fs on %s: %s",
+                timeout,
+                self.host,
+                command[:100],
+            )
+            result = CommandResult(
+                success=False, error=f"Command timeout after {timeout}s"
+            )
         device_timing.record(
             "ssh_exec",
             device_timing.command_label(command),
@@ -156,7 +168,7 @@ class SoundTouchSSHClient:
         )
         return result
 
-    async def _execute(self, command: str, timeout: float = 30.0) -> CommandResult:
+    async def _execute(self, command: str) -> CommandResult:
         if not self._connection:
             return CommandResult(
                 success=False, error="Not connected. Call connect() first."
@@ -165,9 +177,7 @@ class SoundTouchSSHClient:
         try:
             logger.debug("SSH exec [%s]: %s", self.host, command)
 
-            result = await asyncio.wait_for(
-                self._connection.run(command), timeout=timeout
-            )
+            result = await self._connection.run(command)
 
             output = result.stdout or ""
             stderr = result.stderr or ""
@@ -191,16 +201,8 @@ class SoundTouchSSHClient:
                 exit_code=exit_code,
             )
 
-        except asyncio.TimeoutError:
-            logger.error(
-                "SSH command timeout after %.0fs on %s: %s",
-                timeout,
-                self.host,
-                command[:100],
-            )
-            return CommandResult(
-                success=False, error=f"Command timeout after {timeout}s"
-            )
+        except TimeoutError:
+            raise  # the deadline set by execute()
         except Exception as e:
             logger.error(
                 "SSH command failed on %s: %s: %s", self.host, type(e).__name__, e

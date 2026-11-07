@@ -16,6 +16,8 @@ function safeParse<T>(raw: string, eventType: string): T | null {
   }
 }
 
+const nameKey = (d: Device) => d.name.normalize("NFKD").toLowerCase();
+
 /**
  * Discovery Event Types from Backend SSE
  */
@@ -159,7 +161,8 @@ export function useDiscoveryStream() {
         const newDevices = devicesFoundRef.current.filter(
           (d) => !existing.some((ex) => ex.device_id === d.device_id)
         );
-        return [...existing, ...newDevices];
+        // same order as the backend list (by name): the refetch below must not reorder what the user sees
+        return [...existing, ...newDevices].sort((x, y) => nameKey(x).localeCompare(nameKey(y)));
       });
 
       setState((prev) => ({
@@ -177,8 +180,12 @@ export function useDiscoveryStream() {
       eventSourceRef.current = null;
     });
 
-    // Handle error event
-    eventSource.addEventListener("error", (e: MessageEvent) => {
+    // Handle error event. EventSource also dispatches connection failures as a plain Event under the same
+    // name, those carry no data and are left to onerror.
+    let serverErrorHandled = false;
+    eventSource.addEventListener("error", (e: Event) => {
+      if (!(e instanceof MessageEvent)) return;
+      serverErrorHandled = true;
       let errorMessage = "Discovery failed";
       try {
         const data = JSON.parse(e.data);
@@ -202,6 +209,8 @@ export function useDiscoveryStream() {
 
     // Handle connection errors (network issue, 409 conflict, etc.)
     eventSource.onerror = (e) => {
+      // the server already reported the real reason through an "error" event: do not overwrite it
+      if (serverErrorHandled) return;
       console.error("[SSE] Connection error:", e);
 
       // Check if it was a 409 (already in progress)
