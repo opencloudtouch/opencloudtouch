@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The SoundTouch WebSocket client uses the `websockets.asyncio` API and ignores `HTTP(S)_PROXY`/`ALL_PROXY` for LAN devices; minimum `websockets` is now 15.0.
 
 ### Fixed
+- Prevent rejected UUID assignments from leaving SQLite write transactions open and serialize concurrent device repository writes (#511).
 - Layout overflow and overlap on the presets, local control, multi-room and settings pages, the swiper, the navigation and the empty state
 - False "unexpected content" warnings when validating a restore archive
 - Accessibility: skip link and `main` landmark, heading order, contrast tokens, translated `aria-label`s, `html lang` sync, toast roles and reduced-motion support
