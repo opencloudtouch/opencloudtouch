@@ -431,7 +431,7 @@ export default function RadioSearch({
       try {
         const page = await fetchStationPage(searchQuery, type, provider, 0, controller.signal);
         if (!page.ok) {
-          setError(t("presets.searchFailed"));
+          setError(page.message ?? t("presets.searchFailed"));
           setResults([]);
           setHasMore(false);
           return;
@@ -467,7 +467,7 @@ export default function RadioSearch({
         controller.signal
       );
       if (!page.ok) {
-        setError(t("presets.searchFailed"));
+        setError(page.message ?? t("presets.searchFailed"));
         return;
       }
 

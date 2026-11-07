@@ -339,6 +339,32 @@ describe("RadioSearch Component", () => {
     );
   });
 
+  it("shows the translated reason when the search endpoint answers with a problem document", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({ type: "service_unavailable", title: "Service Unavailable", status: 503, detail: "x" }),
+          { status: 503, headers: { "content-type": "application/json" } }
+        )
+      )
+    );
+    render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. SWR3, BBC Radio…"), {
+      target: { value: "ERROR_503" },
+    });
+
+    await waitFor(
+      () => {
+        expect(document.querySelector(".search-error")).toHaveTextContent("Service unavailable");
+      },
+      { timeout: 700 }
+    );
+  });
+
   it("handles network errors gracefully", async () => {
     // Override fetch to throw network error
     vi.stubGlobal(
