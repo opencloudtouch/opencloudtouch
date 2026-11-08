@@ -70,9 +70,7 @@ jobs:
             mkdir -p /tmp/fakebin
             rm -f /tmp/fakebin/python
             if [ "$PYFAIL" = "pyfail" ]; then
-              printf '#!/bin/sh
-exit 1
-' > /tmp/fakebin/python
+              printf '#!/bin/sh\nexit 1\n' > /tmp/fakebin/python
               chmod +x /tmp/fakebin/python
             fi
             mkdir -p /tmp/oct-data
