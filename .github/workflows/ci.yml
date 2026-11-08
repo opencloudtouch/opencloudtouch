@@ -29,7 +29,7 @@ jobs:
   # ============================================================================
   mojibake-check:
     name: Mojibake Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -44,12 +44,43 @@ jobs:
         run: python scripts/check-mojibake.py .
         
   # ============================================================================
+  # SCRIPT TESTS (scripts/issue_handler, scripts/tests)
+  # ============================================================================
+  script-tests:
+    name: Script Tests
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements-dev.txt
+
+      - name: Issue handler tests
+        working-directory: scripts/issue_handler
+        run: python -m pytest -q
+
+      - name: PR reviewer tests
+        run: python -m pytest scripts/pr_reviewer/tests -q
+
+      - name: Release and workflow script tests
+        run: python -m pytest scripts/tests -q
+
+  # ============================================================================
   # PAGE SIZE REGRESSION TEST
   # ============================================================================
 
   test-page-size-detection:
     name: Test page size detection
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
 
@@ -132,7 +163,7 @@ jobs:
   # ============================================================================
   commit-lint:
     name: Validate Commit Messages
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
@@ -206,7 +237,7 @@ jobs:
   # ============================================================================
   security:
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -242,7 +273,7 @@ jobs:
   # ============================================================================
   license-check:
     name: License Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -301,7 +332,7 @@ jobs:
   # ============================================================================
   lint:
     name: Lint Code
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [security]
 
     steps:
@@ -343,7 +374,7 @@ jobs:
   # ============================================================================
   backend-tests:
     name: Backend Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [security]
 
     steps:
@@ -394,7 +425,7 @@ jobs:
   # ============================================================================
   frontend-tests:
     name: Frontend Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [security]
 
     steps:
@@ -432,7 +463,7 @@ jobs:
   # ============================================================================
   e2e-tests:
     name: E2E Tests (${{ matrix.shard }}/10)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [security]
     strategy:
       fail-fast: false
@@ -573,7 +604,7 @@ jobs:
   # ============================================================================
   sonar:
     name: SonarCloud
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [backend-tests, frontend-tests]
     # Skip for fork PRs and Dependabot — SONAR_TOKEN is not available in these contexts.
     # Sonar analysis runs on main via sonar.yml after merge instead.
@@ -617,8 +648,8 @@ jobs:
   # ============================================================================
   summary:
     name: CI Summary
-    runs-on: ubuntu-latest
-    needs: [mojibake-check, test-page-size-detection, commit-lint, security, license-check, lint, backend-tests, frontend-tests, e2e-tests]
+    runs-on: ubuntu-24.04
+    needs: [mojibake-check, script-tests, test-page-size-detection, commit-lint, security, license-check, lint, backend-tests, frontend-tests, e2e-tests]
     if: always()
 
     steps:
@@ -643,6 +674,7 @@ jobs:
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Mojibake Check| ${{ needs.mojibake-check.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Script Tests  | ${{ needs.script-tests.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Page Size Test| ${{ needs.test-page-size-detection.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Commit Lint   | ${{ needs.commit-lint.result == 'success' && 'Passed' || needs.commit-lint.result == 'skipped' && 'Skipped' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security Scan | ${{ needs.security.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
@@ -670,6 +702,7 @@ jobs:
         run: |
           if [[ "${{ needs.commit-lint.result }}" != "success" && "${{ needs.commit-lint.result }}" != "skipped" ]] || \
              [[ "${{ needs.mojibake-check.result }}" != "success" ]] || \
+             [[ "${{ needs.script-tests.result }}" != "success" ]] || \
              [[ "${{ needs.test-page-size-detection.result }}" != "success" ]] || \
              [[ "${{ needs.security.result }}" != "success" ]] || \
              [[ "${{ needs.license-check.result }}" != "success" ]] || \
@@ -688,7 +721,7 @@ jobs:
   # ============================================================================
   autoformat:
     name: Auto-format
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [lint, backend-tests, frontend-tests, e2e-tests]
     if: |
       always() && !cancelled() &&

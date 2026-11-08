@@ -12,7 +12,7 @@
 #   - Pi-gen stage caching with permission fix (sudo chown after build)
 # ==============================================================================
 
-name: 'Raspi Build & Test (reusable)'
+name: Build · Raspi Build & Test (reusable)
 
 on:
   workflow_call:
@@ -47,7 +47,7 @@ jobs:
   # ============================================================================
   validate:
     name: Validate inputs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Validate arch
         run: |
@@ -76,7 +76,7 @@ jobs:
   # ============================================================================
   build:
     name: Build ${{ inputs.arch }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [validate]
     timeout-minutes: 90
 
@@ -419,7 +419,7 @@ jobs:
   # ============================================================================
   test:
     name: Test ${{ inputs.arch }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [build]
     timeout-minutes: 15
 

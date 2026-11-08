@@ -30,7 +30,7 @@ permissions:
 jobs:
   patch:
     name: Patch Image with Supporters CSV
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Fetch supporters CSV from API

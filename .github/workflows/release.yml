@@ -49,7 +49,7 @@ jobs:
   # ============================================================================
   preflight:
     name: Pre-flight Checks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
 
@@ -130,7 +130,7 @@ jobs:
   # ============================================================================
   bump:
     name: Bump Version
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: preflight
 
     permissions:
@@ -202,7 +202,7 @@ jobs:
   # ============================================================================
   tag:
     name: Create Git Tag
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [preflight, bump]
 
     permissions:
@@ -248,7 +248,7 @@ jobs:
   # ============================================================================
   gh-release:
     name: Create GitHub Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [preflight, tag]
 
     permissions:
@@ -436,7 +436,7 @@ jobs:
   # ============================================================================
   publish-release:
     name: Publish Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [gh-release, build-images]
     if: always() && needs.gh-release.result == 'success' && needs.build-images.result == 'success'
 
@@ -501,3 +501,19 @@ jobs:
           echo "  NEXT_PATCH = ${MAJOR}.${MINOR}.$((PATCH + 1))"
           echo "  NEXT_MINOR = ${MAJOR}.$((MINOR + 1)).0"
           echo "  NEXT_MAJOR = $((MAJOR + 1)).0.0"
+
+  # ============================================================================
+  # POST-RELEASE: changelog, announcement, welcome-post version.
+  # Called explicitly because a release published with GITHUB_TOKEN does not
+  # fire the `release: published` trigger.
+  # ============================================================================
+  post-release:
+    name: Post-Release
+    needs: [gh-release, publish-release]
+    if: ${{ !inputs.prerelease }}
+    permissions:
+      contents: write
+    uses: ./.github/workflows/post-release.yml
+    with:
+      version: ${{ needs.gh-release.outputs.version }}
+    secrets: inherit

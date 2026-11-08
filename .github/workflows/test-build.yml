@@ -13,7 +13,7 @@
 # opencloudtouch.org instead of using the placeholder CSV committed to git.
 # ==============================================================================
 
-name: Test Build
+name: Build · Test Build
 
 on:
   workflow_dispatch:
@@ -66,7 +66,7 @@ jobs:
   # ============================================================================
   validate:
     name: Validate Inputs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     outputs:
       docker_platforms: ${{ steps.platforms.outputs.docker_platforms }}
@@ -132,7 +132,7 @@ jobs:
   # ============================================================================
   build-frontend:
     name: Build Frontend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [validate]
 
     steps:
@@ -187,7 +187,7 @@ jobs:
   # ============================================================================
   build-docker:
     name: Build Docker (${{ matrix.platform }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [validate, build-frontend]
     if: needs.validate.outputs.has_docker == 'true'
 
@@ -271,7 +271,7 @@ jobs:
   # ============================================================================
   push-docker:
     name: Push Docker Manifest
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [validate, build-docker]
     if: needs.validate.outputs.has_docker == 'true'
 
@@ -343,7 +343,7 @@ jobs:
   # ============================================================================
   summary:
     name: Build Summary
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [validate, push-docker, build-raspi-arm64, build-raspi-armhf]
     if: always() && needs.validate.result == 'success'
 
