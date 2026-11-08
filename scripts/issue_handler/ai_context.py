@@ -20,7 +20,7 @@ async def make_ai_context(github_token: str, settings: dict[str, Any]) -> dict[s
         from openai import AsyncOpenAI
 
         if github_token:
-            ctx["github_models_client"] = AsyncOpenAI(base_url="https://models.inference.ai.azure.com", api_key=github_token)
+            ctx["github_models_client"] = AsyncOpenAI(base_url="https://models.github.ai/inference", api_key=github_token)
         if os.environ.get("OPENAI_API_KEY"):
             ctx["openai_client"] = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
     except ImportError:

@@ -212,7 +212,7 @@ async def run() -> int:
                     from openai import AsyncOpenAI
 
                     context["github_models_client"] = AsyncOpenAI(
-                        base_url="https://models.inference.ai.azure.com",
+                        base_url="https://models.github.ai/inference",
                         api_key=github_token,
                     )
                 except ImportError:

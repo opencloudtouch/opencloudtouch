@@ -33,7 +33,7 @@ BACKOFF_FACTOR = 2.0
 JITTER_MS = 500
 
 API_BASE = "https://api.github.com"
-GITHUB_MODELS_BASE = "https://models.inference.ai.azure.com"
+GITHUB_MODELS_BASE = "https://models.github.ai/inference"
 HEADERS = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
 
 # Files to skip in review (generated, lock files, etc.)
@@ -561,7 +561,7 @@ async def run_ai_review(prompt: str, cost_tracker: CostTracker) -> dict:
                 base_url=GITHUB_MODELS_BASE,
                 api_key=github_token,
             )
-            response = await client.chat.completions.create(**kwargs)
+            response = await client.chat.completions.create(**{**kwargs, "model": f"openai/{kwargs['model']}"})
             content = response.choices[0].message.content or "{}"
             print("[OK] Review generated via GitHub Models (free tier)")
             return json.loads(content)

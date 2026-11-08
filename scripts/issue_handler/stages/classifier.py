@@ -175,7 +175,7 @@ async def classifier_stage(event: WebhookEvent, context: dict[str, Any]) -> Pipe
     classification = None
     if github_models_client:
         classification = await _try_classify(
-            github_models_client, messages, model="gpt-4o-mini"
+            github_models_client, messages, model="openai/gpt-4o-mini"
         )
 
     # Fallback to OpenAI if GitHub Models failed
@@ -281,7 +281,7 @@ async def _try_generate(
 ) -> str | None:
     """Try to generate a text response using available AI clients."""
     for client, model, tier in [
-        (github_models_client, "gpt-4o-mini", None),
+        (github_models_client, "openai/gpt-4o-mini", None),
         (openai_client, openai_model, "flex"),
     ]:
         if client is None:
