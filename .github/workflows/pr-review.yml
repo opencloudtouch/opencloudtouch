@@ -138,7 +138,7 @@ jobs:
           python-version: '3.13'
 
       - name: Install dependencies
-        run: pip install -r scripts/pr_reviewer/requirements.txt
+        run: pip install -r scripts/requirements.txt
 
       - name: Restore cost tracker cache
         uses: actions/cache/restore@v6
@@ -190,7 +190,7 @@ jobs:
           python-version: '3.13'
 
       - name: Install dependencies
-        run: pip install -r scripts/pr_reviewer/requirements.txt
+        run: pip install -r scripts/requirements.txt
 
       - name: Check and approve
         env:
