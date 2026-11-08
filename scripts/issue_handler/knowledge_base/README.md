@@ -33,6 +33,8 @@ Operation: dry-run is the default (writes are only logged). To go live, set the 
 
 **Follow-up and verification (job `follow-up` in the Community workflow, daily):** Quiet support threads (label `support`/`needs-info`, or with a bot answer) get exactly one follow-up. Case 1 (replies exist), after 3 days: the candidates A to F, G "something else", H "not solved". Case 2 (no replies), after 7 days: an open question, plus the label `unanswered` after 3 days. Case 3 (only the starter wrote more): confirmation of the fix they mention. When the starter answers (a letter or free text) the bot says what it understood, then labels `verified-solution` and closes the thread (discussions: marks the answer and closes) for "solved", or labels `needs-human` for "not solved". Only threads labelled `verified-solution` become sources. Settings: `followup_*` and `unanswered_label_days` in `rules.yml`. Manual start: Community workflow, checkbox `follow_up`.
 
+**When the maintainer closes a support issue as "completed":** The bot posts one comment with checkboxes (solution as drafted / duplicate / obsolete / no solution) and a solution drafted from the thread. Only users with write access can tick a box, and ticking triggers the handler: a solution sets the label `verified-solution` and the comment becomes the recorded solution (a source), duplicate/obsolete set the label `duplicate`/`obsolete`. "Not planned" triggers nothing; bugs and features without a support angle are not asked.
+
 ---
 
 ## 3. KB-Artikel erstellen (manuell)

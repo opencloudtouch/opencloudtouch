@@ -2,9 +2,9 @@ name: AI · Issue Handler
 
 on:
   issues:
-    types: [opened]
+    types: [opened, closed]
   issue_comment:
-    types: [created]
+    types: [created, edited]
   discussion:
     types: [created]
   discussion_comment:

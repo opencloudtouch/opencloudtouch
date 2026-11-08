@@ -261,6 +261,22 @@ class GitHubClient:
         data = await self._graphql(self._bot_client, mutation, {"id": discussion_node_id, "body": body})
         return data["addDiscussionComment"]["comment"]["id"]
 
+    async def edit_comment(self, comment_id: int | str, body: str) -> None:
+        response = await self._request_with_retry(
+            self._bot_client, "patch", self._repo_url(f"/issues/comments/{comment_id}"), json={"body": body}
+        )
+        response.raise_for_status()
+
+    async def get_comment(self, comment_id: int | str) -> dict[str, Any] | None:
+        """Fetch one issue comment by its numeric id; None if it is gone."""
+        response = await self._request_with_retry(
+            self._search_client, "get", self._repo_url(f"/issues/comments/{comment_id}")
+        )
+        if response.status_code in (404, 410):
+            return None
+        response.raise_for_status()
+        return response.json()
+
     async def reopen_issue(self, issue_number: int) -> None:
         response = await self._request_with_retry(
             self._bot_client, "patch", self._repo_url(f"/issues/{issue_number}"), json={"state": "open"}
