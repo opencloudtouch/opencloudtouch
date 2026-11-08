@@ -25,9 +25,9 @@ This directory contains the curated Knowledge Base (KB) articles, scripts, and a
 
 ---
 
-## 2. Wachstum der Wissensbasis
+## 2. Knowledge base growth
 
-Der frühere wöchentliche KB-Growth-Scan wurde entfernt (er hat nie funktioniert). Siehe die Spec "Support bot knowledge loop" für den Nachfolger.
+The former weekly KB growth scan has been removed (it never ran successfully). Its successor is the support bot knowledge loop, see #617.
 
 ---
 
@@ -61,7 +61,6 @@ Der frühere wöchentliche KB-Growth-Scan wurde entfernt (er hat nie funktionier
 ## 7. Troubleshooting
 
 - Workflow läuft nicht? → Logs in GitHub Actions prüfen
-- YAML-Reports fehlen? → Rechte/Verzeichnisse prüfen (`.local/agent-work/knowledge-kai/scans/`)
 - KI-Draft schlägt fehl? → Prompt/Issue-Text prüfen, ggf. manuell nacharbeiten
 
 ---
