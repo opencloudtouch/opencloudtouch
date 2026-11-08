@@ -9,7 +9,7 @@
 #   → If yes, auto-approves the PR.
 # ==============================================================================
 
-name: PR Review (oct-support)
+name: AI · PR Review (oct-support)
 
 on:
   pull_request_target:
@@ -26,7 +26,7 @@ jobs:
   # ============================================================================
   welcome:
     name: Welcome & Guide
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Only for external contributors (fork PRs) when PR is opened
     if: >-
       github.event_name == 'pull_request_target'
@@ -120,7 +120,7 @@ jobs:
   # ============================================================================
   review:
     name: PR Review
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     if: >-
       github.event_name == 'pull_request_target'
@@ -172,7 +172,7 @@ jobs:
   # ============================================================================
   approve-check:
     name: Approve Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     if: >-
       github.event_name == 'pull_request_target'

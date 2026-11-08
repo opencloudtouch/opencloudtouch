@@ -1,4 +1,4 @@
-name: KB Growth Scan
+name: Community · KB Growth Scan
 
 on:
   schedule:
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   kb-growth:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 

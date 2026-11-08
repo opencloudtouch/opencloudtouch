@@ -15,7 +15,7 @@
 # Discussions are written with RELEASE_TOKEN: the org caps GITHUB_TOKEN to read-only.
 # ==============================================================================
 
-name: Post-Release
+name: Release · Post-Release
 
 on:
   workflow_call:
@@ -57,7 +57,7 @@ permissions: {}
 jobs:
   resolve:
     name: Resolve Version
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
@@ -87,7 +87,7 @@ jobs:
 
   changelog:
     name: Update Changelog
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: resolve
     if: needs.resolve.outputs.is_semver == 'true' && inputs.skip_changelog != true
     permissions:
@@ -119,7 +119,7 @@ jobs:
 
   announcement:
     name: Create Announcement
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [resolve, changelog]
     if: >-
       always() && needs.resolve.outputs.is_semver == 'true' &&
@@ -173,7 +173,7 @@ jobs:
 
   welcome-version:
     name: Update welcome discussion
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: resolve
     if: needs.resolve.outputs.is_semver == 'true' && inputs.skip_announcement != true
     steps:

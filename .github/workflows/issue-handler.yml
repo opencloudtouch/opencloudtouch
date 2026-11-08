@@ -1,4 +1,4 @@
-name: Issue Handler
+name: AI · Issue Handler
 
 on:
   issues:
@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   triage:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     # Skip:
     # - PR comments (handled by pr-review.yml)
