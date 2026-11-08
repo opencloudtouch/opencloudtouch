@@ -25,11 +25,11 @@ This directory contains the curated Knowledge Base (KB) articles, scripts, and a
 
 ---
 
-## 2. Antworten aus verifizierten Quellen
+## 2. Answers from verified sources
 
-Der Issue Handler antwortet einmal, 5 bis 10 Minuten nach einem neuen Issue oder einer neuen Discussion (`answer_delay_*` in `rules.yml`). Er bleibt still, wenn inzwischen ein Mensch oder der Bot geantwortet hat, der Thread geschlossen ist oder `spec`/`needs-human` trägt. Quellen sind ausschließlich `approved_answers/`, README und `docs/` (abschnittsweise) sowie Threads mit dem Label `verified-solution` (`retrieval.py`). Ohne Quelle ab `min_relevance` gibt es keine Antwort. Jede Antwort nennt ihre Quellen und trägt den Marker `<!-- oct-bot:answer -->`.
+The issue handler answers once, 5 to 10 minutes after a new issue or discussion (`answer_delay_*` in `rules.yml`). It stays silent if a human or the bot replied meanwhile, the thread is closed, or it carries `spec` or `needs-human`. Sources are only `approved_answers/`, the README and `docs/` (section by section) and threads labelled `verified-solution` (`retrieval.py`). Without a source above `min_relevance` there is no answer. Every answer lists its sources and carries the marker `<!-- oct-bot:answer -->`.
 
-Betrieb: Standard ist der Trockenlauf (Schreibzugriffe werden nur geloggt). Live schalten: Repository-Variable `OCT_BOT_DRY_RUN` auf `false` setzen. Lokal: `OCT_BOT_DELAY_MIN`/`OCT_BOT_DELAY_MAX` (Sekunden) überschreiben die Wartezeit.
+Operation: dry-run is the default (writes are only logged). To go live, set the repository variable `OCT_BOT_DRY_RUN` to `false`. Locally, `OCT_BOT_DELAY_MIN` / `OCT_BOT_DELAY_MAX` (seconds) override the wait.
 
 **Nachfrage und Verifikation (Job `follow-up` im Workflow Community, täglich):** Support-Threads (Label `support`/`needs-info` oder mit Bot-Antwort), die ruhig sind, bekommen genau eine Nachfrage: Fall 1 (es gibt Antworten) nach 3 Tagen mit den Kandidaten A bis F, G "etwas anderes", H "nicht gelöst"; Fall 2 (keine Antworten) nach 7 Tagen mit einer offenen Frage und Label `unanswered` nach 3 Tagen; Fall 3 (nur der Ersteller schrieb weiter) bestätigt die genannte Lösung. Antwortet der Ersteller (Buchstabe oder Freitext), schreibt der Bot zurück, was er verstanden hat, und setzt bei "gelöst" das Label `verified-solution` und schließt den Thread (Discussion: Antwort markieren und schließen); bei "nicht gelöst" kommt das Label `needs-human`. Nur Threads mit `verified-solution` werden zur Quelle. Einstellungen: `followup_*` und `unanswered_label_days` in `rules.yml`. Manuell starten: Workflow Community, Haken `follow_up`.
 
