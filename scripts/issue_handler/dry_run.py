@@ -11,6 +11,10 @@ WRITE_METHODS = {
     "close_issue",
     "set_assignee",
     "post_discussion_comment",
+    "remove_label",
+    "reopen_issue",
+    "mark_discussion_answer",
+    "close_discussion",
 }
 
 

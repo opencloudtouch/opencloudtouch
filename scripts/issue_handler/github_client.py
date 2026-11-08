@@ -85,9 +85,9 @@ class GitHubClient:
         )
         response.raise_for_status()
 
-    async def post_comment(self, issue_number: int, body: str) -> None:
+    async def post_comment(self, issue_number: int, body: str, allow_repeat: bool = False) -> None:
         # Safety net: check if bot already commented (prevent duplicate spam)
-        bot_login = await self._get_bot_login()
+        bot_login = None if allow_repeat else await self._get_bot_login()
         if bot_login:
             existing = await self._request_with_retry(
                 self._search_client,
@@ -125,12 +125,12 @@ class GitHubClient:
                 self._bot_login_cached = None
         return self._bot_login_cached
 
-    async def close_issue(self, issue_number: int) -> None:
+    async def close_issue(self, issue_number: int, reason: str = "completed") -> None:
         response = await self._request_with_retry(
             self._bot_client,
             "patch",
             self._repo_url(f"/issues/{issue_number}"),
-            json={"state": "closed"},
+            json={"state": "closed", "state_reason": reason},
         )
         response.raise_for_status()
 
@@ -243,20 +243,75 @@ class GitHubClient:
         """Fetch a discussion (id, closed, labels, comment authors). None if it is gone."""
         query = (
             "query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){discussion(number:$n){"
-            "id closed author{login} labels(first:20){nodes{name}} "
-            "comments(first:50){nodes{id body author{login __typename}}}}}}"
+            "id number title url createdAt closed isAnswered author{login} labels(first:20){nodes{name}} category{isAnswerable} "
+            "comments(first:50){nodes{id url body createdAt author{login __typename} "
+            "replies(first:20){nodes{id url body createdAt author{login __typename}}}}}}}}"
         )
         data = await self._graphql(
             self._search_client, query, {"o": self._repo_owner, "r": self._repo_name, "n": number}
         )
         return data["repository"]["discussion"]
 
-    async def post_discussion_comment(self, discussion_node_id: str, body: str) -> None:
+    async def post_discussion_comment(self, discussion_node_id: str, body: str) -> str | None:
+        """Post a discussion comment and return its node id."""
         mutation = (
             "mutation($id:ID!,$body:String!){addDiscussionComment(input:{discussionId:$id,body:$body})"
             "{comment{id}}}"
         )
-        await self._graphql(self._bot_client, mutation, {"id": discussion_node_id, "body": body})
+        data = await self._graphql(self._bot_client, mutation, {"id": discussion_node_id, "body": body})
+        return data["addDiscussionComment"]["comment"]["id"]
+
+    async def reopen_issue(self, issue_number: int) -> None:
+        response = await self._request_with_retry(
+            self._bot_client, "patch", self._repo_url(f"/issues/{issue_number}"), json={"state": "open"}
+        )
+        response.raise_for_status()
+
+    async def remove_label(self, issue_number: int, label: str) -> None:
+        """Remove a label; a label that is not set is fine."""
+        response = await self._request_with_retry(
+            self._bot_client, "delete", self._repo_url(f"/issues/{issue_number}/labels/{label}")
+        )
+        if response.status_code != 404:
+            response.raise_for_status()
+
+    async def list_open_issues(self, max_pages: int = 3) -> list[dict[str, Any]]:
+        """Open issues (no pull requests), newest first."""
+        found: list[dict[str, Any]] = []
+        for page in range(1, max_pages + 1):
+            response = await self._request_with_retry(
+                self._search_client,
+                "get",
+                self._repo_url("/issues"),
+                params={"state": "open", "sort": "created", "direction": "desc", "per_page": 100, "page": page},
+            )
+            response.raise_for_status()
+            batch = response.json()
+            found.extend(i for i in batch if "pull_request" not in i)
+            if len(batch) < 100:
+                break
+        return found
+
+    async def list_open_discussions(self, limit: int = 30) -> list[dict[str, Any]]:
+        query = (
+            "query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){discussions(first:$n,"
+            "orderBy:{field:CREATED_AT,direction:DESC}){nodes{id number title url closed isAnswered createdAt author{login} "
+            "labels(first:20){nodes{name}} category{isAnswerable} "
+            "comments(first:50){nodes{id url body createdAt author{login __typename} "
+            "replies(first:20){nodes{id url body createdAt author{login __typename}}}}}}}}}"
+        )
+        data = await self._graphql(
+            self._search_client, query, {"o": self._repo_owner, "r": self._repo_name, "n": limit}
+        )
+        return [d for d in data["repository"]["discussions"]["nodes"] if not d["closed"]]
+
+    async def mark_discussion_answer(self, comment_node_id: str) -> None:
+        mutation = "mutation($id:ID!){markDiscussionCommentAsAnswer(input:{id:$id}){discussion{id}}}"
+        await self._graphql(self._bot_client, mutation, {"id": comment_node_id})
+
+    async def close_discussion(self, discussion_node_id: str) -> None:
+        mutation = "mutation($id:ID!){closeDiscussion(input:{discussionId:$id,reason:RESOLVED}){discussion{id}}}"
+        await self._graphql(self._bot_client, mutation, {"id": discussion_node_id})
 
     async def bot_has_commented(self, issue_number: int, bot_username: str) -> bool:
         """Check if the bot has already commented on this issue."""

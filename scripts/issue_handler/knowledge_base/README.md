@@ -31,6 +31,8 @@ The issue handler answers once, 5 to 10 minutes after a new issue or discussion 
 
 Operation: dry-run is the default (writes are only logged). To go live, set the repository variable `OCT_BOT_DRY_RUN` to `false`. Locally, `OCT_BOT_DELAY_MIN` / `OCT_BOT_DELAY_MAX` (seconds) override the wait.
 
+**Follow-up and verification (job `follow-up` in the Community workflow, daily):** Quiet support threads (label `support`/`needs-info`, or with a bot answer) get exactly one follow-up. Case 1 (replies exist), after 3 days: the candidates A to F, G "something else", H "not solved". Case 2 (no replies), after 7 days: an open question, plus the label `unanswered` after 3 days. Case 3 (only the starter wrote more): confirmation of the fix they mention. When the starter answers (a letter or free text) the bot says what it understood, then labels `verified-solution` and closes the thread (discussions: marks the answer and closes) for "solved", or labels `needs-human` for "not solved". Only threads labelled `verified-solution` become sources. Settings: `followup_*` and `unanswered_label_days` in `rules.yml`. Manual start: Community workflow, checkbox `follow_up`.
+
 ---
 
 ## 3. KB-Artikel erstellen (manuell)

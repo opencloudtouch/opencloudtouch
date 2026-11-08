@@ -20,12 +20,14 @@ import sys
 import time
 from pathlib import Path
 
+from ai_context import make_ai_context
 from dry_run import DryRunClient
 from github_client import GitHubClient
 from knowledge_base import KnowledgeBase
 from models import WebhookEvent
 from pipeline import Pipeline
 from precheck import delay_seconds, early_skip_reason, recheck
+from reply import handle_reply
 from retrieval import find_sources
 from stages.action import action_stage
 from stages.classifier import classifier_stage
@@ -83,6 +85,13 @@ async def run() -> int:
             github_client = DryRunClient(github_client)
 
         try:
+            if event.event_type in ("issue_comment", "discussion_comment"):
+                # A reply of the thread starter to the follow-up question
+                ai = make_ai_context(github_token, settings.get("monthly_budget_usd", 0.90))
+                entry = await handle_reply(event, github_client, ai, settings.get("bot_username", "oct-support-bot"))
+                print(json.dumps({"stage": "reply", **entry}))
+                return 0
+
             skip = early_skip_reason(event)
             if skip is None:
                 # Answer a few minutes later, not instantly, and only if nothing changed meanwhile.
