@@ -31,6 +31,8 @@ Der Issue Handler antwortet einmal, 5 bis 10 Minuten nach einem neuen Issue oder
 
 Betrieb: Standard ist der Trockenlauf (Schreibzugriffe werden nur geloggt). Live schalten: Repository-Variable `OCT_BOT_DRY_RUN` auf `false` setzen. Lokal: `OCT_BOT_DELAY_MIN`/`OCT_BOT_DELAY_MAX` (Sekunden) überschreiben die Wartezeit.
 
+**Nachfrage und Verifikation (Job `follow-up` im Workflow Community, täglich):** Support-Threads (Label `support`/`needs-info` oder mit Bot-Antwort), die ruhig sind, bekommen genau eine Nachfrage: Fall 1 (es gibt Antworten) nach 3 Tagen mit den Kandidaten A bis F, G "etwas anderes", H "nicht gelöst"; Fall 2 (keine Antworten) nach 7 Tagen mit einer offenen Frage und Label `unanswered` nach 3 Tagen; Fall 3 (nur der Ersteller schrieb weiter) bestätigt die genannte Lösung. Antwortet der Ersteller (Buchstabe oder Freitext), schreibt der Bot zurück, was er verstanden hat, und setzt bei "gelöst" das Label `verified-solution` und schließt den Thread (Discussion: Antwort markieren und schließen); bei "nicht gelöst" kommt das Label `needs-human`. Nur Threads mit `verified-solution` werden zur Quelle. Einstellungen: `followup_*` und `unanswered_label_days` in `rules.yml`. Manuell starten: Workflow Community, Haken `follow_up`.
+
 ---
 
 ## 3. KB-Artikel erstellen (manuell)

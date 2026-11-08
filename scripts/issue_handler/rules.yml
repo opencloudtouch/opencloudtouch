@@ -8,6 +8,11 @@ settings:
   answer_delay_min_seconds: 300    # wait 5-10 minutes before the first answer
   answer_delay_max_seconds: 600
   min_relevance: 0.3               # minimum source relevance (0-1); below it the bot stays silent
+  followup_days_with_answers: 3    # ask which reply helped after this many quiet days
+  followup_days_without_answers: 7 # ask the open question after this many quiet days
+  unanswered_label_days: 3         # label threads without any answer
+  followup_max_age_days: 60        # never follow up on older threads
+  followup_max_per_run: 5
   monthly_budget_usd: 0.90         # hard cap for OpenAI fallback costs ($0.90 ≈ €1)
 
 rules:
