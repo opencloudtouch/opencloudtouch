@@ -371,7 +371,7 @@ export interface paths {
      * Rename Device
      * @description Rename a SoundTouch device.
      *
-     *     Tries REST API first (POST /name), falls back to SSH if REST fails.
+     *     Uses the device REST API (POST /name), like the Bose app.
      *     Updates the local database after successful rename.
      *
      *     Args:
@@ -384,7 +384,7 @@ export interface paths {
      *     Raises:
      *         DeviceNotFoundError: If device does not exist
      *         HTTPException(422): If name validation fails
-     *         HTTPException(502): If both REST and SSH methods fail
+     *         HTTPException(502): If the device does not accept the new name
      */
     put: operations["rename_device_api_devices__device_id__name_put"];
     post?: never;
@@ -3140,8 +3140,6 @@ export interface components {
       uuid_was_collision: boolean;
       /**
        * Uuid Source
-       * @description "existing" (kept from device), "derived" (newly set) or "collision_fallback"
-       *     (replaced because another device owns the same UUID)
        * @default unknown
        */
       uuid_source: string;
@@ -4452,7 +4450,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Both REST and SSH rename failed */
+      /** @description The device did not accept the new name */
       502: {
         headers: {
           [name: string]: unknown;

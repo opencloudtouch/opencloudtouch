@@ -372,13 +372,13 @@ paths:
       tags:
       - Devices
       summary: Rename Device
-      description: "Rename a SoundTouch device.\n\nTries REST API first (POST /name),\
-        \ falls back to SSH if REST fails.\nUpdates the local database after successful\
+      description: "Rename a SoundTouch device.\n\nUses the device REST API (POST\
+        \ /name), like the Bose app.\nUpdates the local database after successful\
         \ rename.\n\nArgs:\n    device_id: Device ID (MAC address)\n    body: {\"\
         name\": \"New Name\"} — 1-30 characters\n\nReturns:\n    Updated device info\
         \ with previous name\n\nRaises:\n    DeviceNotFoundError: If device does not\
         \ exist\n    HTTPException(422): If name validation fails\n    HTTPException(502):\
-        \ If both REST and SSH methods fail"
+        \ If the device does not accept the new name"
       operationId: rename_device_api_devices__device_id__name_put
       parameters:
       - name: device_id
@@ -404,7 +404,7 @@ paths:
         '422':
           description: Invalid name
         '502':
-          description: Both REST and SSH rename failed
+          description: The device did not accept the new name
   /api/devices/{device_id}/now-playing:
     get:
       tags:
