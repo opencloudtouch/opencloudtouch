@@ -9,42 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Redesigned setup and restore wizards with a shared design, progress tracker, focus management and full keyboard and screen-reader support
-- Redesigned app shell, presets page, local control, zones, firmware, settings, diagnostics, about and licenses pages with swipe navigation between devices, a sticky device switch bar and a native `<dialog>` based modal
-- Remove button with a confirmation dialog for online and offline devices in presets and local control; saved presets are kept (#520)
-- `/health` reports the server `uptime`; the About page shows "running since" (#521)
-- Link to the licenses page on the About page, keeping the selected device (#528)
-- Toast after every network scan that names the newly discovered devices
-- `PUT /api/devices/{id}/source` switches a device to Bluetooth, AUX or AirPlay
-- Translated restore step and validation messages via stable `message_code` / `message_params` (all 10 locales, English fallback)
-- Cypress suites for responsive layout (overlap, overflow and clipping audit) and for axe accessibility of every wizard state
-- Machine-readable `code`, `params` and `extra` in API error responses (`ErrorDetail`), `errors[].path`/`code` for field errors, `raise_coded()` and an error-code registry (`core/error_codes.py`); all existing keys are unchanged.
-- Frontend: typed `ApiError` thrown by `throwIfNotOk` and translated messages via `getApiErrorMessage`/`getFieldErrors` (`errors.api.*` in all locales).
-
-### Changed
-- Renaming a device uses only the device REST API (`POST /name`, like the Bose app). The SSH fallback that edited `SystemConfigurationDB.xml` was removed, a failed rename now answers 502 and leaves the stored name unchanged; control characters in the name are rejected (422)
-- The navigation entry "Presets" is now "Devices" (all 10 locales). The device card is the single place for a device: now playing with a source switch (Presets, Bluetooth, AUX), previous/next/play keys for sources with tracks, volume, presets and remove
-- Preset rows are toggles: a tap starts, pauses or resumes the preset; a small button next to it changes the station (behaviour change: the tap on the name used to open the station search). "Presets" in the source switch plays the preset the device played last
-- The "Local control" page (`/local`) was removed; it was not linked anywhere and its source chips did not switch anything. Its functions live on the device card
-- Restore: backup timeout raised to 10 minutes; archive validation searches the whole archive
-- Device cards load from a small in-memory cache that is warmed for the neighbouring devices only
-- Settings: a failed log download shows a translated reason instead of failing silently (#527)
-- Frontend: the wire-shape interface `ApiError` is now `ApiErrorBody`.
-- `ErrorDetail` and `ErrorItem` are part of the generated OpenAPI schema.
-- `/health` has a typed response model (`HealthResponse`) in the OpenAPI schema; the frontend type is generated from it.
-- The SoundTouch WebSocket client uses the `websockets.asyncio` API and ignores `HTTP(S)_PROXY`/`ALL_PROXY` for LAN devices; minimum `websockets` is now 15.0.
-
-### Fixed
-- Devices without the OCT redirect block in `/etc/hosts` were reported as `configured` by the health check and the setup verification (the grep fallback printed a second `0`)
-- A second device scan now gets an explicit "already in progress" event instead of a bare HTTP 409, so real failures are no longer labelled "already running"
-- Layout overflow and overlap on the presets, local control, multi-room and settings pages, the swiper, the navigation and the empty state
-- False "unexpected content" warnings when validating a restore archive
-- Accessibility: skip link and `main` landmark, heading order, contrast tokens, translated `aria-label`s, `html lang` sync, toast roles and reduced-motion support
-- ci(pr-review): welcome comment no longer repeats for returning contributors; merged PRs are now counted per author, returning contributors get a shorter message and the label `contributor:trusted`
+_No changes yet._
 
 ---
 
+## [2.0.0] - 2026-11-08
+
+### Added
+- ui): full-width pages, wizard redesign, translated errors and faster backup/restore (#611
+- api): add machine-readable code to API error responses and typed ApiError in the frontend (#560
+- account): preserve stable UUIDs across servers and track their origin (1/3) (#532
+- ui): responsive layout, accessibility and wizard redesign (#523
+### Fixed
+- setup,devices): correct the hosts redirect check and remove the SSH rename (#612
+- frontend): no jumping or reloading when switching between Devices and Zones (#605
+- ci): prevent shell injection in autoformat branch handling (#595
+- ci): stop repeating the first-time welcome on PRs of returning contributors (#597
+### Performance
+- dlna): cache discovered servers and expose SSDP search (#509
+### Documentation
+-  add definition of ready and definition of done (#555
 ## [1.4.2] - 2026-05-29
 
 ### Added
