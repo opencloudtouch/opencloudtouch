@@ -434,7 +434,7 @@ jobs:
           python-version: '3.13'
 
       - name: Install dependencies
-        run: pip install -r scripts/issue_handler/requirements.txt
+        run: pip install -r scripts/requirements.txt
 
       - name: Run KB growth scan
         env:

@@ -62,11 +62,14 @@ jobs:
           python-version: '3.13'
 
       - name: Install dependencies
-        run: pip install -r scripts/issue_handler/requirements.txt -r scripts/issue_handler/requirements-dev.txt pytest-asyncio
+        run: pip install -r scripts/requirements-dev.txt
 
       - name: Issue handler tests
         working-directory: scripts/issue_handler
         run: python -m pytest -q
+
+      - name: PR reviewer tests
+        run: python -m pytest scripts/pr_reviewer/tests -q
 
       - name: Release and workflow script tests
         run: python -m pytest scripts/tests -q
