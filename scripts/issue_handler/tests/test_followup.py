@@ -255,7 +255,7 @@ class TestReviewFixes:
 
     @pytest.mark.asyncio
     async def test_a_closed_solved_issue_can_be_corrected(self) -> None:
-        echo_comment = "Understood: [A] solved it.\n" + ECHO_MARKER
+        echo_comment = "Understood: [A] solved it.\n" + SOLUTION_MARKER + ECHO_MARKER
         client = _issue_client([
             _api(10, "helper", "x" * 30), _api(20, BOT, FOLLOWUP), _api(21, BOT, echo_comment), _api(30, "starter", "H"),
         ])
@@ -295,3 +295,11 @@ class TestReviewFixes:
         assert await plan(t, BOT, NOW, DEFAULTS, AI_NONE) is None
         t2 = _thread(kind="discussion", labels=("needs-human",), created_days_ago=20)
         assert await plan(t2, BOT, NOW, DEFAULTS, AI_NONE) is None
+
+    @pytest.mark.asyncio
+    async def test_a_maintainer_closure_after_a_not_solved_echo_stays(self) -> None:
+        echo_comment = "Understood: not solved.\n" + ECHO_MARKER
+        client = _issue_client([_api(20, BOT, FOLLOWUP), _api(21, BOT, echo_comment), _api(30, "starter", "H")])
+        client.get_issue.return_value["state"] = "closed"
+        assert (await handle_reply(_issue_event("H"), client, AI_NONE, BOT))["decision"] == "skip"
+        client.reopen_issue.assert_not_called()

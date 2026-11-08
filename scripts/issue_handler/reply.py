@@ -138,8 +138,9 @@ async def handle_reply(event: Any, client: Any, ai: Any, bot: str) -> dict[str, 
     if state is None:
         return {"decision": "skip", "reason": "no open follow-up in this thread"}
     last_bot, data = state
-    # A closed issue is only revisited as a correction of the bot's own echo
-    if closed and ECHO_MARKER not in thread.comments[last_bot].body:
+    # A closed issue is only revisited as a correction of the bot's own "solved" echo (the one that closed it);
+    # a maintainer's later closure after a "not solved" echo must stay as it is
+    if closed and SOLUTION_MARKER not in thread.comments[last_bot].body:
         return {"decision": "skip", "reason": "issue is closed"}
     after = [c.id for c in thread.comments[last_bot + 1 :]]
     if event.comment_id not in after:
