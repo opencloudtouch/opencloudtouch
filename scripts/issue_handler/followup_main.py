@@ -34,7 +34,8 @@ async def run_followups(client: Any, ai: dict[str, Any], settings: dict[str, Any
     done: list[dict[str, Any]] = []
     posted = 0
     for thread in await collect_threads(client, now, s):
-        decision = await plan(thread, bot, now, s, ai)
+        # Past the per-run limit no AI call is spent on a follow-up that would only be deferred
+        decision = await plan(thread, bot, now, s, ai, build_body=posted < s["followup_max_per_run"])
         if decision is None:
             continue
         entry = {"thread": thread.number, "kind": thread.kind, "case": decision["case"], "label": decision["label"], "followup": bool(decision["body"])}
@@ -46,7 +47,7 @@ async def run_followups(client: Any, ai: dict[str, Any], settings: dict[str, Any
             else:
                 await client.post_discussion_comment(thread.node_id, decision["body"])
             posted += 1
-        elif decision["body"]:
+        elif decision["due"]:
             entry["followup"] = False
             entry["deferred"] = "per-run limit"
         done.append(entry)

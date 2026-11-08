@@ -27,6 +27,7 @@ from followup import (
 )
 from sanitizer import sanitize_input
 
+UNCLEAR_MARKER = "<!-- oct-bot:unclear -->"
 _YES = re.compile(r"^\s*(yes|yep|yeah|solved|fixed|works|ja|gelöst)\b", re.I)
 _NO = re.compile(r"^\s*(no|nope|not|nein)\b", re.I)
 _LETTER = re.compile(r"\b([A-H])\b")
@@ -51,7 +52,12 @@ def deterministic(reply: str, case: int) -> dict[str, Any]:
         return {"outcome": "unclear", "letters": [], "solution": None}
     if case in (2, 3):
         if _YES.match(reply):
-            return {"outcome": "solved", "letters": [], "solution": reply.strip()}
+            # Only what follows the yes-word is a solution; a bare "yes" confirms the fix of case 3 (kept in the
+            # marker) and in case 2 it says nothing about how it was solved
+            rest = _YES.sub("", reply, count=1).strip(" ,.!:-")
+            if case == 2 and not rest:
+                return {"outcome": "unclear", "letters": [], "solution": None}
+            return {"outcome": "solved", "letters": [], "solution": rest or None}
         if _NO.match(reply):
             return {"outcome": "not_solved", "letters": [], "solution": None}
     return {"outcome": "unclear", "letters": [], "solution": None}
@@ -85,7 +91,15 @@ def _find_state(thread: Thread, bot: str) -> tuple[int, dict[str, Any]] | None:
     if not mine:
         return None
     last = thread.comments[mine[-1]]
-    if FOLLOWUP_PREFIX not in last.body and ECHO_MARKER not in last.body:
+    # Only the follow-up itself, a "solved" echo (a correction may follow) and the first "unclear" echo keep the
+    # conversation open; after "not solved" or a second "unclear" the thread belongs to the maintainer
+    unclear_echoes = sum(UNCLEAR_MARKER in thread.comments[i].body for i in mine)
+    keeps_open = (
+        FOLLOWUP_PREFIX in last.body
+        or SOLUTION_MARKER in last.body
+        or (UNCLEAR_MARKER in last.body and unclear_echoes == 1)
+    )
+    if not keeps_open:
         return None
     for i in reversed(mine):
         data = decode_marker(thread.comments[i].body)
@@ -114,7 +128,7 @@ def _echo(
         return f"Understood: this is not solved yet. A maintainer will take a look.\n\n{ECHO_MARKER}"
     return (
         "I could not tell from your reply. Please answer with the letter(s) of the reply that helped, "
-        f"or describe what solved it.\n\n{ECHO_MARKER}"
+        f"or describe what solved it.\n\n{UNCLEAR_MARKER}\n{ECHO_MARKER}"
     )
 
 
@@ -164,7 +178,8 @@ async def handle_reply(event: Any, client: Any, ai: Any, bot: str) -> dict[str, 
         echo_id = await client.post_discussion_comment(thread.node_id, echo)
         if outcome == "solved":
             answer = (chosen[0][1].node_id or chosen[0][1].id) if chosen else echo_id
-            if answer:
+            # Only categories that accept answers can mark one; the thread is closed either way
+            if answer and thread.answerable:
                 await client.mark_discussion_answer(answer)
             await client.close_discussion(thread.node_id)
     else:

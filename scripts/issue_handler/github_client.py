@@ -243,7 +243,7 @@ class GitHubClient:
         """Fetch a discussion (id, closed, labels, comment authors). None if it is gone."""
         query = (
             "query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){discussion(number:$n){"
-            "id number title url createdAt closed isAnswered author{login} labels(first:20){nodes{name}} "
+            "id number title url createdAt closed isAnswered author{login} labels(first:20){nodes{name}} category{isAnswerable} "
             "comments(first:50){nodes{id url body createdAt author{login __typename} "
             "replies(first:20){nodes{id url body createdAt author{login __typename}}}}}}}}"
         )

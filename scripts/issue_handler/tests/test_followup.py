@@ -55,7 +55,7 @@ class TestPlan:
     @pytest.mark.asyncio
     async def test_case2_label_after_three_days_question_after_seven(self) -> None:
         out = await plan(_thread(created_days_ago=4), BOT, NOW, DEFAULTS, AI_NONE)
-        assert out == {"label": True, "body": None, "case": 0}
+        assert out == {"label": True, "body": None, "case": 0, "due": False}
         out = await plan(_thread(created_days_ago=8), BOT, NOW, DEFAULTS, AI_NONE)
         assert out["label"] and out["case"] == 2 and "Did you solve this" in out["body"]
         assert "**A**" not in out["body"]
@@ -303,3 +303,76 @@ class TestReviewFixes:
         client.get_issue.return_value["state"] = "closed"
         assert (await handle_reply(_issue_event("H"), client, AI_NONE, BOT))["decision"] == "skip"
         client.reopen_issue.assert_not_called()
+
+
+class TestSecondReviewFixes:
+    def test_a_bare_yes_is_not_a_solution(self) -> None:
+        assert deterministic("yes", 2) == {"outcome": "unclear", "letters": [], "solution": None}
+        assert deterministic("yes", 3) == {"outcome": "solved", "letters": [], "solution": None}
+        assert deterministic("Yes, updated the firmware", 2)["solution"] == "updated the firmware"
+
+    @pytest.mark.asyncio
+    async def test_a_bare_yes_in_case_3_keeps_the_fix_of_the_marker(self) -> None:
+        followup = "q " + encode_marker(3, [], "replaced the cable")
+        client = _issue_client([_api(20, BOT, followup), _api(30, "starter", "yes")])
+        out = await handle_reply(_issue_event("yes"), client, AI_NONE, BOT)
+        assert out["outcome"] == "solved"
+        assert "**Solution:** replaced the cable" in client.post_comment.call_args.args[1]
+
+    @pytest.mark.asyncio
+    async def test_comments_after_a_not_solved_echo_are_left_to_the_maintainer(self) -> None:
+        echo = "Understood: not solved yet.\n" + ECHO_MARKER
+        client = _issue_client([_api(20, BOT, FOLLOWUP), _api(21, BOT, echo), _api(30, "starter", "here are my logs")])
+        assert (await handle_reply(_issue_event("here are my logs"), client, AI_NONE, BOT))["decision"] == "skip"
+        client.post_comment.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_the_first_unclear_echo_asks_again_but_the_second_is_the_last(self) -> None:
+        from reply import UNCLEAR_MARKER
+
+        unclear = "I could not tell.\n" + UNCLEAR_MARKER + "\n" + ECHO_MARKER
+        one = _issue_client([_api(20, BOT, FOLLOWUP), _api(21, BOT, unclear), _api(30, "starter", "B")])
+        assert (await handle_reply(_issue_event("B"), one, AI_NONE, BOT))["decision"] == "act"
+        two = _issue_client([_api(20, BOT, FOLLOWUP), _api(21, BOT, unclear), _api(22, BOT, unclear), _api(30, "starter", "hmm")])
+        assert (await handle_reply(_issue_event("hmm"), two, AI_NONE, BOT))["decision"] == "skip"
+
+    @pytest.mark.asyncio
+    async def test_a_discussion_category_without_answers_is_still_closed(self) -> None:
+        client = AsyncMock()
+        client.get_discussion.return_value = {
+            "id": "D_7", "number": 7, "title": "t", "url": "u", "createdAt": "2026-11-01T00:00:00Z",
+            "closed": False, "author": {"login": "starter"}, "category": {"isAnswerable": False},
+            "comments": {"nodes": [
+                {"id": "C10", "url": "u10", "body": "Reserve a fixed IP for the speaker", "createdAt": "2026-11-02T00:00:00Z",
+                 "author": {"login": "helper"}},
+                {"id": "C20", "url": "u20", "body": "q\n" + encode_marker(1, ["C10"]), "createdAt": "2026-11-03T00:00:00Z",
+                 "author": {"login": BOT}},
+                {"id": "C30", "url": "u30", "body": "A", "createdAt": "2026-11-04T00:00:00Z", "author": {"login": "starter"}},
+            ]},
+        }
+        client.post_discussion_comment.return_value = "C_echo"
+        ev = WebhookEvent(
+            event_type="discussion_comment", action="created", sender_login="starter", sender_type="User",
+            author_association="NONE", repo_owner="o", repo_name="r", issue_number=7, title="t", body="A",
+            is_discussion=True, author_login="starter", node_id="D_7", comment_id="C30", comment_body="A",
+        )
+        await handle_reply(ev, client, AI_NONE, BOT)
+        client.mark_discussion_answer.assert_not_called()
+        client.close_discussion.assert_awaited_with("D_7")
+
+    @pytest.mark.asyncio
+    async def test_no_ai_is_spent_on_follow_ups_past_the_per_run_limit(self) -> None:
+        from followup_main import run_followups
+
+        def issue(n: int) -> dict:
+            return {"number": n, "title": "t", "html_url": f"https://x/{n}", "node_id": f"I{n}", "user": {"login": "starter"},
+                    "created_at": "2026-11-01T00:00:00Z", "labels": [{"name": "support"}]}
+
+        client = AsyncMock()
+        client.list_open_issues.return_value = [issue(n) for n in range(1, 6)]
+        client.get_issue_comments.return_value = []
+        client.list_open_discussions.return_value = []
+        with patch("followup.claimed_fix", new=AsyncMock(return_value=None)) as spent:
+            out = await run_followups(client, AI_NONE, {"followup_max_per_run": 2}, BOT, datetime(2026, 11, 20, tzinfo=timezone.utc))
+        assert spent.await_count == 2
+        assert sum(1 for e in out if e.get("deferred")) == 3

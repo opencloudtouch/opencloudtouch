@@ -195,24 +195,32 @@ async def claimed_fix(ai: Any, thread: Thread) -> str | None:
     return fix.strip() if isinstance(fix, str) and fix.strip() else None
 
 
-async def plan(thread: Thread, bot: str, now: datetime, settings: dict[str, Any], ai: Any) -> dict[str, Any] | None:
-    """Decide what to do with a thread: {'label': bool, 'body': str|None, 'case': int} or None."""
+async def plan(
+    thread: Thread, bot: str, now: datetime, settings: dict[str, Any], ai: Any, build_body: bool = True
+) -> dict[str, Any] | None:
+    """Decide what to do with a thread: {'label': bool, 'body': str|None, 'case': int, 'due': bool} or None.
+
+    With build_body=False no AI call is made; 'due' tells that a follow-up would be posted."""
     s = {**DEFAULTS, **settings}
     if not eligible(thread, bot, now, s):
         return None
     cands = candidates(thread, bot, s["max_candidates"])
     quiet = quiet_days(thread, now)
-    result: dict[str, Any] = {"label": False, "body": None, "case": 0}
+    result: dict[str, Any] = {"label": False, "body": None, "case": 0, "due": False}
     if cands:
         if quiet >= s["followup_days_with_answers"]:
-            result.update(case=1, body=followup_body(1, cands, await summarize(ai, cands)))
+            result.update(case=1, due=True)
+            if build_body:
+                result["body"] = followup_body(1, cands, await summarize(ai, cands))
     else:
         if quiet >= s["unanswered_label_days"] and thread.kind == "issue" and "unanswered" not in thread.labels:
             result["label"] = True
         if quiet >= s["followup_days_without_answers"]:
-            fix = await claimed_fix(ai, thread)
-            result.update(case=3 if fix else 2, body=followup_body(3 if fix else 2, [], [], fix))
-    return result if (result["label"] or result["body"]) else None
+            result.update(case=2, due=True)
+            if build_body:
+                fix = await claimed_fix(ai, thread)
+                result.update(case=3 if fix else 2, body=followup_body(3 if fix else 2, [], [], fix))
+    return result if (result["label"] or result["due"]) else None
 
 
 def solution_excerpt(text: str, limit: int = 600) -> str:
