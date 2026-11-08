@@ -355,6 +355,10 @@ async def rename_device(
         raise HTTPException(
             status_code=422, detail="Device name must be 30 characters or fewer"
         )
+    if any(ord(c) < 32 or ord(c) == 127 for c in name):
+        raise HTTPException(
+            status_code=422, detail="Device name must not contain control characters"
+        )
 
     device = await device_service.get_device_by_id(device_id)
     if not device:

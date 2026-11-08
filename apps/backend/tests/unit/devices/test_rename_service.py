@@ -12,6 +12,7 @@ from typing import Optional
 from unittest.mock import AsyncMock
 
 import pytest
+from xml.sax.saxutils import escape as xml_escape
 
 from opencloudtouch.devices.rename_service import rename_device_via_ssh
 
@@ -94,6 +95,69 @@ class TestRenameDeviceViaSSH:
 
         write_call = fake_ssh.execute.call_args_list[1][0][0]
         assert "<DeviceName>Tom &amp; Jerry &lt;3&gt;</DeviceName>" in write_call
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("name", [r"A\1", r"\g<0>", r"a\q", r"back\slash"])
+    async def test_backslashes_are_written_literally(self, fake_ssh, monkeypatch, name):
+        """A backslash in the name must not be read as a regex group reference."""
+        fake_ssh.execute = AsyncMock(
+            side_effect=[
+                FakeCommandResult(success=True, output=SAMPLE_XML),
+                FakeCommandResult(success=True),
+            ]
+        )
+        monkeypatch.setattr(
+            "opencloudtouch.devices.rename_service.ssh_operation",
+            _fake_ctx(fake_ssh),
+        )
+
+        await rename_device_via_ssh("192.168.1.10", name)
+
+        write_call = fake_ssh.execute.call_args_list[1][0][0]
+        assert f"<DeviceName>{xml_escape(name)}</DeviceName>" in write_call
+        assert write_call.count("<DeviceName>") == 1
+
+    @pytest.mark.asyncio
+    async def test_config_is_replaced_only_after_the_new_file_is_complete(
+        self, fake_ssh, monkeypatch
+    ):
+        """The new XML goes to a temporary file and is moved over the original in the same command.
+
+        Writing the original directly truncates it first, so a dropped connection mid-write left a broken
+        SystemConfigurationDB.xml on the device.
+        """
+        fake_ssh.execute = AsyncMock(
+            side_effect=[
+                FakeCommandResult(success=True, output=SAMPLE_XML),
+                FakeCommandResult(success=True),
+            ]
+        )
+        monkeypatch.setattr(
+            "opencloudtouch.devices.rename_service.ssh_operation",
+            _fake_ctx(fake_ssh),
+        )
+
+        await rename_device_via_ssh("192.168.1.10", "New Name")
+
+        write_call = fake_ssh.execute.call_args_list[1][0][0]
+        target = "/mnt/nv/BoseApp-Persistence/1/SystemConfigurationDB.xml"
+        assert f"cat > {target} " not in write_call
+        assert "&& mv " in write_call
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("name", ["two\nlines", "bell\x07", "XMLEOF\rx", "nul\x00"])
+    async def test_control_characters_are_rejected_before_any_command(
+        self, fake_ssh, monkeypatch, name
+    ):
+        monkeypatch.setattr(
+            "opencloudtouch.devices.rename_service.ssh_operation",
+            _fake_ctx(fake_ssh),
+        )
+
+        with pytest.raises(ValueError, match="control characters"):
+            await rename_device_via_ssh("192.168.1.10", name)
+
+        fake_ssh.execute.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_file_not_found(self, fake_ssh, monkeypatch):

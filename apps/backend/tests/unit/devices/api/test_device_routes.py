@@ -1216,6 +1216,16 @@ class TestRenameDeviceEndpoint:
 
         assert response.status_code == 422
 
+    @pytest.mark.parametrize("name", ["two\nlines", "bell\x07", "tab\there"])
+    def test_rename_name_with_control_characters(
+        self, client, mock_device_service, name
+    ):
+        """A name with control characters is rejected before any device is contacted."""
+        response = client.put("/api/devices/12345ABC/name", json={"name": name})
+
+        assert response.status_code == 422
+        mock_device_service.get_device_by_id.assert_not_called()
+
     def test_rename_name_too_long(self, client, mock_device_service):
         """Test rename with name > 30 chars returns 422."""
         response = client.put(

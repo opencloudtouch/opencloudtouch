@@ -14,7 +14,9 @@ from opencloudtouch.setup.wizard_helpers import ssh_operation
 logger = logging.getLogger(__name__)
 
 _SYS_CONFIG_PATH = "/mnt/nv/BoseApp-Persistence/1/SystemConfigurationDB.xml"
+_SYS_CONFIG_TMP_PATH = f"{_SYS_CONFIG_PATH}.oct-new"
 _DEVICE_NAME_RE = re.compile(r"(<DeviceName>)(.*?)(</DeviceName>)", re.DOTALL)
+_CONTROL_CHARS_RE = re.compile(r"[\x00-\x1f\x7f]")
 
 
 async def rename_device_via_ssh(device_ip: str, new_name: str) -> None:
@@ -28,8 +30,11 @@ async def rename_device_via_ssh(device_ip: str, new_name: str) -> None:
         new_name: New device name (must be pre-validated: 1-30 chars)
 
     Raises:
+        ValueError: If the name contains control characters
         RuntimeError: If the file doesn't exist or write fails
     """
+    if _CONTROL_CHARS_RE.search(new_name):
+        raise ValueError("Device name must not contain control characters")
     escaped_name = xml_escape(new_name)
 
     async with ssh_operation(device_ip, "rename-device", write=True) as ssh:
@@ -44,15 +49,20 @@ async def rename_device_via_ssh(device_ip: str, new_name: str) -> None:
 
         # Replace DeviceName
         if _DEVICE_NAME_RE.search(xml_content):
-            new_xml = _DEVICE_NAME_RE.sub(rf"\g<1>{escaped_name}\g<3>", xml_content)
+            # a function, not a template: a backslash in the name must not be read as a group reference
+            new_xml = _DEVICE_NAME_RE.sub(
+                lambda m: m.group(1) + escaped_name + m.group(3), xml_content
+            )
         else:
             raise RuntimeError(
                 "<DeviceName> tag not found in SystemConfigurationDB.xml"
             )
 
-        # Write back atomically
+        # Write to a temporary file and move it over the original only when it is complete, so a dropped
+        # connection never leaves a truncated configuration behind.
         write_result = await ssh.execute(
-            f"cat > {_SYS_CONFIG_PATH} << 'XMLEOF'\n{new_xml}\nXMLEOF"
+            f"cat > {_SYS_CONFIG_TMP_PATH} << 'XMLEOF' && mv {_SYS_CONFIG_TMP_PATH} {_SYS_CONFIG_PATH}\n"
+            f"{new_xml}\nXMLEOF"
         )
         if not write_result.success:
             raise RuntimeError(
