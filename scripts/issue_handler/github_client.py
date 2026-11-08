@@ -216,7 +216,9 @@ class GitHubClient:
 
     async def search_labelled_threads(self, label: str, keywords: list[str], limit: int = 5) -> list[dict[str, Any]]:
         """Search issues of this repo that carry `label` and match the keywords (best match first)."""
-        words = " ".join(keywords[:8])
+        # GitHub ANDs space-separated terms, so eight long words almost never match one thread. OR a few terms
+        # (a query may contain at most 5 AND/OR/NOT operators) and let the caller score the hits.
+        words = " OR ".join(keywords[:5])
         query = f'repo:{self._repo_owner}/{self._repo_name} is:issue label:"{label}" {words}'.strip()
         response = await self._request_with_retry(
             self._search_client,

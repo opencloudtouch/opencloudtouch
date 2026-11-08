@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from retrieval import Source
 from models import ClassificationResult, WebhookEvent
 from stages.action import action_stage, _find_missing_bug_fields, _build_bug_comment
 
@@ -345,6 +346,7 @@ class TestThreeSignalGuarantee:
             ),
             "bot_username": "oct-support",
             "kb_answers": [kb_answer],
+            "sources": [Source("kb", "Docker Setup", "https://x/approved_answers/docker-setup.md", "c", 1.0)],
         }
         event = _make_event()
         await action_stage(event, context)
@@ -469,6 +471,7 @@ class TestSupportKBMatch:
             ),
             "bot_username": "oct-support",
             "kb_answers": [kb_answer],
+            "sources": [Source("kb", "Docker Setup", "https://x/approved_answers/docker-setup.md", "c", 1.0)],
         }
         event = _make_event()
         await action_stage(event, context)
@@ -641,3 +644,38 @@ class TestTemplateConstants:
     def test_bug_template_comment_has_url(self) -> None:
         from stages.action import BUG_TEMPLATE_COMMENT
         assert "bug_report" in BUG_TEMPLATE_COMMENT.lower() or "template" in BUG_TEMPLATE_COMMENT.lower()
+
+
+class TestKbMatchNeedsASource:
+    @pytest.mark.asyncio
+    async def test_kb_match_rejected_by_retrieval_is_not_posted(self) -> None:
+        from knowledge_base import ApprovedAnswer
+
+        gh = AsyncMock()
+        kb_answer = ApprovedAnswer(filename="docker-setup.md", tags=["docker"], content="Install Docker first.", title="Docker Setup")
+        context = {
+            "github_client": gh,
+            "classification": ClassificationResult(category="support", confidence=0.9, reasoning="q", kb_match="docker-setup.md"),
+            "bot_username": "oct-support",
+            "kb_answers": [kb_answer],
+            "sources": [],
+        }
+        await action_stage(_make_event(), context)
+        gh.post_comment.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_a_posted_kb_answer_lists_its_source(self) -> None:
+        from knowledge_base import ApprovedAnswer
+
+        gh = AsyncMock()
+        kb_answer = ApprovedAnswer(filename="docker-setup.md", tags=["docker"], content="Install Docker first.", title="Docker Setup")
+        context = {
+            "github_client": gh,
+            "classification": ClassificationResult(category="support", confidence=0.9, reasoning="q", kb_match="docker-setup.md"),
+            "bot_username": "oct-support",
+            "kb_answers": [kb_answer],
+            "sources": [Source("kb", "Docker Setup", "https://x/approved_answers/docker-setup.md", "c", 0.8)],
+        }
+        await action_stage(_make_event(), context)
+        comment = gh.post_comment.call_args[0][1]
+        assert "[Docker Setup](https://x/approved_answers/docker-setup.md)" in comment

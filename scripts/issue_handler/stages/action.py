@@ -247,13 +247,15 @@ def _select_comment(
         return FEATURE_TEMPLATE
 
     if classification.category == "support":
-        # KB match → approved answer
+        # KB match → approved answer, but only if retrieval accepted it as a relevant source (it then lists it)
         kb_match = classification.kb_match
         if kb_match:
-            kb_answers = context.get("kb_answers", [])
-            for answer in kb_answers:
-                if answer.filename == kb_match:
-                    return answer.content
+            kb_sources = [s for s in context.get("sources", []) if s.kind == "kb" and s.url.endswith("/" + kb_match)]
+            if kb_sources:
+                for answer in context.get("kb_answers", []):
+                    if answer.filename == kb_match:
+                        context["answer_sources"] = kb_sources
+                        return answer.content
         # AI-generated response
         return context.get("support_comment", "")
 
