@@ -156,3 +156,36 @@ class TestDryRunAndMarkers:
         assert "[T: Offline](https://x/y)" in out and out.endswith(ANSWER_MARKER)
         assert finalize_comment(out, src) == out
         assert finalize_comment("") == ""
+
+
+class TestReviewFixes:
+    @pytest.mark.asyncio
+    async def test_generic_kb_tag_match_does_not_bypass_min_relevance(self, tmp_path: Path) -> None:
+        from types import SimpleNamespace
+
+        client = AsyncMock()
+        client.search_labelled_threads.return_value = []
+        kb = [SimpleNamespace(title="Bug report needed", filename="bug.md", content="Please send logs and steps.")]
+        assert await find_sources(client, "Error", "an error happened somewhere", kb, tmp_path, "o/r") == []
+
+    @pytest.mark.asyncio
+    async def test_unreadable_thread_does_not_cost_the_answer(self, tmp_path: Path) -> None:
+        client = AsyncMock()
+        client.search_labelled_threads.return_value = [
+            {"number": 5, "title": "Speaker offline after router restart", "body": "wifi offline speaker router",
+             "html_url": "https://x/5", "user": {"login": "s"}},
+        ]
+        client.get_issue_comments.side_effect = RuntimeError("rate limit")
+        assert await find_sources(client, "Speaker offline", "after router restart wifi", [], tmp_path, "o/r") == []
+
+    @pytest.mark.asyncio
+    async def test_discussion_ignores_other_bots_and_sees_the_marker(self) -> None:
+        ev = _event(event_type="discussion", is_discussion=True, action="created")
+        client = AsyncMock()
+        client.get_discussion.return_value = {
+            "closed": False, "labels": {"nodes": []},
+            "comments": {"nodes": [{"author": {"login": "github-actions", "__typename": "Bot"}, "body": "ci"}]},
+        }
+        assert await recheck(ev, client, "oct-support") is None
+        client.get_discussion.return_value["comments"]["nodes"][0]["body"] = "x " + ANSWER_MARKER
+        assert "already answered" in (await recheck(ev, client, "oct-support") or "")

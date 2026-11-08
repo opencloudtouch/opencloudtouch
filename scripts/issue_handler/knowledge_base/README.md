@@ -63,7 +63,6 @@ Betrieb: Standard ist der Trockenlauf (Schreibzugriffe werden nur geloggt). Live
 ## 7. Troubleshooting
 
 - Workflow läuft nicht? → Logs in GitHub Actions prüfen
-- YAML-Reports fehlen? → Rechte/Verzeichnisse prüfen (`.local/agent-work/knowledge-kai/scans/`)
 - KI-Draft schlägt fehl? → Prompt/Issue-Text prüfen, ggf. manuell nacharbeiten
 
 ---

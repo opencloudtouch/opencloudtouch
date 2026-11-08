@@ -242,7 +242,7 @@ class GitHubClient:
         query = (
             "query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){discussion(number:$n){"
             "id closed author{login} labels(first:20){nodes{name}} "
-            "comments(first:50){nodes{id body author{login}}}}}}"
+            "comments(first:50){nodes{id body author{login __typename}}}}}}"
         )
         data = await self._graphql(
             self._search_client, query, {"o": self._repo_owner, "r": self._repo_name, "n": number}
