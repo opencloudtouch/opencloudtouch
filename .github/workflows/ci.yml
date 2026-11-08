@@ -95,8 +95,17 @@ jobs:
             EXPECT_REJECT="$2"
             EXPECTED_TEXT="$3"
             LABEL="$4"
+            SKIP="${5:-}"
+            PYFAIL="${6:-}"
 
             mkdir -p /tmp/fakebin
+            rm -f /tmp/fakebin/python
+            if [ "$PYFAIL" = "pyfail" ]; then
+              printf '#!/bin/sh
+exit 1
+' > /tmp/fakebin/python
+              chmod +x /tmp/fakebin/python
+            fi
             mkdir -p /tmp/oct-data
 
             cat > /tmp/fakebin/getconf <<EOF
@@ -113,6 +122,7 @@ jobs:
             set +e
             OUTPUT=$(
               PATH="/tmp/fakebin:$PATH" \
+              OCT_SKIP_PAGE_SIZE_CHECK="$SKIP" \
               OCT_PORT=7777 \
               OCT_LOG_LEVEL=INFO \
               OCT_DB_PATH=/tmp/oct-data/oct.db \
@@ -150,7 +160,10 @@ jobs:
           run_page_size_test "12288" false "has not been fully validated with OpenCloudTouch" "12KB page size allowed with info"
           run_page_size_test "16384" false "has not been fully validated with OpenCloudTouch" "16KB page size allowed with info"
           run_page_size_test "24576" false "has not been fully validated with OpenCloudTouch" "24KB page size allowed with info"
-          run_page_size_test "32768" true "32768-byte page size" "32KB page size rejected"
+          run_page_size_test "32768" false "library self-test passed" "32KB page size allowed when the library self-test passes"
+          run_page_size_test "32768" true "library self-test failed" "32KB page size rejected when the library self-test fails" "" pyfail
+          run_page_size_test "32768" false "OCT_SKIP_PAGE_SIZE_CHECK=1 is set" "32KB page size allowed with skip override" 1 pyfail
+          run_page_size_test "32768" true "library self-test failed" "32KB page size still rejected when skip is not 1" 0 pyfail
           run_page_size_test "65536" false "has not been fully validated with OpenCloudTouch" "64KB page size allowed with info"
           run_page_size_test "131072" false "has not been fully validated with OpenCloudTouch" "128KB page size allowed with info"
           run_page_size_test "" false "Unable to determine system page size" "Empty page size handled with warning"
