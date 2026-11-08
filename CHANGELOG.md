@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_No changes yet._
+
+---
+
+## [2.0.0] - 2026-11-08
+
 ### Added
 - Redesigned setup and restore wizards with a shared design, progress tracker, focus management and full keyboard and screen-reader support
 - Redesigned app shell, presets page, local control, zones, firmware, settings, diagnostics, about and licenses pages with swipe navigation between devices, a sticky device switch bar and a native `<dialog>` based modal
