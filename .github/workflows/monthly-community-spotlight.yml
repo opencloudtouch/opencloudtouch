@@ -31,7 +31,7 @@ jobs:
           echo "Analyzing activity since $SINCE..."
 
           # Excluded logins (maintainers + service accounts) — single source of truth
-          EXCLUDE_LOGINS='["scheilch","oct-support","codecov-commenter","dependabot","github-code-quality"]'
+          EXCLUDE_LOGINS='["scheilch","oct-support","codecov-commenter","dependabot","github-code-quality","gitar-bot"]'
 
           # Collect issue comments with body text (last 30 days)
           echo "📊 Collecting issue comments (last 30 days)..."
