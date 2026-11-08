@@ -44,6 +44,34 @@ jobs:
         run: python scripts/check-mojibake.py .
         
   # ============================================================================
+  # SCRIPT TESTS (scripts/issue_handler, scripts/tests)
+  # ============================================================================
+  script-tests:
+    name: Script Tests
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -r scripts/issue_handler/requirements.txt -r scripts/issue_handler/requirements-dev.txt pytest-asyncio
+
+      - name: Issue handler tests
+        working-directory: scripts/issue_handler
+        run: python -m pytest -q
+
+      - name: Release and workflow script tests
+        run: python -m pytest scripts/tests -q
+
+  # ============================================================================
   # PAGE SIZE REGRESSION TEST
   # ============================================================================
 
@@ -618,7 +646,7 @@ jobs:
   summary:
     name: CI Summary
     runs-on: ubuntu-24.04
-    needs: [mojibake-check, test-page-size-detection, commit-lint, security, license-check, lint, backend-tests, frontend-tests, e2e-tests]
+    needs: [mojibake-check, script-tests, test-page-size-detection, commit-lint, security, license-check, lint, backend-tests, frontend-tests, e2e-tests]
     if: always()
 
     steps:
@@ -643,6 +671,7 @@ jobs:
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Mojibake Check| ${{ needs.mojibake-check.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Script Tests  | ${{ needs.script-tests.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Page Size Test| ${{ needs.test-page-size-detection.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Commit Lint   | ${{ needs.commit-lint.result == 'success' && 'Passed' || needs.commit-lint.result == 'skipped' && 'Skipped' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security Scan | ${{ needs.security.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
@@ -670,6 +699,7 @@ jobs:
         run: |
           if [[ "${{ needs.commit-lint.result }}" != "success" && "${{ needs.commit-lint.result }}" != "skipped" ]] || \
              [[ "${{ needs.mojibake-check.result }}" != "success" ]] || \
+             [[ "${{ needs.script-tests.result }}" != "success" ]] || \
              [[ "${{ needs.test-page-size-detection.result }}" != "success" ]] || \
              [[ "${{ needs.security.result }}" != "success" ]] || \
              [[ "${{ needs.license-check.result }}" != "success" ]] || \
