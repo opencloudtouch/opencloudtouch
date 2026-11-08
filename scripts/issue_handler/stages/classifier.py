@@ -16,6 +16,9 @@ from sanitizer import sanitize_input
 
 logger = logging.getLogger(__name__)
 
+# OpenAI fallback model (settings.openai_model in rules.yml overrides it); Flex tier, see cost_tracker.py
+DEFAULT_OPENAI_MODEL = "gpt-6-luna"
+
 SYSTEM_PROMPT_TEMPLATE = """You are a GitHub issue classifier for the OpenCloudTouch project, a bridge between Bose SoundTouch speakers and modern smart home systems.
 
 Your task: Classify the following GitHub issue into exactly one category.
@@ -190,7 +193,7 @@ async def classifier_stage(event: WebhookEvent, context: dict[str, Any]) -> Pipe
             )
 
         classification = await _try_classify(
-            openai_client, messages, model="gpt-5.4-nano",
+            openai_client, messages, model=context.get("openai_model", DEFAULT_OPENAI_MODEL),
             cost_tracker=cost_tracker, service_tier="flex",
         )
 
@@ -254,7 +257,8 @@ async def _generate_response(
     ]
 
     response_text = await _try_generate(
-        github_models_client, openai_client, cost_tracker, messages
+        github_models_client, openai_client, cost_tracker, messages,
+        context.get("openai_model", DEFAULT_OPENAI_MODEL),
     )
     context["ai_call_count"] = context.get("ai_call_count", 1) + 1
 
@@ -273,11 +277,12 @@ async def _try_generate(
     openai_client: Any,
     cost_tracker: Any,
     messages: list[dict[str, str]],
+    openai_model: str = DEFAULT_OPENAI_MODEL,
 ) -> str | None:
     """Try to generate a text response using available AI clients."""
     for client, model, tier in [
         (github_models_client, "gpt-4o-mini", None),
-        (openai_client, "gpt-5.4-nano", "flex"),
+        (openai_client, openai_model, "flex"),
     ]:
         if client is None:
             continue

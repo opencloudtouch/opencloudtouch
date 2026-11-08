@@ -6,9 +6,16 @@ import os
 from pathlib import Path
 from typing import Any
 
+from model_choice import pick_model
 
-def make_ai_context(github_token: str, budget_usd: float) -> dict[str, Any]:
-    ctx: dict[str, Any] = {"github_models_client": None, "openai_client": None, "cost_tracker": None}
+
+async def make_ai_context(github_token: str, settings: dict[str, Any]) -> dict[str, Any]:
+    ctx: dict[str, Any] = {
+        "github_models_client": None,
+        "openai_client": None,
+        "cost_tracker": None,
+        "openai_model": None,
+    }
     try:
         from openai import AsyncOpenAI
 
@@ -18,9 +25,11 @@ def make_ai_context(github_token: str, budget_usd: float) -> dict[str, Any]:
             ctx["openai_client"] = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
     except ImportError:
         pass
-    from cost_tracker import CostTracker
+    from cost_tracker import tracker_from_settings
 
     cost_file = Path("/tmp/ai-cost-tracker/cost.json")
     cost_file.parent.mkdir(parents=True, exist_ok=True)
-    ctx["cost_tracker"] = CostTracker(cost_file=cost_file, budget_usd=budget_usd)
+    choice = await pick_model(ctx["openai_client"], settings)
+    ctx["openai_model"] = choice.id
+    ctx["cost_tracker"] = tracker_from_settings(cost_file, settings, choice)
     return ctx

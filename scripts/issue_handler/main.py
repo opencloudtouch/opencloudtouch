@@ -22,9 +22,11 @@ from pathlib import Path
 
 from ai_context import make_ai_context
 from close_prompt import handle_closed, handle_prompt_edit
+from cost_tracker import report_cost, tracker_from_settings
 from dry_run import DryRunClient
 from github_client import GitHubClient
 from knowledge_base import KnowledgeBase
+from model_choice import pick_model
 from models import WebhookEvent
 from pipeline import Pipeline
 from precheck import delay_seconds, early_skip_reason, recheck
@@ -85,18 +87,26 @@ async def run() -> int:
             # Dry-run is the default: writes are only logged until it is switched off explicitly.
             github_client = DryRunClient(github_client)
 
+        # Every exit path reports the cost: this view reads the counter even on runs that never call the AI
+        cost_file = Path("/tmp/ai-cost-tracker/cost.json")
+        cost_file.parent.mkdir(parents=True, exist_ok=True)
+        tracker = tracker_from_settings(cost_file, settings)
         try:
             bot = settings.get("bot_username", "oct-support-bot")
             routed: dict | None = None
             if event.event_type == "issues" and event.action == "closed":
                 # The maintainer closed an issue: ask what the outcome was
-                routed = await handle_closed(event, github_client, make_ai_context(github_token, settings.get("monthly_budget_usd", 0.90)), bot)
+                ai = await make_ai_context(github_token, settings)
+                tracker = ai["cost_tracker"]
+                routed = await handle_closed(event, github_client, ai, bot)
             elif event.event_type == "issue_comment" and event.action == "edited":
                 # A box in the bot's close prompt was ticked
                 routed = await handle_prompt_edit(event, github_client, bot)
             elif event.event_type in ("issue_comment", "discussion_comment"):
                 # A reply of the thread starter to the follow-up question
-                routed = await handle_reply(event, github_client, make_ai_context(github_token, settings.get("monthly_budget_usd", 0.90)), bot)
+                ai = await make_ai_context(github_token, settings)
+                tracker = ai["cost_tracker"]
+                routed = await handle_reply(event, github_client, ai, bot)
             if routed is not None:
                 print(json.dumps({"stage": "routed", **routed}))
                 return 0
@@ -217,14 +227,13 @@ async def run() -> int:
                     pass
 
             # Initialize cost tracker
-            from cost_tracker import CostTracker
 
             cost_file = Path("/tmp/ai-cost-tracker/cost.json")
             cost_file.parent.mkdir(parents=True, exist_ok=True)
-            context["cost_tracker"] = CostTracker(
-                cost_file=cost_file,
-                budget_usd=settings.get("monthly_budget_usd", 0.90),
-            )
+            choice = await pick_model(context["openai_client"], settings)
+            context["cost_tracker"] = tracker_from_settings(cost_file, settings, choice)
+            context["openai_model"] = choice.id
+            tracker = context["cost_tracker"]
 
             # Build and run pipeline
             pipeline = Pipeline()
@@ -273,6 +282,7 @@ async def run() -> int:
             return 0
 
         finally:
+            report_cost(tracker)
             await github_client.close()
 
     except Exception as e:

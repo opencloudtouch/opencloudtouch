@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from ai_context import make_ai_context
+from cost_tracker import report_cost
 from dry_run import DryRunClient
 from followup import DEFAULTS, SKIP_LABELS, Thread, _ts, discussion_to_thread, issue_to_thread, plan
 from github_client import GitHubClient
@@ -64,12 +65,14 @@ async def main() -> int:
     client: Any = GitHubClient(bot_pat=pat, github_token=token, repo_owner=owner, repo_name=repo)
     if os.environ.get("OCT_BOT_DRY_RUN", "true").lower() != "false":
         client = DryRunClient(client)
+    ai: dict[str, Any] = {}
     try:
-        ai = make_ai_context(token, settings.get("monthly_budget_usd", 0.90))
+        ai = await make_ai_context(token, settings)
         result = await run_followups(client, ai, settings, settings.get("bot_username", "oct-support"), datetime.now(timezone.utc))
         print(json.dumps({"followups": result}))
         return 0
     finally:
+        report_cost(ai.get("cost_tracker"))
         await client.close()
 
 
