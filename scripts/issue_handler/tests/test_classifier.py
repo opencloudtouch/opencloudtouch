@@ -7,8 +7,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from models import WebhookEvent
-from stages.classifier import _build_prompt_messages, _parse_classification, classifier_stage
+from models import ClassificationResult, WebhookEvent
+from retrieval import Source
+from stages.classifier import _build_prompt_messages, _generate_response, _parse_classification, classifier_stage
 
 
 def _make_event(**overrides) -> WebhookEvent:
@@ -296,6 +297,7 @@ class TestGenerateResponse:
             "openai_client": None,
             "cost_tracker": None,
             "kb_answers": [],
+            "sources": [Source("docs", "README: Install", "https://example.test/readme", "Install with docker run.", 0.9)],
             "readme_content": "# OpenCloudTouch",
             "contributing_content": "",
             "classification": None,
@@ -329,6 +331,15 @@ class TestGenerateResponse:
 
         await classifier_stage(event, context)
         assert context.get("support_comment") == "Here is how to set up Docker..."
+        assert context["answer_sources"][0].url == "https://example.test/readme"
+
+    @pytest.mark.asyncio
+    async def test_support_without_sources_stays_silent(self) -> None:
+        context = {"github_models_client": AsyncMock(), "kb_answers": [], "sources": [], "cost_tracker": None}
+        classification = ClassificationResult(category="support", confidence=0.9, reasoning="q", kb_match=None)
+        await _generate_response(_make_event(), context, classification)
+        assert "support_comment" not in context
+        context["github_models_client"].chat.completions.create.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_unclear_generates_follow_up_questions(self) -> None:

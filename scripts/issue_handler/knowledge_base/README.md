@@ -25,9 +25,11 @@ This directory contains the curated Knowledge Base (KB) articles, scripts, and a
 
 ---
 
-## 2. Knowledge base growth
+## 2. Answers from verified sources
 
-The former weekly KB growth scan has been removed (it never ran successfully). Its successor is the support bot knowledge loop, see #617.
+The issue handler answers once, 5 to 10 minutes after a new issue or discussion (`answer_delay_*` in `rules.yml`). It stays silent if a human or the bot replied meanwhile, the thread is closed, or it carries `spec` or `needs-human`. Sources are only `approved_answers/`, the README and `docs/` (section by section) and threads labelled `verified-solution` (`retrieval.py`). Without a source above `min_relevance` there is no answer. Every answer lists its sources and carries the marker `<!-- oct-bot:answer -->`.
+
+Operation: dry-run is the default (writes are only logged). To go live, set the repository variable `OCT_BOT_DRY_RUN` to `false`. Locally, `OCT_BOT_DELAY_MIN` / `OCT_BOT_DELAY_MAX` (seconds) override the wait.
 
 ---
 
