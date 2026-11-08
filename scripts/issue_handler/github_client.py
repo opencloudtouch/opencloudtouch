@@ -241,8 +241,9 @@ class GitHubClient:
         """Fetch a discussion (id, closed, labels, comment authors). None if it is gone."""
         query = (
             "query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){discussion(number:$n){"
-            "id number title url createdAt closed author{login} labels(first:20){nodes{name}} "
-            "comments(first:50){nodes{id url body createdAt author{login}}}}}}"
+            "id number title url createdAt closed isAnswered author{login} labels(first:20){nodes{name}} "
+            "comments(first:50){nodes{id url body createdAt author{login __typename} "
+            "replies(first:20){nodes{id url body createdAt author{login __typename}}}}}}}}"
         )
         data = await self._graphql(
             self._search_client, query, {"o": self._repo_owner, "r": self._repo_name, "n": number}
@@ -257,6 +258,12 @@ class GitHubClient:
         )
         data = await self._graphql(self._bot_client, mutation, {"id": discussion_node_id, "body": body})
         return data["addDiscussionComment"]["comment"]["id"]
+
+    async def reopen_issue(self, issue_number: int) -> None:
+        response = await self._request_with_retry(
+            self._bot_client, "patch", self._repo_url(f"/issues/{issue_number}"), json={"state": "open"}
+        )
+        response.raise_for_status()
 
     async def remove_label(self, issue_number: int, label: str) -> None:
         """Remove a label; a label that is not set is fine."""
@@ -286,8 +293,10 @@ class GitHubClient:
     async def list_open_discussions(self, limit: int = 30) -> list[dict[str, Any]]:
         query = (
             "query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){discussions(first:$n,"
-            "orderBy:{field:CREATED_AT,direction:DESC}){nodes{id number title url closed createdAt author{login} "
-            "category{isAnswerable} comments(first:50){nodes{id url body createdAt author{login}}}}}}}"
+            "orderBy:{field:CREATED_AT,direction:DESC}){nodes{id number title url closed isAnswered createdAt author{login} "
+            "labels(first:20){nodes{name}} category{isAnswerable} "
+            "comments(first:50){nodes{id url body createdAt author{login __typename} "
+            "replies(first:20){nodes{id url body createdAt author{login __typename}}}}}}}}}"
         )
         data = await self._graphql(
             self._search_client, query, {"o": self._repo_owner, "r": self._repo_name, "n": limit}

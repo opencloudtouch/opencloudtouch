@@ -79,7 +79,10 @@ async def _thread_sources(client: Any, query: set[str], repo_slug: str, min_rele
         score = relevance(query, tokens(f"{hit.get('title', '')} {hit.get('body') or ''}"))
         if score < min_relevance:
             continue
-        comments = await client.get_issue_comments(hit["number"])
+        try:
+            comments = await client.get_issue_comments(hit["number"])
+        except Exception:  # one unreadable thread must not cost the whole answer
+            continue
         marked = [c for c in comments if SOLUTION_MARKER in (c.get("body") or "")]
         author = (hit.get("user") or {}).get("login", "")
         others = [c for c in comments if (c.get("user") or {}).get("login") not in (author, "") and (c.get("user") or {}).get("type") != "Bot"]
@@ -106,11 +109,13 @@ async def find_sources(
 ) -> list[Source]:
     """Return up to `max_sources` sources whose relevance reaches `min_relevance`, best first."""
     query = tokens(sanitize_input(title, is_title=True) + " " + sanitize_input(body))
-    sources: list[Source] = [
-        Source("kb", a.title or a.filename, f"https://github.com/{repo_slug}/blob/main/scripts/issue_handler/knowledge_base/approved_answers/{a.filename}",
-               a.content, 1.0)
-        for a in kb_answers
-    ]
+    sources: list[Source] = []
+    for a in kb_answers:
+        # Tag matches are loose (generic tags like "error"), so approved answers must pass the same relevance bar
+        score = relevance(query, tokens(f"{a.title or ''} {a.content}"))
+        if score >= min_relevance:
+            url = f"https://github.com/{repo_slug}/blob/main/scripts/issue_handler/knowledge_base/approved_answers/{a.filename}"
+            sources.append(Source("kb", a.title or a.filename, url, a.content, score))
     for chunk_title, url, text in doc_chunks(repo_root, repo_slug):
         score = relevance(query, tokens(text))
         if score >= min_relevance:

@@ -58,6 +58,7 @@ class Thread:
     created_at: datetime
     labels: set[str] = field(default_factory=set)
     answerable: bool = False  # discussions: category accepts answers
+    answered: bool = False  # discussions: an answer was already accepted
     comments: list[Comment] = field(default_factory=list)
 
 
@@ -109,7 +110,7 @@ def last_activity(thread: Thread) -> datetime:
 
 
 def eligible(thread: Thread, bot: str, now: datetime, settings: dict[str, Any]) -> bool:
-    if thread.labels & SKIP_LABELS or has_followup(thread):
+    if thread.labels & SKIP_LABELS or has_followup(thread) or thread.answered:
         return False
     if now - thread.created_at > timedelta(days=settings["followup_max_age_days"]):
         return False
@@ -243,6 +244,19 @@ def issue_to_thread(issue: dict[str, Any], comments: list[dict[str, Any]], repo_
 
 
 def discussion_to_thread(d: dict[str, Any]) -> Thread:
+    """Top-level comments and their replies (the starter usually answers inside the follow-up), oldest first."""
+    nodes: list[dict[str, Any]] = []
+    for c in d["comments"]["nodes"]:
+        nodes.append(c)
+        nodes.extend((c.get("replies") or {}).get("nodes", []))
+    comments = [
+        Comment(
+            id=c["id"], author=(c.get("author") or {}).get("login", ""), author_type=(c.get("author") or {}).get("__typename", "User"),
+            body=c.get("body") or "", url=c["url"], created_at=_ts(c["createdAt"]), node_id=c["id"],
+        )
+        for c in nodes
+    ]
+    comments.sort(key=lambda c: c.created_at)
     return Thread(
         kind="discussion",
         number=d["number"],
@@ -251,14 +265,10 @@ def discussion_to_thread(d: dict[str, Any]) -> Thread:
         url=d["url"],
         author=(d.get("author") or {}).get("login", ""),
         created_at=_ts(d["createdAt"]),
+        labels={n["name"] for n in (d.get("labels") or {}).get("nodes", [])},
         answerable=bool((d.get("category") or {}).get("isAnswerable")),
-        comments=[
-            Comment(
-                id=c["id"], author=(c.get("author") or {}).get("login", ""), author_type="User",
-                body=c.get("body") or "", url=c["url"], created_at=_ts(c["createdAt"]), node_id=c["id"],
-            )
-            for c in d["comments"]["nodes"]
-        ],
+        answered=bool(d.get("isAnswered")),
+        comments=comments,
     )
 
 

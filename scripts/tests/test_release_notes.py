@@ -25,3 +25,9 @@ def test_promote_is_idempotent_and_falls_back_to_commits():
 
 def test_commit_notes_empty():
     assert commit_notes(["chore: x"]) == ""
+
+
+def test_bare_bullet_list_keeps_its_first_marker():
+    cl = "# C\n\n## [Unreleased]\n\n- first item\n- last item-\n\n---\n\n## [1.0.0] - 2026-01-01\n\n- old\n"
+    out = promote(cl, "2.0.0", "2026-11-08")
+    assert extract(out, "2.0.0") == "- first item\n- last item-"

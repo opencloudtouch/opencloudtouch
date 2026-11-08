@@ -10,6 +10,7 @@ extract  CHANGELOG.md VERSION
 """
 import re
 import sys
+from pathlib import Path
 
 PLACEHOLDER = "_No changes yet._"
 GROUPS = [("feat", "Added"), ("fix", "Fixed"), ("perf", "Performance"), ("refactor", "Changed"), ("docs", "Documentation")]
@@ -24,6 +25,11 @@ def _split(text: str, heading: str):
     nxt = re.search(r"^## \[", text[m.end():], re.M)
     end = m.end() + nxt.start() if nxt else len(text)
     return text[: m.end()], text[m.end():end], text[end:]
+
+
+def _strip_separator(body: str) -> str:
+    """Drop a trailing `---` rule only; dashes at the start of a bullet list stay."""
+    return re.sub(r"(?:\n|^)-{3,}\s*$", "", body.strip()).strip()
 
 
 def commit_notes(subjects) -> str:
@@ -46,7 +52,7 @@ def promote(text: str, version: str, date: str, subjects=()) -> str:
     if not parts:
         return text
     head, body, rest = parts
-    body = body.strip().strip("-").strip()  # drop a trailing "---" separator
+    body = _strip_separator(body)
     if not body or body == PLACEHOLDER:
         body = commit_notes(subjects)
     if not body:
@@ -56,16 +62,17 @@ def promote(text: str, version: str, date: str, subjects=()) -> str:
 
 def extract(text: str, version: str) -> str:
     parts = _split(text, version)
-    return parts[1].strip().rstrip("-").strip() if parts else ""
+    return _strip_separator(parts[1]) if parts else ""
 
 
 if __name__ == "__main__":
-    cmd, path = sys.argv[1], sys.argv[2]
-    content = open(path, encoding="utf-8").read()
+    cmd, path = sys.argv[1], Path(sys.argv[2])
+    content = path.read_text(encoding="utf-8")
     if cmd == "promote":
         version, date = sys.argv[3], sys.argv[4]
-        subjects = open(sys.argv[5], encoding="utf-8").read().splitlines() if len(sys.argv) > 5 else []
-        open(path, "w", encoding="utf-8", newline="\n").write(promote(content, version, date, subjects))
+        subjects = Path(sys.argv[5]).read_text(encoding="utf-8").splitlines() if len(sys.argv) > 5 else []
+        with path.open("w", encoding="utf-8", newline="\n") as out:
+            out.write(promote(content, version, date, subjects))
     elif cmd == "extract":
         print(extract(content, sys.argv[3]))
     else:

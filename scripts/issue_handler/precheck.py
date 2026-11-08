@@ -44,8 +44,9 @@ async def recheck(event: WebhookEvent, client: Any, bot_username: str) -> str | 
         if d.get("closed"):
             return "discussion is closed"
         labels = {n["name"] for n in (d.get("labels") or {}).get("nodes", [])}
-        comments = [((c.get("author") or {}).get("login", ""), "User") for c in d["comments"]["nodes"]]
-        if any(login == bot_username for login, _ in comments):
+        nodes = d["comments"]["nodes"]
+        comments = [((c.get("author") or {}).get("login", ""), (c.get("author") or {}).get("__typename", "User")) for c in nodes]
+        if any(login == bot_username for login, _ in comments) or any(_has_marker(c.get("body") or "") for c in nodes):
             return "bot already answered"
     else:
         issue = await client.get_issue(event.issue_number)

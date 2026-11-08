@@ -94,19 +94,21 @@ def _find_state(thread: Thread, bot: str) -> tuple[int, dict[str, Any]] | None:
     return None
 
 
-def _echo(outcome: str, case: int, chosen: list[Comment], solution: str | None) -> str:
+def _echo(
+    outcome: str, chosen: list[tuple[str, Comment]], solution: str | None, discussion: bool = False
+) -> str:
+    """What the bot understood. `chosen` pairs the letters the author gave with their comments."""
+    # A closed issue can be reopened by a further reply; a closed discussion only by a maintainer.
+    undo = "A maintainer can reopen this if it is not right." if discussion else "Not right? Just reply here and I'll take another look."
     if outcome == "solved":
         if chosen:
-            links = ", ".join(f"[{LETTERS[i]}]({c.url})" for i, c in enumerate(chosen))
-            quote = "\n\n".join("> " + solution_excerpt(c.body, 500).replace("\n", "\n> ") for c in chosen)
+            links = ", ".join(f"[{letter}]({c.url})" for letter, c in chosen)
+            quote = "\n\n".join("> " + solution_excerpt(c.body, 500).replace("\n", "\n> ") for _, c in chosen)
             head = f"Understood: {links} solved it. I'm marking this thread as solved and closing it."
-            body = f"{head} Not right? Just reply here and I'll take another look.\n\n**Solution:**\n{quote}"
+            body = f"{head} {undo}\n\n**Solution:**\n{quote}"
         else:
             text = solution_excerpt(solution or "", 500) or "it is solved"
-            body = (
-                "Understood: you solved it. I'm marking this thread as solved and closing it. "
-                f"Not right? Just reply here and I'll take another look.\n\n**Solution:** {text}"
-            )
+            body = f"Understood: you solved it. I'm marking this thread as solved and closing it. {undo}\n\n**Solution:** {text}"
         return f"{body}\n\n{SOLUTION_MARKER}\n{ECHO_MARKER}"
     if outcome == "not_solved":
         return f"Understood: this is not solved yet. A maintainer will take a look.\n\n{ECHO_MARKER}"
@@ -125,44 +127,57 @@ async def handle_reply(event: Any, client: Any, ai: Any, bot: str) -> dict[str, 
         if not raw or raw.get("closed"):
             return {"decision": "skip", "reason": "discussion is closed or gone"}
         thread = discussion_to_thread({**raw, "number": event.issue_number})
+        closed = False
     else:
         issue = await client.get_issue(event.issue_number)
-        if not issue or issue.get("state") != "open":
-            return {"decision": "skip", "reason": "issue is closed or gone"}
+        if not issue:
+            return {"decision": "skip", "reason": "issue is gone"}
         thread = issue_to_thread(issue, await client.get_issue_comments(event.issue_number))
+        closed = issue.get("state") != "open"
     state = _find_state(thread, bot)
     if state is None:
         return {"decision": "skip", "reason": "no open follow-up in this thread"}
     last_bot, data = state
+    # A closed issue is only revisited as a correction of the bot's own echo
+    if closed and ECHO_MARKER not in thread.comments[last_bot].body:
+        return {"decision": "skip", "reason": "issue is closed"}
     after = [c.id for c in thread.comments[last_bot + 1 :]]
     if event.comment_id not in after:
         return {"decision": "skip", "reason": "reply already handled"}
 
     case, ids = int(data.get("case", 2)), list(data.get("ids", []))
-    chosen_ids = ids
     result = await interpret(ai, event.comment_body, case, len(ids), data.get("fix"))
     by_id = {c.id: c for c in thread.comments}
-    chosen = [by_id[ids[LETTERS.index(x)]] for x in result["letters"] if LETTERS.index(x) < len(ids) and ids[LETTERS.index(x)] in by_id]
+    chosen = [
+        (x, by_id[ids[LETTERS.index(x)]])
+        for x in result["letters"]
+        if LETTERS.index(x) < len(ids) and ids[LETTERS.index(x)] in by_id
+    ]
     outcome = result["outcome"]
     if outcome == "solved" and case == 1 and not chosen and not result["solution"]:
         outcome = "unclear"
     solution = result["solution"] or (data.get("fix") if case == 3 and not chosen else None)
-    echo = _echo(outcome, case, chosen, solution or one_line(event.comment_body, 300))
+    echo = _echo(outcome, chosen, solution or one_line(event.comment_body, 300), event.is_discussion)
 
     if event.is_discussion:
         echo_id = await client.post_discussion_comment(thread.node_id, echo)
         if outcome == "solved":
-            answer = (chosen[0].node_id or chosen[0].id) if chosen else echo_id
+            answer = (chosen[0][1].node_id or chosen[0][1].id) if chosen else echo_id
             if answer:
                 await client.mark_discussion_answer(answer)
             await client.close_discussion(thread.node_id)
     else:
-        await client.post_comment(event.issue_number, echo, allow_repeat=True)
+        n = event.issue_number
+        await client.post_comment(n, echo, allow_repeat=True)
         if outcome == "solved":
-            await client.add_labels(event.issue_number, ["verified-solution"])
+            await client.add_labels(n, ["verified-solution"])
             for stale in ("needs-human", "unanswered"):
-                await client.remove_label(event.issue_number, stale)
-            await client.close_issue(event.issue_number, "completed")
+                await client.remove_label(n, stale)
+            if not closed:
+                await client.close_issue(n, "completed")
         elif outcome == "not_solved":
-            await client.add_labels(event.issue_number, ["needs-human"])
-    return {"decision": "act", "outcome": outcome, "case": case, "letters": result["letters"], "ids": chosen_ids}
+            await client.add_labels(n, ["needs-human"])
+            if closed:  # the correction: a wrong "solved" must not stay a source
+                await client.remove_label(n, "verified-solution")
+                await client.reopen_issue(n)
+    return {"decision": "act", "outcome": outcome, "case": case, "letters": [x for x, _ in chosen], "ids": ids}

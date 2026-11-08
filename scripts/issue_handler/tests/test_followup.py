@@ -239,3 +239,59 @@ class TestRunFollowups:
         assert client.post_comment.await_count == 2
         assert sum(1 for e in out if e.get("deferred")) == 5
         assert client.post_comment.call_args.kwargs["allow_repeat"] is True
+
+
+class TestReviewFixes:
+    @pytest.mark.asyncio
+    async def test_echo_names_the_letters_the_author_gave(self) -> None:
+        client = _issue_client([
+            _api(10, "a", "first helpful reply text here"), _api(11, "b", "second helpful reply text here"),
+            _api(12, "c", "third helpful reply text here"), _api(20, BOT, "q " + encode_marker(1, ["10", "11", "12"])),
+            _api(30, "starter", "C"),
+        ])
+        await handle_reply(_issue_event("C"), client, AI_NONE, BOT)
+        echo = client.post_comment.call_args.args[1]
+        assert "[C](https://x/12)" in echo and "[A]" not in echo
+
+    @pytest.mark.asyncio
+    async def test_a_closed_solved_issue_can_be_corrected(self) -> None:
+        echo_comment = "Understood: [A] solved it.\n" + ECHO_MARKER
+        client = _issue_client([
+            _api(10, "helper", "x" * 30), _api(20, BOT, FOLLOWUP), _api(21, BOT, echo_comment), _api(30, "starter", "H"),
+        ])
+        client.get_issue.return_value["state"] = "closed"
+        out = await handle_reply(_issue_event("H"), client, AI_NONE, BOT)
+        assert out["outcome"] == "not_solved"
+        client.remove_label.assert_any_await(7, "verified-solution")
+        client.reopen_issue.assert_awaited_once_with(7)
+
+    @pytest.mark.asyncio
+    async def test_a_closed_issue_without_an_echo_is_ignored(self) -> None:
+        client = _issue_client([_api(20, BOT, FOLLOWUP), _api(30, "starter", "B")])
+        client.get_issue.return_value["state"] = "closed"
+        assert (await handle_reply(_issue_event("B"), client, AI_NONE, BOT))["decision"] == "skip"
+
+    def test_discussion_replies_inside_the_follow_up_are_part_of_the_thread(self) -> None:
+        from followup import discussion_to_thread
+
+        d = {
+            "id": "D", "number": 7, "title": "t", "url": "u", "createdAt": "2026-11-01T00:00:00Z", "isAnswered": False,
+            "author": {"login": "starter"}, "category": {"isAnswerable": True}, "labels": {"nodes": [{"name": "needs-human"}]},
+            "comments": {"nodes": [{
+                "id": "C20", "url": "u20", "body": "q " + encode_marker(1, []), "createdAt": "2026-11-03T00:00:00Z",
+                "author": {"login": BOT, "__typename": "User"},
+                "replies": {"nodes": [{"id": "R1", "url": "ur", "body": "B", "createdAt": "2026-11-04T00:00:00Z",
+                                       "author": {"login": "starter", "__typename": "User"}}]},
+            }]},
+        }
+        thread = discussion_to_thread(d)
+        assert [c.id for c in thread.comments] == ["C20", "R1"]
+        assert thread.labels == {"needs-human"}
+
+    @pytest.mark.asyncio
+    async def test_answered_or_labelled_discussions_get_no_follow_up(self) -> None:
+        t = _thread(kind="discussion", created_days_ago=20)
+        t.answered = True
+        assert await plan(t, BOT, NOW, DEFAULTS, AI_NONE) is None
+        t2 = _thread(kind="discussion", labels=("needs-human",), created_days_ago=20)
+        assert await plan(t2, BOT, NOW, DEFAULTS, AI_NONE) is None
