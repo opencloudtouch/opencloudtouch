@@ -189,3 +189,20 @@ class TestReviewFixes:
         assert await recheck(ev, client, "oct-support") is None
         client.get_discussion.return_value["comments"]["nodes"][0]["body"] = "x " + ANSWER_MARKER
         assert "already answered" in (await recheck(ev, client, "oct-support") or "")
+
+
+class TestSearchQuery:
+    @pytest.mark.asyncio
+    async def test_keywords_are_ored_and_capped(self) -> None:
+        from unittest.mock import patch
+
+        import httpx
+
+        from github_client import GitHubClient
+
+        client = GitHubClient("a", "b", "o", "r")
+        resp = httpx.Response(200, json={"items": []}, request=httpx.Request("GET", "http://t"))
+        with patch.object(client._search_client, "get", new_callable=AsyncMock, return_value=resp) as get:
+            await client.search_labelled_threads("verified-solution", [f"word{i}" for i in range(9)])
+        q = get.call_args.kwargs["params"]["q"]
+        assert "word0 OR word1 OR word2 OR word3 OR word4" in q and "word5" not in q
