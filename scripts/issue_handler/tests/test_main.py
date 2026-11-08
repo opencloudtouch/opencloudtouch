@@ -90,3 +90,23 @@ class TestKnowledgeBasePath:
         assert answers_dir.exists(), f"approved_answers directory missing: {answers_dir}"
         md_files = list(answers_dir.glob("*.md"))
         assert len(md_files) > 0, "approved_answers directory must contain at least one .md file"
+
+
+class TestCostReportOnEveryRun:
+    @pytest.mark.asyncio
+    async def test_an_early_exit_run_still_reports_the_cost(self, tmp_path: Path) -> None:
+        """An edited event exits before the AI is touched; the cost line must still be reported."""
+        event_file = tmp_path / "event.json"
+        payload = json.loads((FIXTURES_DIR / "issue_edited.json").read_text())
+        event_file.write_text(json.dumps(payload))
+        env = {
+            "GITHUB_TOKEN": "t", "BOT_PAT": "p", "GITHUB_EVENT_PATH": str(event_file), "GITHUB_EVENT_NAME": "issues",
+        }
+        with patch.dict(os.environ, env):
+            with patch("main.GitHubClient") as MockClient, patch("main.report_cost") as report:
+                MockClient.return_value = AsyncMock()
+                from main import run
+
+                assert await run() == 0
+        report.assert_called_once()
+        assert report.call_args.args[0] is not None

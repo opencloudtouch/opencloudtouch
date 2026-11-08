@@ -13,6 +13,13 @@ settings:
   unanswered_label_days: 3         # label threads without any answer
   followup_max_age_days: 60        # never follow up on older threads
   followup_max_per_run: 5
+  # OpenAI fallback (Flex tier): the first model the API key can use is taken, so the order is the preference
+  # (newest small model first). The prices only feed the cost counter.
+  # Prices in USD per 1M tokens from https://developers.openai.com/api/docs/pricing, checked 2026-11-08
+  openai_models:
+    - {id: gpt-6-luna, input_usd_per_million: 0.05, output_usd_per_million: 0.25}
+    - {id: gpt-5.4-nano, input_usd_per_million: 0.10, output_usd_per_million: 0.625}
+    - {id: gpt-5-nano, input_usd_per_million: 0.025, output_usd_per_million: 0.20}
   monthly_budget_usd: 0.90         # hard cap for OpenAI fallback costs ($0.90 ≈ €1)
 
 rules:
