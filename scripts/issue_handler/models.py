@@ -27,6 +27,7 @@ class WebhookEvent:
     comment_id: str = ""
     comment_author: str = ""
     comment_body: str = ""
+    state_reason: str = ""
 
     @classmethod
     def from_payload(cls, event_type: str, payload: dict[str, Any]) -> WebhookEvent:
@@ -78,6 +79,7 @@ class WebhookEvent:
             comment_id=str((payload.get("comment") or {}).get("node_id" if is_discussion else "id", "")),
             comment_author=((payload.get("comment") or {}).get("user") or {}).get("login", ""),
             comment_body=(payload.get("comment") or {}).get("body", "") or "",
+            state_reason=item.get("state_reason") or "",
         )
 
 

@@ -12,6 +12,7 @@ WRITE_METHODS = {
     "set_assignee",
     "post_discussion_comment",
     "remove_label",
+    "edit_comment",
     "reopen_issue",
     "mark_discussion_answer",
     "close_discussion",

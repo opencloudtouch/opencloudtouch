@@ -21,6 +21,7 @@ import time
 from pathlib import Path
 
 from ai_context import make_ai_context
+from close_prompt import handle_closed, handle_prompt_edit
 from dry_run import DryRunClient
 from github_client import GitHubClient
 from knowledge_base import KnowledgeBase
@@ -85,11 +86,19 @@ async def run() -> int:
             github_client = DryRunClient(github_client)
 
         try:
-            if event.event_type in ("issue_comment", "discussion_comment"):
+            bot = settings.get("bot_username", "oct-support-bot")
+            routed: dict | None = None
+            if event.event_type == "issues" and event.action == "closed":
+                # The maintainer closed an issue: ask what the outcome was
+                routed = await handle_closed(event, github_client, make_ai_context(github_token, settings.get("monthly_budget_usd", 0.90)), bot)
+            elif event.event_type == "issue_comment" and event.action == "edited":
+                # A box in the bot's close prompt was ticked
+                routed = await handle_prompt_edit(event, github_client, bot)
+            elif event.event_type in ("issue_comment", "discussion_comment"):
                 # A reply of the thread starter to the follow-up question
-                ai = make_ai_context(github_token, settings.get("monthly_budget_usd", 0.90))
-                entry = await handle_reply(event, github_client, ai, settings.get("bot_username", "oct-support-bot"))
-                print(json.dumps({"stage": "reply", **entry}))
+                routed = await handle_reply(event, github_client, make_ai_context(github_token, settings.get("monthly_budget_usd", 0.90)), bot)
+            if routed is not None:
+                print(json.dumps({"stage": "routed", **routed}))
                 return 0
 
             skip = early_skip_reason(event)
