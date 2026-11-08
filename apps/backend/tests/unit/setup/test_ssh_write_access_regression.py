@@ -306,7 +306,6 @@ async def test_every_write_operation_asks_for_write_access():
         "setup/wizard/ntp_patch.py": "patch-ntp",
         "setup/wizard/step8_finalize_verify.py": "finalize",
         "setup/restore_service.py": "restore",
-        "devices/rename_service.py": "rename-device",
     }
     for rel, operation in expected.items():
         source = (root / rel).read_text(encoding="utf-8")

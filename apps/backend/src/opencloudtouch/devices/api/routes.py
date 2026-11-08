@@ -22,7 +22,6 @@ from opencloudtouch.core.exceptions import (
     DomainValidationError,
 )
 from opencloudtouch.devices.client import NowPlayingInfo
-from opencloudtouch.devices.rename_service import rename_device_via_ssh
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.websocket.icy_worker import RADIO_SOURCES
@@ -321,7 +320,7 @@ async def press_key(
     "/{device_id}/name",
     responses={
         422: {"description": "Invalid name"},
-        502: {"description": "Both REST and SSH rename failed"},
+        502: {"description": "The device did not accept the new name"},
     },
 )
 async def rename_device(
@@ -332,7 +331,7 @@ async def rename_device(
     """
     Rename a SoundTouch device.
 
-    Tries REST API first (POST /name), falls back to SSH if REST fails.
+    Uses the device REST API (POST /name), like the Bose app.
     Updates the local database after successful rename.
 
     Args:
@@ -345,7 +344,7 @@ async def rename_device(
     Raises:
         DeviceNotFoundError: If device does not exist
         HTTPException(422): If name validation fails
-        HTTPException(502): If both REST and SSH methods fail
+        HTTPException(502): If the device does not accept the new name
     """
     name = body.get("name", "").strip()
 
@@ -355,6 +354,10 @@ async def rename_device(
         raise HTTPException(
             status_code=422, detail="Device name must be 30 characters or fewer"
         )
+    if any(ord(c) < 32 or ord(c) == 127 for c in name):
+        raise HTTPException(
+            status_code=422, detail="Device name must not contain control characters"
+        )
 
     device = await device_service.get_device_by_id(device_id)
     if not device:
@@ -362,44 +365,20 @@ async def rename_device(
 
     previous_name = device.name
 
-    # Try REST API first (like Bose App does)
-    rest_error = None
+    # Same call as the Bose app (POST /name). There is deliberately no SSH fallback: editing the device
+    # configuration over SSH risks a broken file and a name that the device does not report back.
     try:
         async with device_service._device_client(device_id) as client:
             await client.set_name(name)
-        logger.info(
-            "Device %r renamed via REST API: %r -> %r",
-            device.device_id,
-            previous_name,
-            name,
-        )
     except Exception as e:
-        rest_error = str(e)
-        logger.warning(
-            "REST API rename failed for %r, trying SSH fallback: %s",
-            device.device_id,
-            e,
-        )
-
-        # Fallback to SSH (for devices that don't support REST /name or are configured)
-        try:
-            await rename_device_via_ssh(device.ip, name)
-            logger.info(
-                "Device %r renamed via SSH fallback: %r -> %r",
-                device.device_id,
-                previous_name,
-                name,
-            )
-        except Exception as ssh_error:
-            logger.exception(
-                "Both REST and SSH rename failed for %r: REST=%s",
-                device.device_id,
-                rest_error,
-            )
-            raise HTTPException(
-                status_code=502,
-                detail="Could not rename device (REST and SSH both failed)",
-            ) from ssh_error
+        logger.exception("Rename of device %r failed", device.device_id)
+        raise HTTPException(status_code=502, detail="Could not rename device") from e
+    logger.info(
+        "Device %r renamed via REST API: %r -> %r",
+        device.device_id,
+        previous_name,
+        name,
+    )
 
     # Update local DB
     device.name = name
