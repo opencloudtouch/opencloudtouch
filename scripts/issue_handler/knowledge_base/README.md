@@ -25,25 +25,9 @@ This directory contains the curated Knowledge Base (KB) articles, scripts, and a
 
 ---
 
-## 2. Automatisierte KB-Wachstum & Qualitätskontrolle
+## 2. Wachstum der Wissensbasis
 
-### Scheduled Workflow: `.github/workflows/community.yml (job `kb-growth`)`
-- Läuft wöchentlich (oder manuell via GitHub Actions)
-- Steps:
-  1. **KB Growth Scan:**
-     - Script: `knowledge_base/kb_growth.py`
-     - Scannt geschlossene Support-Issues der letzten Woche
-     - Prüft, ob Thema bereits durch KB abgedeckt ist (Tag-Match)
-     - Markiert gescannte Issues mit Label `kb-scanned`
-     - Erstellt Digest-Report (Markdown)
-  2. **Pattern & Quality Scan:**
-     - Script: `knowledge_base/pattern_quality_scan.py`
-     - Scannt offene Issues/Discussions nach:
-       - Frage-/Problem-Patterns ("how", "doesn't work", "fixed", ...)
-       - Stale-Threads (>7d ohne Aktivität)
-       - KB-Coverage (Tag-Mapping)
-       - Response-Quality (Feedback-Signale)
-     - Output: YAML-Reports in `.local/agent-work/knowledge-kai/scans/`
+Der frühere wöchentliche KB-Growth-Scan wurde entfernt (er hat nie funktioniert). Siehe die Spec "Support bot knowledge loop" für den Nachfolger.
 
 ---
 
@@ -62,17 +46,6 @@ This directory contains the curated Knowledge Base (KB) articles, scripts, and a
 - Nutzt OpenAI/Claude, um aus Issue+Comments einen Draft zu erzeugen
 - Draft landet in `.local/agent-work/knowledge-kai/drafts/`
 - Review & Freigabe wie oben
-
----
-
-## 5. Reports & Qualitätsmetriken
-
-- Digest-Reports (Markdown): Übersicht neue/abgedeckte Themen
-- Pattern/Coverage/Quality-Reports (YAML):
-  - `.local/agent-work/knowledge-kai/scans/pattern_quality_threads.yaml`
-  - `.local/agent-work/knowledge-kai/scans/pattern_quality_coverage.yaml`
-  - `.local/agent-work/knowledge-kai/scans/pattern_quality_quality.yaml`
-- Reports dienen als Grundlage für KB-Erweiterung und Bot-Verbesserung
 
 ---
 

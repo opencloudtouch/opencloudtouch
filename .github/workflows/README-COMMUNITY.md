@@ -29,7 +29,7 @@ Jeden **1. des Monats um 06:00 UTC** automatisch:
 
 ```bash
 # Im GitHub Repository:
-Actions → Community · Spotlight and KB Growth → Run workflow (tick "spotlight")
+Actions → Community → Run workflow (tick "spotlight")
 
 # Oder lokal testen (benötigt gh CLI + GitHub Token):
 gh workflow run community.yml -f spotlight=true

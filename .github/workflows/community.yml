@@ -1,22 +1,16 @@
-name: Community · Spotlight and KB Growth
+name: Community
 
 # Scheduled community jobs. Each job has its own permissions and runs only for its own
 # cron entry or its checkbox on manual dispatch.
 #   Spotlight : 1st of the month 06:00 UTC, creates the monthly Community Spotlight discussion
-#   KB Growth : Saturday 06:00 UTC, knowledge-base digest + pattern & quality scan
 
 on:
   schedule:
     - cron: '0 6 1 * *'
-    - cron: '0 6 * * 6'
   workflow_dispatch:
     inputs:
       spotlight:
         description: 'Create the Community Spotlight discussion (creates a real discussion)'
-        type: boolean
-        default: false
-      kb_growth:
-        description: 'Run the KB growth scan and the pattern & quality scan'
         type: boolean
         default: false
 
@@ -418,36 +412,3 @@ jobs:
           ' -f repositoryId="$REPO_ID" -f categoryId="$CATEGORY_ID" -f title="$TITLE" -f body="$BODY" --jq '.data.createDiscussion.discussion.url')
           
           echo "✅ Discussion created: $DISCUSSION_URL"
-
-  kb-growth:
-    if: github.event.schedule == '0 6 * * 6' || (github.event_name == 'workflow_dispatch' && inputs.kb_growth)
-    runs-on: ubuntu-24.04
-    permissions:
-      issues: write
-      contents: read
-      models: read
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.13'
-
-      - name: Install dependencies
-        run: pip install -r scripts/issue_handler/requirements.txt
-
-      - name: Run KB growth scan
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BOT_PAT: ${{ secrets.BOT_PAT }}
-          REPO_OWNER: ${{ github.repository_owner }}
-          REPO_NAME: ${{ github.event.repository.name }}
-        run: python scripts/issue_handler/knowledge_base/kb_growth.py
-
-      - name: Run Pattern & Quality Scan
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BOT_PAT: ${{ secrets.BOT_PAT }}
-          REPO_OWNER: ${{ github.repository_owner }}
-          REPO_NAME: ${{ github.event.repository.name }}
-        run: python scripts/issue_handler/knowledge_base/pattern_quality_scan.py
