@@ -45,9 +45,10 @@ check_page_size() {
         fi
 
         log_error "This platform uses a 32768-byte page size and the library self-test failed."
-        log_error "This image cannot load its libraries here. Use the linux/arm/v7 image of a release that supports 32 KB pages."
-        log_error "Affected platforms include QNAP and WD ARM NAS systems using 32KB pages."
-        log_error "See: https://www.qnap.com/en-uk/how-to/faq/article/why-do-the-installed-third-party-containers-not-run-successfully-on-specific-32-bit-arm-devices"
+        log_error "Docker older than 20.10.9 (for example 19.03.8 on WD My Cloud) blocks system calls that this image needs."
+        log_error "Update Docker, or start the container with the seccomp profile deployment/seccomp-legacy-docker.json (see docs/TROUBLESHOOTING.md)."
+        log_error "Otherwise this image cannot load its libraries here; please report 'getconf PAGE_SIZE', 'uname -a' and 'docker version'."
+        log_error "Background: https://www.qnap.com/en-uk/how-to/faq/article/why-do-the-installed-third-party-containers-not-run-successfully-on-specific-32-bit-arm-devices"
         exit 1
     fi
 
