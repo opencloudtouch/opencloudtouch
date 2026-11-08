@@ -42,6 +42,28 @@ docker exec <container> cat /sys/fs/cgroup/memory.stat  # cgroup v2
 
 See [`deployment/README.md`](../deployment/README.md) (Troubleshooting section) for build-specific issues (SSDP inside containers, SSH errors to a remote deploy target, cache invalidation).
 
+## ARM NAS with a 32 KB page size (WD My Cloud, QNAP)
+
+Some ARMv7 NAS kernels use 32 KB memory pages instead of the usual 4 KB. The `linux/arm/v7` image ships its libraries aligned for 64 KB, so it also starts on these devices. The entrypoint runs a short library self-test when it detects a 32 KB page size. It was verified on a WD My Cloud EX2 Ultra (kernel 4.14, Docker 20.10.14 and 19.03.8).
+
+- **Docker 20.10.9 or newer:** nothing to configure.
+- **Docker older than 20.10.9** (for example the 19.03.8 that WD ships): the default seccomp profile answers system calls it does not know with `EPERM` instead of `ENOSYS`. Newer C libraries then cannot fall back to the old calls, and Python fails with `OSError: [Errno 75] Value too large for defined data type` or `Operation not permitted` while importing `time`. Either update Docker, or start the container with the profile [`deployment/seccomp-legacy-docker.json`](../deployment/seccomp-legacy-docker.json):
+
+  ```bash
+  docker run --security-opt seccomp=/path/to/seccomp-legacy-docker.json ...
+  ```
+
+  or in Compose:
+
+  ```yaml
+  security_opt:
+    - seccomp=./seccomp-legacy-docker.json
+  ```
+
+  The profile allows all system calls by default and blocks the dangerous ones that Docker's own profile blocks (mount, ptrace, namespaces, kernel modules, and so on). It is weaker than Docker's allow-list profile but much stronger than `seccomp=unconfined`. Use it only on old kernels (below 5.3): it relies on the kernel answering `ENOSYS` for system calls it does not have.
+
+If the self-test fails, the container stops with `library self-test failed`. Please open a bug report and include `getconf PAGE_SIZE`, `uname -a` and `docker version`.
+
 ## Still stuck?
 
 Open a [bug report](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml) or check [GitHub Discussions](https://github.com/opencloudtouch/opencloudtouch/discussions).
