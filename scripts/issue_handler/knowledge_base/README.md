@@ -27,7 +27,7 @@ This directory contains the curated Knowledge Base (KB) articles, scripts, and a
 
 ## 2. Automatisierte KB-Wachstum & Qualitätskontrolle
 
-### Scheduled Workflow: `.github/workflows/kb-growth.yml`
+### Scheduled Workflow: `.github/workflows/community.yml (job `kb-growth`)`
 - Läuft wöchentlich (oder manuell via GitHub Actions)
 - Steps:
   1. **KB Growth Scan:**
