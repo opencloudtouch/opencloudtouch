@@ -5,6 +5,9 @@ settings:
   rate_limit_threshold: 2          # max issues per 24h per user
   min_text_length: 50              # min chars for AI classification
   bot_username: "oct-support"      # bot account username for self-filtering
+  answer_delay_min_seconds: 300    # wait 5-10 minutes before the first answer
+  answer_delay_max_seconds: 600
+  min_relevance: 0.3               # minimum source relevance (0-1); below it the bot stays silent
   monthly_budget_usd: 0.90         # hard cap for OpenAI fallback costs ($0.90 ≈ €1)
 
 rules:

@@ -25,9 +25,11 @@ This directory contains the curated Knowledge Base (KB) articles, scripts, and a
 
 ---
 
-## 2. Wachstum der Wissensbasis
+## 2. Antworten aus verifizierten Quellen
 
-Der frühere wöchentliche KB-Growth-Scan wurde entfernt (er hat nie funktioniert). Siehe die Spec "Support bot knowledge loop" für den Nachfolger.
+Der Issue Handler antwortet einmal, 5 bis 10 Minuten nach einem neuen Issue oder einer neuen Discussion (`answer_delay_*` in `rules.yml`). Er bleibt still, wenn inzwischen ein Mensch oder der Bot geantwortet hat, der Thread geschlossen ist oder `spec`/`needs-human` trägt. Quellen sind ausschließlich `approved_answers/`, README und `docs/` (abschnittsweise) sowie Threads mit dem Label `verified-solution` (`retrieval.py`). Ohne Quelle ab `min_relevance` gibt es keine Antwort. Jede Antwort nennt ihre Quellen und trägt den Marker `<!-- oct-bot:answer -->`.
+
+Betrieb: Standard ist der Trockenlauf (Schreibzugriffe werden nur geloggt). Live schalten: Repository-Variable `OCT_BOT_DRY_RUN` auf `false` setzen. Lokal: `OCT_BOT_DELAY_MIN`/`OCT_BOT_DELAY_MAX` (Sekunden) überschreiben die Wartezeit.
 
 ---
 

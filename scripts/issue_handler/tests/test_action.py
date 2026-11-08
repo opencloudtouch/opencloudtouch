@@ -258,7 +258,8 @@ class TestDiscussionActions:
         await action_stage(event, context)
         gh.add_labels.assert_not_called()
         gh.set_assignee.assert_not_called()
-        gh.post_comment.assert_called_once()
+        gh.post_comment.assert_not_called()
+        gh.post_discussion_comment.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_discussion_posts_comment(self) -> None:
@@ -269,9 +270,10 @@ class TestDiscussionActions:
             "follow_up_questions": "Could you elaborate?",
             "bot_username": "oct-support",
         }
-        event = _make_event(is_discussion=True)
+        event = _make_event(is_discussion=True, node_id="D_node")
         await action_stage(event, context)
-        gh.post_comment.assert_called_once()
+        gh.post_discussion_comment.assert_called_once()
+        assert gh.post_discussion_comment.call_args.args[0] == "D_node"
 
     @pytest.mark.asyncio
     async def test_comment_event_labels_parent_issue(self) -> None:

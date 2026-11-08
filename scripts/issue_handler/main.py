@@ -20,10 +20,13 @@ import sys
 import time
 from pathlib import Path
 
+from dry_run import DryRunClient
 from github_client import GitHubClient
 from knowledge_base import KnowledgeBase
 from models import WebhookEvent
 from pipeline import Pipeline
+from precheck import delay_seconds, early_skip_reason, recheck
+from retrieval import find_sources
 from stages.action import action_stage
 from stages.classifier import classifier_stage
 from stages.hard_exit import hard_exit_stage
@@ -75,7 +78,20 @@ async def run() -> int:
             repo_name=event.repo_name,
         )
 
+        if os.environ.get("OCT_BOT_DRY_RUN", "true").lower() != "false":
+            # Dry-run is the default: writes are only logged until it is switched off explicitly.
+            github_client = DryRunClient(github_client)
+
         try:
+            skip = early_skip_reason(event)
+            if skip is None:
+                # Answer a few minutes later, not instantly, and only if nothing changed meanwhile.
+                await asyncio.sleep(delay_seconds(settings))
+                skip = await recheck(event, github_client, settings.get("bot_username", "oct-support-bot"))
+            if skip is not None:
+                print(json.dumps({"stage": "pre_check", "decision": "skip", "reason": skip, "short_circuit": True}))
+                return 0
+
             # Check issue state (skip if deleted/closed)
             if event.issue_number is not None and not event.is_discussion:
                 state = await github_client.get_issue_state(event.issue_number)
@@ -149,6 +165,17 @@ async def run() -> int:
                 "openai_client": None,
                 "cost_tracker": None,
             }
+
+            # Sources for the answer: approved answers, docs and verified solved threads
+            context["sources"] = await find_sources(
+                github_client,
+                event.title,
+                event.body,
+                kb_answers,
+                repo_root,
+                f"{event.repo_owner}/{event.repo_name}",
+                min_relevance=settings.get("min_relevance", 0.3),
+            )
 
             # Initialize AI clients if API keys available
             openai_api_key = os.environ.get("OPENAI_API_KEY", "")

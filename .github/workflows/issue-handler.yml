@@ -2,7 +2,7 @@ name: AI · Issue Handler
 
 on:
   issues:
-    types: [opened, edited]
+    types: [opened]
   issue_comment:
     types: [created]
   discussion:
@@ -21,7 +21,7 @@ permissions:
 jobs:
   triage:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 20  # includes the 5-10 minute wait before the first answer
     # Skip:
     # - PR comments (handled by pr-review.yml)
     # - Bot's own comments (prevent loops)
@@ -58,6 +58,8 @@ jobs:
           BOT_PAT: ${{ secrets.BOT_PAT }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITHUB_EVENT_TYPE: ${{ github.event_name }}
+          # Dry-run until the repository variable OCT_BOT_DRY_RUN is set to "false"
+          OCT_BOT_DRY_RUN: ${{ vars.OCT_BOT_DRY_RUN || 'true' }}
         run: python scripts/issue_handler/main.py
 
       - name: Save cost tracker cache

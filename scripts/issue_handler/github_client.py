@@ -191,6 +191,71 @@ class GitHubClient:
             page += 1
         return all_issues
 
+    async def get_issue(self, issue_number: int) -> dict[str, Any] | None:
+        """Fetch an issue (labels, state, author). Returns None if it is gone."""
+        response = await self._request_with_retry(
+            self._search_client, "get", self._repo_url(f"/issues/{issue_number}")
+        )
+        if response.status_code in (404, 410):
+            return None
+        response.raise_for_status()
+        return response.json()
+
+    async def get_issue_comments(self, issue_number: int) -> list[dict[str, Any]]:
+        """Fetch the first 100 comments of an issue."""
+        response = await self._request_with_retry(
+            self._search_client,
+            "get",
+            self._repo_url(f"/issues/{issue_number}/comments"),
+            params={"per_page": 100},
+        )
+        if response.status_code == 404:
+            return []
+        response.raise_for_status()
+        return response.json()
+
+    async def search_labelled_threads(self, label: str, keywords: list[str], limit: int = 5) -> list[dict[str, Any]]:
+        """Search issues of this repo that carry `label` and match the keywords (best match first)."""
+        words = " ".join(keywords[:8])
+        query = f'repo:{self._repo_owner}/{self._repo_name} is:issue label:"{label}" {words}'.strip()
+        response = await self._request_with_retry(
+            self._search_client,
+            "get",
+            "/search/issues",
+            params={"q": query, "per_page": limit, "sort": "best-match"},
+        )
+        response.raise_for_status()
+        return response.json().get("items", [])
+
+    async def _graphql(self, client: httpx.AsyncClient, query: str, variables: dict[str, Any]) -> dict[str, Any]:
+        response = await self._request_with_retry(
+            client, "post", "/graphql", json={"query": query, "variables": variables}
+        )
+        response.raise_for_status()
+        data = response.json()
+        if data.get("errors"):
+            raise RuntimeError(f"GraphQL error: {data['errors'][0].get('message', 'unknown')}")
+        return data["data"]
+
+    async def get_discussion(self, number: int) -> dict[str, Any] | None:
+        """Fetch a discussion (id, closed, labels, comment authors). None if it is gone."""
+        query = (
+            "query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){discussion(number:$n){"
+            "id closed author{login} labels(first:20){nodes{name}} "
+            "comments(first:50){nodes{id body author{login}}}}}}"
+        )
+        data = await self._graphql(
+            self._search_client, query, {"o": self._repo_owner, "r": self._repo_name, "n": number}
+        )
+        return data["repository"]["discussion"]
+
+    async def post_discussion_comment(self, discussion_node_id: str, body: str) -> None:
+        mutation = (
+            "mutation($id:ID!,$body:String!){addDiscussionComment(input:{discussionId:$id,body:$body})"
+            "{comment{id}}}"
+        )
+        await self._graphql(self._bot_client, mutation, {"id": discussion_node_id, "body": body})
+
     async def bot_has_commented(self, issue_number: int, bot_username: str) -> bool:
         """Check if the bot has already commented on this issue."""
         response = await self._request_with_retry(

@@ -22,6 +22,8 @@ class WebhookEvent:
     body: str
     existing_labels: list[str] = field(default_factory=list)
     is_discussion: bool = False
+    author_login: str = ""
+    node_id: str = ""
 
     @classmethod
     def from_payload(cls, event_type: str, payload: dict[str, Any]) -> WebhookEvent:
@@ -68,6 +70,8 @@ class WebhookEvent:
             body=body,
             existing_labels=labels,
             is_discussion=is_discussion,
+            author_login=(item.get("user") or {}).get("login", ""),
+            node_id=item.get("node_id", ""),
         )
 
 
