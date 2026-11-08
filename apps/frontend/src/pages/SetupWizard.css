@@ -15,7 +15,7 @@
   border: 1px solid rgba(234, 179, 8, 0.4);
   border-radius: var(--border-radius-lg);
   text-align: center;
-  font-size: 13px;
+  font-size: var(--fs-small);
   color: #92400e; /* WCAG AA: dark amber — higher contrast than #fbbf24 */
   font-weight: var(--font-weight-medium);
 }
@@ -59,14 +59,14 @@
 }
 
 .wizard-empty-state p {
-  font-size: 16px;
+  font-size: var(--fs-lg);
   color: var(--color-text-secondary);
   margin-bottom: var(--space-xl);
 }
 
 /* REFACT-140: Help hint + inline link button */
 .wizard-empty-hint {
-  font-size: 15px;
+  font-size: var(--fs-body);
   color: var(--color-text-secondary);
   margin-bottom: var(--space-md);
   margin-top: calc(-1 * var(--space-lg));
@@ -93,7 +93,7 @@
   }
 
   .global-demo-banner {
-    font-size: 13px;
+    font-size: var(--fs-small);
     padding: var(--space-sm) var(--space-md);
   }
 
@@ -110,54 +110,9 @@
   }
 }
 
-/* ====== LEGACY V1 STYLES (DEPRECATED) ====== */
-/* These styles are kept for reference during transition but should not be used */
-
-/* Header */
-.wizard-header {
-  max-width: 1200px;
-  margin: 0 auto 3rem;
-  text-align: center;
-  color: white;
-}
-
-.wizard-main-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-.wizard-subtitle {
-  font-size: 1.125rem;
-  opacity: 0.9;
-  margin: 0 0 2rem;
-}
-
-/* Progress Indicator */
-.wizard-progress {
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-/* Content */
-.wizard-content {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding-bottom: 3rem;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .setup-wizard-page {
     padding: 1rem;
-  }
-
-  .wizard-main-title {
-    font-size: 1.75rem;
-  }
-
-  .wizard-subtitle {
-    font-size: 1rem;
   }
 }

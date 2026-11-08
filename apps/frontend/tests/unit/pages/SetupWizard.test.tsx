@@ -5,7 +5,8 @@
  * Sub-components are mocked to keep tests focused on wizard orchestration.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { i18next } from "../../../src/i18n";
 import React from "react";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -60,8 +61,17 @@ vi.mock("../../../src/components/wizard/DeviceInfoHeader", () => ({
 }));
 
 vi.mock("../../../src/components/wizard/ProgressTracker", () => ({
-  default: ({ currentStep }: { currentStep: number }) => (
-    <div data-testid="progress-tracker">Step {currentStep}</div>
+  default: ({
+    currentStep,
+    steps,
+  }: {
+    currentStep: number;
+    steps: { label: string }[];
+  }) => (
+    <div data-testid="progress-tracker">
+      Step {currentStep}
+      <span data-testid="tracker-labels">{steps.map((s) => s.label).join("|")}</span>
+    </div>
   ),
 }));
 
@@ -218,6 +228,24 @@ describe("SetupWizard (pages/SetupWizard)", () => {
         expect(screen.getByTestId("progress-tracker")).toBeInTheDocument();
         expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument();
       });
+    });
+
+    it("translates the tracker labels when the language changes inside the wizard", async () => {
+      const original = i18next.language;
+      renderWizard(<SetupWizard devices={mockDevices} />);
+      fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
+      const labelsBefore = await screen.findByTestId("tracker-labels");
+      const before = labelsBefore.textContent;
+
+      await act(async () => {
+        await i18next.changeLanguage(original === "en" ? "de" : "en");
+      });
+
+      expect(screen.getByTestId("tracker-labels").textContent).not.toBe(before);
+      await act(async () => {
+        await i18next.changeLanguage(original);
+      });
+      expect(screen.getByTestId("tracker-labels").textContent).toBe(before);
     });
 
     it("ProgressTracker starts at step 1 after selecting setup", async () => {

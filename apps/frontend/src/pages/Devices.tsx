@@ -34,6 +34,7 @@ import { usePrefetchDevices } from "../hooks/usePrefetchDevices";
 import { useToast } from "../contexts/ToastContext";
 import "../components/DeviceCard.css";
 import "./Devices.css";
+import { pickDevice, setLastDeviceId } from "../utils/lastDevice";
 
 interface DevicesProps {
   devices?: Device[];
@@ -62,14 +63,22 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
   const [searchParams, setSearchParams] = useSearchParams();
   // Start on the device of the URL: choosing it in an effect would show the first device and then slide to the right one
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(() => {
-    const index = devices.findIndex((d) => d.device_id === searchParams.get("device"));
-    return Math.max(index, 0);
+    const target = pickDevice(devices, searchParams.get("device"));
+    return Math.max(target ? devices.indexOf(target) : 0, 0);
   });
   const [searchOpen, setSearchOpen] = useState(false);
   const [assigningPreset, setAssigningPreset] = useState<number | null>(null);
 
   const currentDevice = devices[currentDeviceIndex];
   const deviceId = currentDevice?.device_id;
+  // Remember the device so that every way back to this page lands on it
+  // and put it into the URL when it has none, so links, reloads and the navigation bar all carry the same device
+  useEffect(() => {
+    setLastDeviceId(deviceId);
+    if (deviceId && !searchParams.get("device")) {
+      setSearchParams({ device: deviceId }, { replace: true });
+    }
+  }, [deviceId, searchParams, setSearchParams]);
   const deviceIdRef = useRef(deviceId);
   deviceIdRef.current = deviceId;
   const isCurrent = (id: string) => deviceIdRef.current === id;
@@ -82,13 +91,15 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
 
   const { presets, loading, syncing, error, clearError, syncPresets, assignStation, removePreset } =
     usePresets(deviceId);
-  const { volume, muted, setDeviceVolume, toggleMute } = useVolume(deviceId);
+  const { show: showVolumeToast } = useToast();
+  const { volume, muted, setDeviceVolume, toggleMute } = useVolume(deviceId, (message) =>
+    showVolumeToast(message, "error")
+  );
   const { nowPlaying: npState, refresh: refreshNowPlaying } = useNowPlaying(deviceId);
   const { zones } = useZones();
   const [lastPreset, setLastPreset] = useLastPreset(deviceId);
   const { show: showToast, hide: hideToast } = useToast();
   const [powerLoading, setPowerLoading] = useState(false);
-  const [pendingStation, setPendingStation] = useState<RadioStation | null>(null);
   const [clearingPreset, setClearingPreset] = useState<number | null>(null);
   const [startingPreset, setStartingPreset] = useState<number | null>(null);
   const [failedPreset, setFailedPreset] = useState<number | null>(null);
@@ -214,8 +225,10 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
 
   const handleSyncPresets = async () => {
     try {
-      await syncPresets();
-      showToast(t("presets.syncedFromDevice"), "success");
+      // The success toast only follows a successful sync (a failure shows the inline error instead)
+      if (await syncPresets()) {
+        showToast(t("presets.syncedFromDevice"), "success");
+      }
     } catch {
       // Error is already set in usePresets error state
     }
@@ -239,11 +252,8 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
       await assignStation(presetNumber, station, deviceId);
       setAssigningPreset(null);
       setSearchOpen(false);
-      setPendingStation(null);
       showToast(t("presets.presetSaved", { number: presetNumber }), "success");
     } catch (err) {
-      setPendingStation(null);
-
       if (station.stationuuid.startsWith("manual-")) {
         throw err;
       }
@@ -251,12 +261,6 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
       // Preserve the existing provider error behaviour.
       setAssigningPreset(null);
       setSearchOpen(false);
-    }
-  };
-
-  const handleConfirmOverwrite = async () => {
-    if (pendingStation && assigningPreset) {
-      await doAssign(assigningPreset, pendingStation);
     }
   };
 
@@ -700,24 +704,12 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
         onClose={() => {
           setSearchOpen(false);
           setAssigningPreset(null);
-          setPendingStation(null);
         }}
         onStationSelect={handleStationSelect}
         onDelete={handleDeletePreset}
         presetNumber={assigningPreset}
         hasExistingPreset={assigningPreset !== null && !!presets[assigningPreset]}
         existingPreset={assigningPreset !== null ? presets[assigningPreset] : null}
-      />
-
-      {/* Confirm Overwrite Dialog */}
-      <ConfirmDialog
-        open={pendingStation !== null}
-        title={t("presets.confirmOverwriteTitle")}
-        message={t("presets.confirmOverwriteMessage", { preset: assigningPreset })}
-        confirmLabel={t("presets.confirmOverwrite")}
-        cancelLabel={t("common.cancel")}
-        onConfirm={handleConfirmOverwrite}
-        onCancel={() => setPendingStation(null)}
       />
 
       {/* Confirm Clear Dialog */}

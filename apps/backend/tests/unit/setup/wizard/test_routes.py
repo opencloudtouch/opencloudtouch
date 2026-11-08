@@ -1537,6 +1537,7 @@ class TestWizardFinalize:
                 "uuid": "1234567",
                 "had_uuid": False,
                 "uuid_was_collision": False,
+                "uuid_source": "existing",
                 "sources_written": True,
                 "sources_backup_path": "/tmp/backup",
                 "system_config_written": True,
@@ -1551,6 +1552,7 @@ class TestWizardFinalize:
             body = response.json()
             assert body["success"] is True
             assert body["uuid"] == "1234567"
+            assert body["uuid_source"] == "existing"
             assert body["sources_written"] is True
 
     def test_finalize_failure(self, client):

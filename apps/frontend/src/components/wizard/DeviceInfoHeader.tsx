@@ -8,10 +8,12 @@ import { Icon } from "./Icon";
 import "./wizard-base.css"; // replaces DeviceInfoHeader.css
 
 interface DeviceInfoHeaderProps {
-  device: Device;
+  readonly device: Device;
+  /** Disables the reboot button (e.g. while a restore is running). */
+  readonly rebootLocked?: boolean;
 }
 
-export default function DeviceInfoHeader({ device }: DeviceInfoHeaderProps) {
+export default function DeviceInfoHeader({ device, rebootLocked = false }: DeviceInfoHeaderProps) {
   const { t } = useTranslation();
   const [rebootState, setRebootState] = useState<"idle" | "sent" | "error">("idle");
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -51,8 +53,8 @@ export default function DeviceInfoHeader({ device }: DeviceInfoHeaderProps) {
       <button
         className={`device-reboot-btn device-reboot-btn--${rebootState}`}
         onClick={() => setConfirmOpen(true)}
-        disabled={rebootState === "sent"}
-        title={t("deviceHeader.reboot")}
+        disabled={rebootState === "sent" || rebootLocked}
+        title={rebootLocked ? t("deviceHeader.rebootLocked") : t("deviceHeader.reboot")}
       >
         {rebootState === "idle" && (
           <>

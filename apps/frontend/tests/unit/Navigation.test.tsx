@@ -30,7 +30,7 @@ describe("Navigation Component", () => {
       { text: "Devices", path: "/" },
       { text: "Zones", path: "/multiroom" },
       { text: "Settings", path: "/settings" },
-      { text: "About", path: "/about" },
+      { text: "Info", path: "/about" },
     ];
 
     expectedLinks.forEach(({ text, path }) => {
@@ -51,7 +51,7 @@ describe("Navigation Component", () => {
         <Navigation />
       </MemoryRouter>,
     );
-    const about = screen.getByText("About").closest("a");
+    const about = screen.getByText("Info").closest("a");
     if (current) {
       expect(about).toHaveAttribute("aria-current", "page");
     } else {
@@ -70,5 +70,22 @@ describe("Navigation Component", () => {
       </MemoryRouter>,
     );
     expect(screen.getByText("Devices").closest("a")).toHaveAttribute("href", expectedHref);
+  });
+});
+
+describe("Navigation remembers the last device", () => {
+  it("keeps the last visited device on all links when the URL has none", () => {
+    window.localStorage.setItem("oct:lastDevice", "AA11");
+    render(
+      <MemoryRouter initialEntries={["/setup-wizard"]}>
+        <Navigation />
+      </MemoryRouter>
+    );
+    expect(screen.getByText("Devices").closest("a")).toHaveAttribute("href", "/?device=AA11");
+    expect(screen.getByText("Settings").closest("a")).toHaveAttribute(
+      "href",
+      "/settings?device=AA11"
+    );
+    window.localStorage.removeItem("oct:lastDevice");
   });
 });

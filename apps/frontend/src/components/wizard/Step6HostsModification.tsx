@@ -12,6 +12,7 @@ import WizardStep from "./WizardStep";
 import { Icon } from "./Icon";
 import "./wizard-base.css";
 import "./Step6HostsModification.css";
+import { userErrorMessage } from "../../utils/errorMessages";
 
 interface Step6Props {
   deviceId: string;
@@ -80,10 +81,10 @@ export default function Step6HostsModification({
       onHostsModified(result, customIp.trim());
 
       if (!result.success) {
-        setError(result.message || t("setup.wizard.step6.errorTitle"));
+        setError(t("errors.unknown"));
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : t("errors.unknown");
+      const message = userErrorMessage(err);
       setError(message);
     } finally {
       setModifying(false);

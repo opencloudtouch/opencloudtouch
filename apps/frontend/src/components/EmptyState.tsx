@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "../contexts/ToastContext";
 import { useManualIPs } from "../hooks/useSettings";
 import { useDiscoveryStream } from "../hooks/useDiscoveryStream";
+import LanguageSelector from "./LanguageSelector";
 import ManualIPModal from "./ManualIPModal";
 import { Icon } from "./Icon";
 import "./EmptyState.css";
@@ -30,6 +31,7 @@ export default function EmptyState() {
     devicesFound,
     completed,
     error: discoveryError,
+    errorKind: discoveryErrorKind,
     stats,
     startDiscovery,
   } = useDiscoveryStream();
@@ -54,13 +56,13 @@ export default function EmptyState() {
   // Show error toast (must be in useEffect, not render phase)
   useEffect(() => {
     if (discoveryError) {
-      const isAlreadyRunning = discoveryError.includes("already in progress");
+      const isAlreadyRunning = discoveryErrorKind === "alreadyRunning";
       showToast(
         isAlreadyRunning ? t("discovery.alreadyRunning") : t("discovery.failed"),
         isAlreadyRunning ? "info" : "error"
       );
     }
-  }, [discoveryError, showToast, t]);
+  }, [discoveryError, discoveryErrorKind, showToast, t]);
 
   // Show completion toast if no devices found (must be in useEffect, not render phase)
   useEffect(() => {
@@ -71,6 +73,10 @@ export default function EmptyState() {
 
   return (
     <div className="es" data-test="empty-state">
+      {/* No navigation bar on this page: the language must still be changeable */}
+      <div className="es-lang">
+        <LanguageSelector />
+      </div>
       <div className="es-content">
         <img
           className="es-logo"

@@ -1,7 +1,7 @@
 /**
  * Step 3: Power Cycle (tracker step 2)
  * Logic, props, API call, 30 s auto-check and t() keys unchanged. Markup/classNames/icons only.
- * The three risk questions are rendered from one list (same DOM order and classes as before).
+ * The SSH decision is two buttons only (no risk questionnaire).
  */
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,37 +11,7 @@ import CopyableCommand from "./CopyableCommand";
 import { Icon } from "./Icon";
 import "./wizard-base.css";
 import "./Step3PowerCycle.css";
-
-// ─── SSH Persistence Risk Assessment ───────────────────────────────────────────
-
-type RiskAnswer = "ja" | "nein" | "unbekannt";
-
-interface RiskAnswers {
-  q1: RiskAnswer | null; // Netzwerk durch Router/Firewall geschützt?
-  q2: RiskAnswer | null; // Nur vertrauenswürdige Personen im Netzwerk?
-  q3: RiskAnswer | null; // Firmware-Updates geplant?
-}
-
-function calcRiskLevel(answers: RiskAnswers): "gering" | "mittel" | "hoch" | null {
-  if (!answers.q1 || !answers.q2 || !answers.q3) return null;
-  // "Weiß ich nicht" is always highest risk (user mandate)
-  if (answers.q1 === "unbekannt" || answers.q2 === "unbekannt" || answers.q3 === "unbekannt") {
-    return "hoch";
-  }
-  let score = 0;
-  if (answers.q1 === "nein") score += 2; // exposed network = high risk
-  if (answers.q2 === "nein") score += 2; // untrusted users = high risk
-  if (answers.q3 === "ja") score += 1; // pending updates may conflict
-  if (score >= 2) return "hoch";
-  if (score >= 1) return "mittel";
-  return "gering";
-}
-
-const QUESTIONS: { key: keyof RiskAnswers; num: number; textKey: string; order: RiskAnswer[] }[] = [
-  { key: "q1", num: 1, textKey: "setup.wizard.step3.q1", order: ["ja", "nein", "unbekannt"] },
-  { key: "q2", num: 2, textKey: "setup.wizard.step3.q2", order: ["ja", "nein", "unbekannt"] },
-  { key: "q3", num: 3, textKey: "setup.wizard.step3.q3", order: ["nein", "ja", "unbekannt"] },
-];
+import { userErrorMessage } from "../../utils/errorMessages";
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -66,11 +36,7 @@ export default function Step3PowerCycle({
   const [errorMessage, setErrorMessage] = useState("");
   const [checkAttempts, setCheckAttempts] = useState(0);
   const [sshClient, setSshClient] = useState<SshClient>("terminal");
-  const [riskAnswers, setRiskAnswers] = useState<RiskAnswers>({ q1: null, q2: null, q3: null });
   const [sshDecision, setSshDecision] = useState<boolean | null>(null);
-
-  const riskLevel = calcRiskLevel(riskAnswers);
-  const allAnswered = Boolean(riskAnswers.q1 && riskAnswers.q2 && riskAnswers.q3);
 
   const handleDecision = (makePermanent: boolean) => {
     setSshDecision(makePermanent);
@@ -86,10 +52,10 @@ export default function Step3PowerCycle({
       setPortsAvailable(result.has_ssh);
 
       if (!result.has_ssh) {
-        setErrorMessage("SSH ist nicht verfügbar. Bitte wiederholen Sie die Schritte.");
+        setErrorMessage(t("errors.sshFailed"));
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unbekannter Fehler";
+      const message = userErrorMessage(error);
       setErrorMessage(message);
       setPortsAvailable(false);
     } finally {
@@ -108,13 +74,6 @@ export default function Step3PowerCycle({
     return undefined; // Explicit return for other code paths
     // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [checkAttempts]);
-
-  const answerLabel = (a: RiskAnswer): string =>
-    a === "ja"
-      ? t("setup.wizard.step3.answerYes")
-      : a === "nein"
-        ? t("setup.wizard.step3.answerNo")
-        : t("setup.wizard.step3.answerUnknown");
 
   const instructionSteps = [
     {
@@ -138,10 +97,6 @@ export default function Step3PowerCycle({
       desc: "setup.wizard.step3.instructionStep5Desc",
     },
   ];
-
-  let riskIcon = Icon.ShieldAlert();
-  if (riskLevel === "gering") riskIcon = Icon.ShieldCheck();
-  else if (riskLevel === "mittel") riskIcon = Icon.Alert();
 
   const checkButtonLabelKey =
     checkAttempts === 0 ? "setup.wizard.step3.btnCheckNow" : "setup.wizard.step3.btnCheckAgain";
@@ -251,54 +206,10 @@ export default function Step3PowerCycle({
               <h4 className="risk-title">
                 {Icon.Lock(20)} {t("setup.wizard.step3.sshTitle")}
               </h4>
-              <p className="risk-intro">{t("setup.wizard.step3.sshIntro")}</p>
-
-              {QUESTIONS.map((q) => (
-                <div className="risk-question" key={q.key}>
-                  <p className="risk-question-text">
-                    <strong>{q.num}.</strong> {t(q.textKey)}
-                  </p>
-                  <div className="risk-answers">
-                    {q.order.map((a) => (
-                      <button
-                        key={a}
-                        className={`risk-answer-btn ${riskAnswers[q.key] === a ? "selected" : ""} ${a === "unbekannt" ? "unknown" : ""}`}
-                        aria-pressed={riskAnswers[q.key] === a}
-                        onClick={() => setRiskAnswers((prev) => ({ ...prev, [q.key]: a }))}
-                      >
-                        {answerLabel(a)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              {/* Risk level badge */}
-              {allAnswered && riskLevel && (
-                <output className={`risk-level risk-level--${riskLevel}`}>
-                  <span className="risk-level-icon">{riskIcon}</span>
-                  <div>
-                    <strong>
-                      {t("setup.wizard.step3.riskLabel")}{" "}
-                      {riskLevel === "gering"
-                        ? t("setup.wizard.step3.riskLow")
-                        : riskLevel === "mittel"
-                          ? t("setup.wizard.step3.riskMedium")
-                          : t("setup.wizard.step3.riskHigh")}
-                    </strong>
-                    <p className="risk-level-hint">
-                      {riskLevel === "gering" && t("setup.wizard.step3.riskHintLow")}
-                      {riskLevel === "mittel" && t("setup.wizard.step3.riskHintMedium")}
-                      {riskLevel === "hoch" && t("setup.wizard.step3.riskHintHigh")}
-                    </p>
-                  </div>
-                </output>
-              )}
-
               {/* Decision cards */}
               <div className="risk-decision-buttons">
                 <button
-                  className={`risk-card risk-card--permanent${sshDecision === true ? " selected" : ""}${riskLevel === "hoch" ? " danger" : ""}`}
+                  className={`risk-card risk-card--permanent${sshDecision === true ? " selected" : ""}`}
                   aria-pressed={sshDecision === true}
                   onClick={() => handleDecision(true)}
                 >

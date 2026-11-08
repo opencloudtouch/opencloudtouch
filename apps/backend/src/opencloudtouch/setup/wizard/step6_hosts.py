@@ -45,7 +45,7 @@ class Step6HostsMixin:
                 f"Cannot resolve hostname '{target_host}' to an IP address."
             )
 
-        async with ssh_operation(device_ip, "modify-hosts") as ssh:
+        async with ssh_operation(device_ip, "modify-hosts", write=True) as ssh:
             await snapshot_config_files(
                 ssh,
                 self._audit_repo,

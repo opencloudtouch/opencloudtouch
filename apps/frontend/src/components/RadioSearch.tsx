@@ -8,6 +8,7 @@ import ConfirmDialog from "./ConfirmDialog";
 import Modal from "./Modal";
 import { Icon } from "./Icon";
 import "./RadioSearch.css";
+import { userErrorMessage } from "../utils/errorMessages";
 
 export interface RadioStation {
   stationuuid: string;
@@ -443,7 +444,7 @@ export default function RadioSearch({
         if (isAbortError(err)) return;
         setResults([]);
         setHasMore(false);
-        setError(getErrorMessage(err));
+        setError(userErrorMessage(err));
         console.error("Radio search error:", err);
       } finally {
         setLoading(false);
@@ -476,7 +477,7 @@ export default function RadioSearch({
       setError(null);
     } catch (err) {
       if (isAbortError(err)) return;
-      setError(getErrorMessage(err));
+      setError(userErrorMessage(err));
       console.error("Radio load more error:", err);
     } finally {
       setLoadingMore(false);

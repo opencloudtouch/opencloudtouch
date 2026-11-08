@@ -11,11 +11,11 @@
 
 /* the step 7 banner is a recommendation, not a warning: blue instead of amber */
 .wizard-step:has(.verification) .wizard-warning {
-  background: rgba(33, 150, 243, 0.1);
-  border-color: rgba(33, 150, 243, 0.5);
+  background: rgba(var(--primary-rgb), 0.08); /* the info box of .wz-status */
+  border-color: rgba(var(--primary-rgb), 0.45);
 }
 .wizard-step:has(.verification) .wizard-warning-icon {
-  color: #64b5f6;
+  color: var(--primary-text);
 }
 
 /* phase indicator: fixed height, 3 equal columns */
@@ -38,7 +38,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-sm);
   text-align: center;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   line-height: 1.2;
   color: var(--color-text-secondary);
 }
@@ -52,7 +52,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: var(--font-weight-bold);
 }
 .verify-phase-label {
@@ -84,7 +84,7 @@
     gap: 8px;
     min-height: 48px;
     padding: 8px 12px;
-    font-size: 14px;
+    font-size: var(--fs-md);
     text-align: left;
   }
 }
@@ -93,12 +93,12 @@
 .finalize-section .btn {
   width: 100%;
   min-height: 52px;
-  font-size: 17px;
+  font-size: var(--fs-h3);
 }
 .verification .finalize-status {
   align-items: center;
   color: var(--color-text-primary);
-  font-size: 15px;
+  font-size: var(--fs-body);
 }
 .verification .setup-error {
   flex-wrap: wrap;
@@ -108,7 +108,7 @@
   flex: 1 1 0;
   min-width: 0;
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-primary);
   overflow-wrap: anywhere;
@@ -127,7 +127,7 @@
 }
 .verification .verify-checklist h3 {
   margin: 0 0 4px;
-  font-size: 17px;
+  font-size: var(--fs-h3);
   color: var(--color-text-primary);
 }
 .verification .verify-group {
@@ -154,7 +154,7 @@
 }
 .verification-title {
   margin: 0 0 12px;
-  font-size: 17px;
+  font-size: var(--fs-h3);
   color: var(--color-text-primary);
 }
 
@@ -185,12 +185,12 @@
 .reboot-header strong {
   display: block;
   margin-bottom: 2px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   color: #ffb74d;
 }
 .reboot-hint {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-primary);
 }
@@ -208,7 +208,7 @@
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-sm);
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--text-primary);
 }
@@ -233,7 +233,7 @@
   color: var(--color-success);
 }
 .reboot-status--error {
-  border-color: #f44336;
+  border-color: var(--color-danger);
 }
 .reboot-status--error .wz-icon {
   color: var(--color-danger);
@@ -304,7 +304,7 @@
 }
 .verification-info .info-content h3 {
   margin: 0 0 8px;
-  font-size: 17px;
+  font-size: var(--fs-h3);
   line-height: 1.3;
   color: var(--color-text-primary);
 }
@@ -318,7 +318,7 @@
 .verification-info .info-content li {
   position: relative;
   padding-left: 16px;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-primary);
   overflow-wrap: anywhere;
@@ -336,14 +336,14 @@
 .verification-test-btn {
   width: 100%;
   min-height: 52px;
-  font-size: 17px;
+  font-size: var(--fs-h3);
 }
 
 /* verifying (status box) */
 .verify-status {
   align-items: center;
   color: var(--color-text-primary);
-  font-size: 15px;
+  font-size: var(--fs-body);
 }
 
 /* overall result */
@@ -356,7 +356,7 @@
   min-height: var(--touch-target-min);
   padding: 10px 16px;
   border-color: var(--color-disabled);
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.4;
   text-align: center;
   white-space: normal;

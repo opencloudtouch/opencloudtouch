@@ -26,7 +26,7 @@ describe("Device Discovery", () => {
       cy.waitForDevices();
 
       // Should redirect to dashboard
-      cy.url().should("eq", Cypress.config().baseUrl + "/");
+      cy.location("pathname").should("eq", "/");
 
       // Verify devices visible (MockDiscoveryAdapter returns 3 devices)
       cy.get('[data-test="app-header"]').should("be.visible");
@@ -97,7 +97,7 @@ describe("Device Discovery", () => {
 
       cy.waitForDevices();
 
-      cy.url().should("eq", Cypress.config().baseUrl + "/");
+      cy.location("pathname").should("eq", "/");
 
       // Wait for ALL 3 devices to load before checking navigation
       cy.get(".ds-dot").should("have.length", 3);
@@ -134,7 +134,7 @@ describe("Device Discovery", () => {
       cy.waitForDevices();
 
       // With OCT_MOCK_MODE=true, sync will succeed → redirects to dashboard
-      cy.url().should("eq", Cypress.config().baseUrl + "/");
+      cy.location("pathname").should("eq", "/");
 
       // Skip toast test in mock mode (devices always found)
       // TODO: Add test with OCT_MOCK_MODE=false for true "no devices" scenario
@@ -157,13 +157,13 @@ describe("Device Discovery", () => {
 
       // Wait for discovery to complete AND auto-redirect to happen.
       // This confirms devices are persisted in the DB before testing the guard.
-      cy.url().should("eq", Cypress.config().baseUrl + "/", { timeout: 15000 });
+      cy.location("pathname").should("eq", "/", { timeout: 15000 });
 
       // Now try to visit /welcome again (with devices confirmed in DB)
       cy.visit("/welcome");
 
       // Routing guard should redirect back to dashboard
-      cy.url().should("eq", Cypress.config().baseUrl + "/");
+      cy.location("pathname").should("eq", "/");
     });
   });
 });

@@ -197,6 +197,22 @@ describe("MultiRoom - Zone Creation", () => {
     expect(mockCreateZone).toHaveBeenCalledWith("ST10-001", ["ST30-002"]);
   });
 
+  test("a failed zone creation is a toast and keeps the device list (no list error box)", async () => {
+    const user = userEvent.setup();
+    mockCreateZone.mockRejectedValueOnce(new Error("Simulated failure: zone could not be created"));
+    render(<MultiRoom devices={mockDevices} />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[0]!);
+    await user.click(checkboxes[1]!);
+    await user.click(screen.getByRole("button", { name: /Create Zone/i }));
+
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith("Zone could not be created", "error"));
+    expect(screen.queryByText(/Error loading/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Simulated failure/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole("checkbox")).toHaveLength(checkboxes.length);
+  });
+
   test("should allow deselecting devices", async () => {
     const user = userEvent.setup();
     render(<MultiRoom devices={mockDevices} />);
@@ -322,6 +338,29 @@ describe("MultiRoom - Zone Management", () => {
       expect(screen.getByRole("button", { name: /Update Zone/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
     });
+  });
+
+  test("a failed zone update says 'could not be updated' (not 'created')", async () => {
+    const user = userEvent.setup();
+    mockAddMembers.mockRejectedValueOnce(new Error("Simulated failure"));
+    mockRemoveMembers.mockRejectedValueOnce(new Error("Simulated failure"));
+    render(<MultiRoom devices={mockDevices} />);
+
+    await user.click(screen.getByRole("button", { name: /Edit/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /Update Zone/i })).toBeInTheDocument());
+    for (const box of screen.getAllByRole("checkbox")) {
+      if (!(box as HTMLInputElement).checked && !(box as HTMLInputElement).disabled) await user.click(box);
+    }
+    for (const box of screen.getAllByRole("checkbox")) {
+      if ((box as HTMLInputElement).checked && !(box as HTMLInputElement).disabled && screen.getAllByRole("checkbox").filter((b) => (b as HTMLInputElement).checked).length > 2) {
+        await user.click(box);
+        break;
+      }
+    }
+    await user.click(screen.getByRole("button", { name: /Update Zone/i }));
+
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith("Zone could not be updated", "error"));
+    expect(mockShowToast).not.toHaveBeenCalledWith("Zone could not be created", "error");
   });
 
   test("should disable devices already in a different zone", () => {

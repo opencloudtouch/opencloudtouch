@@ -12,6 +12,7 @@ import { isDeviceOffline, markDeviceOffline } from "../api/offlineDeviceStore";
 import { useDeviceEventContext } from "../contexts/DeviceEventContext";
 import { octDebug } from "../utils/debug";
 import { getCachedDeviceData, setCachedDeviceData } from "../utils/deviceDataCache";
+import { userErrorMessage } from "../utils/errorMessages";
 
 export interface UseNowPlayingResult {
   nowPlaying: NowPlayingState | null;
@@ -79,7 +80,7 @@ export function useNowPlaying(deviceId: string | undefined): UseNowPlayingResult
           setNowPlaying(null);
           setError(i18next.t("errors.offlineTitle"));
         } else {
-          setError(err instanceof Error ? err.message : i18next.t("errors.unknown"));
+          setError(userErrorMessage(err));
         }
         console.warn("[useNowPlaying] Failed to fetch:", err);
       }

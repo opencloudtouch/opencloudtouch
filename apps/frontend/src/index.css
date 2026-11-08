@@ -10,7 +10,6 @@
   --color-border: #333333;
   --color-accent: #0066cc;
   --color-accent-hover: #0052a3;
-  --color-active: #ffffff;
   --color-disabled: #4d4d4d;
 
   /* ─── Wizard component variable aliases ───────────────────────────────────
@@ -19,7 +18,6 @@
      ──────────────────────────────────────────────────────────────────────── */
   --text-primary: #e0e0e0;
   --text-secondary: #b3b3b3;
-  --text-tertiary: #949494;
   --surface-color: #2a2a2a;
   --bg-tertiary: #323232;
   --border-color: #3a3a3a;
@@ -28,9 +26,6 @@
   --primary-text: #8ab8f0; /* use for text/icons on dark surfaces (contrast >= 4.5:1) */
   --color-success: #81c784;
   --color-danger: #ef5350;
-  /* Used by EmptyState.css and Licenses.css; were referenced but never defined */
-  --primary-blue: var(--color-accent);
-  --success-green: #4caf50;
 
   /* Typography */
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
@@ -59,10 +54,6 @@
 
   /* Touch Targets */
   --touch-target-min: 44px;
-
-  /* Swipe Card Dimensions */
-  --card-width: 320px;
-  --card-height: 360px;
 }
 
 /* Global Resets */
@@ -92,7 +83,7 @@ body {
 
 /* Focus Visible (Accessibility) */
 *:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--focus-ring, #8ab8f0); /* light blue: #0066cc has only 2.8:1 on the dark surfaces */
   outline-offset: 2px;
 }
 
@@ -125,7 +116,7 @@ a {
 /* Input */
 input {
   font-family: inherit;
-  font-size: 16px; /* Prevent iOS auto-zoom */
+  font-size: var(--fs-lg); /* Prevent iOS auto-zoom */
 }
 
 /* Lists */
@@ -144,12 +135,6 @@ img {
 /* Utility Classes */
 .text-center {
   text-align: center;
-}
-
-.flex-center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 .visually-hidden {

@@ -736,15 +736,23 @@ class TestDiscoverStreamEndpoint:
                 assert response.status_code == 200
                 assert "text/event-stream" in response.headers.get("content-type", "")
 
-    def test_discover_stream_returns_409_when_locked(self, client, mock_device_service):
-        """Test SSE stream endpoint returns 409 when discovery already in progress."""
+    def test_discover_stream_reports_a_running_scan_as_an_error_event(
+        self, client, mock_device_service
+    ):
+        """A second scan gets an explicit, machine-readable error event instead of a bare HTTP 409.
+
+        EventSource cannot read the status or body of a failed request, so the browser could not tell
+        "already running" from any other failed connection.
+        """
         import opencloudtouch.devices.api.discovery_routes as devices_module
 
         with patch.object(devices_module._discovery_lock, "locked", return_value=True):
             response = client.get("/api/devices/discover/stream")
 
-        assert response.status_code == 409
-        assert "already in progress" in response.json()["detail"].lower()
+        assert response.status_code == 200
+        assert "text/event-stream" in response.headers["content-type"]
+        assert "event: error" in response.text
+        assert '"code": "discovery_in_progress"' in response.text
 
 
 class TestKeyPressEndpoint:

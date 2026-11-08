@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getErrorMessage } from "../api/types";
+import { userErrorMessage } from "../utils/errorMessages";
 import { Icon } from "./Icon";
 import "./StationDetail.css";
 
@@ -71,7 +71,7 @@ export default function StationDetail({
         setStation(data);
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
-        setError(getErrorMessage(err));
+        setError(userErrorMessage(err));
       } finally {
         setLoading(false);
       }

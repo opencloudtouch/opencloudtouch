@@ -59,7 +59,8 @@ describe("Step4Backup - retry and success hint", () => {
     const { container } = renderStep();
 
     await user.click(screen.getByText(/btnCreate/));
-    await waitFor(() => expect(screen.getByText("Command timeout after 180.0s")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText("setup.wizard.step4.errorTitle").length).toBeGreaterThan(0));
+    expect(document.body.textContent).not.toContain("Command timeout after 180.0s"); // translated message only
 
     // The button is still there, now labelled as a retry, and the risk warning is shown.
     const retry = container.querySelector<HTMLButtonElement>("button.backup-create-btn");

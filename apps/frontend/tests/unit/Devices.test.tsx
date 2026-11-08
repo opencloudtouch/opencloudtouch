@@ -14,6 +14,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { i18next } from "../../src/i18n";
 import Devices from "../../src/pages/Devices";
 import { deleteDeviceById } from "../../src/api/devices";
 import { markDeviceOffline, _resetOfflineStore } from "../../src/api/offlineDeviceStore";
@@ -283,6 +284,36 @@ describe("Devices Page", () => {
   });
 
   describe("Preset Assignment Flow", () => {
+    it("shows the success toast only after the sync from the device worked", async () => {
+      await act(async () => {
+        render(<Devices devices={mockDevices} />);
+      });
+      mockShowToast.mockClear();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: i18next.t("presets.syncFromDevice") }));
+      });
+
+      expect(mockShowToast).toHaveBeenCalledWith(i18next.t("presets.syncedFromDevice"), "success");
+    });
+
+    it("does not show the success toast when the sync from the device fails", async () => {
+      await act(async () => {
+        render(<Devices devices={mockDevices} />);
+      });
+      mockShowToast.mockClear();
+      vi.mocked(presetsApi.syncPresetsFromDevice).mockRejectedValue(new Error("sync failed"));
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: i18next.t("presets.syncFromDevice") }));
+      });
+
+      expect(mockShowToast).not.toHaveBeenCalledWith(
+        i18next.t("presets.syncedFromDevice"),
+        "success"
+      );
+    });
+
     it("should open radio search modal when clicking assign button", async () => {
       await act(async () => {
         render(<Devices devices={mockDevices} />);

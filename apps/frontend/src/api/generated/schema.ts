@@ -2664,7 +2664,7 @@ export interface components {
       event: string;
       /**
        * Step
-       * @description Wizard step number (0=init)
+       * @description Wizard step number (0=init, up to 8 setup steps)
        */
       step?: number | null;
       /**
@@ -3138,6 +3138,13 @@ export interface components {
        * @default false
        */
       uuid_was_collision: boolean;
+      /**
+       * Uuid Source
+       * @description "existing" (kept from device), "derived" (newly set) or "collision_fallback"
+       *     (replaced because another device owns the same UUID)
+       * @default unknown
+       */
+      uuid_source: string;
       /**
        * Sources Written
        * @default false

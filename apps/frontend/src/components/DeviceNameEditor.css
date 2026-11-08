@@ -79,7 +79,7 @@
   min-width: 0;
 }
 .dne-input {
-  font-size: 18px;
+  font-size: var(--fs-xl);
   font-weight: var(--font-weight-bold);
   text-align: center;
   padding-inline: 40px;

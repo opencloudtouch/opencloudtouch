@@ -12,7 +12,11 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { QueryWrapper, createTestQueryClient, createQueryWrapper } from "../utils/reactQueryTestUtils";
+import {
+  QueryWrapper,
+  createTestQueryClient,
+  createQueryWrapper,
+} from "../utils/reactQueryTestUtils";
 import { useDiscoveryStream } from "../../src/hooks/useDiscoveryStream";
 import type { Device } from "../../src/api/devices";
 
@@ -52,7 +56,7 @@ class ControllableEventSource {
 
   /** Simulate an SSE event dispatched to all listeners of `type`. */
   emit(type: string, data: string) {
-    const event = { data } as MessageEvent;
+    const event = new MessageEvent(type, { data });
     for (const handler of this.listeners[type] || []) {
       handler(event);
     }
@@ -89,7 +93,7 @@ describe("useDiscoveryStream - BUG-35: SSE URL must not be localhost", () => {
     const url = capturedEventSourceUrl!;
     const isRelative = url.startsWith("/api/");
     const isAbsoluteToSameOrigin =
-      (url.startsWith("http://") || url.startsWith("https://"))
+      url.startsWith("http://") || url.startsWith("https://")
         ? url.startsWith(window.location.origin)
         : false;
     expect(isRelative || isAbsoluteToSameOrigin).toBe(true);
@@ -125,6 +129,33 @@ describe("useDiscoveryStream - BUG-35: SSE URL must not be localhost", () => {
       result.current.cancelDiscovery();
     });
     expect(result.current.isDiscovering).toBe(false);
+  });
+
+  it("caches the found devices in the backend's name order, not in discovery order", () => {
+    // The final refetch returns the list sorted by name. If the cache kept discovery order, the swiper would
+    // reorder under the user (and the first card would change) as soon as that refetch lands.
+    const queryClient = createTestQueryClient();
+    const { result } = renderHook(() => useDiscoveryStream(), {
+      wrapper: createQueryWrapper(queryClient),
+    });
+    act(() => {
+      result.current.startDiscovery();
+    });
+    const es = ControllableEventSource.instances[ControllableEventSource.instances.length - 1];
+
+    act(() => {
+      for (const [id, name] of [
+        ["B", "Zimmer"],
+        ["C", "Büro"],
+        ["A", "arbeitszimmer"],
+      ]) {
+        es.emit("device_synced", JSON.stringify({ device_id: id, name, ip: `10.0.0.${id}` }));
+      }
+      es.emit("completed", JSON.stringify({ discovered: 3, synced: 3, failed: 0 }));
+    });
+
+    const cached = queryClient.getQueryData<Device[]>(["devices"]) ?? [];
+    expect(cached.map((d) => d.name)).toEqual(["arbeitszimmer", "Büro", "Zimmer"]);
   });
 
   it("should update query cache with Device[] array not {count, devices} object (BUG-15)", () => {
@@ -287,7 +318,54 @@ describe("useDiscoveryStream - BUG-35: SSE URL must not be localhost", () => {
     expect(es.close).toHaveBeenCalled();
   });
 
-  it("reports 'Discovery already in progress' when onerror fires with readyState CLOSED", () => {
+  it("keeps the server's error message when onerror fires for the same failure", () => {
+    const { result } = renderHook(() => useDiscoveryStream(), { wrapper: QueryWrapper });
+    act(() => {
+      result.current.startDiscovery();
+    });
+    const es = ControllableEventSource.instances[ControllableEventSource.instances.length - 1];
+
+    act(() => {
+      es.emit("error", JSON.stringify({ message: "Backend discovery process crashed" }));
+      es.onerror!({ target: es } as unknown as Event);
+    });
+
+    expect(result.current.error).toBe("Backend discovery process crashed");
+  });
+
+  it("classifies the server's in-progress answer as alreadyRunning", () => {
+    const { result } = renderHook(() => useDiscoveryStream(), { wrapper: QueryWrapper });
+    act(() => {
+      result.current.startDiscovery();
+    });
+    const es = ControllableEventSource.instances[ControllableEventSource.instances.length - 1];
+
+    act(() => {
+      es.emit(
+        "error",
+        JSON.stringify({ message: "Discovery already in progress", code: "discovery_in_progress" })
+      );
+    });
+
+    expect(result.current.errorKind).toBe("alreadyRunning");
+    expect(result.current.isDiscovering).toBe(false);
+  });
+
+  it("classifies any other server error as a failure", () => {
+    const { result } = renderHook(() => useDiscoveryStream(), { wrapper: QueryWrapper });
+    act(() => {
+      result.current.startDiscovery();
+    });
+    const es = ControllableEventSource.instances[ControllableEventSource.instances.length - 1];
+
+    act(() => {
+      es.emit("error", JSON.stringify({ message: "Backend discovery process crashed" }));
+    });
+
+    expect(result.current.errorKind).toBe("failed");
+  });
+
+  it("does not call a closed connection 'already running' (a 500 or a proxy error looks the same)", () => {
     const { result } = renderHook(() => useDiscoveryStream(), {
       wrapper: QueryWrapper,
     });
@@ -304,7 +382,8 @@ describe("useDiscoveryStream - BUG-35: SSE URL must not be localhost", () => {
     });
 
     expect(result.current.isDiscovering).toBe(false);
-    expect(result.current.error).toBe("Discovery already in progress");
+    expect(result.current.error).toBe("Connection lost");
+    expect(result.current.errorKind).toBe("failed");
     expect(es.close).toHaveBeenCalled();
   });
 

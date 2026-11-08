@@ -34,6 +34,16 @@ def create_mock_service():
     return service
 
 
+class _NoopAsyncCM:
+    """Stands in for SoundTouchSSHClient.write_access() in route tests."""
+
+    async def __aenter__(self):
+        return None
+
+    async def __aexit__(self, *exc):
+        return False
+
+
 @pytest.fixture
 def mock_setup_service():
     """Create mock setup service."""
@@ -247,6 +257,7 @@ class TestEnablePermanentSSH:
             return_value=MagicMock(success=True, output="", exit_code=0, error=None)
         )
         mock_ssh_client.close = AsyncMock()
+        mock_ssh_client.write_access = MagicMock(return_value=_NoopAsyncCM())
         mock_ssh_client._connection = mock_connection
 
         # Patch SoundTouchSSHClient
@@ -308,6 +319,7 @@ class TestEnablePermanentSSH:
             return_value=MagicMock(success=False, error="Connection refused")
         )
         mock_ssh_client.close = AsyncMock()
+        mock_ssh_client.write_access = MagicMock(return_value=_NoopAsyncCM())
 
         from opencloudtouch.setup import routes
 
@@ -340,6 +352,7 @@ class TestEnablePermanentSSH:
             )
         )
         mock_ssh_client.close = AsyncMock()
+        mock_ssh_client.write_access = MagicMock(return_value=_NoopAsyncCM())
 
         from opencloudtouch.setup import routes
 
@@ -586,6 +599,7 @@ class TestWizardRebootDevice:
             return_value=MagicMock(success=True, output="", exit_code=0, error=None)
         )
         mock_ssh_client.close = AsyncMock()
+        mock_ssh_client.write_access = MagicMock(return_value=_NoopAsyncCM())
 
         from opencloudtouch.setup.wizard import step8_finalize_verify as routes
 
@@ -610,6 +624,7 @@ class TestWizardRebootDevice:
             return_value=MagicMock(success=False, error="Connection refused")
         )
         mock_ssh_client.close = AsyncMock()
+        mock_ssh_client.write_access = MagicMock(return_value=_NoopAsyncCM())
 
         from opencloudtouch.setup.wizard import step8_finalize_verify as routes
 
@@ -655,6 +670,7 @@ class TestEnablePermanentSSHPort:
                 return_value=MagicMock(success=True, output="", exit_code=0, error=None)
             )
             mock_ssh.close = AsyncMock()
+            mock_ssh.write_access = MagicMock(return_value=_NoopAsyncCM())
             return mock_ssh
 
         monkeypatch.setattr(routes, "SoundTouchSSHClient", capture_ssh_client)
@@ -845,6 +861,7 @@ class TestBackup:
 
 def _make_ssh_context(mock_ssh):
     """Create an async context manager returning mock_ssh."""
+    mock_ssh.write_access = MagicMock(return_value=_NoopAsyncCM())
     ctx = MagicMock()
     ctx.__aenter__ = AsyncMock(return_value=mock_ssh)
     ctx.__aexit__ = AsyncMock(return_value=False)
@@ -1210,6 +1227,7 @@ class TestEnablePermanentSSHException:
         mock_ssh.connect = AsyncMock(return_value=MagicMock(success=True))
         mock_ssh.execute = AsyncMock(side_effect=RuntimeError("Unexpected DB error"))
         mock_ssh.close = AsyncMock()
+        mock_ssh.write_access = MagicMock(return_value=_NoopAsyncCM())
 
         monkeypatch.setattr(routes, "SoundTouchSSHClient", lambda host, port: mock_ssh)
 
@@ -1239,6 +1257,7 @@ class TestWizardRebootExceptionPath:
         mock_ssh.connect = AsyncMock(return_value=MagicMock(success=True))
         mock_ssh.execute = AsyncMock(side_effect=RuntimeError("Unexpected error"))
         mock_ssh.close = AsyncMock()
+        mock_ssh.write_access = MagicMock(return_value=_NoopAsyncCM())
 
         monkeypatch.setattr(routes, "SoundTouchSSHClient", lambda host, port: mock_ssh)
 

@@ -10,6 +10,7 @@ import { useScanBackups } from "../../hooks/useRestore";
 import type { ScanBackupsResponse, BackupSetResponse } from "../../api/restore";
 import { useEffect } from "react";
 import { Icon } from "./Icon";
+import { userErrorMessage } from "../../utils/errorMessages";
 
 interface BackupScanProps {
   readonly stepNumber: number;
@@ -34,6 +35,9 @@ export default function BackupScan({
   }, [deviceIp, deviceId, scan]);
 
   const scanResult = data as ScanBackupsResponse | undefined;
+  // A corrupt or empty archive must not be restored: the button stays disabled until another backup is chosen
+  const hasInvalidFile =
+    scanResult?.selected_set?.files.some((f) => f.validation_status === "invalid") ?? false;
 
   return (
     <WizardStep
@@ -44,7 +48,7 @@ export default function BackupScan({
       onNext={
         scanResult?.selected_set ? () => onBackupSelected(scanResult.selected_set!) : undefined
       }
-      isNextDisabled={!scanResult?.selected_set}
+      isNextDisabled={!scanResult?.selected_set || hasInvalidFile}
       isLoading={isPending}
       nextLabel={t("restore.backup_scan.use_backup", "Use This Backup")}
     >
@@ -63,7 +67,7 @@ export default function BackupScan({
           <div className="wz-status-body">
             <p>
               {t("restore.backup_scan.error", "Scan failed: {{message}}", {
-                message: (error as Error).message,
+                message: userErrorMessage(error),
               })}
             </p>
             <button
@@ -123,8 +127,10 @@ export default function BackupScan({
               <li key={f.filename}>
                 <strong>{f.volume_type}</strong>{" "}
                 <span className="backup-scan__filename">{f.filename}</span>
-                {f.validation_status === "warning" && (
-                  <span className="backup-scan__mismatch">
+                {(f.validation_status === "warning" || f.validation_status === "invalid") && (
+                  <span
+                    className={`backup-scan__mismatch${f.validation_status === "invalid" ? " backup-scan__mismatch--invalid" : ""}`}
+                  >
                     <span className="wz-icon" aria-hidden="true">
                       {Icon.Alert(18)}
                     </span>

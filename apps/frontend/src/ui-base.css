@@ -12,16 +12,20 @@
   --font-mono: ui-monospace, Menlo, Consolas, monospace;
   /* type scale */
   --fs-h1: 26px;
+  --fs-2xl: 24px;
   --fs-h2: 20px;
+  --fs-xl: 18px;
   --fs-h3: 17px;
+  --fs-lg: 16px;
   --fs-body: 15px;
+  --fs-md: 14px;
   --fs-small: 13px;
+  --fs-xs: 12px;
   /* elevation */
   --elev-card: none;
   --elev-modal: var(--shadow-lg);
   --elev-toast: var(--shadow-md);
   /* motion */
-  --motion-fast: 0.12s;
   --motion-base: 0.2s;
   --motion-slow: 0.3s;
   /* layout */
@@ -50,7 +54,7 @@
   padding: 0 20px;
   border-radius: var(--border-radius-sm);
   border: 1px solid transparent;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
   transition:
@@ -139,7 +143,7 @@
 }
 .btn-sm {
   padding: 0 14px;
-  font-size: 14px;
+  font-size: var(--fs-md);
 } /* height stays >= 44px */
 .btn-icon {
   width: var(--touch-target-min);
@@ -148,9 +152,6 @@
 } /* always give it aria-label */
 .btn[aria-busy="true"] {
   cursor: progress;
-}
-.btn-block {
-  width: 100%;
 }
 @media (max-width: 600px) {
   .btn-block-phone {
@@ -163,18 +164,6 @@
 }
 
 /* ---------- Surfaces ---------- */
-.ui-page {
-  box-sizing: border-box;
-  width: 100%;
-  max-width: var(--page-max);
-  margin: 0 auto;
-  padding: var(--space-md);
-}
-@media (min-width: 769px) {
-  .ui-page {
-    padding: var(--space-lg);
-  }
-}
 .ui-card {
   min-width: 0;
   background: var(--color-bg-card);
@@ -219,14 +208,6 @@
   font-family: var(--font-mono);
   overflow-wrap: anywhere;
 }
-.ui-section-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-}
 
 /* ---------- Status boxes: info / success / warning / error (identical to wizard-base.css) ---------- */
 .wz-status {
@@ -249,7 +230,7 @@
   --bd: rgba(76, 175, 80, 0.5);
 }
 .wz-status--warning {
-  --c: #ffc107;
+  --c: var(--warning-color);
   --bg: rgba(255, 193, 7, 0.1);
   --bd: rgba(255, 193, 7, 0.5);
 }
@@ -273,19 +254,19 @@
   gap: 2px;
 }
 .wz-status-title {
-  font-size: 15px;
+  font-size: var(--fs-body);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
 .wz-status-text {
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-primary);
   overflow-wrap: anywhere;
 }
 .wz-status-body > p {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--text-primary);
   overflow-wrap: anywhere;
@@ -352,7 +333,7 @@
   min-width: 0;
 }
 .ui-label {
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: var(--font-weight-medium);
   color: var(--text-primary);
 }
@@ -418,42 +399,6 @@
   margin-top: 2px;
 }
 
-/* range slider (native; the volume slider keeps its custom role=slider) */
-.ui-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 44px;
-  background: transparent;
-  cursor: pointer;
-}
-.ui-slider::-webkit-slider-runnable-track {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--ui-control-border);
-}
-.ui-slider::-moz-range-track {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--ui-control-border);
-}
-.ui-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 22px;
-  height: 22px;
-  margin-top: -8px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid var(--primary-color);
-}
-.ui-slider::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid var(--primary-color);
-}
-
 /* chips / segmented control: <button aria-pressed>. Active = filled + check mark (not colour alone) */
 .ui-chips {
   display: flex;
@@ -480,7 +425,7 @@ fieldset.ui-chips {
   border: 1px solid var(--ui-control-border);
   background: transparent;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: var(--fs-body);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
   transition:
@@ -505,78 +450,6 @@ fieldset.ui-chips {
     center / contain no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E")
     center / contain no-repeat;
-}
-.ui-seg {
-  display: inline-flex;
-  border: 1px solid var(--ui-control-border);
-  border-radius: var(--border-radius-sm);
-}
-.ui-seg > .ui-chip {
-  border: 0;
-  border-radius: 0;
-}
-.ui-seg > .ui-chip:first-child {
-  border-radius: 7px 0 0 7px;
-}
-.ui-seg > .ui-chip:last-child {
-  border-radius: 0 7px 7px 0;
-}
-
-/* toggle: <label class="ui-toggle"><input type="checkbox" role="switch"><span class="ui-toggle-track"></span><span>Label</span></label> */
-.ui-toggle {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  min-height: var(--touch-target-min);
-  cursor: pointer;
-  color: var(--text-primary);
-}
-.ui-toggle input {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 44px;
-  height: 44px;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-.ui-toggle-track {
-  position: relative;
-  flex: none;
-  box-sizing: border-box;
-  width: 44px;
-  height: 26px;
-  border-radius: 999px;
-  background: var(--color-disabled);
-  border: 1px solid var(--ui-control-border);
-  transition: background var(--motion-base);
-}
-.ui-toggle-track::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #fff;
-  transition: transform var(--motion-base);
-}
-.ui-toggle input:checked + .ui-toggle-track {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-}
-.ui-toggle input:checked + .ui-toggle-track::after {
-  transform: translateX(18px);
-}
-.ui-toggle input:focus-visible + .ui-toggle-track {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-.ui-toggle input:disabled + .ui-toggle-track {
-  opacity: 0.45;
 }
 
 /* ---------- Badges ---------- */
@@ -628,12 +501,12 @@ fieldset.ui-chips {
 .ui-badge--small {
   min-height: 20px;
   padding: 1px 8px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
 }
 .ui-badge--large {
   min-height: 32px;
   padding: 4px 14px;
-  font-size: 15px;
+  font-size: var(--fs-body);
 }
 .ui-badge--icon {
   padding: 0;
@@ -718,18 +591,6 @@ fieldset.ui-chips {
   text-wrap: pretty;
   overflow-wrap: anywhere;
 }
-.ui-offline-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px var(--space-md);
-  background: #3a2f10;
-  border-bottom: 1px solid rgba(255, 193, 7, 0.5);
-  color: #fff;
-  font-size: 14px;
-  text-align: center;
-}
 .inline-link-button {
   min-height: var(--touch-target-min);
   padding: 0;
@@ -787,18 +648,6 @@ fieldset.ui-chips {
     background: Highlight;
     color: HighlightText;
     border-color: Highlight;
-  }
-  .ui-toggle-track {
-    border-color: CanvasText;
-  }
-  .ui-toggle-track::after {
-    background: CanvasText;
-  }
-  .ui-toggle input:checked + .ui-toggle-track {
-    background: Highlight;
-  }
-  .ui-toggle input:checked + .ui-toggle-track::after {
-    background: HighlightText;
   }
   :focus-visible {
     outline-color: Highlight;

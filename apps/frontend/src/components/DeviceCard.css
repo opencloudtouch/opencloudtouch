@@ -17,9 +17,6 @@
 .dv--empty {
   min-height: 100%;
 }
-.dv-title {
-  margin: 0;
-}
 .dv-device {
   width: 100%;
   max-width: 560px;
@@ -69,7 +66,7 @@
   margin: 0;
   max-width: 100%;
   text-align: center;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 20px;
   color: var(--color-text-secondary);
 }
@@ -112,7 +109,7 @@
   margin: 0;
   max-width: 28ch;
   text-align: center;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.4;
   color: var(--color-text-secondary);
   text-wrap: balance;
@@ -200,7 +197,7 @@
   border: 1px solid rgba(var(--primary-rgb), 0.5);
   background: rgba(var(--primary-rgb), 0.12);
   color: var(--primary-text);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: var(--font-weight-medium);
 }
 .lc-zone svg {
@@ -211,34 +208,10 @@
 .lc-np {
   min-width: 0;
 }
-.lc-ph-head {
-  min-height: 32px;
-}
-.lc-ph-tile {
-  flex: none;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--border-radius-sm);
-}
-.lc-ph-station {
-  flex: 1;
-  max-width: 45%;
-}
-.lc-ph-line {
-  height: 18px;
-  border-radius: 4px;
-}
 .lc-ph-art {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-.lc-ph-fill {
-  position: absolute;
-  inset: 0;
-}
-.lc-ph--idle .lc-ph-art {
-  border: 1px dashed var(--ui-control-border);
 }
 .lc-ph-empty {
   display: flex;
@@ -247,25 +220,11 @@
   gap: 8px;
   padding: var(--space-md);
   text-align: center;
-  font-size: 15px;
+  font-size: var(--fs-body);
   color: var(--color-text-secondary);
 }
 .lc-ph-info {
   align-content: start;
-}
-.lc-ph-track {
-  grid-row: 1;
-  justify-self: center;
-  align-self: center;
-  height: 18px;
-  width: 60%;
-}
-.lc-ph-artist {
-  grid-row: 2;
-  justify-self: center;
-  align-self: center;
-  height: 14px;
-  width: 40%;
 }
 
 /* sections */
@@ -284,13 +243,6 @@
 }
 .dv-sec-head .ui-h3 {
   margin: 0;
-}
-.dv-hint {
-  margin: 0;
-  min-height: 20px;
-  font-size: 14px;
-  line-height: 1.4;
-  color: var(--color-text-secondary);
 }
 
 @media (prefers-reduced-motion: reduce) {

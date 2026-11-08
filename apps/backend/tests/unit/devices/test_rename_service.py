@@ -60,9 +60,7 @@ class TestRenameDeviceViaSSH:
         fake_ssh.execute = AsyncMock(
             side_effect=[
                 FakeCommandResult(success=True, output=SAMPLE_XML),  # cat
-                FakeCommandResult(success=True),  # mount rw
                 FakeCommandResult(success=True),  # write
-                FakeCommandResult(success=True),  # mount ro
             ]
         )
 
@@ -73,8 +71,8 @@ class TestRenameDeviceViaSSH:
 
         await rename_device_via_ssh("192.168.1.10", "New Name")
 
-        assert fake_ssh.execute.call_count == 4
-        write_call = fake_ssh.execute.call_args_list[2][0][0]
+        assert fake_ssh.execute.call_count == 2
+        write_call = fake_ssh.execute.call_args_list[1][0][0]
         assert "<DeviceName>New Name</DeviceName>" in write_call
 
     @pytest.mark.asyncio
@@ -83,8 +81,6 @@ class TestRenameDeviceViaSSH:
         fake_ssh.execute = AsyncMock(
             side_effect=[
                 FakeCommandResult(success=True, output=SAMPLE_XML),
-                FakeCommandResult(success=True),
-                FakeCommandResult(success=True),
                 FakeCommandResult(success=True),
             ]
         )
@@ -96,7 +92,7 @@ class TestRenameDeviceViaSSH:
 
         await rename_device_via_ssh("192.168.1.10", "Tom & Jerry <3>")
 
-        write_call = fake_ssh.execute.call_args_list[2][0][0]
+        write_call = fake_ssh.execute.call_args_list[1][0][0]
         assert "<DeviceName>Tom &amp; Jerry &lt;3&gt;</DeviceName>" in write_call
 
     @pytest.mark.asyncio
@@ -153,9 +149,7 @@ class TestRenameDeviceViaSSH:
         fake_ssh.execute = AsyncMock(
             side_effect=[
                 FakeCommandResult(success=True, output=SAMPLE_XML),  # cat
-                FakeCommandResult(success=True),  # mount rw
                 FakeCommandResult(success=False, error="Permission denied"),  # write
-                FakeCommandResult(success=True),  # mount ro (in finally)
             ]
         )
 
@@ -168,36 +162,34 @@ class TestRenameDeviceViaSSH:
             await rename_device_via_ssh("192.168.1.10", "New")
 
     @pytest.mark.asyncio
-    async def test_remount_ro_after_write_failure(self, fake_ssh, monkeypatch):
-        """Filesystem is remounted read-only even if write fails."""
+    async def test_requests_write_access(self, fake_ssh, monkeypatch):
+        """The rename runs inside ssh_operation(write=True) so the partitions are writable."""
         fake_ssh.execute = AsyncMock(
             side_effect=[
                 FakeCommandResult(success=True, output=SAMPLE_XML),
-                FakeCommandResult(success=True),  # mount rw
-                FakeCommandResult(success=False, error="fail"),  # write
-                FakeCommandResult(success=True),  # mount ro
+                FakeCommandResult(success=True),
             ]
         )
+        seen = {}
 
         monkeypatch.setattr(
             "opencloudtouch.devices.rename_service.ssh_operation",
-            _fake_ctx(fake_ssh),
+            _fake_ctx(fake_ssh, seen),
         )
 
-        with pytest.raises(RuntimeError):
-            await rename_device_via_ssh("192.168.1.10", "New")
+        await rename_device_via_ssh("192.168.1.10", "New")
 
-        # mount ro must be called (last call)
-        last_call = fake_ssh.execute.call_args_list[-1][0][0]
-        assert "remount,ro" in last_call
+        assert seen["write"] is True
 
 
-def _fake_ctx(fake_ssh):
+def _fake_ctx(fake_ssh, seen=None):
     """Return a fake async context manager factory matching ssh_operation signature."""
     from contextlib import asynccontextmanager
 
     @asynccontextmanager
-    async def _ctx(device_ip, operation_name):
+    async def _ctx(device_ip, operation_name, write=False):
+        if seen is not None:
+            seen["write"] = write
         yield fake_ssh
 
     return _ctx

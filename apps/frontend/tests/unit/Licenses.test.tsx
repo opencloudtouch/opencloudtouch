@@ -39,7 +39,7 @@ describe("Licenses Page", () => {
     expect(screen.getByText(/License Compliance/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /About/i })).toBeInTheDocument();
     // the back link to the About page
-    expect(screen.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
+    expect(screen.getByRole("link", { name: "Info" })).toHaveAttribute("href", "/about");
   });
 
   it("keeps the selected device in the back link to About", () => {
@@ -49,7 +49,7 @@ describe("Licenses Page", () => {
         <Licenses />
       </BrowserRouter>
     );
-    expect(screen.getByRole("link", { name: "About" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Info" })).toHaveAttribute(
       "href",
       "/about?device=AABB"
     );

@@ -35,6 +35,8 @@ vi.mock("framer-motion", () => ({
 }));
 
 import Step8Verification from "../../src/components/wizard/Step8Verification";
+import { i18next } from "../../src/i18n";
+import { expectNoRawText } from "./helpers/translatedError";
 
 const defaultProps = {
   deviceIp: "192.168.1.100",
@@ -126,6 +128,26 @@ describe("Step8Verification", () => {
       device_ip: "192.168.1.100",
       device_id: "AABBCCDDEEFF",
     });
+  });
+
+  it.each([
+    ["existing", /Device UUID kept: 5522049/],
+    ["derived", /Device UUID set: 5522049/],
+    ["collision_fallback", /Device UUID replaced.*5522049/],
+  ])("words the UUID line by source (%s)", async (uuidSource, expected) => {
+    mockSuccessFlow();
+    mockFinalizeDevice.mockResolvedValue({
+      ...(await mockFinalizeDevice()),
+      uuid_source: uuidSource,
+    });
+
+    render(<Step8Verification {...defaultProps} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
+    });
+
+    expect(screen.getByText(expected)).toBeInTheDocument();
   });
 
   it("does not call verifySetup immediately after finalize (needs reboot first)", async () => {
@@ -244,7 +266,7 @@ describe("Step8Verification", () => {
     });
 
     await waitFor(() => {
-      expect(document.body.textContent).toContain("Network error");
+      expectNoRawText(document, "Network error");
     });
   });
 
@@ -328,7 +350,7 @@ describe("Step8Verification", () => {
     });
 
     await waitFor(() => {
-      expect(document.body.textContent).toContain("Connection lost");
+      expectNoRawText(document, "Connection lost");
     });
   });
 
@@ -457,7 +479,7 @@ describe("Step8Verification", () => {
     });
 
     await waitFor(() => {
-      expect(document.body.textContent).toContain("Server unreachable");
+      expectNoRawText(document, "Server unreachable");
     });
   });
 
@@ -768,13 +790,13 @@ describe("Step8Verification", () => {
     });
   });
 
-  it("shows failed config_bmx_url with original message", async () => {
+  it("shows a translated message for a failed config_bmx_url, never the backend text", async () => {
     await reachVerificationPhase();
 
     mockVerifySetup.mockResolvedValue({
       success: true,
       checks: [
-        { name: "config_bmx_url", passed: false, message: "BMX URL missing", details: {} },
+        { name: "config_bmx_url", passed: false, message: "BMX URL still points to Bose cloud (https://bmx.bose.com)", details: {} },
       ],
       passed_count: 0,
       failed_count: 1,
@@ -791,7 +813,11 @@ describe("Step8Verification", () => {
     await act(async () => { fireEvent.click(verifyBtn!); });
 
     await waitFor(() => {
-      expect(screen.getByText(/BMX URL missing/)).toBeInTheDocument();
+      expect(screen.getByText(i18next.t("setup.wizard.step8.checkBmxUrlWrong"))).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/bmx\.bose\.com/)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(true).toBe(true);
     });
   });
 });
