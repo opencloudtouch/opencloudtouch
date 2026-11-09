@@ -11,7 +11,7 @@ from close_prompt import BOXES, DONE_MARKER, PROMPT_MARKER, handle_closed, handl
 from models import WebhookEvent
 
 BOT = "oct-support"
-AI: dict = {"github_models_client": None, "openai_client": None, "cost_tracker": None}
+AI: dict = {"openai_client": None, "cost_tracker": None}
 
 
 def _closed(reason: str = "completed", sender: str = "scheilch", labels=("support",), sender_type="User") -> WebhookEvent:

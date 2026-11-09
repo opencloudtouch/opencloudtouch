@@ -1,8 +1,8 @@
-"""Cost tracker for the OpenAI fallback (T040).
+"""Cost tracker for the OpenAI calls (T040).
 
 Tracks monthly AI API costs via a JSON file persisted through GitHub Actions Cache. Only OpenAI calls
-are counted (GitHub Models is free). Model and prices are settings in rules.yml; the defaults are the
-Flex prices of gpt-6-luna from https://developers.openai.com/api/docs/pricing (checked 2026-11-08).
+are counted (GitHub Models was retired on 2026-07-30). Model and prices are settings in rules.yml; the defaults
+are the Flex prices of gpt-5.4-nano from https://developers.openai.com/api/docs/pricing (checked 2026-11-08).
 """
 
 from __future__ import annotations

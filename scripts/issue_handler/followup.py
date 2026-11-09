@@ -157,7 +157,7 @@ async def _ai_json(ai: Any, system: str, user: str) -> Any:
     from stages.classifier import DEFAULT_OPENAI_MODEL, _try_generate
 
     text = await _try_generate(
-        ai.get("github_models_client"), ai.get("openai_client"), ai.get("cost_tracker"),
+        ai.get("openai_client"), ai.get("cost_tracker"),
         [{"role": "system", "content": system}, {"role": "user", "content": user}],
         ai.get("openai_model") or DEFAULT_OPENAI_MODEL,
     )

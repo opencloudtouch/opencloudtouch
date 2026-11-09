@@ -1,8 +1,4 @@
-"""Stage 4: AI Classifier — GitHub Models primary, OpenAI fallback (T038, T042).
-
-Classifies issues using GPT-4o-mini. Primary: GitHub Models free tier.
-Fallback: OpenAI with cost tracking and budget enforcement.
-"""
+"""Stage 4: AI Classifier — OpenAI (Flex tier) with cost tracking and budget enforcement (T038, T042)."""
 
 from __future__ import annotations
 
@@ -159,8 +155,7 @@ def _parse_classification(content: str) -> ClassificationResult | None:
 
 
 async def classifier_stage(event: WebhookEvent, context: dict[str, Any]) -> PipelineDecision:
-    """Classify issue using AI. GitHub Models primary, OpenAI fallback."""
-    github_models_client = context.get("github_models_client")
+    """Classify issue using OpenAI."""
     openai_client = context.get("openai_client")
     cost_tracker = context.get("cost_tracker")
     kb_answers = context.get("kb_answers", [])
@@ -171,15 +166,8 @@ async def classifier_stage(event: WebhookEvent, context: dict[str, Any]) -> Pipe
         event.title, event.body, readme_content, contributing_content, kb_answers
     )
 
-    # Try GitHub Models first (free tier)
     classification = None
-    if github_models_client:
-        classification = await _try_classify(
-            github_models_client, messages, model="openai/gpt-4o-mini"
-        )
-
-    # Fallback to OpenAI if GitHub Models failed
-    if classification is None and openai_client:
+    if openai_client:
         if cost_tracker and cost_tracker.is_budget_exceeded():
             logger.warning("OpenAI budget exhausted, falling back to needs-triage")
             context["classification"] = ClassificationResult(
@@ -198,7 +186,7 @@ async def classifier_stage(event: WebhookEvent, context: dict[str, Any]) -> Pipe
         )
 
     if classification is None:
-        # Both providers failed
+        # No client configured or the call failed
         context["classification"] = ClassificationResult(
             category="unclear", confidence=0.0, reasoning="AI unavailable"
         )
@@ -235,7 +223,6 @@ async def _generate_response(
     if not needs_response:
         return
 
-    github_models_client = context.get("github_models_client")
     openai_client = context.get("openai_client")
     cost_tracker = context.get("cost_tracker")
     safe_title = sanitize_input(event.title, is_title=True)
@@ -257,7 +244,7 @@ async def _generate_response(
     ]
 
     response_text = await _try_generate(
-        github_models_client, openai_client, cost_tracker, messages,
+        openai_client, cost_tracker, messages,
         context.get("openai_model", DEFAULT_OPENAI_MODEL),
     )
     context["ai_call_count"] = context.get("ai_call_count", 1) + 1
@@ -273,42 +260,32 @@ async def _generate_response(
 
 
 async def _try_generate(
-    github_models_client: Any,
     openai_client: Any,
     cost_tracker: Any,
     messages: list[dict[str, str]],
     openai_model: str = DEFAULT_OPENAI_MODEL,
 ) -> str | None:
-    """Try to generate a text response using available AI clients."""
-    for client, model, tier in [
-        (github_models_client, "openai/gpt-4o-mini", None),
-        (openai_client, openai_model, "flex"),
-    ]:
-        if client is None:
-            continue
-        if tier and cost_tracker and cost_tracker.is_budget_exceeded():
-            continue
-        try:
-            kwargs: dict[str, Any] = {
-                "model": model,
-                "messages": messages,
-                "temperature": 0.3,
-                "max_completion_tokens": 500,
-            }
-            if tier:
-                kwargs["service_tier"] = tier
-            response = await client.chat.completions.create(**kwargs)
-            content = response.choices[0].message.content or ""
-            if cost_tracker and tier and hasattr(response, "usage") and response.usage:
-                cost_tracker.record_call(
-                    input_tokens=response.usage.prompt_tokens,
-                    output_tokens=response.usage.completion_tokens,
-                )
-                cost_tracker.save()
-            if content.strip():
-                return content.strip()
-        except Exception as e:
-            logger.warning("AI response generation error: %s", e)
+    """Generate a text response with OpenAI (Flex tier, within the monthly budget)."""
+    if openai_client is None or (cost_tracker and cost_tracker.is_budget_exceeded()):
+        return None
+    try:
+        response = await openai_client.chat.completions.create(
+            model=openai_model,
+            messages=messages,
+            temperature=0.3,
+            max_completion_tokens=500,
+            service_tier="flex",
+        )
+        content = response.choices[0].message.content or ""
+        if cost_tracker and getattr(response, "usage", None):
+            cost_tracker.record_call(
+                input_tokens=response.usage.prompt_tokens,
+                output_tokens=response.usage.completion_tokens,
+            )
+            cost_tracker.save()
+        return content.strip() or None
+    except Exception as e:
+        logger.warning("AI response generation error: %s", e)
     return None
 
 

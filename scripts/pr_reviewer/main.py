@@ -6,8 +6,7 @@ Modes:
 
 Environment variables:
   BOT_PAT          — oct-support PAT (needs repo, pull_request write)
-  GITHUB_TOKEN     — Actions token (also used for GitHub Models free tier)
-  OPENAI_API_KEY   — OpenAI API key (fallback only)
+  OPENAI_API_KEY   — OpenAI API key
   PR_NUMBER        — Pull request number
   REPO_FULL_NAME   — owner/repo
   MODE             — "review" or "approve"
@@ -33,7 +32,6 @@ BACKOFF_FACTOR = 2.0
 JITTER_MS = 500
 
 API_BASE = "https://api.github.com"
-GITHUB_MODELS_BASE = "https://models.github.ai/inference"
 HEADERS = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
 
 # Files to skip in review (generated, lock files, etc.)
@@ -52,13 +50,12 @@ MAX_FILE_DIFF_CHARS = 8000
 # Max total diff size sent to AI
 MAX_TOTAL_DIFF_CHARS = 60000
 
-# Cost tracking — GPT-4o pricing (fallback only, primary is free GitHub Models)
+# Cost tracking — GPT-4o pricing
 # Source: https://platform.openai.com/settings/organization/limits
-# Our tier limits for gpt-4o (OpenAI fallback):
+# Our tier limits for gpt-4o:
 #   - 30,000 TPM (tokens per minute)
 #   - 500 RPM (requests per minute)
 #   - 90,000 TPD (tokens per day)
-# GitHub Models free tier (primary): 150 req/day, rate limits vary by model
 INPUT_COST_PER_TOKEN = 2.50 / 1_000_000
 OUTPUT_COST_PER_TOKEN = 10.00 / 1_000_000
 MONTHLY_BUDGET_USD = 1.00
@@ -530,10 +527,9 @@ If no real issues found, use verdict "approve" with an empty comments array.
 
 
 async def run_ai_review(prompt: str, cost_tracker: CostTracker) -> dict:
-    """Send the review prompt to AI. GitHub Models primary, OpenAI fallback."""
+    """Send the review prompt to OpenAI (GitHub Models was retired on 2026-07-30)."""
     from openai import AsyncOpenAI
 
-    github_token = os.environ.get("GITHUB_TOKEN", "")
     openai_api_key = os.environ.get("OPENAI_API_KEY", "")
 
     messages = [
@@ -554,23 +550,9 @@ async def run_ai_review(prompt: str, cost_tracker: CostTracker) -> dict:
         "response_format": {"type": "json_object"},
     }
 
-    # Try GitHub Models first (free tier, 150 req/day)
-    if github_token:
-        try:
-            client = AsyncOpenAI(
-                base_url=GITHUB_MODELS_BASE,
-                api_key=github_token,
-            )
-            response = await client.chat.completions.create(**{**kwargs, "model": f"openai/{kwargs['model']}"})
-            content = response.choices[0].message.content or "{}"
-            print("[OK] Review generated via GitHub Models (free tier)")
-            return json.loads(content)
-        except Exception as e:
-            print(f"[WARN] GitHub Models failed: {e}, falling back to OpenAI", file=sys.stderr)
-
-    # Fallback: OpenAI (with cost tracking + budget check)
+    # OpenAI with cost tracking + budget check
     if not openai_api_key:
-        print("[ERROR] No AI provider available (GitHub Models failed, OPENAI_API_KEY not set)", file=sys.stderr)
+        print("[ERROR] No AI provider available (OPENAI_API_KEY not set)", file=sys.stderr)
         sys.exit(1)
 
     if cost_tracker.is_budget_exceeded():
@@ -590,7 +572,7 @@ async def run_ai_review(prompt: str, cost_tracker: CostTracker) -> dict:
     if usage:
         cost_tracker.record_call(usage.prompt_tokens, usage.completion_tokens)
         print(
-            f"[COST] OpenAI fallback: {usage.prompt_tokens}+{usage.completion_tokens} tokens, "
+            f"[COST] OpenAI: {usage.prompt_tokens}+{usage.completion_tokens} tokens, "
             f"month total: ${cost_tracker.total_cost_usd:.4f}"
         )
 

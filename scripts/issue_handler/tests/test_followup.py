@@ -34,7 +34,7 @@ def _thread(comments=(), labels=("support",), created_days_ago: float = 10, kind
                   labels=set(labels), answerable=True, comments=list(comments))
 
 
-AI_NONE: dict = {"github_models_client": None, "openai_client": None, "cost_tracker": None}
+AI_NONE: dict = {"openai_client": None, "cost_tracker": None}
 
 
 class TestPlan:

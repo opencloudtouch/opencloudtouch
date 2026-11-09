@@ -96,7 +96,7 @@ async def run() -> int:
             routed: dict | None = None
             if event.event_type == "issues" and event.action == "closed":
                 # The maintainer closed an issue: ask what the outcome was
-                ai = await make_ai_context(github_token, settings)
+                ai = await make_ai_context(settings)
                 tracker = ai["cost_tracker"]
                 routed = await handle_closed(event, github_client, ai, bot)
             elif event.event_type == "issue_comment" and event.action == "edited":
@@ -104,7 +104,7 @@ async def run() -> int:
                 routed = await handle_prompt_edit(event, github_client, bot)
             elif event.event_type in ("issue_comment", "discussion_comment"):
                 # A reply of the thread starter to the follow-up question
-                ai = await make_ai_context(github_token, settings)
+                ai = await make_ai_context(settings)
                 tracker = ai["cost_tracker"]
                 routed = await handle_reply(event, github_client, ai, bot)
             if routed is not None:
@@ -189,7 +189,6 @@ async def run() -> int:
                 "kb_answers": kb_answers,
                 "readme_content": readme_content,
                 "contributing_content": contributing_content,
-                "github_models_client": None,
                 "openai_client": None,
                 "cost_tracker": None,
             }
@@ -207,17 +206,6 @@ async def run() -> int:
 
             # Initialize AI clients if API keys available
             openai_api_key = os.environ.get("OPENAI_API_KEY", "")
-            if github_token:
-                try:
-                    from openai import AsyncOpenAI
-
-                    context["github_models_client"] = AsyncOpenAI(
-                        base_url="https://models.github.ai/inference",
-                        api_key=github_token,
-                    )
-                except ImportError:
-                    pass
-
             if openai_api_key:
                 try:
                     from openai import AsyncOpenAI

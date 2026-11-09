@@ -63,7 +63,7 @@ async def _draft_solution(thread: Any, ai: Any) -> str | None:
     if not own.strip():
         return None
     text = await _try_generate(
-        ai.get("github_models_client"), ai.get("openai_client"), ai.get("cost_tracker"),
+        ai.get("openai_client"), ai.get("cost_tracker"),
         [
             {"role": "system", "content": (
                 "Below are the comments of a closed support thread. In one to three sentences, state the solution that "
