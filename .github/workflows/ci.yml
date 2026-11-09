@@ -168,6 +168,33 @@ jobs:
           run_page_size_test "abc" false "Unable to determine system page size" "Non-numeric page size handled with warning"
 
           echo "PASS: All page size compatibility tests passed."
+
+      - name: Test aligned package version check
+        run: |
+          # Shims stand in for the Debian tools; STOCK is the installed source version.
+          mkdir -p /tmp/shim/debs && touch /tmp/shim/debs/libfoo.deb
+          cat > /tmp/shim/dpkg-deb <<'EOF'
+          #!/bin/sh
+          case "$3" in Package) echo libfoo;; Version) echo "$DEB_VERSION";; esac
+          EOF
+          cat > /tmp/shim/dpkg-query <<'EOF'
+          #!/bin/sh
+          [ -z "$STOCK" ] || printf '%s' "$STOCK"
+          EOF
+          cat > /tmp/shim/dpkg <<'EOF'
+          #!/bin/sh
+          echo "$(basename "$0") $*" >> /tmp/shim/calls
+          EOF
+          cp /tmp/shim/dpkg /tmp/shim/apt-mark
+          chmod +x /tmp/shim/*
+          run() { rm -f /tmp/shim/calls; PATH="/tmp/shim:$PATH" DEB_VERSION="$1" STOCK="$2" sh scripts/install-aligned-debs.sh /tmp/shim/debs; }
+
+          run "1.2-3+oct1" "1.2-3" || { echo "ERROR: matching versions must install"; exit 1; }
+          grep -q "apt-mark hold libfoo" /tmp/shim/calls || { echo "ERROR: package was not held"; exit 1; }
+          if run "1.2-3+oct1" "1.2-4" 2>/dev/null; then echo "ERROR: version mismatch must fail"; exit 1; fi
+          run "1.2-3+oct1" "" || { echo "ERROR: packages not in the image must be skipped"; exit 1; }
+          if [ -e /tmp/shim/calls ]; then echo "ERROR: skipped package must not be installed"; exit 1; fi
+          echo "PASS: aligned package version check"
           
   # ============================================================================
   # COMMIT MESSAGE VALIDATION

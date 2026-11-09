@@ -88,7 +88,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         sed 's/^Types:.*/Types: deb-src/' /etc/apt/sources.list.d/debian.sources > /etc/apt/sources.list.d/debian-src.sources && \
         grep -q '^Types: deb-src' /etc/apt/sources.list.d/debian-src.sources && \
         apt-get update && \
-        apt-get upgrade -y --no-install-recommends && \
         apt-get install -y --no-install-recommends build-essential devscripts dpkg-dev fakeroot; \
     fi
 
@@ -103,16 +102,24 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     export DEBFULLNAME="OpenCloudTouch" DEBEMAIL="noreply@opencloudtouch.org" \
            DEB_BUILD_OPTIONS="nocheck nodoc noautodbgsym parallel=$(nproc)" \
            DEB_LDFLAGS_APPEND="-Wl,-z,max-page-size=0x10000" && \
+    # Read the base's source versions before build-dep can touch them. Packages already in
+    # the base are rebuilt from exactly that source version (no apt-get upgrade here); if the
+    # archive no longer serves it the build fails: bump the base image digest. Packages pulled
+    # in later (curl dependencies) use the archive candidate; the runtime stage checks the match.
+    dpkg-query -W -f='${source:Package} ${source:Version}\n' > /rebuild/base-versions; \
     for src in $ALIGNED_SOURCES; do \
-        echo "=== rebuilding $src ==="; \
+        ver=$(awk -v s="$src" '$1==s{print $2; exit}' /rebuild/base-versions); \
+        spec="$src${ver:+=$ver}"; \
+        echo "=== rebuilding $spec ==="; \
         mkdir "$src"; cd "$src"; \
-        apt-get build-dep -y --no-install-recommends "$src"; \
-        apt-get source "$src"; \
+        apt-get build-dep -y --no-install-recommends "$spec"; \
+        apt-get source "$spec"; \
         cd */; \
         dch --local +oct "Rebuild with 64 KB ELF segment alignment (see #529)" --distribution "$VERSION_CODENAME"; \
         dpkg-buildpackage -b -uc -us; \
         cd ..; cp *.deb /out/; cd /rebuild; \
     done; \
+    ls /out/*.deb >/dev/null; \
     ls -l /out
 
 # Stage 2: Frontend Build (platform-independent HTML/CSS/JS)
@@ -167,26 +174,20 @@ WORKDIR /app
 # Docker invalidates every layer from the first changed COPY onward. Keeping
 # apt-get here means routine source edits never force gosu/curl to
 # re-download — only a base-image or package-list change does.
+# The 64 KB-aligned rebuilds replace the stock Debian versions (runtime packages only,
+# and only those present in this image) and are then held. The stock source version
+# must equal the rebuilt one (minus the +octN suffix); otherwise the build fails
+# instead of shipping stock or mismatched packages. Installed before
+# `apt-get upgrade` so the upgrade cannot replace them.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get update && \
-    apt-get upgrade -y --no-install-recommends && \
-    apt-get install -y --no-install-recommends gosu curl
-
-# Install the 64 KB-aligned rebuilds (runtime packages only, and only those
-# actually present in this image) over the stock Debian versions.
-RUN --mount=type=bind,from=aligned-debs,source=/out,target=/aligned-debs \
+    --mount=type=bind,from=aligned-debs,source=/out,target=/aligned-debs \
+    --mount=type=bind,source=scripts/install-aligned-debs.sh,target=/install-aligned-debs.sh \
     set -e; \
-    list=""; \
-    for deb in /aligned-debs/*.deb; do \
-        [ -e "$deb" ] || continue; \
-        name=$(dpkg-deb -f "$deb" Package); \
-        if dpkg-query -W -f='${Status}' "$name" 2>/dev/null | grep -q "install ok installed"; then \
-            list="$list $deb"; \
-        fi; \
-    done; \
-    echo "Installing aligned packages:$list"; \
-    if [ -n "$list" ]; then dpkg -i --force-confold $list; fi
+    apt-get update && \
+    apt-get install -y --no-install-recommends gosu curl && \
+    sh /install-aligned-debs.sh /aligned-debs && \
+    apt-get upgrade -y --no-install-recommends
 
 # Copy Python dependencies from build stage
 COPY --from=python-deps /install /usr/local
