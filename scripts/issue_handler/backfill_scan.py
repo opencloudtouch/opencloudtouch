@@ -73,7 +73,7 @@ async def collect(client: GitHubClient) -> list[tuple[Thread, str]]:
     seen: dict[int, tuple[Thread, str]] = {}
     issues: dict[int, dict[str, Any]] = {}
     for label in SUPPORT_LABELS:
-        for i in await client.get_closed_issues_since("1970-01-01T00:00:00Z", labels=[label]):
+        for i in await client.get_closed_issues_since("2020-01-01T00:00:00Z", labels=[label]):
             issues[i["number"]] = i
     for i in await client.list_open_issues(max_pages=5):
         if {lbl["name"] for lbl in i.get("labels", [])} & set(SUPPORT_LABELS):
