@@ -6,8 +6,7 @@ Modes:
 
 Environment variables:
   BOT_PAT          — oct-support PAT (needs repo, pull_request write)
-  GITHUB_TOKEN     — Actions token (also used for GitHub Models free tier)
-  OPENAI_API_KEY   — OpenAI API key (fallback only)
+  OPENAI_API_KEY   — OpenAI API key
   PR_NUMBER        — Pull request number
   REPO_FULL_NAME   — owner/repo
   MODE             — "review" or "approve"
@@ -20,11 +19,16 @@ import json
 import os
 import random
 import sys
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
+import yaml
+
+# The cost tracker and the model choice are shared with the support bot
+sys.path.append(str(Path(__file__).resolve().parent.parent / "issue_handler"))
+from cost_tracker import CostTracker
+from model_choice import ModelChoice, pick_model
 
 # --- Retry config ---
 MAX_RETRIES = 3
@@ -33,7 +37,6 @@ BACKOFF_FACTOR = 2.0
 JITTER_MS = 500
 
 API_BASE = "https://api.github.com"
-GITHUB_MODELS_BASE = "https://models.inference.ai.azure.com"
 HEADERS = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
 
 # Files to skip in review (generated, lock files, etc.)
@@ -52,16 +55,9 @@ MAX_FILE_DIFF_CHARS = 8000
 # Max total diff size sent to AI
 MAX_TOTAL_DIFF_CHARS = 60000
 
-# Cost tracking — GPT-4o pricing (fallback only, primary is free GitHub Models)
-# Source: https://platform.openai.com/settings/organization/limits
-# Our tier limits for gpt-4o (OpenAI fallback):
-#   - 30,000 TPM (tokens per minute)
-#   - 500 RPM (requests per minute)
-#   - 90,000 TPD (tokens per day)
-# GitHub Models free tier (primary): 150 req/day, rate limits vary by model
-INPUT_COST_PER_TOKEN = 2.50 / 1_000_000
-OUTPUT_COST_PER_TOKEN = 10.00 / 1_000_000
+# Monthly budget for the reviews in USD; the model and its prices come from rules.yml (shared with the support bot)
 MONTHLY_BUDGET_USD = 1.00
+RULES_FILE = Path(__file__).resolve().parent.parent / "issue_handler" / "rules.yml"
 
 # Rate limiting — cooldown per PR (seconds)
 REVIEW_COOLDOWN_SECONDS = 300  # 5 min between reviews on same PR
@@ -71,71 +67,6 @@ CI_POLL_INTERVAL_SECONDS = 30
 CI_POLL_MAX_WAIT_SECONDS = 1200  # 20 min max wait (CI avg ~10 min, max ~11 min + growth buffer)
 
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "oct-support")
-
-
-# =============================================================================
-# Cost Tracker (adapted from issue_handler/cost_tracker.py)
-# =============================================================================
-
-@dataclass
-class CostRecord:
-    """Tracks monthly AI cost."""
-
-    month: str
-    total_cost_usd: float = 0.0
-    call_count: int = 0
-    last_updated: str = ""
-
-
-class CostTracker:
-    """Track monthly AI API costs with budget enforcement."""
-
-    def __init__(self, cost_file: Path, budget_usd: float = MONTHLY_BUDGET_USD) -> None:
-        self._cost_file = cost_file
-        self._budget_usd = budget_usd
-        self._month: str = datetime.now(timezone.utc).strftime("%Y-%m")
-        self._record = CostRecord(month=self._month)
-        self._load()
-
-    @property
-    def total_cost_usd(self) -> float:
-        return self._record.total_cost_usd
-
-    @property
-    def call_count(self) -> int:
-        return self._record.call_count
-
-    def _load(self) -> None:
-        if not self._cost_file.exists():
-            return
-        try:
-            data = json.loads(self._cost_file.read_text())
-            if data.get("month") == self._month:
-                self._record.total_cost_usd = data.get("total_cost_usd", 0.0)
-                self._record.call_count = data.get("call_count", 0)
-                self._record.last_updated = data.get("last_updated", "")
-        except (json.JSONDecodeError, KeyError):
-            # Ignore malformed or unexpected cost-file contents and keep defaults.
-            return
-
-    def save(self) -> None:
-        self._cost_file.parent.mkdir(parents=True, exist_ok=True)
-        self._record.last_updated = datetime.now(timezone.utc).isoformat()
-        data = {
-            "month": self._record.month,
-            "total_cost_usd": self._record.total_cost_usd,
-            "call_count": self._record.call_count,
-            "last_updated": self._record.last_updated,
-        }
-        self._cost_file.write_text(json.dumps(data, indent=2))
-
-    def record_call(self, input_tokens: int, output_tokens: int) -> None:
-        cost = (input_tokens * INPUT_COST_PER_TOKEN) + (output_tokens * OUTPUT_COST_PER_TOKEN)
-        self._record.total_cost_usd += cost
-        self._record.call_count += 1
-
-    def is_budget_exceeded(self) -> bool:
-        return self._record.total_cost_usd >= self._budget_usd
 
 
 # =============================================================================
@@ -530,10 +461,9 @@ If no real issues found, use verdict "approve" with an empty comments array.
 
 
 async def run_ai_review(prompt: str, cost_tracker: CostTracker) -> dict:
-    """Send the review prompt to AI. GitHub Models primary, OpenAI fallback."""
+    """Send the review prompt to OpenAI (Flex tier) with the model chosen from rules.yml."""
     from openai import AsyncOpenAI
 
-    github_token = os.environ.get("GITHUB_TOKEN", "")
     openai_api_key = os.environ.get("OPENAI_API_KEY", "")
 
     messages = [
@@ -546,31 +476,9 @@ async def run_ai_review(prompt: str, cost_tracker: CostTracker) -> dict:
         )},
         {"role": "user", "content": prompt},
     ]
-    kwargs = {
-        "model": "gpt-4o",
-        "messages": messages,
-        "temperature": 0.0,
-        "max_tokens": 8000,
-        "response_format": {"type": "json_object"},
-    }
-
-    # Try GitHub Models first (free tier, 150 req/day)
-    if github_token:
-        try:
-            client = AsyncOpenAI(
-                base_url=GITHUB_MODELS_BASE,
-                api_key=github_token,
-            )
-            response = await client.chat.completions.create(**kwargs)
-            content = response.choices[0].message.content or "{}"
-            print("[OK] Review generated via GitHub Models (free tier)")
-            return json.loads(content)
-        except Exception as e:
-            print(f"[WARN] GitHub Models failed: {e}, falling back to OpenAI", file=sys.stderr)
-
-    # Fallback: OpenAI (with cost tracking + budget check)
+    # OpenAI with cost tracking + budget check
     if not openai_api_key:
-        print("[ERROR] No AI provider available (GitHub Models failed, OPENAI_API_KEY not set)", file=sys.stderr)
+        print("[ERROR] No AI provider available (OPENAI_API_KEY not set)", file=sys.stderr)
         sys.exit(1)
 
     if cost_tracker.is_budget_exceeded():
@@ -582,7 +490,23 @@ async def run_ai_review(prompt: str, cost_tracker: CostTracker) -> dict:
         sys.exit(0)
 
     client = AsyncOpenAI(api_key=openai_api_key)
-    response = await client.chat.completions.create(**kwargs)
+    settings = (yaml.safe_load(RULES_FILE.read_text(encoding="utf-8")) or {}).get("settings", {})
+    choice: ModelChoice = await pick_model(client, settings)
+    cost_tracker.use_prices(choice.input_usd_per_million, choice.output_usd_per_million)
+    kwargs = {
+        "model": choice.id,
+        "messages": messages,
+        # Reasoning tokens count against the limit, so leave room for them
+        "max_completion_tokens": 16000,
+        "response_format": {"type": "json_object"},
+    }
+    try:
+        response = await client.chat.completions.create(**kwargs, service_tier="flex")
+    except Exception as e:  # noqa: BLE001 - Flex capacity is not guaranteed; the standard tier answers
+        print(f"[WARN] Flex tier failed ({e}), using the standard tier", file=sys.stderr)
+        response = await client.chat.completions.create(**kwargs)
+        # The standard tier costs twice the Flex price
+        cost_tracker.use_prices(choice.input_usd_per_million * 2, choice.output_usd_per_million * 2)
     content = response.choices[0].message.content or "{}"
 
     # Track cost
@@ -590,7 +514,7 @@ async def run_ai_review(prompt: str, cost_tracker: CostTracker) -> dict:
     if usage:
         cost_tracker.record_call(usage.prompt_tokens, usage.completion_tokens)
         print(
-            f"[COST] OpenAI fallback: {usage.prompt_tokens}+{usage.completion_tokens} tokens, "
+            f"[COST] {choice.id}: {usage.prompt_tokens}+{usage.completion_tokens} tokens, "
             f"month total: ${cost_tracker.total_cost_usd:.4f}"
         )
 
@@ -800,7 +724,7 @@ async def run() -> int:
 
     # Initialize cost tracker
     cost_file = Path("/tmp/ai-cost-tracker/pr-review-cost.json")
-    cost_tracker = CostTracker(cost_file)
+    cost_tracker = CostTracker(cost_file, budget_usd=MONTHLY_BUDGET_USD)
 
     # Initialize rate limiter
     rate_file = Path("/tmp/ai-cost-tracker/pr-review-rate.json")

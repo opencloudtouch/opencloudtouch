@@ -33,7 +33,7 @@ def _make_event(**overrides) -> WebhookEvent:
 
 class TestAIClassification:
     @pytest.mark.asyncio
-    async def test_github_models_primary(self) -> None:
+    async def test_openai_classifies(self) -> None:
         mock_openai = MagicMock()
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
@@ -45,8 +45,7 @@ class TestAIClassification:
         mock_openai.chat.completions.create = AsyncMock(return_value=mock_response)
 
         context = {
-            "github_models_client": mock_openai,
-            "openai_client": None,
+            "openai_client": mock_openai,
             "cost_tracker": None,
             "kb_answers": [],
             "readme_content": "# Test",
@@ -59,7 +58,7 @@ class TestAIClassification:
         assert context["classification"].category == "bug"
 
     @pytest.mark.asyncio
-    async def test_openai_fallback_on_failure(self) -> None:
+    async def test_openai_classifies_support_with_cost_tracking(self) -> None:
         mock_gh_client = MagicMock()
         mock_gh_client.chat.completions.create = AsyncMock(side_effect=Exception("GitHub Models down"))
 
@@ -79,7 +78,6 @@ class TestAIClassification:
         mock_cost.save = MagicMock()
 
         context = {
-            "github_models_client": mock_gh_client,
             "openai_client": mock_openai,
             "cost_tracker": mock_cost,
             "kb_answers": [],
@@ -111,8 +109,7 @@ class TestAIClassification:
         mock_openai.chat.completions.create = AsyncMock(side_effect=[bad_response, good_response])
 
         context = {
-            "github_models_client": mock_openai,
-            "openai_client": None,
+            "openai_client": mock_openai,
             "cost_tracker": None,
             "kb_answers": [],
             "readme_content": "# Test",
@@ -128,8 +125,7 @@ class TestAIClassification:
         mock_gh.chat.completions.create = AsyncMock(side_effect=Exception("down"))
 
         context = {
-            "github_models_client": mock_gh,
-            "openai_client": None,
+            "openai_client": mock_gh,
             "cost_tracker": None,
             "kb_answers": [],
             "readme_content": "",
@@ -149,7 +145,6 @@ class TestAIClassification:
         mock_cost.is_budget_exceeded.return_value = True
 
         context = {
-            "github_models_client": mock_gh,
             "openai_client": MagicMock(),
             "cost_tracker": mock_cost,
             "kb_answers": [],
@@ -173,8 +168,7 @@ class TestAIClassification:
         mock_openai.chat.completions.create = AsyncMock(return_value=mock_response)
 
         context = {
-            "github_models_client": mock_openai,
-            "openai_client": None,
+            "openai_client": mock_openai,
             "cost_tracker": None,
             "kb_answers": [],
             "readme_content": "",
@@ -293,8 +287,7 @@ class TestGenerateResponse:
     async def test_support_no_kb_match_generates_response(self) -> None:
         mock_ai = self._mock_ai_response("Here is how to set up Docker for OpenCloudTouch...")
         context = {
-            "github_models_client": mock_ai,
-            "openai_client": None,
+            "openai_client": mock_ai,
             "cost_tracker": None,
             "kb_answers": [],
             "sources": [Source("docs", "README: Install", "https://example.test/readme", "Install with docker run.", 0.9)],
@@ -308,7 +301,7 @@ class TestGenerateResponse:
             "category": "support", "confidence": 0.85, "reasoning": "question",
             "is_clear_bug": False, "kb_match": None, "is_on_topic": True,
         }))
-        context["github_models_client"] = response
+        context["openai_client"] = response
 
         # Use classifier_stage which calls _generate_response internally
         # Override to return support response on Call 2
@@ -335,11 +328,11 @@ class TestGenerateResponse:
 
     @pytest.mark.asyncio
     async def test_support_without_sources_stays_silent(self) -> None:
-        context = {"github_models_client": AsyncMock(), "kb_answers": [], "sources": [], "cost_tracker": None}
+        context = {"openai_client": AsyncMock(), "kb_answers": [], "sources": [], "cost_tracker": None}
         classification = ClassificationResult(category="support", confidence=0.9, reasoning="q", kb_match=None)
         await _generate_response(_make_event(), context, classification)
         assert "support_comment" not in context
-        context["github_models_client"].chat.completions.create.assert_not_called()
+        context["openai_client"].chat.completions.create.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_unclear_generates_follow_up_questions(self) -> None:
@@ -371,8 +364,7 @@ class TestGenerateResponse:
         mock_ai.chat.completions.create = AsyncMock(side_effect=side_effect)
 
         context = {
-            "github_models_client": mock_ai,
-            "openai_client": None,
+            "openai_client": mock_ai,
             "cost_tracker": None,
             "kb_answers": [],
             "readme_content": "",
@@ -399,8 +391,7 @@ class TestGenerateResponse:
         mock_ai.chat.completions.create = AsyncMock(return_value=mock_response)
 
         context = {
-            "github_models_client": mock_ai,
-            "openai_client": None,
+            "openai_client": mock_ai,
             "cost_tracker": None,
             "kb_answers": [],
             "readme_content": "",
@@ -428,8 +419,7 @@ class TestGenerateResponse:
         mock_ai.chat.completions.create = AsyncMock(return_value=mock_response)
 
         context = {
-            "github_models_client": mock_ai,
-            "openai_client": None,
+            "openai_client": mock_ai,
             "cost_tracker": None,
             "kb_answers": [],
             "readme_content": "",
@@ -470,7 +460,7 @@ class TestPromptInjection:
 
 class TestConfiguredModel:
     @pytest.mark.asyncio
-    async def test_openai_fallback_uses_the_model_from_the_settings(self) -> None:
+    async def test_openai_uses_the_model_from_the_settings(self) -> None:
         from stages.classifier import _try_generate
 
         client = AsyncMock()
@@ -479,7 +469,7 @@ class TestConfiguredModel:
         response.choices[0].message.content = "ok"
         response.usage = None
         client.chat.completions.create = AsyncMock(return_value=response)
-        out = await _try_generate(None, client, None, [{"role": "user", "content": "x"}], "my-model")
+        out = await _try_generate(client, None, [{"role": "user", "content": "x"}], "my-model")
         assert out == "ok"
         assert client.chat.completions.create.call_args.kwargs["model"] == "my-model"
         assert client.chat.completions.create.call_args.kwargs["service_tier"] == "flex"

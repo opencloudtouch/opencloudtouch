@@ -34,10 +34,16 @@ def _thread(comments=(), labels=("support",), created_days_ago: float = 10, kind
                   labels=set(labels), answerable=True, comments=list(comments))
 
 
-AI_NONE: dict = {"github_models_client": None, "openai_client": None, "cost_tracker": None}
+AI_NONE: dict = {"openai_client": None, "cost_tracker": None}
 
 
 class TestPlan:
+    @pytest.mark.asyncio
+    async def test_bot_notices_without_answer_marker_are_no_candidates(self) -> None:
+        t = _thread([_c("1", BOT, "You exceeded the issue limit, please wait", days_ago=4), _c("2", "helper", days_ago=4)])
+        out = await plan(t, BOT, NOW, DEFAULTS, AI_NONE)
+        assert decode_marker(out["body"])["ids"] == ["2"]
+
     @pytest.mark.asyncio
     async def test_case1_lists_candidates_after_three_days(self) -> None:
         t = _thread([_c("1", "helper", days_ago=4), _c("2", BOT, ANSWER_MARKER + " bot answer text long enough", days_ago=4)])

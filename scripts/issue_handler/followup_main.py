@@ -67,7 +67,7 @@ async def main() -> int:
         client = DryRunClient(client)
     ai: dict[str, Any] = {}
     try:
-        ai = await make_ai_context(token, settings)
+        ai = await make_ai_context(settings)
         result = await run_followups(client, ai, settings, settings.get("bot_username", "oct-support"), datetime.now(timezone.utc))
         print(json.dumps({"followups": result}))
         return 0

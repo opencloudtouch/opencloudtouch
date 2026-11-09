@@ -9,9 +9,8 @@ from typing import Any
 from model_choice import pick_model
 
 
-async def make_ai_context(github_token: str, settings: dict[str, Any]) -> dict[str, Any]:
+async def make_ai_context(settings: dict[str, Any]) -> dict[str, Any]:
     ctx: dict[str, Any] = {
-        "github_models_client": None,
         "openai_client": None,
         "cost_tracker": None,
         "openai_model": None,
@@ -19,8 +18,6 @@ async def make_ai_context(github_token: str, settings: dict[str, Any]) -> dict[s
     try:
         from openai import AsyncOpenAI
 
-        if github_token:
-            ctx["github_models_client"] = AsyncOpenAI(base_url="https://models.inference.ai.azure.com", api_key=github_token)
         if os.environ.get("OPENAI_API_KEY"):
             ctx["openai_client"] = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
     except ImportError:

@@ -99,6 +99,9 @@ def candidates(thread: Thread, bot: str, limit: int = 6) -> list[Comment]:
             continue
         if c.author_type == "Bot" and not _is_bot_comment(c, bot):
             continue
+        # The bot's own warnings and notices are no solutions; only its real answers are
+        if _is_bot_comment(c, bot) and ANSWER_MARKER not in c.body:
+            continue
         if len(c.body.strip()) < MIN_CANDIDATE_LENGTH:
             continue
         out.append(c)
@@ -154,7 +157,7 @@ async def _ai_json(ai: Any, system: str, user: str) -> Any:
     from stages.classifier import DEFAULT_OPENAI_MODEL, _try_generate
 
     text = await _try_generate(
-        ai.get("github_models_client"), ai.get("openai_client"), ai.get("cost_tracker"),
+        ai.get("openai_client"), ai.get("cost_tracker"),
         [{"role": "system", "content": system}, {"role": "user", "content": user}],
         ai.get("openai_model") or DEFAULT_OPENAI_MODEL,
     )

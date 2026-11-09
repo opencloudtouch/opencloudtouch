@@ -425,7 +425,6 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      models: read
     steps:
       - uses: actions/checkout@v7
 
