@@ -53,6 +53,12 @@ OpenCloudTouch is configured via `OCT_`-prefixed environment variables (case-ins
 | `OCT_GITHUB_REPO` | `""` | `owner/repo` target for bug reports (optional) |
 | `OCT_ALLOW_DANGEROUS_OPERATIONS` | `false` | Allow destructive endpoints such as `DELETE /api/devices` — testing only, do not enable in production |
 
+## Container Entrypoint
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OCT_SKIP_PAGE_SIZE_CHECK` | unset | Set to exactly `1` to skip the library self-test that the entrypoint runs on kernels with a 32 KB page size. Any other value keeps the self-test. Only for troubleshooting, see [Troubleshooting](TROUBLESHOOTING.md#arm-nas-with-a-32-kb-page-size-wd-my-cloud-qnap). |
+
 ## Docker Build Arguments
 
 These are **build-time** (`docker build --build-arg ...`), not runtime environment variables — set once when the image is built, baked into the image afterward.

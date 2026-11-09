@@ -360,7 +360,7 @@ jobs:
           |-------------|----------|-----------------|
           | \`amd64\` | x86_64 | Desktop, Server, NAS |
           | \`arm64\` | aarch64 | Raspberry Pi 3/4/5, Zero 2W |
-          | \`arm/v7\` | armhf | Raspberry Pi 2 |
+          | \`arm/v7\` | armhf | Raspberry Pi 2/3, ARM NAS with 32 KB pages (Docker 20.10.9+; Docker 19.03.x needs \`seccomp-legacy-docker.json\` from the release assets) |
 
           ---
 
@@ -390,6 +390,7 @@ jobs:
           tag_name: v${{ needs.preflight.outputs.version }}
           name: "OpenCloudTouch v${{ needs.preflight.outputs.version }}"
           body_path: release-notes.md
+          files: deployment/seccomp-legacy-docker.json
           prerelease: ${{ inputs.prerelease }}
           draft: true
           make_latest: false
