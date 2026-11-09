@@ -505,6 +505,8 @@ async def run_ai_review(prompt: str, cost_tracker: CostTracker) -> dict:
     except Exception as e:  # noqa: BLE001 - Flex capacity is not guaranteed; the standard tier answers
         print(f"[WARN] Flex tier failed ({e}), using the standard tier", file=sys.stderr)
         response = await client.chat.completions.create(**kwargs)
+        # The standard tier costs twice the Flex price
+        cost_tracker.use_prices(choice.input_usd_per_million * 2, choice.output_usd_per_million * 2)
     content = response.choices[0].message.content or "{}"
 
     # Track cost
@@ -722,7 +724,7 @@ async def run() -> int:
 
     # Initialize cost tracker
     cost_file = Path("/tmp/ai-cost-tracker/pr-review-cost.json")
-    cost_tracker = CostTracker(cost_file)
+    cost_tracker = CostTracker(cost_file, budget_usd=MONTHLY_BUDGET_USD)
 
     # Initialize rate limiter
     rate_file = Path("/tmp/ai-cost-tracker/pr-review-rate.json")
