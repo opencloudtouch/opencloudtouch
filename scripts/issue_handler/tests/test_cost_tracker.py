@@ -87,7 +87,13 @@ class TestPricesAndVisibility:
     def test_default_prices_are_the_flex_prices_of_the_default_model(self, tmp_path: Path) -> None:
         tracker = CostTracker(tmp_path / "c.json")
         tracker.record_call(input_tokens=1_000_000, output_tokens=1_000_000)
-        assert tracker.total_cost_usd == pytest.approx(0.05 + 0.25)
+        assert tracker.total_cost_usd == pytest.approx(0.10 + 0.625)
+
+    def test_use_prices_switches_to_the_chosen_model(self, tmp_path: Path) -> None:
+        tracker = CostTracker(tmp_path / "c.json")
+        tracker.use_prices(1.0, 5.0)
+        tracker.record_call(input_tokens=1_000_000, output_tokens=1_000_000)
+        assert tracker.total_cost_usd == pytest.approx(6.0)
 
     def test_rules_yml_lists_priced_candidates(self) -> None:
         import yaml

@@ -24,7 +24,6 @@ class ModelChoice:
 
 # Used when rules.yml has no `openai_models` list (Flex prices, checked 2026-11-08)
 DEFAULT_CANDIDATES = [
-    ModelChoice("gpt-6-luna", 0.05, 0.25),
     ModelChoice("gpt-5.4-nano", 0.10, 0.625),
 ]
 

@@ -15,8 +15,8 @@ from typing import Any
 
 from models import CostRecord
 
-DEFAULT_INPUT_USD_PER_MILLION = 0.05   # gpt-6-luna, Flex
-DEFAULT_OUTPUT_USD_PER_MILLION = 0.25
+DEFAULT_INPUT_USD_PER_MILLION = 0.10   # gpt-5.4-nano, Flex
+DEFAULT_OUTPUT_USD_PER_MILLION = 0.625
 
 
 class CostTracker:
@@ -77,6 +77,11 @@ class CostTracker:
         cost = (input_tokens * self._input_per_token) + (output_tokens * self._output_per_token)
         self._record.total_cost_usd += cost
         self._record.call_count += 1
+
+    def use_prices(self, input_usd_per_million: float, output_usd_per_million: float) -> None:
+        """Switch to the prices of the model that was chosen after the tracker was created."""
+        self._input_per_token = input_usd_per_million / 1_000_000
+        self._output_per_token = output_usd_per_million / 1_000_000
 
     def is_budget_exceeded(self) -> bool:
         """Check if monthly budget has been exceeded."""

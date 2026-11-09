@@ -15,10 +15,6 @@ on:
         description: 'Create the Community Spotlight discussion (creates a real discussion)'
         type: boolean
         default: false
-      bench:
-        description: 'TEMPORARY: benchmark review models'
-        type: boolean
-        default: false
       follow_up:
         description: 'Run the follow-up job now (posts for real unless the repository variable OCT_BOT_DRY_RUN is true)'
         type: boolean
@@ -465,23 +461,3 @@ jobs:
         with:
           path: /tmp/ai-cost-tracker
           key: ai-cost-tracker-${{ github.run_id }}
-
-  bench:
-    if: github.event_name == 'workflow_dispatch' && inputs.bench
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.13'
-      - run: pip install -r scripts/requirements.txt
-      - name: Benchmark
-        working-directory: scripts/pr_reviewer
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          REPO_FULL_NAME: ${{ github.repository }}
-        run: python bench_models.py
