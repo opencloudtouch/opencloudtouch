@@ -17,13 +17,15 @@ runs:
         IMAGE: ${{ inputs.image }}
       run: |
         set -euo pipefail
-        python3 -m pip install --quiet pyelftools==0.32
+        # A venv, because `python3 -I` ignores user site-packages.
+        python3 -m venv "$RUNNER_TEMP/venv"
+        "$RUNNER_TEMP/venv/bin/pip" install --quiet pyelftools==0.32
         cid=$(docker create --platform linux/arm/v7 "$IMAGE")
         docker export "$cid" -o "$RUNNER_TEMP/image.tar"
         docker rm "$cid" >/dev/null
         # The tar holds the merged file system (last version of each file), not single layers.
         rc=0
-        python3 -I scripts/elf_pagesize_scan.py --tar "$RUNNER_TEMP/image.tar" \
+        "$RUNNER_TEMP/venv/bin/python" -I scripts/elf_pagesize_scan.py --tar "$RUNNER_TEMP/image.tar" \
           --json "$RUNNER_TEMP/scan.json" --markdown "$RUNNER_TEMP/scan.md" \
           --label "$IMAGE" | tee "$RUNNER_TEMP/scan.txt" || rc=$?
         {
