@@ -81,6 +81,9 @@ FROM python:3.11-slim@sha256:ae52c5bef62a6bdd42cd1e8dffef86b9cd284bde9427da79839
 
 ARG TARGETARCH
 ARG ALIGNED_SOURCES="zlib bzip2 acl libbsd libmd libpsl rtmpdump db5.3 gdbm gmp readline findutils grep hostname"
+# Only these sources are built here under QEMU; the rest is cross-compiled (see aligned-debs-cross-build).
+# zlib does not cross-build: its minizip subproject does not link.
+ARG ALIGNED_QEMU_SOURCES="zlib"
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
@@ -107,7 +110,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     # archive no longer serves it the build fails: bump the base image digest. Packages pulled
     # in later (curl dependencies) use the archive candidate; the runtime stage checks the match.
     dpkg-query -W -f='${source:Package} ${source:Version}\n' > /rebuild/base-versions; \
-    for src in $ALIGNED_SOURCES; do \
+    for src in $ALIGNED_QEMU_SOURCES; do \
         ver=$(awk -v s="$src" '$1==s{print $2; exit}' /rebuild/base-versions); \
         spec="$src${ver:+=$ver}"; \
         echo "=== rebuilding $spec ==="; \
@@ -121,6 +124,60 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     done; \
     ls /out/*.deb >/dev/null; \
     ls -l /out
+
+# Stage 1c (trial): the same packages, cross-compiled on the build platform instead of built
+# under QEMU. Source versions come from the target-platform base (base-source-versions).
+FROM python:3.11-slim@sha256:ae52c5bef62a6bdd42cd1e8dffef86b9cd284bde9427da79839de7a4b983e7ca AS base-source-versions
+RUN dpkg-query -W -f='${source:Package} ${source:Version}\n' > /base-versions
+
+FROM --platform=$BUILDPLATFORM python:3.11-slim@sha256:ae52c5bef62a6bdd42cd1e8dffef86b9cd284bde9427da79839de7a4b983e7ca AS aligned-debs-cross-build
+
+ARG TARGETARCH
+ARG ALIGNED_SOURCES="zlib bzip2 acl libbsd libmd libpsl rtmpdump db5.3 gdbm gmp readline findutils grep hostname"
+ARG ALIGNED_QEMU_SOURCES="zlib"
+
+WORKDIR /rebuild
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    --mount=type=bind,from=base-source-versions,source=/base-versions,target=/base-versions \
+    mkdir -p /out; \
+    [ "$TARGETARCH" = "arm" ] || exit 0; \
+    . /etc/os-release; \
+    sed 's/^Types:.*/Types: deb-src/' /etc/apt/sources.list.d/debian.sources > /etc/apt/sources.list.d/debian-src.sources && \
+    dpkg --add-architecture armhf && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends build-essential devscripts dpkg-dev fakeroot crossbuild-essential-armhf libc6:armhf || exit 1; \
+    export CC=arm-linux-gnueabihf-gcc CXX=arm-linux-gnueabihf-g++ PKG_CONFIG=arm-linux-gnueabihf-pkg-config; \
+    export DEBFULLNAME="OpenCloudTouch" DEBEMAIL="noreply@opencloudtouch.org" \
+           DEB_BUILD_OPTIONS="nocheck nodoc noautodbgsym parallel=$(nproc)" \
+           DEB_BUILD_PROFILES="cross nocheck nodoc" \
+           DEB_LDFLAGS_APPEND="-Wl,-z,max-page-size=0x10000"; \
+    failed=""; \
+    for src in $ALIGNED_SOURCES; do \
+        case " $ALIGNED_QEMU_SOURCES " in *" $src "*) continue;; esac; \
+        ver=$(awk -v s="$src" '$1==s{print $2; exit}' /base-versions); \
+        spec="$src${ver:+=$ver}"; \
+        start=$(date +%s); \
+        echo "=== cross-building $spec ==="; \
+        mkdir "$src" && cd "$src" && \
+        apt-get build-dep -y -a armhf --no-install-recommends "$spec" && \
+        apt-get source "$spec" && \
+        cd */ && \
+        dch --local +oct "Rebuild with 64 KB ELF segment alignment (see #529)" --distribution "$VERSION_CODENAME" && \
+        dpkg-buildpackage -a armhf -b -uc -us && \
+        cd .. && cp *.deb /out/ \
+        || { echo "CROSS-BUILD FAILED: $src"; failed="$failed $src"; }; \
+        cd /rebuild; \
+        echo "=== $src took $(( $(date +%s) - start )) s ==="; \
+    done; \
+    [ -z "$failed" ] || { echo "Failed packages:$failed"; exit 1; }; \
+    ls -l /out
+
+# Cross-built packages plus the QEMU-built remainder; the backend stage installs from this one.
+FROM scratch AS aligned-debs-selected
+COPY --from=aligned-debs-cross-build /out /out
+COPY --from=aligned-debs /out /out
 
 # Stage 2: Frontend Build (platform-independent HTML/CSS/JS)
 # Force amd64 — output is static files, no native binaries needed.
@@ -181,7 +238,7 @@ WORKDIR /app
 # `apt-get upgrade` so the upgrade cannot replace them.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    --mount=type=bind,from=aligned-debs,source=/out,target=/aligned-debs \
+    --mount=type=bind,from=aligned-debs-selected,source=/out,target=/aligned-debs \
     --mount=type=bind,source=scripts/install-aligned-debs.sh,target=/install-aligned-debs.sh \
     set -e; \
     apt-get update && \

@@ -407,7 +407,7 @@ jobs:
         with:
           context: .
           file: deployment/Dockerfile
-          target: aligned-debs
+          target: aligned-debs-selected
           platforms: linux/arm/v7
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-aligned-debs-armv7
           cache-to: type=registry,mode=max,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-aligned-debs-armv7
