@@ -116,107 +116,64 @@ describe("changeLanguage", () => {
 });
 
 describe("Translation key parity", () => {
-  function flattenKeys(obj: object, prefix = ""): string[] {
+  function flattenEntries(obj: object, prefix = ""): Array<[string, unknown]> {
     return Object.entries(obj).flatMap(([key, value]) => {
       const fullKey = prefix ? `${prefix}.${key}` : key;
       if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-        return flattenKeys(value as object, fullKey);
+        return flattenEntries(value as object, fullKey);
       }
-      return [fullKey];
+      return [[fullKey, value] as [string, unknown]];
     });
   }
 
-  const enKeys = () => flattenKeys(en);
+  const flattenKeys = (obj: object) => flattenEntries(obj).map(([key]) => key);
 
-  it("de.json has all keys from en.json", () => {
-    const deKeys = new Set(flattenKeys(de));
-    expect(enKeys().filter((k) => !deKeys.has(k))).toEqual([]);
+  /** Sorted interpolation placeholders of a value, e.g. "{{count}} of {{total}}" -> "count,total". */
+  const placeholders = (value: unknown): string =>
+    [...String(value).matchAll(/\{\{\s*([^},\s]+)[^}]*\}\}/g)]
+      .map((m) => m[1])
+      .sort()
+      .join(",");
+
+  const translations: Array<[string, object]> = [
+    ["de", de],
+    ["fr", fr],
+    ["it", itLocale],
+    ["es", es],
+    ["nl", nl],
+    ["pt-BR", ptBR],
+    ["ja", ja],
+    ["pl", pl],
+    ["sv", sv],
+  ];
+
+  const enKeys = flattenKeys(en);
+
+  it.each(translations)("%s.json has all keys from en.json", (_name, locale) => {
+    const keys = new Set(flattenKeys(locale));
+    expect(enKeys.filter((k) => !keys.has(k))).toEqual([]);
   });
 
-  it("en.json has all keys from de.json", () => {
-    const enSet = new Set(enKeys());
-    expect(flattenKeys(de).filter((k) => !enSet.has(k))).toEqual([]);
+  it.each(translations)("en.json has all keys from %s.json", (_name, locale) => {
+    const enSet = new Set(enKeys);
+    expect(flattenKeys(locale).filter((k) => !enSet.has(k))).toEqual([]);
   });
 
-  it("fr.json has all keys from en.json", () => {
-    const frKeys = new Set(flattenKeys(fr));
-    expect(enKeys().filter((k) => !frKeys.has(k))).toEqual([]);
-  });
-
-  it("en.json has all keys from fr.json", () => {
-    const enSet = new Set(enKeys());
-    expect(flattenKeys(fr).filter((k) => !enSet.has(k))).toEqual([]);
-  });
-
-  it("it.json has all keys from en.json", () => {
-    const itKeys = new Set(flattenKeys(itLocale));
-    expect(enKeys().filter((k) => !itKeys.has(k))).toEqual([]);
-  });
-
-  it("en.json has all keys from it.json", () => {
-    const enSet = new Set(enKeys());
-    expect(flattenKeys(itLocale).filter((k) => !enSet.has(k))).toEqual([]);
-  });
-
-  it("es.json has all keys from en.json", () => {
-    const esKeys = new Set(flattenKeys(es));
-    expect(enKeys().filter((k) => !esKeys.has(k))).toEqual([]);
-  });
-
-  it("en.json has all keys from es.json", () => {
-    const enSet = new Set(enKeys());
-    expect(flattenKeys(es).filter((k) => !enSet.has(k))).toEqual([]);
-  });
-
-  it("nl.json has all keys from en.json", () => {
-    const nlKeys = new Set(flattenKeys(nl));
-    expect(enKeys().filter((k) => !nlKeys.has(k))).toEqual([]);
-  });
-
-  it("en.json has all keys from nl.json", () => {
-    const enSet = new Set(enKeys());
-    expect(flattenKeys(nl).filter((k) => !enSet.has(k))).toEqual([]);
-  });
-
-  it("pt-BR.json has all keys from en.json", () => {
-    const ptKeys = new Set(flattenKeys(ptBR));
-    expect(enKeys().filter((k) => !ptKeys.has(k))).toEqual([]);
-  });
-
-  it("en.json has all keys from pt-BR.json", () => {
-    const enSet = new Set(enKeys());
-    expect(flattenKeys(ptBR).filter((k) => !enSet.has(k))).toEqual([]);
-  });
-
-  it("ja.json has all keys from en.json", () => {
-    const jaKeys = new Set(flattenKeys(ja));
-    expect(enKeys().filter((k) => !jaKeys.has(k))).toEqual([]);
-  });
-
-  it("en.json has all keys from ja.json", () => {
-    const enSet = new Set(enKeys());
-    expect(flattenKeys(ja).filter((k) => !enSet.has(k))).toEqual([]);
-  });
-
-  it("pl.json has all keys from en.json", () => {
-    const plKeys = new Set(flattenKeys(pl));
-    expect(enKeys().filter((k) => !plKeys.has(k))).toEqual([]);
-  });
-
-  it("en.json has all keys from pl.json", () => {
-    const enSet = new Set(enKeys());
-    expect(flattenKeys(pl).filter((k) => !enSet.has(k))).toEqual([]);
-  });
-
-  it("sv.json has all keys from en.json", () => {
-    const svKeys = new Set(flattenKeys(sv));
-    expect(enKeys().filter((k) => !svKeys.has(k))).toEqual([]);
-  });
-
-  it("en.json has all keys from sv.json", () => {
-    const enSet = new Set(enKeys());
-    expect(flattenKeys(sv).filter((k) => !enSet.has(k))).toEqual([]);
-  });
+  it.each(translations)(
+    "%s.json uses the same {{placeholders}} as en.json for every key",
+    (_name, locale) => {
+      const values = new Map(flattenEntries(locale));
+      const mismatches = flattenEntries(en)
+        .filter(
+          ([key, value]) => values.has(key) && placeholders(values.get(key)) !== placeholders(value)
+        )
+        .map(
+          ([key, value]) =>
+            `${key}: en [${placeholders(value)}] vs [${placeholders(values.get(key))}]`
+        );
+      expect(mismatches).toEqual([]);
+    }
+  );
 });
 
 describe("detectLocale — localStorage unavailable (catch branch)", () => {
@@ -259,17 +216,10 @@ describe("changeLanguage — localStorage unavailable (catch branch)", () => {
 // ---------------------------------------------------------------------------
 
 describe("Translation value completeness", () => {
-  function flattenEntries(
-    obj: object,
-    prefix = "",
-  ): Array<{ key: string; value: unknown }> {
+  function flattenEntries(obj: object, prefix = ""): Array<{ key: string; value: unknown }> {
     return Object.entries(obj).flatMap(([key, value]) => {
       const fullKey = prefix ? `${prefix}.${key}` : key;
-      if (
-        value !== null &&
-        typeof value === "object" &&
-        !Array.isArray(value)
-      ) {
+      if (value !== null && typeof value === "object" && !Array.isArray(value)) {
         return flattenEntries(value as object, fullKey);
       }
       return [{ key: fullKey, value }];
@@ -292,26 +242,17 @@ describe("Translation value completeness", () => {
   for (const [name, locale] of Object.entries(allLocales)) {
     it(`${name}.json — every leaf value is a non-empty string`, () => {
       const entries = flattenEntries(locale);
-      const empty = entries.filter(
-        (e) => typeof e.value !== "string" || e.value.trim() === "",
-      );
+      const empty = entries.filter((e) => typeof e.value !== "string" || e.value.trim() === "");
       expect(empty.map((e) => e.key)).toEqual([]);
     });
   }
 });
 
 describe("de ↔ en value divergence", () => {
-  function flattenEntries(
-    obj: object,
-    prefix = "",
-  ): Array<{ key: string; value: string }> {
+  function flattenEntries(obj: object, prefix = ""): Array<{ key: string; value: string }> {
     return Object.entries(obj).flatMap(([key, value]) => {
       const fullKey = prefix ? `${prefix}.${key}` : key;
-      if (
-        value !== null &&
-        typeof value === "object" &&
-        !Array.isArray(value)
-      ) {
+      if (value !== null && typeof value === "object" && !Array.isArray(value)) {
         return flattenEntries(value as object, fullKey);
       }
       return [{ key: fullKey, value: String(value) }];
@@ -324,9 +265,7 @@ describe("de ↔ en value divergence", () => {
 
     // Keys where identical values are acceptable (brand names, technical terms,
     // URLs, single-word universals like "OK", "USB", numbers, etc.)
-    const identicalCount = enEntries.filter(
-      (e) => deMap.get(e.key) === e.value,
-    ).length;
+    const identicalCount = enEntries.filter((e) => deMap.get(e.key) === e.value).length;
 
     // Allow up to 20% identical — beyond that, translations are likely missing
     const maxIdenticalPercent = 20;
@@ -379,11 +318,7 @@ describe("i18n key ↔ code usage", () => {
   function flattenKeys(obj: object, prefix = ""): string[] {
     return Object.entries(obj).flatMap(([key, value]) => {
       const fullKey = prefix ? `${prefix}.${key}` : key;
-      if (
-        value !== null &&
-        typeof value === "object" &&
-        !Array.isArray(value)
-      ) {
+      if (value !== null && typeof value === "object" && !Array.isArray(value)) {
         return flattenKeys(value as object, fullKey);
       }
       return [fullKey];
@@ -414,10 +349,7 @@ describe("i18n key ↔ code usage", () => {
     return results;
   }
 
-  function extractKeysFromCode(
-    files: string[],
-    topLevelKeys: Set<string>,
-  ): Set<string> {
+  function extractKeysFromCode(files: string[], topLevelKeys: Set<string>): Set<string> {
     const keys = new Set<string>();
     // 1. Direct t() calls: t("key"), t('key'), i18next.t("key")
     const tCallPattern = /(?:^|[^a-zA-Z])t\(\s*["']([^"']+)["']/gm;
