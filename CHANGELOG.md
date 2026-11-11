@@ -44,6 +44,7 @@ _No changes yet._
 ### Fixed
 - Devices without the OCT redirect block in `/etc/hosts` were reported as `configured` by the health check and the setup verification (the grep fallback printed a second `0`)
 - A second device scan now gets an explicit "already in progress" event instead of a bare HTTP 409, so real failures are no longer labelled "already running"
+- Prevent rejected UUID assignments from leaving SQLite write transactions open and serialize concurrent device repository writes (#511).
 - Layout overflow and overlap on the presets, local control, multi-room and settings pages, the swiper, the navigation and the empty state
 - False "unexpected content" warnings when validating a restore archive
 - Accessibility: skip link and `main` landmark, heading order, contrast tokens, translated `aria-label`s, `html lang` sync, toast roles and reduced-motion support
