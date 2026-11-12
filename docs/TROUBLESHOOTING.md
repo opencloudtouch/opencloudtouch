@@ -123,6 +123,8 @@ On WD My Cloud OS5 nobody starts the Docker daemon at boot: after every reboot `
   3. start `dockerd --data-root <folder on the data volume> --storage-driver vfs --host unix:///var/run/docker.sock --pidfile /var/run/docker.pid` in the background.
 
   Keep the data root on the data volume, not in the firmware partition. The `vfs` storage driver needs more disk space than `overlay2` but works on this kernel. The `stop.sh` of the app should only stop the daemon and never delete the data root.
+- **Docker 28 or newer:** the same steps, plus start `dockerd` with `--allow-direct-routing`. Docker 28 adds an iptables `raw` table rule for every container, this firmware kernel has no `raw` table, and without the flag no container can start ("Unable to enable DIRECT ACCESS FILTERING"). The flag has one consequence: published ports also answer on the container address from the local network segment, as in Docker 27 and older. Verified with Docker 29.9.3 and OpenCloudTouch; it needs no seccomp profile.
+- **Uninstall:** removing the app only unregisters it, so the app's `remove.sh` has to delete the data root, the Docker bridge, the mounts and the firewall rules and chains Docker created. Kernel modules and the `FORWARD` policy that Docker sets to `DROP` come back to normal only after a reboot.
 - **Verify:** reboot the NAS and wait about a minute. `docker ps` should list your containers as `Up`, and the OCT web interface should open without any manual step. In the verified setup the Docker API was ready about 40 seconds after boot.
 
 An app is also a clean place for the hook: it shows up under Apps, where you can switch it off or uninstall it.
