@@ -59,8 +59,9 @@ Other NAS models are added after feedback in the discussion [NAS compatibility r
 ### Docker version
 
 - **Docker 20.10.9 or newer:** minimum for configuration-free operation on every platform. Nothing to configure.
-- **Docker 19.03.8 up to 20.10.8** (for example the 19.03.8 that WD ships): needs a seccomp profile, see below.
-- **Docker older than 19.03.8:** not supported. Docker 19.03.3 cannot pull the image at all (`mediaType in manifest should be 'application/vnd.docker.distribution.manifest.v2+json' not 'application/vnd.oci.image.manifest.v1+json'`); update Docker, or import the image with `docker load` from an archive.
+- **Docker 19.03.8 up to 20.10.8** (for example the 19.03.8 that WD ships): recommended minimum for the legacy path; needs a seccomp profile, see below.
+- **Docker 19.03.3 and similar early 19.03 releases:** `docker pull` fails with `mediaType in manifest should be 'application/vnd.docker.distribution.manifest.v2+json' not 'application/vnd.oci.image.manifest.v1+json'`. This is not supported and has not been tested beyond the pull, but it works with the workaround [Importing the image with `docker load`](#importing-the-image-with-docker-load) plus the seccomp profile.
+- **Docker older than 19.03:** not supported.
 
 On Docker older than 20.10.9 the default seccomp profile answers system calls it does not know with `EPERM` instead of `ENOSYS`. The C library of the image only falls back to the old calls on `ENOSYS`, so Python fails with errors like `Operation not permitted` or `OSError: [Errno 75]` while importing `time`. Either update Docker, or start the container with the profile [`seccomp-legacy-docker.json`](https://github.com/opencloudtouch/opencloudtouch/releases/latest/download/seccomp-legacy-docker.json) (also in the repository as [`deployment/seccomp-legacy-docker.json`](../deployment/seccomp-legacy-docker.json)):
 
@@ -89,6 +90,25 @@ services:
 ```
 
 The profile does not have to be mounted into the OpenCloudTouch container.
+
+**Docker Compose on the command line (no Portainer):** with Docker Compose v2 or newer (a single binary, for example `docker-compose-linux-armv7`), `seccomp=./seccomp-legacy-docker.json` (relative to the Compose file) and an absolute path both work on Docker 19.03.8; Compose reads the file and passes its content to the daemon. Without the `security_opt` line the container exits at once with the hint about Docker older than 20.10.9.
+
+### Importing the image with `docker load`
+
+Use this when `docker pull` is not possible (for example on Docker 19.03.3). On a computer with a current Docker or Podman, in an empty working folder:
+
+```bash
+podman pull --platform linux/arm/v7 ghcr.io/opencloudtouch/opencloudtouch:<version>
+podman save --format docker-archive -o opencloudtouch-armv7.tar ghcr.io/opencloudtouch/opencloudtouch:<version>
+```
+
+Copy `opencloudtouch-armv7.tar` to the NAS and run:
+
+```bash
+docker load -i opencloudtouch-armv7.tar
+```
+
+Then start the container with the image tag as usual, together with the seccomp profile. Use a `docker-archive`, not an OCI archive: the OCI format is the one old Docker versions cannot read.
 
 The profile allows all system calls by default and blocks the dangerous ones that Docker's own profile blocks (mount, ptrace, namespaces, kernel modules, and so on). It is a deny-list: it is weaker than Docker's default allow-list profile but much stronger than `seccomp=unconfined`, and it does not block dangerous system calls that newer kernels add. Use it **only on old kernels (below 5.3)** and only on Docker older than 20.10.9; it is not needed and not recommended on Docker 20.10.9 or newer.
 
