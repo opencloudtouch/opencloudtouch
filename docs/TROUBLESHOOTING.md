@@ -112,6 +112,21 @@ Then start the container with the image tag as usual, together with the seccomp 
 
 The profile allows all system calls by default and blocks the dangerous ones that Docker's own profile blocks (mount, ptrace, namespaces, kernel modules, and so on). It is a deny-list: it is weaker than Docker's default allow-list profile but much stronger than `seccomp=unconfined`, and it does not block dangerous system calls that newer kernels add. Use it **only on old kernels (below 5.3)** and only on Docker older than 20.10.9; it is not needed and not recommended on Docker 20.10.9 or newer.
 
+### Starting Docker automatically after a NAS reboot
+
+On WD My Cloud OS5 nobody starts the Docker daemon at boot: after every reboot `docker ps` fails and the containers stay down, even with `--restart unless-stopped`. Docker has to be started by a WD app, because only apps get a start script that the firmware runs at boot.
+
+- **Easiest:** install a community Docker app for OS5 (WDCommunity `wdpksrc`, "docker" package for My Cloud OS5, Docker 20.10.x). We have not verified it on a real NAS. Docker 20.10.9 or newer needs no seccomp profile.
+- **Docker 19.03.x:** the app's `start.sh` must do what you would do by hand. It was verified on a My Cloud EX2 Ultra with firmware 5.x:
+  1. wait until the cgroup mounts `memory`, `devices`, `cpu`, `cpuacct` and `pids` exist under `/sys/fs/cgroup` (at boot they appear a little after the apps start, so wait up to about two minutes);
+  2. load the kernel modules Docker's bridge network needs from `/usr/local/modules/driver/`: `nf_nat`, `nf_nat_ipv4`, `nf_nat_masquerade_ipv4`, `xt_addrtype`, `xt_nat`, `ipt_MASQUERADE`, `iptable_nat`, `llc`, `stp`, `bridge`, `br_netfilter` (`insmod`, skip the ones already loaded);
+  3. start `dockerd --data-root <folder on the data volume> --storage-driver vfs --host unix:///var/run/docker.sock --pidfile /var/run/docker.pid` in the background.
+
+  Keep the data root on the data volume, not in the firmware partition. The `vfs` storage driver needs more disk space than `overlay2` but works on this kernel. The `stop.sh` of the app should only stop the daemon and never delete the data root.
+- **Verify:** reboot the NAS and wait about a minute. `docker ps` should list your containers as `Up`, and the OCT web interface should open without any manual step. In the verified setup the Docker API was ready about 40 seconds after boot.
+
+An app is also a clean place for the hook: it shows up under Apps, where you can switch it off or uninstall it.
+
 ### Troubleshooting path
 
 1. Collect the facts: `getconf PAGE_SIZE`, `uname -a` and `docker version` (client and server).
