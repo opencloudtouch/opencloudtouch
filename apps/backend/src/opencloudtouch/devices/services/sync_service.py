@@ -366,7 +366,6 @@ class DeviceSyncService:
                 logger.debug(
                     "Could not fetch bass capabilities from %s; preserving stored capabilities",
                     device_ip,
-                    exc_info=True,
                 )
                 # Returning partial flags would overwrite previously persisted bass metadata.
                 # None makes the repository retain the complete existing JSON.
