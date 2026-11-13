@@ -51,7 +51,7 @@ Some ARMv7 NAS kernels use 32 KB memory pages instead of the usual 4 KB. The `li
 | Series | Image | Status |
 |--------|-------|--------|
 | Raspberry Pi 2/3 (4 KB pages) | `linux/arm/v7` | Expected to work unchanged: the CI runs a QEMU smoke test of the 4 KB path; not yet verified on a real Raspberry Pi |
-| ARM NAS with 32 KB pages, reference device WD My Cloud EX2 Ultra (kernel 4.14) | `linux/arm/v7` | Supported; verified on Docker 19.03.8 (with the legacy seccomp profile) and Docker 29.9.3 (without a profile, needs `--allow-direct-routing`); Docker 20.10.x not tested |
+| ARM NAS with 32 KB pages, reference device WD My Cloud EX2 Ultra (kernel 4.14) | `linux/arm/v7` | Supported; verified on Docker 19.03.8 (with the legacy seccomp profile) and Docker 29.9.3 (without a profile, needs `--allow-direct-routing`); Docker 20.10.14 worked without a profile in the earlier spike (spike image, not re-tested with the final image) |
 | amd64 / arm64 hosts | `linux/amd64`, `linux/arm64` | Supported; unchanged |
 
 Other NAS models are added after feedback in the discussion [NAS compatibility reports](https://github.com/opencloudtouch/opencloudtouch/discussions/637). Raspberry Pi 1 and Zero (ARMv6) are not covered.
@@ -63,7 +63,7 @@ Other NAS models are added after feedback in the discussion [NAS compatibility r
 - **Docker 19.03.3 and similar early 19.03 releases:** `docker pull` fails with `mediaType in manifest should be 'application/vnd.docker.distribution.manifest.v2+json' not 'application/vnd.oci.image.manifest.v1+json'`. Importing the image with `docker load` avoids the error, see [Importing the image with `docker load`](#importing-the-image-with-docker-load). Running the container on 19.03.3 itself has not been verified.
 - **Docker older than 19.03:** not supported.
 
-On Docker older than 20.10.9 the default seccomp profile answers system calls it does not know with `EPERM` instead of `ENOSYS`. The C library of the image only falls back to the old calls on `ENOSYS`, so Python fails with errors like `Operation not permitted` or `OSError: [Errno 75]` while importing `time`. Either update Docker, or start the container with the profile [`seccomp-legacy-docker.json`](https://github.com/opencloudtouch/opencloudtouch/releases/latest/download/seccomp-legacy-docker.json) (also in the repository as [`deployment/seccomp-legacy-docker.json`](../deployment/seccomp-legacy-docker.json)):
+On Docker older than 20.10.9 the default seccomp profile answers system calls it does not know with `EPERM` instead of `ENOSYS`. The C library of the image only falls back to the old calls on `ENOSYS`, so Python fails at `time.time()`. Either update Docker, or start the container with the profile [`seccomp-legacy-docker.json`](https://github.com/opencloudtouch/opencloudtouch/releases/latest/download/seccomp-legacy-docker.json) (also in the repository as [`deployment/seccomp-legacy-docker.json`](../deployment/seccomp-legacy-docker.json)):
 
 ```bash
 docker run --security-opt seccomp=/path/to/seccomp-legacy-docker.json ...
@@ -121,7 +121,6 @@ Then start the container with the image tag as usual, together with the seccomp 
 On WD My Cloud OS5 nobody starts the Docker daemon at boot: after every reboot `docker ps` fails and the containers stay down, even with `--restart unless-stopped`. Docker has to be started by a WD app, because only apps get a start script that the firmware runs at boot.
 
 - **Ready-made apps (verified):** an unofficial build guide and script for apps that start Docker (19.03.8 or 29.9.3) and Portainer at boot, including the bundled images, is in the discussion [Docker + Portainer app for WD My Cloud OS5](https://github.com/opencloudtouch/opencloudtouch/discussions/644). Create the Portainer admin user within 5 minutes after its first start, otherwise Portainer locks itself until you restart the container. If such an app is installed but Docker or Portainer does not come up, read its start log in a browser at `http://<NAS>/<app folder name>/startup.log`.
-- **Alternative:** install a community Docker app for OS5 (WDCommunity `wdpksrc`, "docker" package for My Cloud OS5, Docker 20.10.x). We have not verified it on a real NAS. Docker 20.10.9 or newer needs no seccomp profile.
 - **Docker 19.03.x:** the app's `start.sh` must do what you would do by hand. It was verified on a My Cloud EX2 Ultra with firmware 5.x:
   1. wait until the cgroup mounts `memory`, `devices`, `cpu`, `cpuacct` and `pids` exist under `/sys/fs/cgroup` (at boot they appear a little after the apps start, so wait up to about two minutes);
   2. load the kernel modules Docker's bridge network needs from `/usr/local/modules/driver/`: `nf_nat`, `nf_nat_ipv4`, `nf_nat_masquerade_ipv4`, `xt_addrtype`, `xt_nat`, `ipt_MASQUERADE`, `iptable_nat`, `llc`, `stp`, `bridge`, `br_netfilter` (`insmod`, skip the ones already loaded);
