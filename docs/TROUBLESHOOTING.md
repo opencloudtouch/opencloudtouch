@@ -58,7 +58,7 @@ Other NAS models are added after feedback in the discussion [NAS compatibility r
 
 ### Docker version
 
-- **Docker 20.10.9 or newer:** minimum for configuration-free operation on every platform. Nothing to configure.
+- **Docker 20.10.9 or newer:** minimum for configuration-free operation on every platform. Nothing to configure. One exception on the WD My Cloud OS5 firmware: Docker 28 or newer needs the daemon option `--allow-direct-routing`, see [Starting Docker automatically after a NAS reboot](#starting-docker-automatically-after-a-nas-reboot).
 - **Docker 19.03.8 up to 20.10.8** (for example the 19.03.8 that WD ships): recommended minimum for the legacy path; needs a seccomp profile, see below.
 - **Docker 19.03.3 and similar early 19.03 releases:** `docker pull` fails with `mediaType in manifest should be 'application/vnd.docker.distribution.manifest.v2+json' not 'application/vnd.oci.image.manifest.v1+json'`. Importing the image with `docker load` avoids the error, see [Importing the image with `docker load`](#importing-the-image-with-docker-load). Running the container on 19.03.3 itself has not been verified.
 - **Docker older than 19.03:** not supported.
@@ -91,6 +91,8 @@ services:
 
 The profile does not have to be mounted into the OpenCloudTouch container.
 
+With the ready-made apps below, Portainer keeps its data in the Docker volume `portainer_data`, which lies in the app's data root (`<data root>/volumes/portainer_data/_data`). The profile file can be copied there and was used from that folder with the `docker` command-line client; deploying it as a Portainer stack from that volume was not verified.
+
 **Docker Compose on the command line (no Portainer):** with Docker Compose v2 or newer (a single binary, for example `docker-compose-linux-armv7`), `seccomp=./seccomp-legacy-docker.json` (relative to the Compose file) and an absolute path both work on Docker 19.03.8; Compose reads the file and passes its content to the daemon. Without the `security_opt` line the container exits at once with the hint about Docker older than 20.10.9.
 
 ### Importing the image with `docker load`
@@ -116,7 +118,8 @@ The profile allows all system calls by default and blocks the dangerous ones tha
 
 On WD My Cloud OS5 nobody starts the Docker daemon at boot: after every reboot `docker ps` fails and the containers stay down, even with `--restart unless-stopped`. Docker has to be started by a WD app, because only apps get a start script that the firmware runs at boot.
 
-- **Easiest:** install a community Docker app for OS5 (WDCommunity `wdpksrc`, "docker" package for My Cloud OS5, Docker 20.10.x). We have not verified it on a real NAS. Docker 20.10.9 or newer needs no seccomp profile.
+- **Ready-made apps (verified):** an unofficial build guide and script for apps that start Docker (19.03.8 or 29.9.3) and Portainer at boot, including the bundled images, is in the discussion [Docker + Portainer app for WD My Cloud OS5](https://github.com/opencloudtouch/opencloudtouch/discussions/644). Create the Portainer admin user within 5 minutes after its first start, otherwise Portainer locks itself until you restart the container. If such an app is installed but Docker or Portainer does not come up, read its start log in a browser at `http://<NAS>/<app folder name>/startup.log`.
+- **Alternative:** install a community Docker app for OS5 (WDCommunity `wdpksrc`, "docker" package for My Cloud OS5, Docker 20.10.x). We have not verified it on a real NAS. Docker 20.10.9 or newer needs no seccomp profile.
 - **Docker 19.03.x:** the app's `start.sh` must do what you would do by hand. It was verified on a My Cloud EX2 Ultra with firmware 5.x:
   1. wait until the cgroup mounts `memory`, `devices`, `cpu`, `cpuacct` and `pids` exist under `/sys/fs/cgroup` (at boot they appear a little after the apps start, so wait up to about two minutes);
   2. load the kernel modules Docker's bridge network needs from `/usr/local/modules/driver/`: `nf_nat`, `nf_nat_ipv4`, `nf_nat_masquerade_ipv4`, `xt_addrtype`, `xt_nat`, `ipt_MASQUERADE`, `iptable_nat`, `llc`, `stp`, `bridge`, `br_netfilter` (`insmod`, skip the ones already loaded);
@@ -124,7 +127,6 @@ On WD My Cloud OS5 nobody starts the Docker daemon at boot: after every reboot `
 
   Keep the data root on the data volume, not in the firmware partition. The `vfs` storage driver needs more disk space than `overlay2` but works on this kernel. The `stop.sh` of the app should only stop the daemon and never delete the data root.
 - **Docker 28 or newer:** the same steps, plus start `dockerd` with `--allow-direct-routing`. Docker 28 adds an iptables `raw` table rule for every container, this firmware kernel has no `raw` table, and without the flag no container can start ("Unable to enable DIRECT ACCESS FILTERING"). The flag has one consequence: published ports also answer on the container address from the local network segment, as in Docker 27 and older. Verified with Docker 29.9.3 and OpenCloudTouch; it needs no seccomp profile.
-- **Ready-made apps:** an unofficial build guide and script for apps that start Docker (19.03.8 or 29.9.3) and Portainer at boot, including the bundled images, is in the discussion [Docker + Portainer app for WD My Cloud OS5](https://github.com/opencloudtouch/opencloudtouch/discussions/644). If such an app is installed but Docker or Portainer does not come up, read its start log in a browser at `http://<NAS>/<app folder name>/startup.log`.
 - **Uninstall:** removing the app only unregisters it, so the app's `remove.sh` has to delete the data root, the Docker bridge, the mounts and the firewall rules and chains Docker created. Kernel modules and the `FORWARD` policy that Docker sets to `DROP` come back to normal only after a reboot.
 - **Verify:** reboot the NAS and wait about a minute. `docker ps` should list your containers as `Up`, and the OCT web interface should open without any manual step. In the verified setup the Docker API was ready about 40 seconds after boot.
 
@@ -136,6 +138,7 @@ An app is also a clean place for the hook: it shows up under Apps, where you can
 2. Match the container log:
    - `library self-test passed`: the image works, look elsewhere (network mode, ports).
    - `library self-test failed` with the hint about Docker older than 20.10.9: update Docker or use the profile above.
+   - `docker run` or the stack fails before the container starts with `Unable to enable DIRECT ACCESS FILTERING`: Docker 28 or newer on the WD My Cloud OS5 firmware needs the daemon option `--allow-direct-routing`, see [Starting Docker automatically after a NAS reboot](#starting-docker-automatically-after-a-nas-reboot).
    - `OCT_SKIP_PAGE_SIZE_CHECK=1 is set`: the self-test was skipped on purpose, remove the variable unless you know you need it.
 3. Try the fix from step 2 (Docker update or the profile) and restart the container.
 4. Still failing? Open a [bug report](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml) and attach: the output of step 1, the full container log (`docker logs <container>`), your `docker run` or Compose settings without secrets, and the device model. Do not include tokens, passwords or personal data.
