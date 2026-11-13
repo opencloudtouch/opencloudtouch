@@ -161,7 +161,7 @@ else
     chmod 750 $DataPath $LogPath 2>/dev/null || true
 fi
 
-if [ "\$ClearDatabase" = "True" ]; then
+if [ "`$ClearDatabase" = "True" ]; then
     echo "[>] Clearing database..."
     if [ "$UseSudo" = "True" ]; then
         sudo rm -f $DataPath/oct.db
