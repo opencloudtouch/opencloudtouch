@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_No changes yet._
+
+---
+
+## [2.0.1] - 2026-11-13
+
 ### Added
 - The `linux/arm/v7` image now starts on ARM NAS devices with a 32 KB memory page size (for example WD My Cloud EX2 Ultra): Debian runtime libraries are rebuilt with 64 KB segment alignment and the entrypoint runs a library self-test instead of rejecting 32 KB kernels. Docker 20.10.9 or newer needs no setting; Docker 19.03.x needs the seccomp profile `seccomp-legacy-docker.json` (attached to every release)
 - CI scans the final arm/v7 image for ELF segments that are unsafe on 32 KB pages and runs a QEMU smoke test
