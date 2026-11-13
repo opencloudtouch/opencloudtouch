@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Scan a container root filesystem for ELF objects that are unsafe on kernels
-with a page size larger than 4 KB (e.g. 32 KB on some ARMv7 NAS kernels).
+"""Scan a container root filesystem tarball for ELF objects that are unsafe on
+kernels with a page size larger than 4 KB (e.g. 32 KB on some ARMv7 NAS kernels).
 
 Why: the dynamic loader refuses to map a PT_LOAD segment unless
 (p_vaddr - p_offset) is a multiple of the runtime page size ("ELF load command
@@ -15,29 +15,18 @@ Rules (per PT_LOAD segment):
 
 ELF files are detected by magic bytes, not by file name. Symlinks are skipped.
 
-Input (extracted content is untrusted data; it is only read, never executed):
-  --dir ROOT            an already extracted root filesystem
-  --tar T [T ...]       layer / export tarballs (optionally gzip), applied in
-                        order, including whiteouts; nothing is written to disk
-                        (e.g. the output of `docker export`, or OCI layers)
+Input: one or more tarballs (optionally gzip), applied in order including
+whiteouts, e.g. the output of `docker export`. Extracted content is untrusted
+data; it is only read, never executed, and nothing is written to disk.
 
-Optional:
-  --base-json FILE      JSON of an earlier scan of the base image; objects whose
-                        path exists in the base are marked as in_base (they may
-                        still have been upgraded; compare sha256 in the JSON)
-  --json FILE           write machine-readable results
-  --markdown FILE       write a full result table (all ELF files)
-  --all                 print all ELF files, not only failing ones
+Usage: python3 -I scripts/elf_pagesize_scan.py --tar image.tar [--label NAME]
 
 Exit code: 1 if any hard failure was found, 0 otherwise.
 
 Requires: Python 3 and pyelftools (pip install pyelftools).
-Run with `python3 -I scripts/elf_pagesize_scan.py ...` on untrusted data.
 """
 import argparse
-import hashlib
 import io
-import json
 import os
 import sys
 import tarfile
@@ -60,8 +49,6 @@ def analyze(data):
             for s in elf.iter_segments()
             if s["p_type"] == "PT_LOAD"
         ]
-        info = {"machine": elf["e_machine"], "type": elf["e_type"],
-                "class": elf.elfclass}
     except (ELFError, KeyError, OSError, ValueError, AssertionError):
         return None
     if not loads:
@@ -75,15 +62,8 @@ def analyze(data):
             reasons.append(f"p_align=0x{align:x}")
         if align < CONSERVATIVE:
             cons = True
-    info.update(
-        hard_fail=bool(reasons),
-        conservative_fail=cons,
-        reasons=sorted(set(reasons)),
-        min_align=min(a for _, _, a in loads),
-        sha256=hashlib.sha256(data).hexdigest(),
-        size=len(data),
-    )
-    return info
+    return {"hard_fail": bool(reasons), "conservative_fail": cons,
+            "reasons": sorted(set(reasons))}
 
 
 def norm(path):
@@ -97,7 +77,8 @@ def owner_key(path):
 
 
 def collect_tar(tars):
-    elfs, small, hard = {}, {}, {}
+    """Return the ELF analyses by path and the dpkg file lists by path."""
+    elfs, lists = {}, {}
     for tpath in tars:
         with tarfile.open(tpath, "r|*") as tf:
             for m in tf:
@@ -127,90 +108,40 @@ def collect_tar(tars):
                     res = analyze(head + f.read())
                     if res:
                         elfs[p] = res
-                elif (p.startswith("/var/lib/dpkg/info/") and p.endswith(".list")
-                      or p == "/lib/apk/db/installed"):
-                    small[p] = (head + f.read()).decode("utf-8", "replace")
-    return elfs, small
+                elif p.startswith("/var/lib/dpkg/info/") and p.endswith(".list"):
+                    lists[p] = (head + f.read()).decode("utf-8", "replace")
+    return elfs, lists
 
 
-def collect_dir(root):
-    elfs, small = {}, {}
-    for dp, _, files in os.walk(root):
-        for fn in files:
-            full = os.path.join(dp, fn)
-            if os.path.islink(full) or not os.path.isfile(full):
-                continue
-            p = "/" + os.path.relpath(full, root).replace(os.sep, "/")
-            try:
-                with open(full, "rb") as f:
-                    head = f.read(4)
-                    if head == ELF_MAGIC:
-                        res = analyze(head + f.read())
-                        if res:
-                            elfs[p] = res
-                    elif (p.startswith("/var/lib/dpkg/info/") and p.endswith(".list")
-                          or p == "/lib/apk/db/installed"):
-                        small[p] = (head + f.read()).decode("utf-8", "replace")
-            except OSError:
-                pass
-    return elfs, small
-
-
-def owners(small):
+def owners(lists):
+    """Map file path to the dpkg package that owns it."""
     own = {}
-    for p, text in small.items():
-        if p.endswith(".list"):
-            pkg = os.path.basename(p)[:-5].split(":")[0]
-            for line in text.splitlines():
-                own.setdefault(owner_key(line.strip()), pkg)
-        else:  # apk database
-            pkg, d = None, ""
-            for line in text.splitlines():
-                if line.startswith("P:"):
-                    pkg = line[2:]
-                elif line.startswith("F:"):
-                    d = line[2:]
-                elif line.startswith("R:") and pkg:
-                    own.setdefault(owner_key("/" + (d + "/" if d else "") + line[2:]), pkg)
+    for p, text in lists.items():
+        pkg = os.path.basename(p)[:-5].split(":")[0]
+        for line in text.splitlines():
+            own.setdefault(owner_key(line.strip()), pkg)
     return own
 
 
-def origin(path, pkg, in_base):
+def origin(path, pkg):
     if "/site-packages/" in path or "/dist-packages/" in path:
         return "bundled wheel lib" if ".libs/" in path else "pip wheel"
-    if pkg:
-        return "distro base" if in_base in (True, None) else "our additions (distro pkg)"
-    if in_base is False:
-        return "our additions (other)"
-    return "unowned (python build / static)"
+    return "distro package" if pkg else "unowned (python build / static)"
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    src = ap.add_mutually_exclusive_group(required=True)
-    src.add_argument("--dir")
-    src.add_argument("--tar", nargs="+")
-    ap.add_argument("--base-json")
-    ap.add_argument("--json")
-    ap.add_argument("--markdown")
-    ap.add_argument("--all", action="store_true")
+    ap.add_argument("--tar", nargs="+", required=True)
     ap.add_argument("--label", default="")
     a = ap.parse_args()
 
-    elfs, small = collect_dir(a.dir) if a.dir else collect_tar(a.tar)
-    own = owners(small)
-    base = None
-    if a.base_json:
-        with open(a.base_json) as f:
-            base = {r["path"]: r["sha256"] for r in json.load(f)["files"]}
+    elfs, lists = collect_tar(a.tar)
+    own = owners(lists)
 
     rows = []
     for p in sorted(elfs):
-        e = elfs[p]
         pkg = own.get(owner_key(p))
-        in_base = None if base is None else (p in base)
-        rows.append({"path": p, "package": pkg, "in_base": in_base,
-                     "origin": origin(p, pkg, in_base), **e})
+        rows.append({"path": p, "package": pkg, "origin": origin(p, pkg), **elfs[p]})
 
     summary = Counter()
     for r in rows:
@@ -227,24 +158,9 @@ def main():
     for g in groups:
         print(f"{g:34} {summary[(g, 'total')]:6} {summary[(g, 'hard')]:6} {summary[(g, 'cons')]:6}")
     for r in rows:
-        if r["hard_fail"] or a.all:
-            print(f"{'HARD' if r['hard_fail'] else 'ok  '} {r['path']} "
-                  f"[{r['package'] or '-'}] {r['origin']} {'; '.join(r['reasons'])}")
-
-    if a.json:
-        with open(a.json, "w") as f:
-            json.dump({"label": a.label, "files": rows,
-                       "summary": {g: {k: summary[(g, k)] for k in ("total", "hard", "cons")}
-                                   for g in groups}}, f, indent=1)
-    if a.markdown:
-        with open(a.markdown, "w") as f:
-            f.write("| file | package | origin | hard-fail | conservative-fail | min p_align | reasons |\n"
-                    "|---|---|---|---|---|---|---|\n")
-            for r in rows:
-                f.write(f"| `{r['path']}` | {r['package'] or ''} | {r['origin']} | "
-                        f"{'yes' if r['hard_fail'] else 'no'} | "
-                        f"{'yes' if r['conservative_fail'] else 'no'} | 0x{r['min_align']:x} | "
-                        f"{'; '.join(r['reasons'])} |\n")
+        if r["hard_fail"]:
+            print(f"HARD {r['path']} [{r['package'] or '-'}] {r['origin']} "
+                  f"{'; '.join(r['reasons'])}")
     return 1 if hard_total else 0
 
 

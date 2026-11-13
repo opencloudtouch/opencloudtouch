@@ -347,7 +347,6 @@ jobs:
   build-docker:
     name: Build Docker Image (${{ matrix.platform }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 360
     if: inputs.action == '' || inputs.action == 'build'
     needs: [docker-security]
 

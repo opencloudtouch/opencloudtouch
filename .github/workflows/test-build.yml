@@ -188,7 +188,6 @@ jobs:
   build-docker:
     name: Build Docker (${{ matrix.platform }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 360
     needs: [validate, build-frontend]
     if: needs.validate.outputs.has_docker == 'true'
 

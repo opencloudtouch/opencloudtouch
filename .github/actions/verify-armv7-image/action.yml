@@ -26,7 +26,6 @@ runs:
         # The tar holds the merged file system (last version of each file), not single layers.
         rc=0
         "$RUNNER_TEMP/venv/bin/python" -I scripts/elf_pagesize_scan.py --tar "$RUNNER_TEMP/image.tar" \
-          --json "$RUNNER_TEMP/scan.json" --markdown "$RUNNER_TEMP/scan.md" \
           --label "$IMAGE" | tee "$RUNNER_TEMP/scan.txt" || rc=$?
         {
           echo "## ELF page-size scan (linux/arm/v7)"
@@ -36,17 +35,6 @@ runs:
         } >> "$GITHUB_STEP_SUMMARY"
         rm -f "$RUNNER_TEMP/image.tar"
         exit "$rc"
-
-    - name: Upload scan results
-      if: always()
-      uses: actions/upload-artifact@v7
-      with:
-        name: armv7-elf-scan-${{ github.run_id }}-${{ github.run_attempt }}
-        path: |
-          ${{ runner.temp }}/scan.json
-          ${{ runner.temp }}/scan.md
-        if-no-files-found: ignore
-        retention-days: 14
 
     - name: Package consistency check in the image
       shell: bash
