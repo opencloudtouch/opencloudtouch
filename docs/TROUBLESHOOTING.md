@@ -114,6 +114,8 @@ Then start the container with the image tag as usual, together with the seccomp 
 
 The profile allows all system calls by default and blocks the dangerous ones that Docker's own profile blocks (mount, ptrace, namespaces, kernel modules, and so on). It is a deny-list: it is weaker than Docker's default allow-list profile but much stronger than `seccomp=unconfined`, and it does not block dangerous system calls that newer kernels add. Use it **only on old kernels (below 5.3)** and only on Docker older than 20.10.9; it is not needed and not recommended on Docker 20.10.9 or newer.
 
+Maintenance: the maintainers review this profile whenever the supported Docker baseline changes.
+
 ### Starting Docker automatically after a NAS reboot
 
 On WD My Cloud OS5 nobody starts the Docker daemon at boot: after every reboot `docker ps` fails and the containers stay down, even with `--restart unless-stopped`. Docker has to be started by a WD app, because only apps get a start script that the firmware runs at boot.
