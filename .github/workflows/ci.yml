@@ -170,6 +170,16 @@ jobs:
 
           echo "PASS: All page size compatibility tests passed."
 
+      - name: Validate legacy seccomp profile
+        run: |
+          python3 - <<'PY'
+          import json
+          p = json.load(open("deployment/seccomp-legacy-docker.json"))
+          rules = [r for r in p["syscalls"] if "clone3" in r["names"]]
+          assert rules and all(r["action"] == "SCMP_ACT_ERRNO" and r["errnoRet"] == 38 for r in rules), "clone3 must return ENOSYS"
+          print("PASS: profile is valid JSON and clone3 returns ENOSYS")
+          PY
+
       - name: Test aligned package version check
         run: |
           # Shims stand in for the Debian tools; STOCK is the installed source version.

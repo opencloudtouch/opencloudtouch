@@ -35,3 +35,13 @@ permanent `zlib` exception and a cross toolchain that can break with every Debia
 - A base image digest bump (or a stage change) means one cold build of about 3.5 hours.
 - If cold builds become frequent (for example a weekly automatic digest bump), revisit option 2; the
   trial branch `ci/armv7-cross-compile-trial` has the working cross build.
+
+- **Security updates for the 14 aligned packages arrive with the base image digest, not through
+  `apt-get upgrade`.** The stage rebuilds each source at the version the pinned base image ships, and the
+  runtime stage holds those packages, so a Debian security fix published after the digest was pinned is not
+  picked up for them until the digest is bumped. All other packages still get `apt-get upgrade`. Two things
+  limit the gap: a cold build fails when the archive no longer serves the pinned source version, which forces
+  a digest bump, and a bump rebuilds the stage. The digest is pinned by hand (Dependabot has no Docker
+  ecosystem entry here), so it must be bumped regularly, for example together with each release. Applying
+  `apt-get upgrade` before the rebuild would not close the gap: the cached stage layer would still be stale
+  until its inputs change, and the rebuilt packages would no longer match the base image's versions.
