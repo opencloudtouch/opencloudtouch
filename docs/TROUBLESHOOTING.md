@@ -51,7 +51,7 @@ Some ARMv7 NAS kernels use 32 KB memory pages instead of the usual 4 KB. The `li
 | Series | Image | Status |
 |--------|-------|--------|
 | Raspberry Pi 2/3 (4 KB pages) | `linux/arm/v7` | Supported; behaviour unchanged |
-| ARM NAS with 32 KB pages, reference device WD My Cloud EX2 Ultra (kernel 4.14) | `linux/arm/v7` | Supported; verification on Docker 20.10.x and 19.03.x: **pending verification** |
+| ARM NAS with 32 KB pages, reference device WD My Cloud EX2 Ultra (kernel 4.14) | `linux/arm/v7` | Supported; verified on Docker 19.03.8 (with the legacy seccomp profile) and Docker 29.9.3 (without a profile, needs `--allow-direct-routing`); Docker 20.10.x not tested |
 | amd64 / arm64 hosts | `linux/amd64`, `linux/arm64` | Supported; unchanged |
 
 Other NAS models are added after feedback in the discussion [NAS compatibility reports](https://github.com/opencloudtouch/opencloudtouch/discussions/637). Raspberry Pi 1 and Zero (ARMv6) are not covered.
