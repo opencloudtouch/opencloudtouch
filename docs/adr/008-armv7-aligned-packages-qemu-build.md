@@ -10,12 +10,12 @@
 
 32 KB page-size ARM NAS kernels need ELF segments aligned to 64 KB. The armv7 image therefore
 rebuilds 14 Debian runtime source packages with `-Wl,-z,max-page-size=0x10000`. Built natively under
-QEMU, a cold run of this stage takes about 3 hours (about 3.5 hours for the whole image).
+QEMU, a cold run takes about 2.5 hours for the whole armv7 build (measured: 2 h 37 min for the test build, 3 to 3.5 hours in earlier runs).
 
 ## Options considered
 
-1. **QEMU build with a GHCR registry cache** (chosen). A warm run skips the stage: the whole armv7
-   image builds in about 4.5 minutes.
+1. **QEMU build with a GHCR registry cache** (chosen). A warm run skips the stage (4 seconds in the log): the
+   armv7 job takes about 19 minutes in the release build, including the image scan and smoke test.
 2. **Cross-compile 13 of the 14 packages** (`dpkg-buildpackage -a armhf` on the build platform), with
    `zlib` still under QEMU because its `minizip` subproject does not link when cross-built. Measured
    cold: package stage 19 minutes, whole image 29 minutes. The resulting image was equivalent: same
@@ -32,7 +32,7 @@ permanent `zlib` exception and a cross toolchain that can break with every Debia
 ## Consequences
 
 - The aligned stage is cached in GHCR (`buildcache-aligned-debs-armv7`); keep that tag.
-- A base image digest bump (or a stage change) means one cold build of about 3.5 hours.
+- A base image digest bump (or a stage change) means one cold build of about 2.5 to 3.5 hours.
 - If cold builds become frequent (for example a weekly automatic digest bump), revisit option 2; the
   trial branch `ci/armv7-cross-compile-trial` has the working cross build.
 
