@@ -160,6 +160,7 @@ jobs:
           run_page_size_test "24576" false "has not been fully validated with OpenCloudTouch" "24KB page size allowed with info"
           run_page_size_test "32768" false "library self-test passed" "32KB page size allowed when the library self-test passes"
           run_page_size_test "32768" true "library self-test failed" "32KB page size rejected when the library self-test fails" "" pyfail
+          run_page_size_test "32768" true "releases/latest/download/seccomp-legacy-docker.json" "32KB failure message links the downloadable seccomp profile" "" pyfail
           run_page_size_test "32768" false "OCT_SKIP_PAGE_SIZE_CHECK=1 is set" "32KB page size allowed with skip override" 1 pyfail
           run_page_size_test "32768" true "library self-test failed" "32KB page size still rejected when skip is not 1" 0 pyfail
           run_page_size_test "65536" false "has not been fully validated with OpenCloudTouch" "64KB page size allowed with info"
