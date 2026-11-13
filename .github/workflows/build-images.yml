@@ -400,6 +400,18 @@ jobs:
           SIG=$(echo -n "$VERSION" | openssl dgst -sha256 -hmac "${{ secrets.BUILD_SIGNING_KEY }}" | awk '{print $NF}' | cut -c1-16)
           echo "signature=$SIG" >> $GITHUB_OUTPUT
 
+      - name: Build aligned-debs stage (cached in GHCR)
+        if: matrix.platform == 'linux/arm/v7'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deployment/Dockerfile
+          target: aligned-debs
+          platforms: linux/arm/v7
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-aligned-debs-armv7
+          cache-to: type=registry,mode=max,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-aligned-debs-armv7
+          outputs: type=cacheonly
+
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v7
@@ -413,9 +425,17 @@ jobs:
           build-contexts: |
             frontend-build=frontend-ctx
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=build-${{ matrix.platform }}
+          cache-from: |
+            type=gha,scope=build-${{ matrix.platform }}
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-aligned-debs-armv7
           cache-to: type=gha,mode=max,scope=build-${{ matrix.platform }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true
+
+      - name: Verify armv7 image (ELF page-size scan, smoke test)
+        if: matrix.platform == 'linux/arm/v7'
+        uses: ./.github/actions/verify-armv7-image
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
 
       - name: Export digest
         run: |

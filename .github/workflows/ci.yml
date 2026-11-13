@@ -95,8 +95,15 @@ jobs:
             EXPECT_REJECT="$2"
             EXPECTED_TEXT="$3"
             LABEL="$4"
+            SKIP="${5:-}"
+            PYFAIL="${6:-}"
 
             mkdir -p /tmp/fakebin
+            rm -f /tmp/fakebin/python
+            if [ "$PYFAIL" = "pyfail" ]; then
+              printf '#!/bin/sh\necho "ImportError: boom" >&2\nexit 1\n' > /tmp/fakebin/python
+              chmod +x /tmp/fakebin/python
+            fi
             mkdir -p /tmp/oct-data
 
             cat > /tmp/fakebin/getconf <<EOF
@@ -113,6 +120,7 @@ jobs:
             set +e
             OUTPUT=$(
               PATH="/tmp/fakebin:$PATH" \
+              OCT_SKIP_PAGE_SIZE_CHECK="$SKIP" \
               OCT_PORT=7777 \
               OCT_LOG_LEVEL=INFO \
               OCT_DB_PATH=/tmp/oct-data/oct.db \
@@ -137,10 +145,13 @@ jobs:
               fi
             fi
 
-            if [ -n "$EXPECTED_TEXT" ] && ! echo "$OUTPUT" | grep -q "$EXPECTED_TEXT"; then
-              echo "ERROR: Expected output not found: $EXPECTED_TEXT"
-              exit 1
-            fi
+            # Several expected texts can be given, separated by |; all must appear.
+            IFS='|'; for TEXT in $EXPECTED_TEXT; do
+              if ! echo "$OUTPUT" | grep -q "$TEXT"; then
+                echo "ERROR: Expected output not found: $TEXT"
+                exit 1
+              fi
+            done; unset IFS
 
             echo "PASS: $LABEL"
           }
@@ -150,13 +161,53 @@ jobs:
           run_page_size_test "12288" false "has not been fully validated with OpenCloudTouch" "12KB page size allowed with info"
           run_page_size_test "16384" false "has not been fully validated with OpenCloudTouch" "16KB page size allowed with info"
           run_page_size_test "24576" false "has not been fully validated with OpenCloudTouch" "24KB page size allowed with info"
-          run_page_size_test "32768" true "32768-byte page size" "32KB page size rejected"
+          run_page_size_test "32768" false "library self-test passed" "32KB page size allowed when the library self-test passes"
+          run_page_size_test "32768" true "library self-test failed|ImportError: boom|On Docker older than 20.10.9|On Docker 20.10.9 or newer|seccomp-legacy-docker.json" "32KB page size rejected when the library self-test fails, with the error and both causes" "" pyfail
+          run_page_size_test "32768" false "OCT_SKIP_PAGE_SIZE_CHECK=1 is set" "32KB page size allowed with skip override" 1 pyfail
+          run_page_size_test "32768" true "library self-test failed" "32KB page size still rejected when skip is not 1" 0 pyfail
           run_page_size_test "65536" false "has not been fully validated with OpenCloudTouch" "64KB page size allowed with info"
           run_page_size_test "131072" false "has not been fully validated with OpenCloudTouch" "128KB page size allowed with info"
           run_page_size_test "" false "Unable to determine system page size" "Empty page size handled with warning"
           run_page_size_test "abc" false "Unable to determine system page size" "Non-numeric page size handled with warning"
 
           echo "PASS: All page size compatibility tests passed."
+
+      - name: Validate legacy seccomp profile
+        run: |
+          python3 - <<'PY'
+          import json
+          p = json.load(open("deployment/seccomp-legacy-docker.json"))
+          rules = [r for r in p["syscalls"] if "clone3" in r["names"]]
+          assert rules and all(r["action"] == "SCMP_ACT_ERRNO" and r["errnoRet"] == 38 for r in rules), "clone3 must return ENOSYS"
+          print("PASS: profile is valid JSON and clone3 returns ENOSYS")
+          PY
+
+      - name: Test aligned package version check
+        run: |
+          # Shims stand in for the Debian tools; STOCK is the installed source version.
+          mkdir -p /tmp/shim/debs && touch /tmp/shim/debs/libfoo.deb
+          cat > /tmp/shim/dpkg-deb <<'EOF'
+          #!/bin/sh
+          case "$3" in Package) echo libfoo;; Version) echo "$DEB_VERSION";; esac
+          EOF
+          cat > /tmp/shim/dpkg-query <<'EOF'
+          #!/bin/sh
+          [ -z "$STOCK" ] || printf '%s' "$STOCK"
+          EOF
+          cat > /tmp/shim/dpkg <<'EOF'
+          #!/bin/sh
+          echo "$(basename "$0") $*" >> /tmp/shim/calls
+          EOF
+          cp /tmp/shim/dpkg /tmp/shim/apt-mark
+          chmod +x /tmp/shim/*
+          run() { rm -f /tmp/shim/calls; PATH="/tmp/shim:$PATH" DEB_VERSION="$1" STOCK="$2" sh scripts/install-aligned-debs.sh /tmp/shim/debs; }
+
+          run "1.2-3+oct1" "1.2-3" || { echo "ERROR: matching versions must install"; exit 1; }
+          grep -q "apt-mark hold libfoo" /tmp/shim/calls || { echo "ERROR: package was not held"; exit 1; }
+          if run "1.2-3+oct1" "1.2-4" 2>/dev/null; then echo "ERROR: version mismatch must fail"; exit 1; fi
+          run "1.2-3+oct1" "" || { echo "ERROR: packages not in the image must be skipped"; exit 1; }
+          if [ -e /tmp/shim/calls ]; then echo "ERROR: skipped package must not be installed"; exit 1; fi
+          echo "PASS: aligned package version check"
           
   # ============================================================================
   # COMMIT MESSAGE VALIDATION

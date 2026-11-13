@@ -39,6 +39,7 @@ apps/backend/tests/
 apps/frontend/tests/
 apps/frontend/cypress/
 scripts/
+!scripts/install-aligned-debs.sh
 
 # Documentation
 *.md
