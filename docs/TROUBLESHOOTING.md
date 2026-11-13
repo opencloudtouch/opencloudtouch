@@ -50,7 +50,7 @@ Some ARMv7 NAS kernels use 32 KB memory pages instead of the usual 4 KB. The `li
 
 | Series | Image | Status |
 |--------|-------|--------|
-| Raspberry Pi 2/3 (4 KB pages) | `linux/arm/v7` | Expected to work unchanged: the CI runs a QEMU smoke test of the 4 KB path; not yet verified on a real Raspberry Pi |
+| Raspberry Pi 2/3 (4 KB pages) | `linux/arm/v7` | Supported; behaviour unchanged. Verified on a Raspberry Pi 2 Model B (4 KB pages, Docker 29.9.3): container healthy, no self-test in the log. Raspberry Pi 3 not tested separately |
 | ARM NAS with 32 KB pages, reference device WD My Cloud EX2 Ultra (kernel 4.14) | `linux/arm/v7` | Supported; verified on Docker 19.03.8 (with the legacy seccomp profile) and Docker 29.9.3 (without a profile, needs `--allow-direct-routing`); Docker 20.10.14 worked without a profile in the earlier spike (spike image, not re-tested with the final image) |
 | amd64 / arm64 hosts | `linux/amd64`, `linux/arm64` | Supported; unchanged |
 
