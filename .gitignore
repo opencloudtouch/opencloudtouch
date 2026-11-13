@@ -102,3 +102,6 @@ bugs/
 # === SECRET Files ===
 doc
 memories
+
+# Playwright MCP browser snapshots
+.playwright-mcp/
