@@ -42,7 +42,7 @@ docker exec <container> cat /sys/fs/cgroup/memory.stat  # cgroup v2
 
 See [`deployment/README.md`](../deployment/README.md) (Troubleshooting section) for build-specific issues (SSDP inside containers, SSH errors to a remote deploy target, cache invalidation).
 
-## ARM NAS with a 32 KB page size (WD My Cloud, QNAP)
+## ARM NAS with a 32 KB page size
 
 Some ARMv7 NAS kernels use 32 KB memory pages instead of the usual 4 KB. The `linux/arm/v7` image ships its libraries aligned for 64 KB, so the same image starts on 4 KB, 32 KB and 64 KB kernels. When the entrypoint detects a 32 KB page size it runs a short library self-test and logs `library self-test passed`.
 
@@ -50,7 +50,7 @@ Some ARMv7 NAS kernels use 32 KB memory pages instead of the usual 4 KB. The `li
 
 | Series | Image | Status |
 |--------|-------|--------|
-| Raspberry Pi 2/3 (4 KB pages) | `linux/arm/v7` | Supported; behaviour unchanged |
+| Raspberry Pi 2/3 (4 KB pages) | `linux/arm/v7` | Expected to work unchanged: the CI runs a QEMU smoke test of the 4 KB path; not yet verified on a real Raspberry Pi |
 | ARM NAS with 32 KB pages, reference device WD My Cloud EX2 Ultra (kernel 4.14) | `linux/arm/v7` | Supported; verified on Docker 19.03.8 (with the legacy seccomp profile) and Docker 29.9.3 (without a profile, needs `--allow-direct-routing`); Docker 20.10.x not tested |
 | amd64 / arm64 hosts | `linux/amd64`, `linux/arm64` | Supported; unchanged |
 
@@ -95,6 +95,10 @@ With the ready-made apps below, Portainer keeps its data in the Docker volume `p
 
 **Docker Compose on the command line (no Portainer):** with Docker Compose v2 or newer (a single binary, for example `docker-compose-linux-armv7`), `seccomp=./seccomp-legacy-docker.json` (relative to the Compose file) and an absolute path both work on Docker 19.03.8; Compose reads the file and passes its content to the daemon. Without the `security_opt` line the container exits at once with the hint about Docker older than 20.10.9.
 
+The profile allows all system calls by default and blocks the dangerous ones that Docker's own profile blocks (mount, ptrace, namespaces, kernel modules, and so on). It is a deny-list: it is weaker than Docker's default allow-list profile but much stronger than `seccomp=unconfined`, and it does not block dangerous system calls that newer kernels add. It also makes `clone3` answer `ENOSYS`, so that the C library falls back to `clone`, which the profile filters. Use it **only on old kernels (below 5.3)** and only on Docker older than 20.10.9; it is not needed and not recommended on Docker 20.10.9 or newer.
+
+Maintenance: the maintainers review this profile whenever the supported Docker baseline changes.
+
 ### Importing the image with `docker load`
 
 Use this when `docker pull` is not possible (for example on Docker 19.03.3). On a computer with a current Docker or Podman, in an empty working folder:
@@ -111,10 +115,6 @@ docker load -i opencloudtouch-armv7.tar
 ```
 
 Then start the container with the image tag as usual, together with the seccomp profile. Use a `docker-archive`, not an OCI archive: the OCI format is the one old Docker versions cannot read.
-
-The profile allows all system calls by default and blocks the dangerous ones that Docker's own profile blocks (mount, ptrace, namespaces, kernel modules, and so on). It is a deny-list: it is weaker than Docker's default allow-list profile but much stronger than `seccomp=unconfined`, and it does not block dangerous system calls that newer kernels add. Use it **only on old kernels (below 5.3)** and only on Docker older than 20.10.9; it is not needed and not recommended on Docker 20.10.9 or newer.
-
-Maintenance: the maintainers review this profile whenever the supported Docker baseline changes.
 
 ### Starting Docker automatically after a NAS reboot
 

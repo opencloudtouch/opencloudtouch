@@ -57,7 +57,7 @@ OpenCloudTouch is configured via `OCT_`-prefixed environment variables (case-ins
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `OCT_SKIP_PAGE_SIZE_CHECK` | unset | Set to exactly `1` to skip the library self-test that the entrypoint runs on kernels with a 32 KB page size. Any other value keeps the self-test. Only for troubleshooting, see [Troubleshooting](TROUBLESHOOTING.md#arm-nas-with-a-32-kb-page-size-wd-my-cloud-qnap). |
+| `OCT_SKIP_PAGE_SIZE_CHECK` | unset | Set to exactly `1` to skip the library self-test that the entrypoint runs on kernels with a 32 KB page size. Any other value keeps the self-test. Only for troubleshooting, see [Troubleshooting](TROUBLESHOOTING.md#arm-nas-with-a-32-kb-page-size). |
 
 ## Docker Build Arguments
 
