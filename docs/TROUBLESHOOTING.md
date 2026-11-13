@@ -137,7 +137,7 @@ An app is also a clean place for the hook: it shows up under Apps, where you can
 1. Collect the facts: `getconf PAGE_SIZE`, `uname -a` and `docker version` (client and server).
 2. Match the container log:
    - `library self-test passed`: the image works, look elsewhere (network mode, ports).
-   - `library self-test failed` with the hint about Docker older than 20.10.9: update Docker or use the profile above.
+   - `library self-test failed`: the next log line is the last error Python printed, followed by the two possible causes. On Docker older than 20.10.9 the cause is its default seccomp profile: update Docker or use the profile above. On Docker 20.10.9 or newer it is not: the image cannot load its libraries on this kernel, so report the facts from step 1.
    - `docker run` or the stack fails before the container starts with `Unable to enable DIRECT ACCESS FILTERING`: Docker 28 or newer on the WD My Cloud OS5 firmware needs the daemon option `--allow-direct-routing`, see [Starting Docker automatically after a NAS reboot](#starting-docker-automatically-after-a-nas-reboot).
    - `OCT_SKIP_PAGE_SIZE_CHECK=1 is set`: the self-test was skipped on purpose, remove the variable unless you know you need it.
 3. Try the fix from step 2 (Docker update or the profile) and restart the container.
