@@ -24,7 +24,7 @@ QEMU, a cold run of this stage takes about 3 hours (about 3.5 hours for the whol
 
 ## Decision
 
-Option 1. Releases happen every 4 to 6 weeks, the registry cache does not expire, and the cache is
+Option 1. The registry cache does not expire, and the cache is
 only cold when the base image digest or the stage changes. A cold run in the background costs hours
 only on those rare occasions. Option 2 saves time only on a cold cache, but adds a second stage, a
 permanent `zlib` exception and a cross toolchain that can break with every Debian update.
