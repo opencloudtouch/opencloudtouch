@@ -14,8 +14,13 @@ Tested with SoundTouch 10 (Firmware 0x0939).
 
 import asyncio
 import logging
+import shlex
+import time
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Optional
+from typing import AsyncIterator, Optional, Sequence
+
+from opencloudtouch.core import device_timing
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +68,26 @@ class SoundTouchSSHClient:
         self._connection = None
 
     async def connect(self, timeout: float = 10.0) -> SSHConnectionResult:
+        """Establish the SSH connection and record how long it took."""
+        start = time.perf_counter()
+        try:
+            async with asyncio.timeout(timeout):
+                result = await self._connect()
+        except TimeoutError:
+            error = (
+                f"SSH connection timeout after {timeout}s to {self.host}:{self.port}"
+            )
+            logger.error(error)
+            result = SSHConnectionResult(success=False, error=error)
+        device_timing.record(
+            "ssh_connect",
+            self.host,
+            (time.perf_counter() - start) * 1000,
+            ok=result.success,
+        )
+        return result
+
+    async def _connect(self) -> SSHConnectionResult:
         """
         Establish SSH connection to device.
 
@@ -86,46 +111,64 @@ class SoundTouchSSHClient:
 
             logger.info("Connecting to %s:%s via SSH...", self.host, self.port)
             logger.debug(
-                "SSH params: user=root, timeout=%.1fs, "
+                "SSH params: user=root, "
                 "host_key_algs=[ssh-rsa,rsa-sha2-512,rsa-sha2-256,ssh-dss], "
                 "kex=[dh-group1-sha1,dh-group14-sha1,dh-gex-sha256,ecdh-nistp256], "
-                "ciphers=[aes128-cbc,3des-cbc,aes128-ctr,aes256-ctr]",
-                timeout,
+                "ciphers=[aes128-cbc,3des-cbc,aes128-ctr,aes256-ctr]"
             )
 
             # Connect with no password (SoundTouch root has no password)
             # Enable legacy algorithms for old SoundTouch firmware
             # Type: ignore needed because asyncssh returns _ACMWrapper which mypy can't resolve
-            self._connection = await asyncio.wait_for(  # type: ignore[func-returns-value]
-                asyncssh.connect(  # type: ignore[arg-type]
-                    self.host,
-                    port=self.port,
-                    username="root",
-                    password="",
-                    known_hosts=None,  # Skip host key verification for embedded devices
-                    server_host_key_algs=_SSH_HOST_KEY_ALGS,
-                    kex_algs=_SSH_KEX_ALGS,
-                    encryption_algs=_SSH_ENCRYPTION_ALGS,
-                ),
-                timeout=timeout,
+            self._connection = await asyncssh.connect(  # type: ignore[func-returns-value,arg-type]
+                self.host,
+                port=self.port,
+                username="root",
+                password="",
+                known_hosts=None,  # Skip host key verification for embedded devices
+                server_host_key_algs=_SSH_HOST_KEY_ALGS,
+                kex_algs=_SSH_KEX_ALGS,
+                encryption_algs=_SSH_ENCRYPTION_ALGS,
             )
 
             logger.info("SSH connection established to %s", self.host)
             return SSHConnectionResult(success=True, output="Connected")
 
-        except asyncio.TimeoutError:
-            error = (
-                f"SSH connection timeout after {timeout}s to {self.host}:{self.port}"
-            )
-            logger.error(error)
-            return SSHConnectionResult(success=False, error=error)
+        except TimeoutError:
+            raise  # the deadline set by connect()
         except Exception as e:
             error = f"SSH connection failed to {self.host}:{self.port}: {type(e).__name__}: {e}"
             logger.error(error)
             return SSHConnectionResult(success=False, error=error)
 
     async def execute(self, command: str, timeout: float = 30.0) -> CommandResult:
-        """Execute a command over SSH."""
+        """Execute a command over SSH and record how long it took."""
+        start = time.perf_counter()
+        try:
+            async with asyncio.timeout(timeout):
+                result = await self._execute(command)
+        except TimeoutError:
+            logger.error(
+                "SSH command timeout after %.0fs on %s: %s",
+                timeout,
+                self.host,
+                command[:100],
+            )
+            result = CommandResult(
+                success=False, error=f"Command timeout after {timeout}s"
+            )
+        device_timing.record(
+            "ssh_exec",
+            device_timing.command_label(command),
+            (time.perf_counter() - start) * 1000,
+            host=self.host,
+            ok=result.success,
+            exit=result.exit_code,
+            out_bytes=len(result.output or ""),
+        )
+        return result
+
+    async def _execute(self, command: str) -> CommandResult:
         if not self._connection:
             return CommandResult(
                 success=False, error="Not connected. Call connect() first."
@@ -134,9 +177,7 @@ class SoundTouchSSHClient:
         try:
             logger.debug("SSH exec [%s]: %s", self.host, command)
 
-            result = await asyncio.wait_for(
-                self._connection.run(command), timeout=timeout
-            )
+            result = await self._connection.run(command)
 
             output = result.stdout or ""
             stderr = result.stderr or ""
@@ -160,16 +201,8 @@ class SoundTouchSSHClient:
                 exit_code=exit_code,
             )
 
-        except asyncio.TimeoutError:
-            logger.error(
-                "SSH command timeout after %.0fs on %s: %s",
-                timeout,
-                self.host,
-                command[:100],
-            )
-            return CommandResult(
-                success=False, error=f"Command timeout after {timeout}s"
-            )
+        except TimeoutError:
+            raise  # the deadline set by execute()
         except Exception as e:
             logger.error(
                 "SSH command failed on %s: %s: %s", self.host, type(e).__name__, e
@@ -177,6 +210,63 @@ class SoundTouchSSHClient:
             return CommandResult(
                 success=False, error=f"Command execution failed: {str(e)}"
             )
+
+    async def is_mount_read_only(self, mount_point: str) -> Optional[bool]:
+        """True if ``mount_point`` is mounted read-only, False if read-write, None if unknown.
+
+        The last matching ``/proc/mounts`` line wins (the root file system is listed twice on
+        SoundTouch devices: an rw ``rootfs`` entry and the real read-only ``ubifs`` entry).
+        """
+        result = await self.execute(
+            f"awk -v m={shlex.quote(mount_point)} '$2==m {{o=$4}} END {{print o}}' /proc/mounts"
+        )
+        options = result.output.strip().split("\n")[0].strip() if result.success else ""
+        if not options:
+            return None
+        return "ro" in options.split(",")
+
+    @asynccontextmanager
+    async def write_access(
+        self, mount_points: Sequence[str] = ("/", "/mnt/nv")
+    ) -> AsyncIterator[None]:
+        """Make the given mount points writable for the block and restore their previous mode.
+
+        Only mount points that are currently read-only are remounted, and only those are set back
+        to read-only afterwards. Every write operation on a device (config, hosts, NTP, UUID,
+        remote_services, rename, restore) runs inside this block, so a read-only ``/mnt/nv`` or ``/``
+        can never make a write fail, and the device is left in the state it was found in.
+        """
+        remounted: list[str] = []
+        for mount_point in mount_points:
+            if await self.is_mount_read_only(mount_point):
+                result = await self.execute(
+                    f"mount -o remount,rw {shlex.quote(mount_point)}"
+                )
+                if result.success:
+                    remounted.append(mount_point)
+                else:
+                    logger.warning(
+                        "remount rw of %s failed on %s: %s",
+                        mount_point,
+                        self.host,
+                        result.error or result.output,
+                    )
+        try:
+            yield
+        finally:
+            if remounted:
+                await self.execute("sync")
+            for mount_point in reversed(remounted):
+                result = await self.execute(
+                    f"mount -o remount,ro {shlex.quote(mount_point)}"
+                )
+                if not result.success:
+                    logger.warning(
+                        "remount ro of %s failed on %s: %s",
+                        mount_point,
+                        self.host,
+                        result.error or result.output,
+                    )
 
     async def close(self):
         """Close SSH connection."""

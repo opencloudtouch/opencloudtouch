@@ -258,6 +258,25 @@ class TestCoreEndpointContracts:
         assert "status" in data
 
     @pytest.mark.asyncio
+    async def test_health_reports_uptime_seconds(self, client):
+        """GET /health includes the seconds since server start (About page: running since)."""
+        data = (await client.get("/health")).json()
+        assert isinstance(data["uptime"], int)
+        assert data["uptime"] >= 0
+
+    @pytest.mark.asyncio
+    async def test_health_schema_documents_uptime(self, client):
+        """GET /health must have a typed response schema that includes uptime (Issue #521)."""
+        spec = (await client.get("/openapi.json")).json()
+        schema_ref = spec["paths"]["/health"]["get"]["responses"]["200"]["content"][
+            "application/json"
+        ]["schema"]
+        assert schema_ref == {"$ref": "#/components/schemas/HealthResponse"}
+        props = spec["components"]["schemas"]["HealthResponse"]["properties"]
+        assert props["uptime"]["type"] == "integer"
+        assert {"status", "version", "build", "uptime"} <= set(props)
+
+    @pytest.mark.asyncio
     async def test_openapi_json_available(self, client):
         """GET /openapi.json must return valid OpenAPI spec."""
         response = await client.get("/openapi.json")

@@ -80,6 +80,7 @@ describe("Presets API Service", () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: false,
         json: async () => ({ detail: "Preset number must be 1-6" }),
+        text: async () => JSON.stringify({ detail: "Preset number must be 1-6" }),
       });
 
       vi.stubGlobal("fetch", mockFetch);
@@ -101,6 +102,7 @@ describe("Presets API Service", () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: false,
         json: async () => ({}),
+        text: async () => JSON.stringify({}),
       });
 
       vi.stubGlobal("fetch", mockFetch);
@@ -157,6 +159,7 @@ describe("Presets API Service", () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: false,
         json: async () => ({ detail: "Device not found" }),
+        text: async () => JSON.stringify({ detail: "Device not found" }),
       });
 
       vi.stubGlobal("fetch", mockFetch);
@@ -205,6 +208,7 @@ describe("Presets API Service", () => {
         ok: false,
         status: 404,
         json: async () => ({ detail: "Not found" }),
+        text: async () => JSON.stringify({ detail: "Not found" }),
       });
 
       vi.stubGlobal("fetch", mockFetch);
@@ -219,6 +223,7 @@ describe("Presets API Service", () => {
         ok: false,
         status: 500,
         json: async () => ({ detail: "Internal server error" }),
+        text: async () => JSON.stringify({ detail: "Internal server error" }),
       });
 
       vi.stubGlobal("fetch", mockFetch);
@@ -259,6 +264,7 @@ describe("Presets API Service", () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: false,
         json: async () => ({ detail: "Preset not found" }),
+        text: async () => JSON.stringify({ detail: "Preset not found" }),
       });
 
       vi.stubGlobal("fetch", mockFetch);
@@ -295,6 +301,7 @@ describe("Presets API Service", () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: false,
         json: async () => ({ detail: "Device not found" }),
+        text: async () => JSON.stringify({ detail: "Device not found" }),
       });
 
       vi.stubGlobal("fetch", mockFetch);

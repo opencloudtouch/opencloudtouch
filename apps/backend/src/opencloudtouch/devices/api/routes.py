@@ -5,7 +5,7 @@ CRUD endpoints for device management. Discovery endpoints extracted to discovery
 
 import logging
 from collections.abc import Awaitable
-from typing import Annotated, TypeVar
+from typing import Annotated, Literal, TypeVar
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel, StrictInt
@@ -22,7 +22,6 @@ from opencloudtouch.core.exceptions import (
     DomainValidationError,
 )
 from opencloudtouch.devices.client import NowPlayingInfo
-from opencloudtouch.devices.rename_service import rename_device_via_ssh
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.websocket.icy_worker import RADIO_SOURCES
@@ -72,7 +71,33 @@ async def _device_op(
         ) from e
 
 
-@router.get("")
+class DeviceResponse(BaseModel):
+    """Stored device information, including UUID provenance."""
+
+    id: int | None
+    device_id: str
+    ip: str
+    name: str
+    model: str
+    mac_address: str
+    firmware_version: str
+    schema_version: str
+    last_seen: str | None
+    setup_status: str
+    ssh_permanent: bool
+    setup_completed_at: str | None
+    marge_account_uuid: str | None
+    uuid_source: str
+
+
+class DeviceListResponse(BaseModel):
+    """Response containing all stored devices."""
+
+    count: int
+    devices: list[DeviceResponse]
+
+
+@router.get("", response_model=DeviceListResponse)
 async def get_devices(device_service: DeviceService = Depends(get_device_service)):
     """
     Get all devices from database.
@@ -134,7 +159,7 @@ async def delete_by_device_id(
     return {"message": "Device successfully deleted"}
 
 
-@router.get("/{device_id}")
+@router.get("/{device_id}", response_model=DeviceResponse)
 async def get_device(
     device_id: str, device_service: DeviceService = Depends(get_device_service)
 ):
@@ -295,7 +320,7 @@ async def press_key(
     "/{device_id}/name",
     responses={
         422: {"description": "Invalid name"},
-        502: {"description": "Both REST and SSH rename failed"},
+        502: {"description": "The device did not accept the new name"},
     },
 )
 async def rename_device(
@@ -306,7 +331,7 @@ async def rename_device(
     """
     Rename a SoundTouch device.
 
-    Tries REST API first (POST /name), falls back to SSH if REST fails.
+    Uses the device REST API (POST /name), like the Bose app.
     Updates the local database after successful rename.
 
     Args:
@@ -319,7 +344,7 @@ async def rename_device(
     Raises:
         DeviceNotFoundError: If device does not exist
         HTTPException(422): If name validation fails
-        HTTPException(502): If both REST and SSH methods fail
+        HTTPException(502): If the device does not accept the new name
     """
     name = body.get("name", "").strip()
 
@@ -329,6 +354,10 @@ async def rename_device(
         raise HTTPException(
             status_code=422, detail="Device name must be 30 characters or fewer"
         )
+    if any(ord(c) < 32 or ord(c) == 127 for c in name):
+        raise HTTPException(
+            status_code=422, detail="Device name must not contain control characters"
+        )
 
     device = await device_service.get_device_by_id(device_id)
     if not device:
@@ -336,44 +365,20 @@ async def rename_device(
 
     previous_name = device.name
 
-    # Try REST API first (like Bose App does)
-    rest_error = None
+    # Same call as the Bose app (POST /name). There is deliberately no SSH fallback: editing the device
+    # configuration over SSH risks a broken file and a name that the device does not report back.
     try:
         async with device_service._device_client(device_id) as client:
             await client.set_name(name)
-        logger.info(
-            "Device %r renamed via REST API: %r -> %r",
-            device.device_id,
-            previous_name,
-            name,
-        )
     except Exception as e:
-        rest_error = str(e)
-        logger.warning(
-            "REST API rename failed for %r, trying SSH fallback: %s",
-            device.device_id,
-            e,
-        )
-
-        # Fallback to SSH (for devices that don't support REST /name or are configured)
-        try:
-            await rename_device_via_ssh(device.ip, name)
-            logger.info(
-                "Device %r renamed via SSH fallback: %r -> %r",
-                device.device_id,
-                previous_name,
-                name,
-            )
-        except Exception as ssh_error:
-            logger.exception(
-                "Both REST and SSH rename failed for %r: REST=%s",
-                device.device_id,
-                rest_error,
-            )
-            raise HTTPException(
-                status_code=502,
-                detail="Could not rename device (REST and SSH both failed)",
-            ) from ssh_error
+        logger.exception("Rename of device %r failed", device.device_id)
+        raise HTTPException(status_code=502, detail="Could not rename device") from e
+    logger.info(
+        "Device %r renamed via REST API: %r -> %r",
+        device.device_id,
+        previous_name,
+        name,
+    )
 
     # Update local DB
     device.name = name
@@ -660,6 +665,27 @@ async def set_mute(
         device_service.set_mute(device_id, muted),
     )
     return {"actual": vol.actual, "target": vol.target, "muted": vol.muted}
+
+
+@router.put(
+    "/{device_id}/source",
+    responses={
+        404: {"description": "Device not found"},
+        503: {"description": "Device unreachable"},
+    },
+)
+async def select_source(
+    device_id: str,
+    source: Annotated[Literal["BLUETOOTH", "AUX", "AIRPLAY"], Body(embed=True)],
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+):
+    """Switch the device to an input source (Bluetooth, AUX or AirPlay)."""
+    await _device_op(
+        device_id,
+        "select source",
+        device_service.select_source(device_id, source),
+    )
+    return {"source": source, "device_id": device_id}
 
 
 @router.post(

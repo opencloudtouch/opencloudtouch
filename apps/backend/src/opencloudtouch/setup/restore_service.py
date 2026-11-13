@@ -24,17 +24,47 @@ from opencloudtouch.setup.wizard_helpers import ssh_operation
 
 logger = logging.getLogger(__name__)
 
-# Filename patterns:
-# Modern: soundtouch-{device_id}-{date}-{volume}.tgz
-# Modern pre-restore: soundtouch-{device_id}-{date}-pre-restore-{volume}.tgz
-# Legacy: soundtouch-{volume}.tgz
-_MODERN_RE = re.compile(
-    r"^soundtouch-([A-Za-z0-9]+)-(\d{8})-(pre-restore-)?(rootfs|nv|update)\.tgz$"
+# Path prefix each backup archive must contain. Archives are created by tar without a leading slash
+# (see backup_service._BACKUP_COMMANDS): rootfs lists "opt/...", the nv and update volumes list
+# "mnt/nv/..." and "mnt/update/...".
+_EXPECTED_ARCHIVE_PREFIXES = {
+    "rootfs": "opt/Bose/",
+    "persistent": "mnt/nv/",
+    "update": "mnt/update/",
+    "config": "opt/Bose/",
+}
+
+# BusyBox-compatible awk: prints 1 as soon as an entry starts with the prefix (a leading "./" is ignored), else 0.
+_ARCHIVE_PREFIX_SEARCH_AWK = (
+    r"""awk '{ l = $0; sub(/^\.\//, "", l); if (index(l, "%s") == 1) { found = 1; exit } } """
+    r"""END { print found + 0 }'"""
 )
-_LEGACY_RE = re.compile(r"^soundtouch-(rootfs|nv|update)\.tgz$")
+# Listing a 58 MB rootfs archive on the device can take a while when the prefix is absent or late.
+_ARCHIVE_SCAN_TIMEOUT_SECONDS = 300.0
+
+# Filename patterns:
+# Modern: soundtouch-{device_id}-{date}-{volume}.tar (uncompressed) or .tgz (older, gzip)
+# Modern pre-restore: soundtouch-{device_id}-{date}-pre-restore-{volume}.tar|.tgz
+# Legacy: soundtouch-{volume}.tar|.tgz
+_MODERN_RE = re.compile(
+    r"^soundtouch-([A-Za-z0-9]+)-(\d{8})-(pre-restore-)?(rootfs|nv|update|config)\.(?:tar|tgz)$"
+)
+_LEGACY_RE = re.compile(r"^soundtouch-(rootfs|nv|update|config)\.(?:tar|tgz)$")
+
+
+def _tar_flags(archive_path: str, operation: str) -> str:
+    """tar flags for ``operation`` ("x" extract, "t" list): gzip only for .tgz archives."""
+    gzip = "z" if archive_path.endswith((".tgz", ".tar.gz")) else ""
+    return f"{operation}{gzip}f"
+
 
 # Map filename volume suffix to VolumeType value
-_VOLUME_MAP = {"rootfs": "rootfs", "nv": "persistent", "update": "update"}
+_VOLUME_MAP = {
+    "rootfs": "rootfs",
+    "nv": "persistent",
+    "update": "update",
+    "config": "config",
+}
 
 
 class RestoreService:
@@ -90,7 +120,7 @@ class RestoreService:
 
             # List backup directory
             result = await ssh.execute(
-                "ls /media/sda1/oct-backup/*.tgz 2>/dev/null | xargs -n1 basename"
+                "ls /media/sda1/oct-backup/*.tar /media/sda1/oct-backup/*.tgz 2>/dev/null | xargs -n1 basename"
             )
             if result.exit_code != 0 or not result.output.strip():
                 return []
@@ -109,14 +139,24 @@ class RestoreService:
 
     @staticmethod
     def _group_into_sets(files: list[BackupFileInfo]) -> list:
-        """Group backup files into BackupSets by device_id + date."""
-        groups: dict[tuple, list[BackupFileInfo]] = {}
+        """Group backup files into BackupSets by device_id + date.
+
+        If the same volume exists as plain .tar and as gzip .tgz (the format changed between two
+        backups of the same day), only one file per volume is kept: the .tar is preferred.
+        """
+        groups: dict[tuple, dict[str, BackupFileInfo]] = {}
         for f in files:
             key = (f.device_id, f.backup_date)
-            groups.setdefault(key, []).append(f)
+            per_volume = groups.setdefault(key, {})
+            known = per_volume.get(f.volume_type)
+            if known is None or (
+                f.filename.endswith(".tar") and not known.filename.endswith(".tar")
+            ):
+                per_volume[f.volume_type] = f
 
         sets = []
-        for (device_id, date), group_files in groups.items():
+        for (device_id, date), per_volume in groups.items():
+            group_files = list(per_volume.values())
             sets.append(
                 BackupSet(
                     device_id=device_id,
@@ -171,13 +211,19 @@ class RestoreService:
 
         sets = self._group_into_sets(files)
 
-        # Validate archives in each set
-        async with ssh_operation(device_ip, "validate-archives") as ssh:
-            for backup_set in sets:
-                for file_info in backup_set.files:
-                    await self._validate_archive(ssh, file_info)
-
         selected = self._select_backup_set(sets, device_id)
+
+        # Validate only the archives that would be restored: each check lists a whole archive on
+        # the slow device CPU (about 30 s for the 140 MB rootfs), so the other sets are not read.
+        if selected is not None:
+            has_config_archive = any(f.volume_type == "config" for f in selected.files)
+            async with ssh_operation(device_ip, "validate-archives") as ssh:
+                for file_info in selected.files:
+                    # the restore reads the small config archive instead of the rootfs archive, so the
+                    # 140 MB rootfs archive is not listed (about 30 s) when a config archive exists
+                    if file_info.volume_type == "rootfs" and has_config_archive:
+                        continue
+                    await self._validate_archive(ssh, file_info)
 
         error = None
         if selected is None:
@@ -208,41 +254,32 @@ class RestoreService:
         start = time.time()
         steps: list[RestoreStep] = []
 
-        async with ssh_operation(device_ip, "restore") as ssh:
-            # Remount read-write
-            await ssh.execute("mount -o remount,rw /")
-            await ssh.execute("mount -o remount,rw /mnt/nv")
-
-            try:
-                # Pre-restore snapshot
-                if not skip_snapshot:
-                    step = await self._pre_restore_snapshot(device_ip, device_id)
-                    steps.append(step)
-
-                # Config
-                step = await self._restore_config(ssh, restore_type, backup_set)
+        async with ssh_operation(device_ip, "restore", write=True) as ssh:
+            # ssh_operation(write=True) made / and /mnt/nv writable and restores their previous mode
+            # Pre-restore snapshot
+            if not skip_snapshot:
+                step = await self._pre_restore_snapshot(device_ip, device_id)
                 steps.append(step)
 
-                # Presets
-                step = await self._restore_presets(ssh, restore_type, backup_set)
-                steps.append(step)
+            # Config
+            step = await self._restore_config(ssh, restore_type, backup_set)
+            steps.append(step)
 
-                # Hosts
-                step = await self._restore_hosts(ssh)
-                steps.append(step)
+            # Presets
+            step = await self._restore_presets(ssh, restore_type, backup_set)
+            steps.append(step)
 
-                # NTP
-                step = await self._restore_ntp(ssh)
-                steps.append(step)
+            # Hosts
+            step = await self._restore_hosts(ssh)
+            steps.append(step)
 
-                # Remote services
-                step = await self._remove_remote_services(ssh)
-                steps.append(step)
+            # NTP
+            step = await self._restore_ntp(ssh)
+            steps.append(step)
 
-            finally:
-                # Remount read-only
-                await ssh.execute("mount -o remount,ro /mnt/nv")
-                await ssh.execute("mount -o remount,ro /")
+            # Remote services
+            step = await self._remove_remote_services(ssh)
+            steps.append(step)
 
         # Update setup_status
         if self._device_repo:
@@ -270,18 +307,18 @@ class RestoreService:
                 result = await self._wizard_service.backup_all(device_ip, device_id)
                 if result.get("success"):
                     step.status = StepStatus.COMPLETED
-                    step.message = "Pre-restore snapshot saved"
+                    step.set_message("snapshot_saved", "Pre-restore snapshot saved")
                 else:
                     step.status = StepStatus.FAILED
                     step.message = result.get("message", "Snapshot failed")
                     step.error = step.message
             else:
                 step.status = StepStatus.SKIPPED
-                step.message = "No wizard service available"
+                step.set_message("snapshot_unavailable", "No wizard service available")
         except Exception as e:
             step.status = StepStatus.FAILED
             step.error = str(e)
-            step.message = f"Snapshot failed: {e}"
+            step.set_message("snapshot_failed", f"Snapshot failed: {e}", error=e)
         step.duration_seconds = time.time() - start
         return step
 
@@ -307,11 +344,13 @@ class RestoreService:
                     await ssh.execute(f"rm -f {override}")
 
             step.status = StepStatus.COMPLETED
-            step.message = "Config files restored"
+            step.set_message("config_restored", "Config files restored")
         except Exception as e:
             step.status = StepStatus.FAILED
             step.error = str(e)
-            step.message = f"Config restore failed: {e}"
+            step.set_message(
+                "config_restore_failed", f"Config restore failed: {e}", error=e
+            )
 
         step.duration_seconds = time.time() - start
         return step
@@ -320,12 +359,16 @@ class RestoreService:
         self, ssh, backup_set: dict, override_paths: list[str]
     ) -> None:
         """Extract config files from backup archives on device."""
-        for file_ref in backup_set.get("files", []):
+        files = backup_set.get("files", [])
+        has_config_archive = any(f.get("volume_type") == "config" for f in files)
+        for file_ref in files:
             file_path = file_ref.get("file_path", "")
             vol = file_ref.get("volume_type", "")
-            if vol == "rootfs":
+            # The small config archive is read in about a second; the rootfs archive (the whole 140 MB tar)
+            # only for backups made before the config archive existed.
+            if vol == "config" or (vol == "rootfs" and not has_config_archive):
                 await ssh.execute(
-                    f"tar xzf {file_path} -C / "
+                    f"tar {_tar_flags(file_path, 'x')} {file_path} -C / "
                     "opt/Bose/etc/SoundTouchSdkPrivateCfg.xml 2>/dev/null"
                 )
             elif vol == "persistent":
@@ -337,7 +380,8 @@ class RestoreService:
         """Try extracting overrides from archive; delete if not present."""
         for override in override_paths:
             result = await ssh.execute(
-                f"tar xzf {archive_path} -C / " f"{override.lstrip('/')} 2>/dev/null"
+                f"tar {_tar_flags(archive_path, 'x')} {archive_path} -C / "
+                f"{override.lstrip('/')} 2>/dev/null"
             )
             if result.exit_code != 0:
                 # Not in archive → delete override (OCT created it)
@@ -355,7 +399,9 @@ class RestoreService:
             result = await ssh.execute("find /mnt/nv -name Presets.xml 2>/dev/null")
             if result.exit_code != 0 or not result.output.strip():
                 step.status = StepStatus.SKIPPED
-                step.message = "No Presets.xml found on device (already clean)"
+                step.set_message(
+                    "presets_clean", "No Presets.xml found on device (already clean)"
+                )
                 step.duration_seconds = time.time() - start
                 return step
 
@@ -371,11 +417,17 @@ class RestoreService:
                 await self._write_empty_presets(ssh, preset_path)
 
             step.status = StepStatus.COMPLETED
-            step.message = f"Presets restored at {preset_path}"
+            step.set_message(
+                "presets_restored",
+                f"Presets restored at {preset_path}",
+                path=preset_path,
+            )
         except Exception as e:
             step.status = StepStatus.FAILED
             step.error = str(e)
-            step.message = f"Preset restore failed: {e}"
+            step.set_message(
+                "presets_restore_failed", f"Preset restore failed: {e}", error=e
+            )
 
         step.duration_seconds = time.time() - start
         return step
@@ -389,7 +441,8 @@ class RestoreService:
                 continue
             file_path = file_ref.get("file_path", "")
             r = await ssh.execute(
-                f"tar xzf {file_path} -C / " f"{preset_path.lstrip('/')} 2>/dev/null"
+                f"tar {_tar_flags(file_path, 'x')} {file_path} -C / "
+                f"{preset_path.lstrip('/')} 2>/dev/null"
             )
             if r.exit_code == 0:
                 return True
@@ -414,13 +467,16 @@ class RestoreService:
             if result.exit_code != 0:
                 step.status = StepStatus.FAILED
                 step.error = "Failed to read /etc/hosts"
+                step.set_message("hosts_read_failed", "Failed to read /etc/hosts")
                 step.duration_seconds = time.time() - start
                 return step
 
             content = result.output
             if "# OCT-START" not in content:
                 step.status = StepStatus.SKIPPED
-                step.message = "No OCT block found in /etc/hosts (already clean)"
+                step.set_message(
+                    "hosts_clean", "No OCT block found in /etc/hosts (already clean)"
+                )
                 step.duration_seconds = time.time() - start
                 return step
 
@@ -446,11 +502,13 @@ class RestoreService:
             await ssh.execute(f"echo '{b64}' | base64 -d > /etc/hosts")
 
             step.status = StepStatus.COMPLETED
-            step.message = "OCT block removed from /etc/hosts"
+            step.set_message("hosts_restored", "OCT block removed from /etc/hosts")
         except Exception as e:
             step.status = StepStatus.FAILED
             step.error = str(e)
-            step.message = f"Hosts restore failed: {e}"
+            step.set_message(
+                "hosts_restore_failed", f"Hosts restore failed: {e}", error=e
+            )
 
         step.duration_seconds = time.time() - start
         return step
@@ -469,7 +527,7 @@ class RestoreService:
             )
             if "missing" in (check.output or ""):
                 step.status = StepStatus.SKIPPED
-                step.message = "No NTP backup found (already clean)"
+                step.set_message("ntp_no_backup", "No NTP backup found (already clean)")
                 step.duration_seconds = time.time() - start
                 return step
 
@@ -479,16 +537,16 @@ class RestoreService:
             if result.exit_code != 0:
                 step.status = StepStatus.FAILED
                 step.error = "Failed to restore /etc/ntpservers.txt from backup"
-                step.message = step.error
+                step.set_message("ntp_copy_failed", step.error)
                 step.duration_seconds = time.time() - start
                 return step
 
             step.status = StepStatus.COMPLETED
-            step.message = "NTP servers restored from backup"
+            step.set_message("ntp_restored", "NTP servers restored from backup")
         except Exception as e:
             step.status = StepStatus.FAILED
             step.error = str(e)
-            step.message = f"NTP restore failed: {e}"
+            step.set_message("ntp_restore_failed", f"NTP restore failed: {e}", error=e)
 
         step.duration_seconds = time.time() - start
         return step
@@ -501,11 +559,17 @@ class RestoreService:
         try:
             await ssh.execute("rm -f /mnt/nv/remote_services")
             step.status = StepStatus.COMPLETED
-            step.message = "/mnt/nv/remote_services deleted"
+            step.set_message(
+                "remote_services_deleted", "/mnt/nv/remote_services deleted"
+            )
         except Exception as e:
             step.status = StepStatus.FAILED
             step.error = str(e)
-            step.message = f"Failed to remove remote_services: {e}"
+            step.set_message(
+                "remote_services_failed",
+                f"Failed to remove remote_services: {e}",
+                error=e,
+            )
 
         step.duration_seconds = time.time() - start
         return step
@@ -514,41 +578,53 @@ class RestoreService:
         """Validate a backup archive by checking its contents via tar listing.
 
         Sets file_info.validation_status and validation_message in-place.
+
+        The archive is first checked for being readable and non-empty (first entries only), then searched for
+        the expected path. The search must cover the whole listing: the rootfs archive lists bin/, boot/ and
+        etc/ long before opt/Bose/, so looking at the first entries only produced a false warning.
         """
-        expected_prefixes = {
-            "rootfs": "opt/Bose/",
-            "persistent": "mnt/nv/",
-            "update": "opt/Bose/",
-        }
-        expected = expected_prefixes.get(file_info.volume_type)
+        from opencloudtouch.setup.restore_models import ValidationStatus
+
+        expected = _EXPECTED_ARCHIVE_PREFIXES.get(file_info.volume_type)
         if not expected:
             return
 
         result = await ssh.execute(
-            f"tar tzf {file_info.file_path} 2>/dev/null | head -20"
+            f"tar {_tar_flags(file_info.file_path, 't')} {file_info.file_path} 2>/dev/null | head -5"
         )
         if result.exit_code != 0:
-            from opencloudtouch.setup.restore_models import ValidationStatus
-
             file_info.validation_status = ValidationStatus.INVALID
             file_info.validation_message = "Archive is corrupt or unreadable"
+            file_info.validation_code = "archive_corrupt"
             return
 
-        listing = result.output.strip()
-        if not listing:
-            from opencloudtouch.setup.restore_models import ValidationStatus
-
+        if not result.output.strip():
             file_info.validation_status = ValidationStatus.INVALID
             file_info.validation_message = "Archive is empty"
+            file_info.validation_code = "archive_empty"
             return
 
-        if not any(line.startswith(expected) for line in listing.split("\n")):
-            from opencloudtouch.setup.restore_models import ValidationStatus
+        # Stops at the first match (tar then ends on SIGPIPE), so matching archives are fast.
+        found = await ssh.execute(
+            f"tar {_tar_flags(file_info.file_path, 't')} {file_info.file_path} 2>/dev/null | "
+            + _ARCHIVE_PREFIX_SEARCH_AWK % expected,
+            timeout=_ARCHIVE_SCAN_TIMEOUT_SECONDS,
+        )
+        if not found.success:
+            file_info.validation_status = ValidationStatus.WARNING
+            file_info.validation_message = (
+                "Archive contents could not be verified (scan failed or timed out)"
+            )
+            file_info.validation_code = "archive_unverified"
+            return
 
+        if found.output.strip() != "1":
             file_info.validation_status = ValidationStatus.WARNING
             file_info.validation_message = (
                 f"Expected paths starting with {expected} not found in archive"
             )
+            file_info.validation_code = "archive_path_missing"
+            file_info.validation_params = {"expected": expected}
 
     async def _reboot_device(self, ssh) -> RestoreStep:
         """Reboot the device via SSH."""
@@ -564,11 +640,11 @@ class RestoreService:
                 pass
 
             step.status = StepStatus.COMPLETED
-            step.message = "Reboot command sent"
+            step.set_message("reboot_sent", "Reboot command sent")
         except Exception as e:
             step.status = StepStatus.FAILED
             step.error = str(e)
-            step.message = f"Reboot failed: {e}"
+            step.set_message("reboot_failed", f"Reboot failed: {e}", error=e)
 
         step.duration_seconds = time.time() - start
         return step

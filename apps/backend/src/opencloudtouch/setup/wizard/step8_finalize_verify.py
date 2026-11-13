@@ -154,6 +154,10 @@ class Step8FinalizeVerifyMixin:
             return {"success": False, "error": _ERR_DEVICE_REPO_UNAVAILABLE}
 
         try:
+            # Do not write to the speaker if its discovered DB row was removed.
+            if await self._device_repo.get_by_device_id(device_id) is None:
+                raise ValueError(f"Device not found in database: {device_id}")
+
             # 1. UUID handling with collision detection
             uuid_result = await ensure_account_uuid_unique(
                 device_ip=device_ip,
@@ -176,7 +180,9 @@ class Step8FinalizeVerifyMixin:
 
             # Persist UUID to DB
             await self._device_repo.update_marge_account_uuid(
-                device_id, uuid_result.uuid
+                device_id,
+                uuid_result.uuid,
+                uuid_source=uuid_result.uuid_source,
             )
 
             uuid_was_collision = not uuid_result.had_uuid and uuid_result.uuid != ""
@@ -185,8 +191,7 @@ class Step8FinalizeVerifyMixin:
             device_name, _has_bluetooth = await self._fetch_device_info(device_ip)
 
             # 3. SSH operations: Sources.xml + SystemConfigurationDB.xml
-            async with ssh_operation(device_ip, "finalize") as ssh:
-                await ssh.execute("mount -o remount,rw /")
+            async with ssh_operation(device_ip, "finalize", write=True) as ssh:
                 try:
                     # Force-write Sources.xml (backup existing, hardware-tailored)
                     sources_result = await force_write_sources_xml(
@@ -210,13 +215,13 @@ class Step8FinalizeVerifyMixin:
                     verification = await self._verify_sys_config(ssh, uuid_result.uuid)
                 finally:
                     await ssh.execute("sync")
-                    await ssh.execute("mount -o remount,ro /")
 
             return {
                 "success": True,
                 "uuid": uuid_result.uuid,
                 "had_uuid": uuid_result.had_uuid,
                 "uuid_was_collision": uuid_was_collision,
+                "uuid_source": uuid_result.uuid_source,
                 "sources_written": sources_result.success,
                 "sources_backup_path": sources_result.backup_path,
                 "system_config_written": sys_config_written,
@@ -766,6 +771,7 @@ async def wizard_finalize(
         uuid=result.get("uuid", ""),
         had_uuid=result.get("had_uuid", False),
         uuid_was_collision=result.get("uuid_was_collision", False),
+        uuid_source=result.get("uuid_source", "unknown"),
         sources_written=result.get("sources_written", False),
         sources_backup_path=result.get("sources_backup_path", ""),
         system_config_written=result.get("system_config_written", False),

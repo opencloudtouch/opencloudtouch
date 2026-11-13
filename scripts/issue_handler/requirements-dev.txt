@@ -1,5 +1,0 @@
--r requirements.txt
-pytest>=9.0
-pytest-cov
-ruff
-mypy

@@ -9,6 +9,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException
 
+from opencloudtouch.core import device_timing
 from opencloudtouch.core.dependencies import RestoreServiceDep
 from opencloudtouch.setup.api_models import (
     BackupFileInfoResponse,
@@ -48,6 +49,8 @@ def _backup_set_to_response(bs):
                     else f.validation_status
                 ),
                 validation_message=f.validation_message,
+                validation_code=f.validation_code,
+                validation_params=f.validation_params,
             )
             for f in bs.files
         ],
@@ -70,7 +73,8 @@ async def wizard_scan_backups(
         "Scanning backups on %s for device %s", request.device_ip, request.device_id
     )
     try:
-        result = await restore.scan_backups(request.device_ip, request.device_id)
+        with device_timing.operation("scan-backups", host=request.device_ip):
+            result = await restore.scan_backups(request.device_ip, request.device_id)
         return ScanBackupsResponse(
             usb_mounted=result.usb_mounted,
             backup_dir=result.backup_dir,
@@ -110,13 +114,16 @@ async def wizard_restore_wizard(
                     for f in request.backup_set.files
                 ],
             }
-        result = await restore.execute_restore(
-            device_ip=request.device_ip,
-            device_id=request.device_id,
-            restore_type=request.restore_type,
-            backup_set=backup_set_dict,
-            skip_snapshot=request.skip_snapshot,
-        )
+        with device_timing.operation(
+            f"restore-{request.restore_type}", host=request.device_ip
+        ):
+            result = await restore.execute_restore(
+                device_ip=request.device_ip,
+                device_id=request.device_id,
+                restore_type=request.restore_type,
+                backup_set=backup_set_dict,
+                skip_snapshot=request.skip_snapshot,
+            )
         return RestoreWizardResponse(
             success=result.success,
             restore_type=result.restore_type,
@@ -125,6 +132,8 @@ async def wizard_restore_wizard(
                     name=s.name.value if hasattr(s.name, "value") else s.name,
                     status=s.status.value if hasattr(s.status, "value") else s.status,
                     message=s.message,
+                    message_code=s.message_code,
+                    message_params=s.message_params,
                     error=s.error,
                     duration_seconds=s.duration_seconds,
                 )

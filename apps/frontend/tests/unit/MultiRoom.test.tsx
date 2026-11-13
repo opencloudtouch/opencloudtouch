@@ -197,6 +197,22 @@ describe("MultiRoom - Zone Creation", () => {
     expect(mockCreateZone).toHaveBeenCalledWith("ST10-001", ["ST30-002"]);
   });
 
+  test("a failed zone creation is a toast and keeps the device list (no list error box)", async () => {
+    const user = userEvent.setup();
+    mockCreateZone.mockRejectedValueOnce(new Error("Simulated failure: zone could not be created"));
+    render(<MultiRoom devices={mockDevices} />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[0]!);
+    await user.click(checkboxes[1]!);
+    await user.click(screen.getByRole("button", { name: /Create Zone/i }));
+
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith("Zone could not be created", "error"));
+    expect(screen.queryByText(/Error loading/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Simulated failure/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole("checkbox")).toHaveLength(checkboxes.length);
+  });
+
   test("should allow deselecting devices", async () => {
     const user = userEvent.setup();
     render(<MultiRoom devices={mockDevices} />);
@@ -280,8 +296,20 @@ describe("MultiRoom - Zone Management", () => {
     const dissolveButton = screen.getByRole("button", { name: /Dissolve/i });
     await user.click(dissolveButton);
 
-    // Should show confirmation
-    expect(screen.getByRole("button", { name: /Really dissolve/i })).toBeInTheDocument();
+    // Should show a confirmation dialog and not dissolve yet
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    expect(mockDissolveZone).not.toHaveBeenCalled();
+  });
+
+  test("should keep the zone when the dissolve dialog is cancelled", async () => {
+    const user = userEvent.setup();
+    render(<MultiRoom devices={mockDevices} />);
+
+    await user.click(screen.getByRole("button", { name: /Dissolve/i }));
+    await user.click(screen.getByTestId("confirm-dialog-cancel"));
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(mockDissolveZone).not.toHaveBeenCalled();
   });
 
   test("should call dissolveZone API on confirmation", async () => {
@@ -291,7 +319,7 @@ describe("MultiRoom - Zone Management", () => {
     const dissolveButton = screen.getByRole("button", { name: /Dissolve/i });
     await user.click(dissolveButton);
 
-    const confirmButton = screen.getByRole("button", { name: /Really dissolve/i });
+    const confirmButton = screen.getByTestId("confirm-dialog-confirm");
     await user.click(confirmButton);
 
     expect(mockDissolveZone).toHaveBeenCalledWith("ST10-001");
@@ -310,6 +338,29 @@ describe("MultiRoom - Zone Management", () => {
       expect(screen.getByRole("button", { name: /Update Zone/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
     });
+  });
+
+  test("a failed zone update says 'could not be updated' (not 'created')", async () => {
+    const user = userEvent.setup();
+    mockAddMembers.mockRejectedValueOnce(new Error("Simulated failure"));
+    mockRemoveMembers.mockRejectedValueOnce(new Error("Simulated failure"));
+    render(<MultiRoom devices={mockDevices} />);
+
+    await user.click(screen.getByRole("button", { name: /Edit/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /Update Zone/i })).toBeInTheDocument());
+    for (const box of screen.getAllByRole("checkbox")) {
+      if (!(box as HTMLInputElement).checked && !(box as HTMLInputElement).disabled) await user.click(box);
+    }
+    for (const box of screen.getAllByRole("checkbox")) {
+      if ((box as HTMLInputElement).checked && !(box as HTMLInputElement).disabled && screen.getAllByRole("checkbox").filter((b) => (b as HTMLInputElement).checked).length > 2) {
+        await user.click(box);
+        break;
+      }
+    }
+    await user.click(screen.getByRole("button", { name: /Update Zone/i }));
+
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith("Zone could not be updated", "error"));
+    expect(mockShowToast).not.toHaveBeenCalledWith("Zone could not be created", "error");
   });
 
   test("should disable devices already in a different zone", () => {
@@ -482,7 +533,7 @@ describe("MultiRoom - Toast Notifications (STORY-1008)", () => {
     const dissolveButton = screen.getByRole("button", { name: /Dissolve/i });
     await user.click(dissolveButton);
 
-    const confirmButton = screen.getByRole("button", { name: /Really dissolve/i });
+    const confirmButton = screen.getByTestId("confirm-dialog-confirm");
     await user.click(confirmButton);
 
     await waitFor(() => {
@@ -635,17 +686,17 @@ describe("MultiRoom - DeviceCard Selection & CSS Classes", () => {
     render(<MultiRoom devices={mockDevices} />);
 
     const checkboxes = screen.getAllByRole("checkbox");
-    const firstCard = checkboxes[0]!.closest("label")!;
+    const firstCard = checkboxes[0]!.closest(".mr-dev")!;
 
-    expect(firstCard.className).not.toContain("selected");
-
-    await user.click(checkboxes[0]!);
-
-    expect(firstCard.className).toContain("selected");
+    expect(firstCard.className).not.toContain("mr-dev--selected");
 
     await user.click(checkboxes[0]!);
 
-    expect(firstCard.className).not.toContain("selected");
+    expect(firstCard.className).toContain("mr-dev--selected");
+
+    await user.click(checkboxes[0]!);
+
+    expect(firstCard.className).not.toContain("mr-dev--selected");
   });
 
   test("should disable checkbox for devices in other zones (not in edit mode)", () => {
@@ -694,8 +745,8 @@ describe("MultiRoom - DeviceCard Stale Devices", () => {
 
     render(<MultiRoom devices={devicesWithStale} />);
 
-    const card = screen.getByRole("checkbox").closest("label")!;
-    expect(card.className).toContain("stale");
+    const card = screen.getByRole("checkbox").closest(".mr-dev")!;
+    expect(card.className).toContain("mr-dev--stale");
   });
 
   test("should NOT show stale badge for recently seen devices", () => {

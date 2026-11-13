@@ -156,7 +156,8 @@ describe("Settings — Scan Button trigger", () => {
     renderSettings();
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /scan now/i })).toBeDisabled();
+      // while scanning the button name is its busy label
+      expect(screen.getByRole("button", { name: /scanning/i })).toBeDisabled();
     });
   });
 });
@@ -176,10 +177,15 @@ describe("Settings — Scan Button on page reload", () => {
     mockFetch.mockResolvedValue({ ok: true, json: async () => ({ ips: [] }) });
 
     const qc = buildQueryClient();
-    const { rerender } = render(<Wrapper qc={qc}><Settings /></Wrapper>);
+    const { rerender } = render(
+      <Wrapper qc={qc}>
+        <Settings />
+      </Wrapper>
+    );
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /scan now/i })).toBeDisabled();
+      // while scanning the button name is its busy label
+      expect(screen.getByRole("button", { name: /scanning/i })).toBeDisabled();
     });
 
     // Discovery finishes — update mock and force re-render with same QueryClient
@@ -187,7 +193,11 @@ describe("Settings — Scan Button on page reload", () => {
       ...makeDiscoveryState({ isDiscovering: false }),
       startDiscovery: mockStartDiscovery,
     });
-    rerender(<Wrapper qc={qc}><Settings /></Wrapper>);
+    rerender(
+      <Wrapper qc={qc}>
+        <Settings />
+      </Wrapper>
+    );
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /scan now/i })).not.toBeDisabled();
@@ -204,7 +214,9 @@ describe("Settings — Discover Button completion toast", () => {
     (useDiscoveryStream as Mock).mockReturnValue({
       ...makeDiscoveryState({
         completed: true,
-        devicesFound: [{ device_id: "AAA", ip: "192.168.1.10", name: "TV", model: "ST300", firmware: "1.0" }],
+        devicesFound: [
+          { device_id: "AAA", ip: "192.168.1.10", name: "TV", model: "ST300", firmware: "1.0" },
+        ],
       }),
       startDiscovery: mockStartDiscovery,
     });
@@ -268,9 +280,13 @@ describe("Settings — Discover Button completion toast", () => {
     await waitFor(() => {
       expect(screen.getByText(/2 new devices found/i)).toBeInTheDocument();
     });
+    // one device per line (rendered with white-space: pre-line)
+    expect(screen.getByText(/2 new devices found/i).textContent).toBe(
+      "2 new devices found:\nNeu1 (192.168.1.20)\nNeu2 (192.168.1.30)"
+    );
   });
 
-  it("shows singular '1 new device found' for exactly 1 new device", async () => {
+  it("names the device like the manual search ('Neu (192.168.1.20) added') for exactly 1 new device", async () => {
     const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
     (useDiscoveryStream as Mock).mockReturnValue({
       ...makeDiscoveryState({
@@ -291,7 +307,105 @@ describe("Settings — Discover Button completion toast", () => {
     renderSettings([{ device_id: "KNOWN1", ip: "192.168.1.10" }]);
 
     await waitFor(() => {
-      expect(screen.getByText(/1 new device found/i)).toBeInTheDocument();
+      expect(screen.getByText("Neu (192.168.1.20) added")).toBeInTheDocument();
+    });
+  });
+
+  it("shows exactly the toast of the manual search by IP for a single new device", async () => {
+    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+    (useDiscoveryStream as Mock).mockReturnValue({
+      ...makeDiscoveryState({
+        completed: true,
+        devicesFound: [
+          { device_id: "KNOWN1", ip: "192.168.1.10", name: "Alt", model: "ST10", firmware: "1.0" },
+          { device_id: "NEW1", ip: "192.168.1.20", name: "Küche", model: "ST10", firmware: "1.0" },
+        ],
+      }),
+      startDiscovery: mockStartDiscovery,
+    });
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
+
+    renderSettings([{ device_id: "KNOWN1", ip: "192.168.1.10" }]);
+
+    await waitFor(() => {
+      expect(screen.getByText("Küche (192.168.1.20) added")).toBeInTheDocument();
+    });
+  });
+
+  it("lists the names of several new devices in the summary toast", async () => {
+    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+    (useDiscoveryStream as Mock).mockReturnValue({
+      ...makeDiscoveryState({
+        completed: true,
+        devicesFound: [
+          { device_id: "N1", ip: "192.168.1.11", name: "Küche", model: "ST10", firmware: "1.0" },
+          { device_id: "N2", ip: "192.168.1.12", name: "Bad", model: "ST10", firmware: "1.0" },
+        ],
+      }),
+      startDiscovery: mockStartDiscovery,
+    });
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
+
+    renderSettings([]);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          (_, el) =>
+            el?.textContent === "2 new devices found:\nKüche (192.168.1.11)\nBad (192.168.1.12)" &&
+            el.children.length === 0
+        )
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("shows the result toast again for every further scan, not only the first", async () => {
+    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+    const useStream = useDiscoveryStream as Mock;
+    useStream.mockReturnValue({
+      ...makeDiscoveryState({ completed: true, devicesFound: [] }),
+      startDiscovery: mockStartDiscovery,
+    });
+    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ ips: [] }) });
+
+    const qc = buildQueryClient();
+    const { rerender } = render(
+      <Wrapper qc={qc}>
+        <Settings />
+      </Wrapper>
+    );
+    await waitFor(() => {
+      expect(screen.getByText("0 new devices found")).toBeInTheDocument();
+    });
+
+    // second scan: starts (state is reset), runs, completes with one new device
+    fireEvent.click(await screen.findByRole("button", { name: /scan now/i }));
+    useStream.mockReturnValue({
+      ...makeDiscoveryState({ isDiscovering: true }),
+      startDiscovery: mockStartDiscovery,
+    });
+    rerender(
+      <Wrapper qc={qc}>
+        <Settings />
+      </Wrapper>
+    );
+    useStream.mockReturnValue({
+      ...makeDiscoveryState({
+        completed: true,
+        devicesFound: [
+          { device_id: "NEW1", ip: "192.168.1.20", name: "Bad", model: "ST10", firmware: "1.0" },
+        ],
+      }),
+      startDiscovery: mockStartDiscovery,
+    });
+    rerender(
+      <Wrapper qc={qc}>
+        <Settings />
+      </Wrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Bad (192.168.1.20) added")).toBeInTheDocument();
     });
   });
 
@@ -305,7 +419,11 @@ describe("Settings — Discover Button completion toast", () => {
       setup: async () => {
         const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
         (useDiscoveryStream as Mock).mockReturnValue({
-          ...makeDiscoveryState({ completed: false, error: "Connection lost" }),
+          ...makeDiscoveryState({
+            completed: false,
+            error: "Connection lost",
+            errorKind: "failed",
+          }),
           startDiscovery: mockStartDiscovery,
         });
       },
@@ -326,4 +444,39 @@ describe("Settings — Discover Button completion toast", () => {
     expect(screen.queryByText(/new devices found/i)).toBeNull();
     expect(screen.queryByText(/new device found/i)).toBeNull();
   });
+});
+
+// ---------------------------------------------------------------------------
+// A failed scan is reported (regression: it used to end silently)
+// ---------------------------------------------------------------------------
+describe("Settings — failed scan feedback", () => {
+  it.each([
+    {
+      error: "SSE connection failed",
+      errorKind: "failed",
+      message: "Error during device search. Please try again.",
+    },
+    {
+      error: "Discovery already in progress",
+      errorKind: "alreadyRunning",
+      message: "Device search already running. Please wait...",
+    },
+  ] as const)(
+    "shows a translated toast for the scan error '$error'",
+    async ({ error, errorKind, message }) => {
+      mockFetch.mockResolvedValue({ ok: true, json: async () => ({ ips: [] }) });
+      const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+      (useDiscoveryStream as Mock).mockReturnValue({
+        ...makeDiscoveryState({ error, errorKind }),
+        startDiscovery: mockStartDiscovery,
+      });
+
+      renderSettings();
+
+      await waitFor(() => {
+        expect(screen.getByText(message)).toBeInTheDocument();
+      });
+      expect(document.body.textContent).not.toContain(error);
+    }
+  );
 });

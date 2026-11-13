@@ -1,11 +1,18 @@
 /**
- * Step 6: Hosts Modification
+ * Step 6: Hosts Modification (tracker step 5, "DNS")
+ * Props, hooks, API call and t() keys unchanged. Markup/classNames/icons only.
+ * One render condition changed: the form stays visible until the change succeeded
+ * (`!modifyData?.success` instead of `!modifyData`), so a result with success=false can be retried.
+ * Same pattern as Step4Backup.
  */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { modifyHosts, ModifyHostsResponse } from "../../api/wizard";
 import WizardStep from "./WizardStep";
+import { Icon } from "./Icon";
+import "./wizard-base.css";
 import "./Step6HostsModification.css";
+import { userErrorMessage } from "../../utils/errorMessages";
 
 interface Step6Props {
   deviceId: string;
@@ -74,10 +81,10 @@ export default function Step6HostsModification({
       onHostsModified(result, customIp.trim());
 
       if (!result.success) {
-        setError(result.message || t("setup.wizard.step6.errorTitle"));
+        setError(t("errors.unknown"));
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : t("errors.unknown");
+      const message = userErrorMessage(err);
       setError(message);
     } finally {
       setModifying(false);
@@ -96,12 +103,12 @@ export default function Step6HostsModification({
       nextDisabledReason={t("setup.wizard.step6.nextDisabled")}
     >
       <div className="hosts-modification">
-        {/* Configuration */}
-        {!modifyData && (
+        {/* Configuration: stays visible until the change succeeded, so a failure can be repeated */}
+        {!modifyData?.success && (
           <div className="hosts-config-section">
             {/* IP Input */}
-            <div className="hosts-input-group">
-              <label htmlFor="oct-ip" className="hosts-label">
+            <div className="hosts-input-group wz-field">
+              <label htmlFor="oct-ip" className="hosts-label wz-label">
                 {t("setup.wizard.step6.ipLabel")}
               </label>
               <input
@@ -111,12 +118,15 @@ export default function Step6HostsModification({
                 value={customIp}
                 onChange={(e) => setCustomIp(e.target.value)}
                 placeholder="192.168.1.100"
+                inputMode="url"
+                autoCapitalize="none"
+                spellCheck={false}
               />
-              <small className="hosts-hint">{t("setup.wizard.step6.ipHint")}</small>
+              <small className="hosts-hint wz-hint">{t("setup.wizard.step6.ipHint")}</small>
             </div>
 
             {/* Domain Selection */}
-            <div className="hosts-domains-section">
+            <div className="hosts-domains-section wz-card">
               <h3 className="hosts-title">{t("setup.wizard.step6.domainsTitle")}</h3>
 
               <div className="hosts-domains-group">
@@ -171,7 +181,9 @@ export default function Step6HostsModification({
                   {t("setup.wizard.step6.btnModifying")}
                 </>
               ) : (
-                <>🌐 {t("setup.wizard.step6.btnModify")}</>
+                <>
+                  {Icon.Globe(20)} {t("setup.wizard.step6.btnModify")}
+                </>
               )}
             </button>
           </div>
@@ -179,8 +191,8 @@ export default function Step6HostsModification({
 
         {/* Error */}
         {error && (
-          <div className="hosts-error">
-            <div className="error-icon">❌</div>
+          <div className="hosts-error wz-status wz-status--error" role="alert">
+            <div className="error-icon">{Icon.CircleX()}</div>
             <div className="error-content">
               <strong>{t("setup.wizard.step6.errorTitle")}</strong>
               <p>{error}</p>
@@ -190,10 +202,9 @@ export default function Step6HostsModification({
 
         {/* Success */}
         {modifyData?.success && (
-          <div className="hosts-success">
-            <div className="success-icon">✅</div>
+          <div className="hosts-success wz-result">
+            <div className="success-icon">{Icon.CircleCheck(28)}</div>
             <h3 className="success-title">{t("setup.wizard.step6.successTitle")}</h3>
-            <p className="success-message">{t("setup.wizard.step6.hostsApplied")}</p>
 
             <div className="hosts-details">
               <div className="hosts-detail-item">
@@ -203,7 +214,11 @@ export default function Step6HostsModification({
               {modifyData.backup_path && (
                 <div className="hosts-detail-item">
                   <strong>{t("setup.wizard.step6.backupLabel")}</strong>
-                  <code>{modifyData.backup_path}</code>
+                  <code
+                    tabIndex={0} // NOSONAR(S6845): keyboard-focusable so scrollable content can be scrolled
+                  >
+                    {modifyData.backup_path}
+                  </code>
                 </div>
               )}
             </div>
@@ -223,7 +238,11 @@ export default function Step6HostsModification({
                 </button>
 
                 {showDiff && (
-                  <pre className="hosts-diff" id="hosts-diff-content">
+                  <pre
+                    className="hosts-diff wz-diff"
+                    id="hosts-diff-content"
+                    tabIndex={0} // NOSONAR(S6845): keyboard-focusable so scrollable content can be scrolled
+                  >
                     <code>{modifyData.diff}</code>
                   </pre>
                 )}

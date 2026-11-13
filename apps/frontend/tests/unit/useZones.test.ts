@@ -6,7 +6,8 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
-import { useZones } from "../../src/hooks/useZones";
+import { useZones, _resetZonesCache } from "../../src/hooks/useZones";
+import { expectTranslatedError } from "./helpers/translatedError";
 
 // Track subscribe calls and the unsubscribe functions they return
 let mockUnsubFns: ReturnType<typeof vi.fn>[] = [];
@@ -52,6 +53,7 @@ const MOCK_ZONE = {
 
 describe("useZones – SSE push events", () => {
   beforeEach(() => {
+    _resetZonesCache();
     vi.clearAllMocks();
     mockSubscribe.mockClear();
     mockUnsubFns = [];
@@ -127,7 +129,7 @@ describe("useZones – SSE push events", () => {
     const { result } = renderHook(() => useZones());
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.error).toBe("Backend unreachable");
+    expectTranslatedError(result.current.error, "Backend unreachable");
   });
 
   it("falls back to a default error message when initial zone fetch fails with a non-Error value", async () => {
@@ -136,12 +138,13 @@ describe("useZones – SSE push events", () => {
     const { result } = renderHook(() => useZones());
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.error).toBe("Failed to load zones");
+    expectTranslatedError(result.current.error, "Failed to load zones");
   });
 });
 
 describe("useZones – mutation operations", () => {
   beforeEach(() => {
+    _resetZonesCache();
     vi.useFakeTimers();
     vi.clearAllMocks();
     mockSubscribe.mockClear();
@@ -185,7 +188,7 @@ describe("useZones – mutation operations", () => {
       ).rejects.toThrow("Network error");
     });
 
-    expect(result.current.error).toBe("Network error");
+    expect(result.current.error).toBeNull(); // a failed mutation is a toast, not the list error
   });
 
   it("createZone falls back to a default error message on a non-Error rejection", async () => {
@@ -200,7 +203,7 @@ describe("useZones – mutation operations", () => {
       ).rejects.toBe("plain string failure");
     });
 
-    expect(result.current.error).toBe("Failed to create zone");
+    expect(result.current.error).toBeNull(); // a failed mutation is a toast, not the list error
   });
 
   it("dissolveZone removes zone optimistically", async () => {
@@ -234,7 +237,7 @@ describe("useZones – mutation operations", () => {
       ).rejects.toThrow("Dissolve failed on device");
     });
 
-    expect(result.current.error).toBe("Dissolve failed on device");
+    expect(result.current.error).toBeNull(); // a failed mutation is a toast, not the list error
   });
 
   it("dissolveZone falls back to a default error message on a non-Error rejection", async () => {
@@ -250,7 +253,7 @@ describe("useZones – mutation operations", () => {
       ).rejects.toBe("plain string failure");
     });
 
-    expect(result.current.error).toBe("Failed to dissolve zone");
+    expect(result.current.error).toBeNull(); // a failed mutation is a toast, not the list error
   });
 
   it("addMembers delegates to API and refetches", async () => {
@@ -279,7 +282,7 @@ describe("useZones – mutation operations", () => {
       ).rejects.toThrow("Add members failed");
     });
 
-    expect(result.current.error).toBe("Add members failed");
+    expect(result.current.error).toBeNull(); // a failed mutation is a toast, not the list error
   });
 
   it("addMembers falls back to a default error message on a non-Error rejection", async () => {
@@ -294,7 +297,7 @@ describe("useZones – mutation operations", () => {
       ).rejects.toBe("plain string failure");
     });
 
-    expect(result.current.error).toBe("Failed to add members");
+    expect(result.current.error).toBeNull(); // a failed mutation is a toast, not the list error
   });
 
   it("removeMembers delegates to API and handles errors", async () => {
@@ -309,7 +312,7 @@ describe("useZones – mutation operations", () => {
       ).rejects.toThrow("Remove failed");
     });
 
-    expect(result.current.error).toBe("Remove failed");
+    expect(result.current.error).toBeNull(); // a failed mutation is a toast, not the list error
   });
 
   it("removeMembers falls back to a default error message on a non-Error rejection", async () => {
@@ -324,7 +327,7 @@ describe("useZones – mutation operations", () => {
       ).rejects.toBe("plain string failure");
     });
 
-    expect(result.current.error).toBe("Failed to remove members");
+    expect(result.current.error).toBeNull(); // a failed mutation is a toast, not the list error
   });
 
   it("changeMaster delegates to API and refetches", async () => {
@@ -354,7 +357,7 @@ describe("useZones – mutation operations", () => {
       ).rejects.toThrow("Change master failed");
     });
 
-    expect(result.current.error).toBe("Change master failed");
+    expect(result.current.error).toBeNull(); // a failed mutation is a toast, not the list error
   });
 
   it("changeMaster falls back to a default error message on a non-Error rejection", async () => {
@@ -369,6 +372,20 @@ describe("useZones – mutation operations", () => {
       ).rejects.toBe("plain string failure");
     });
 
-    expect(result.current.error).toBe("Failed to change master");
+    expect(result.current.error).toBeNull(); // a failed mutation is a toast, not the list error
+  });
+});
+
+describe("useZones – zones kept across page visits", () => {
+  it("starts with the zones of the last visit and without a loading state", async () => {
+    _resetZonesCache();
+    mockGetZones.mockResolvedValueOnce([{ master_id: "M", master_ip: "1.1.1.1", is_master: true, members: [] }]);
+    const first = renderHook(() => useZones());
+    await waitFor(() => expect(first.result.current.zones).toHaveLength(1));
+    first.unmount();
+
+    const second = renderHook(() => useZones());
+    expect(second.result.current.zones).toHaveLength(1);
+    expect(second.result.current.isLoading).toBe(false);
   });
 });

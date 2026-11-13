@@ -29,7 +29,7 @@ jobs:
   # ============================================================================
   mojibake-check:
     name: Mojibake Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -44,12 +44,43 @@ jobs:
         run: python scripts/check-mojibake.py .
         
   # ============================================================================
+  # SCRIPT TESTS (scripts/issue_handler, scripts/tests)
+  # ============================================================================
+  script-tests:
+    name: Script Tests
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements-dev.txt
+
+      - name: Issue handler tests
+        working-directory: scripts/issue_handler
+        run: python -m pytest -q
+
+      - name: PR reviewer tests
+        run: python -m pytest scripts/pr_reviewer/tests -q
+
+      - name: Release and workflow script tests
+        run: python -m pytest scripts/tests -q
+
+  # ============================================================================
   # PAGE SIZE REGRESSION TEST
   # ============================================================================
 
   test-page-size-detection:
     name: Test page size detection
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
 
@@ -64,8 +95,15 @@ jobs:
             EXPECT_REJECT="$2"
             EXPECTED_TEXT="$3"
             LABEL="$4"
+            SKIP="${5:-}"
+            PYFAIL="${6:-}"
 
             mkdir -p /tmp/fakebin
+            rm -f /tmp/fakebin/python
+            if [ "$PYFAIL" = "pyfail" ]; then
+              printf '#!/bin/sh\necho "ImportError: boom" >&2\nexit 1\n' > /tmp/fakebin/python
+              chmod +x /tmp/fakebin/python
+            fi
             mkdir -p /tmp/oct-data
 
             cat > /tmp/fakebin/getconf <<EOF
@@ -82,6 +120,7 @@ jobs:
             set +e
             OUTPUT=$(
               PATH="/tmp/fakebin:$PATH" \
+              OCT_SKIP_PAGE_SIZE_CHECK="$SKIP" \
               OCT_PORT=7777 \
               OCT_LOG_LEVEL=INFO \
               OCT_DB_PATH=/tmp/oct-data/oct.db \
@@ -106,10 +145,13 @@ jobs:
               fi
             fi
 
-            if [ -n "$EXPECTED_TEXT" ] && ! echo "$OUTPUT" | grep -q "$EXPECTED_TEXT"; then
-              echo "ERROR: Expected output not found: $EXPECTED_TEXT"
-              exit 1
-            fi
+            # Several expected texts can be given, separated by |; all must appear.
+            IFS='|'; for TEXT in $EXPECTED_TEXT; do
+              if ! echo "$OUTPUT" | grep -q "$TEXT"; then
+                echo "ERROR: Expected output not found: $TEXT"
+                exit 1
+              fi
+            done; unset IFS
 
             echo "PASS: $LABEL"
           }
@@ -119,20 +161,60 @@ jobs:
           run_page_size_test "12288" false "has not been fully validated with OpenCloudTouch" "12KB page size allowed with info"
           run_page_size_test "16384" false "has not been fully validated with OpenCloudTouch" "16KB page size allowed with info"
           run_page_size_test "24576" false "has not been fully validated with OpenCloudTouch" "24KB page size allowed with info"
-          run_page_size_test "32768" true "32768-byte page size" "32KB page size rejected"
+          run_page_size_test "32768" false "library self-test passed" "32KB page size allowed when the library self-test passes"
+          run_page_size_test "32768" true "library self-test failed|ImportError: boom|On Docker older than 20.10.9|On Docker 20.10.9 or newer|seccomp-legacy-docker.json" "32KB page size rejected when the library self-test fails, with the error and both causes" "" pyfail
+          run_page_size_test "32768" false "OCT_SKIP_PAGE_SIZE_CHECK=1 is set" "32KB page size allowed with skip override" 1 pyfail
+          run_page_size_test "32768" true "library self-test failed" "32KB page size still rejected when skip is not 1" 0 pyfail
           run_page_size_test "65536" false "has not been fully validated with OpenCloudTouch" "64KB page size allowed with info"
           run_page_size_test "131072" false "has not been fully validated with OpenCloudTouch" "128KB page size allowed with info"
           run_page_size_test "" false "Unable to determine system page size" "Empty page size handled with warning"
           run_page_size_test "abc" false "Unable to determine system page size" "Non-numeric page size handled with warning"
 
           echo "PASS: All page size compatibility tests passed."
+
+      - name: Validate legacy seccomp profile
+        run: |
+          python3 - <<'PY'
+          import json
+          p = json.load(open("deployment/seccomp-legacy-docker.json"))
+          rules = [r for r in p["syscalls"] if "clone3" in r["names"]]
+          assert rules and all(r["action"] == "SCMP_ACT_ERRNO" and r["errnoRet"] == 38 for r in rules), "clone3 must return ENOSYS"
+          print("PASS: profile is valid JSON and clone3 returns ENOSYS")
+          PY
+
+      - name: Test aligned package version check
+        run: |
+          # Shims stand in for the Debian tools; STOCK is the installed source version.
+          mkdir -p /tmp/shim/debs && touch /tmp/shim/debs/libfoo.deb
+          cat > /tmp/shim/dpkg-deb <<'EOF'
+          #!/bin/sh
+          case "$3" in Package) echo libfoo;; Version) echo "$DEB_VERSION";; esac
+          EOF
+          cat > /tmp/shim/dpkg-query <<'EOF'
+          #!/bin/sh
+          [ -z "$STOCK" ] || printf '%s' "$STOCK"
+          EOF
+          cat > /tmp/shim/dpkg <<'EOF'
+          #!/bin/sh
+          echo "$(basename "$0") $*" >> /tmp/shim/calls
+          EOF
+          cp /tmp/shim/dpkg /tmp/shim/apt-mark
+          chmod +x /tmp/shim/*
+          run() { rm -f /tmp/shim/calls; PATH="/tmp/shim:$PATH" DEB_VERSION="$1" STOCK="$2" sh scripts/install-aligned-debs.sh /tmp/shim/debs; }
+
+          run "1.2-3+oct1" "1.2-3" || { echo "ERROR: matching versions must install"; exit 1; }
+          grep -q "apt-mark hold libfoo" /tmp/shim/calls || { echo "ERROR: package was not held"; exit 1; }
+          if run "1.2-3+oct1" "1.2-4" 2>/dev/null; then echo "ERROR: version mismatch must fail"; exit 1; fi
+          run "1.2-3+oct1" "" || { echo "ERROR: packages not in the image must be skipped"; exit 1; }
+          if [ -e /tmp/shim/calls ]; then echo "ERROR: skipped package must not be installed"; exit 1; fi
+          echo "PASS: aligned package version check"
           
   # ============================================================================
   # COMMIT MESSAGE VALIDATION
   # ============================================================================
   commit-lint:
     name: Validate Commit Messages
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
@@ -206,7 +288,7 @@ jobs:
   # ============================================================================
   security:
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -242,7 +324,7 @@ jobs:
   # ============================================================================
   license-check:
     name: License Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -301,7 +383,7 @@ jobs:
   # ============================================================================
   lint:
     name: Lint Code
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [security]
 
     steps:
@@ -317,6 +399,9 @@ jobs:
 
       - name: Install linting tools
         run: pip install ruff mypy
+
+      - name: Lint GitHub Actions workflow
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 -shellcheck= .github/workflows/ci.yml
 
       - name: Run ruff (Python linter)
         run: ruff check apps/backend/ --select=E,F,W --ignore=E501
@@ -340,7 +425,7 @@ jobs:
   # ============================================================================
   backend-tests:
     name: Backend Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [security]
 
     steps:
@@ -391,7 +476,7 @@ jobs:
   # ============================================================================
   frontend-tests:
     name: Frontend Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [security]
 
     steps:
@@ -429,7 +514,7 @@ jobs:
   # ============================================================================
   e2e-tests:
     name: E2E Tests (${{ matrix.shard }}/10)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [security]
     strategy:
       fail-fast: false
@@ -570,7 +655,7 @@ jobs:
   # ============================================================================
   sonar:
     name: SonarCloud
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [backend-tests, frontend-tests]
     # Skip for fork PRs and Dependabot — SONAR_TOKEN is not available in these contexts.
     # Sonar analysis runs on main via sonar.yml after merge instead.
@@ -614,8 +699,8 @@ jobs:
   # ============================================================================
   summary:
     name: CI Summary
-    runs-on: ubuntu-latest
-    needs: [mojibake-check, test-page-size-detection, commit-lint, security, license-check, lint, backend-tests, frontend-tests, e2e-tests]
+    runs-on: ubuntu-24.04
+    needs: [mojibake-check, script-tests, test-page-size-detection, commit-lint, security, license-check, lint, backend-tests, frontend-tests, e2e-tests]
     if: always()
 
     steps:
@@ -640,6 +725,7 @@ jobs:
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Mojibake Check| ${{ needs.mojibake-check.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Script Tests  | ${{ needs.script-tests.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Page Size Test| ${{ needs.test-page-size-detection.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Commit Lint   | ${{ needs.commit-lint.result == 'success' && 'Passed' || needs.commit-lint.result == 'skipped' && 'Skipped' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security Scan | ${{ needs.security.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
@@ -667,6 +753,7 @@ jobs:
         run: |
           if [[ "${{ needs.commit-lint.result }}" != "success" && "${{ needs.commit-lint.result }}" != "skipped" ]] || \
              [[ "${{ needs.mojibake-check.result }}" != "success" ]] || \
+             [[ "${{ needs.script-tests.result }}" != "success" ]] || \
              [[ "${{ needs.test-page-size-detection.result }}" != "success" ]] || \
              [[ "${{ needs.security.result }}" != "success" ]] || \
              [[ "${{ needs.license-check.result }}" != "success" ]] || \
@@ -685,7 +772,7 @@ jobs:
   # ============================================================================
   autoformat:
     name: Auto-format
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [lint, backend-tests, frontend-tests, e2e-tests]
     if: |
       always() && !cancelled() &&
@@ -698,19 +785,10 @@ jobs:
       contents: write
 
     steps:
-      - name: Determine branch ref
-        id: ref
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "branch=${{ github.event.pull_request.head.ref }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "branch=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          ref: ${{ steps.ref.outputs.branch }}
+          ref: ${{ github.head_ref || github.ref_name }}
           token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Set up Python
@@ -757,6 +835,8 @@ jobs:
             -exec bash -c 'for f; do [ -s "$f" ] && [ "$(tail -c1 "$f")" != "" ] && echo >> "$f"; done' _ {} + || true
 
       - name: Commit and push if changed
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           git config user.name "formatter-bot"
           git config user.email "noreply@opencloudtouch.org"
@@ -764,8 +844,9 @@ jobs:
           if git diff --cached --quiet; then
             echo "✅ No formatting changes needed"
           else
+            git check-ref-format --branch "$BRANCH" >/dev/null || { echo "::error::Invalid branch name"; exit 1; }
             echo "📝 Formatting changes detected — committing"
             git diff --cached --stat
             git commit -m "style: auto-format code [formatter-bot]"
-            git push origin ${{ steps.ref.outputs.branch }}
+            git push origin "refs/heads/$BRANCH"
           fi

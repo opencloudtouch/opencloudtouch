@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Device } from "../api/devices";
+import { octDebug } from "../utils/debug";
 
 /**
  * Safe JSON.parse: returns parsed value or null on SyntaxError.
@@ -14,6 +15,8 @@ function safeParse<T>(raw: string, eventType: string): T | null {
     return null;
   }
 }
+
+const nameKey = (d: Device) => d.name.normalize("NFKD").toLowerCase();
 
 /**
  * Discovery Event Types from Backend SSE
@@ -36,6 +39,8 @@ export interface DiscoveryState {
   devicesFound: Device[];
   completed: boolean;
   error: string | null;
+  /** "alreadyRunning": the backend refused because a scan is running; "failed": anything else. */
+  errorKind: "failed" | "alreadyRunning" | null;
   stats: {
     discovered: number;
     synced: number;
@@ -62,6 +67,7 @@ export function useDiscoveryStream() {
     devicesFound: [],
     completed: false,
     error: null,
+    errorKind: null,
     stats: { discovered: 0, synced: 0, failed: 0 },
   });
 
@@ -78,6 +84,7 @@ export function useDiscoveryStream() {
       devicesFound: [],
       completed: false,
       error: null,
+      errorKind: null,
       stats: { discovered: 0, synced: 0, failed: 0 },
     });
 
@@ -88,14 +95,14 @@ export function useDiscoveryStream() {
 
     // Handle started event
     eventSource.addEventListener("started", (e: MessageEvent) => {
-      console.log("[SSE] Discovery started:", e.data);
+      octDebug("SSE", "Discovery started:", e.data);
     });
 
     // Handle device_found event
     eventSource.addEventListener("device_found", (e: MessageEvent) => {
       const data = safeParse<unknown>(e.data, "device_found");
       if (!data) return;
-      console.log("[SSE] Device found:", data);
+      octDebug("SSE", "Device found:", data);
 
       setState((prev) => ({
         ...prev,
@@ -107,7 +114,7 @@ export function useDiscoveryStream() {
     eventSource.addEventListener("device_synced", (e: MessageEvent) => {
       const device = safeParse<Device>(e.data, "device_synced");
       if (!device) return;
-      console.log("[SSE] Device synced:", device);
+      octDebug("SSE", "Device synced:", device);
 
       // Track synchronously via ref (used by completed handler for atomic cache update)
       const already = devicesFoundRef.current.some((d) => d.device_id === device.device_id);
@@ -147,7 +154,7 @@ export function useDiscoveryStream() {
         "completed"
       );
       if (!data) return;
-      console.log("[SSE] Discovery completed:", data);
+      octDebug("SSE", "Discovery completed:", data);
 
       // Atomically update cache with ALL discovered devices before marking
       // completed=true. This ensures the route guard (devices.length > 0)
@@ -158,7 +165,8 @@ export function useDiscoveryStream() {
         const newDevices = devicesFoundRef.current.filter(
           (d) => !existing.some((ex) => ex.device_id === d.device_id)
         );
-        return [...existing, ...newDevices];
+        // same order as the backend list (by name): the refetch below must not reorder what the user sees
+        return [...existing, ...newDevices].sort((x, y) => nameKey(x).localeCompare(nameKey(y)));
       });
 
       setState((prev) => ({
@@ -176,12 +184,18 @@ export function useDiscoveryStream() {
       eventSourceRef.current = null;
     });
 
-    // Handle error event
-    eventSource.addEventListener("error", (e: MessageEvent) => {
+    // Handle error event. EventSource also dispatches connection failures as a plain Event under the same
+    // name, those carry no data and are left to onerror.
+    let serverErrorHandled = false;
+    eventSource.addEventListener("error", (e: Event) => {
+      if (!(e instanceof MessageEvent)) return;
+      serverErrorHandled = true;
       let errorMessage = "Discovery failed";
+      let errorKind: DiscoveryState["errorKind"] = "failed";
       try {
         const data = JSON.parse(e.data);
         errorMessage = data.message || errorMessage;
+        if (data.code === "discovery_in_progress") errorKind = "alreadyRunning";
       } catch {
         // parse error - use default message
       }
@@ -192,6 +206,7 @@ export function useDiscoveryStream() {
         ...prev,
         isDiscovering: false,
         error: errorMessage,
+        errorKind,
       }));
 
       // Close connection
@@ -201,22 +216,18 @@ export function useDiscoveryStream() {
 
     // Handle connection errors (network issue, 409 conflict, etc.)
     eventSource.onerror = (e) => {
+      // the server already reported the real reason through an "error" event: do not overwrite it
+      if (serverErrorHandled) return;
       console.error("[SSE] Connection error:", e);
 
-      // Check if it was a 409 (already in progress)
-      if ((e.target as EventSource).readyState === EventSource.CLOSED) {
-        setState((prev) => ({
-          ...prev,
-          isDiscovering: false,
-          error: "Discovery already in progress",
-        }));
-      } else {
-        setState((prev) => ({
-          ...prev,
-          isDiscovering: false,
-          error: "Connection lost",
-        }));
-      }
+      // A closed connection can be a 500, a proxy error or a dropped network: the browser does not say which.
+      // ("already running" arrives as a regular error event, see above.)
+      setState((prev) => ({
+        ...prev,
+        isDiscovering: false,
+        error: "Connection lost",
+        errorKind: "failed",
+      }));
 
       eventSource.close();
       eventSourceRef.current = null;

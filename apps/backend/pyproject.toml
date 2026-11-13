@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opencloudtouch"
-version = "1.6.0"
+version = "2.0.1"
 description = "Local control for compatible streaming devices after cloud shutdown"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -20,7 +20,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "bosesoundtouchapi>=1.0.86",
     "defusedxml>=0.7.1",
-    "websockets>=13.1",
+    "websockets>=15.0",
     "ssdpy>=0.4.1",
     "asyncssh>=2.20.0",
     "starlette>=0.40.0",
@@ -69,7 +69,7 @@ markers = [
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "1.6.0"
+version = "2.0.1"
 tag_format = "v$version"
 update_changelog_on_bump = true
 bump_message = "chore(release): bump version to $new_version"

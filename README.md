@@ -146,7 +146,9 @@ access.
 |------|----------|---------|
 | `amd64` | x86_64 | Desktop, server, NAS |
 | `arm64` | aarch64 | Raspberry Pi 4/5, Apple Silicon |
-| `arm/v7` | armhf | Raspberry Pi 2/3 |
+| `arm/v7` | armhf | Raspberry Pi 2/3, ARM NAS with 32 KB pages (for example WD My Cloud EX2 Ultra) |
+
+Docker 20.10.9 or newer is required for configuration-free operation on every platform. **NAS users:** see [ARM NAS with a 32 KB page size](docs/TROUBLESHOOTING.md#arm-nas-with-a-32-kb-page-size) (Docker 19.03.x needs a seccomp profile) and share your results in [NAS compatibility reports](https://github.com/opencloudtouch/opencloudtouch/discussions/637).
 
 ### Video Walkthrough
 

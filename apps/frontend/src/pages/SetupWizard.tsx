@@ -7,6 +7,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Device } from "../api/devices";
 import {
@@ -28,12 +29,15 @@ import Step8Verification from "../components/wizard/Step8Verification";
 import Step9Completion from "../components/wizard/Step9Completion";
 import WizardChoice from "../components/wizard/WizardChoice";
 import RestoreChoice from "../components/wizard/RestoreChoice";
+import SetupWizardNoDevices from "./SetupWizardStates";
 import BackupScan from "../components/wizard/BackupScan";
 import RestoreExecution from "../components/wizard/RestoreExecution";
 import RestoreVerification from "../components/wizard/RestoreVerification";
 import RestoreCompletion from "../components/wizard/RestoreCompletion";
 import type { BackupSetResponse, RestoreStepResponse } from "../api/restore";
 import "./SetupWizard.css";
+import { octDebug } from "../utils/debug";
+import { pickDevice, setLastDeviceId } from "../utils/lastDevice";
 
 interface SetupWizardProps {
   devices: Device[];
@@ -42,6 +46,16 @@ interface SetupWizardProps {
 
 export default function SetupWizard({ devices, isLoading = false }: SetupWizardProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // The wizard changes setup_status in the backend: refresh the device list as soon as the wizard is left,
+  // so the status badge on the Presets page is current without a page reload.
+  useEffect(
+    () => () => {
+      void queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
+    [queryClient]
+  );
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
 
@@ -113,6 +127,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   const [wizardMode, setWizardMode] = useState<"choice" | "setup" | "restore">(initialMode);
   // Restore flow state
   const [restoreStep, setRestoreStep] = useState(1); // 1=RestoreChoice, 2=BackupScan, 3=Execution, 4=Verification, 5=Completion
+  const [restoreRunning, setRestoreRunning] = useState(false);
   const [restoreType, setRestoreType] = useState<"backup" | "clean">("clean");
   const [selectedBackupSet, setSelectedBackupSet] = useState<BackupSetResponse | null>(null);
   const [restoreResults, setRestoreResults] = useState<RestoreStepResponse[]>([]);
@@ -122,7 +137,31 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   const [currentStep, setCurrentStep] = useState(
     Number.isNaN(urlStep) ? 1 : Math.max(1, Math.min(urlStep - 1, 8))
   );
-  const [steps, setSteps] = useState<WizardStep[]>(WIZARD_STEPS);
+  // Only the progress is state: the labels are derived from the current language on every render, so
+  // switching the language inside the wizard also translates the tracker.
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const steps = useMemo<WizardStep[]>(
+    () =>
+      WIZARD_STEPS.map((step) =>
+        completedSteps.includes(step.id) ? { ...step, status: "completed" } : step
+      ),
+    [WIZARD_STEPS, completedSteps]
+  );
+
+  // Restore flow has its own 5-step tracker (1=choice, 2=backup scan, 3=execution, 4=verification, 5=completion).
+  // A clean restore skips the backup scan, so step 2 counts as done once the flow moves past the choice.
+  const restoreTrackerSteps = useMemo<WizardStep[]>(() => {
+    const keys = ["choice", "backup", "restore", "verify", "done"];
+    return keys.map((key, index) => {
+      const id = index + 1;
+      const skipped = id === 2 && restoreType === "clean" && restoreStep > 1;
+      const done = id < restoreStep;
+      let status: WizardStep["status"] = "pending";
+      if (skipped) status = "skipped";
+      else if (done) status = "completed";
+      return { id, label: t(`restore.steps.${key}`), status };
+    });
+  }, [t, restoreStep, restoreType]);
   const [backupPath, setBackupPath] = useState<string>("");
   const [ntpServer, setNtpServer] = useState<string | null>(null);
   const [_detectedStrategy, setDetectedStrategy] = useState<DetectStrategyResponse | null>(null);
@@ -162,45 +201,20 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
         return;
       }
     }
-    // Fallback: auto-select first device when no deviceId in URL
-    if (!selectedDevice && devices.length > 0 && devices[0]) {
-      setSelectedDevice(devices[0]);
+    // Fallback: the last visited device, else the first device
+    if (!selectedDevice && devices.length > 0) {
+      setSelectedDevice(pickDevice(devices, null) ?? null);
     }
   }, [searchParams, devices]); // eslint-disable-line @eslint-react/exhaustive-deps
+
+  useEffect(() => {
+    setLastDeviceId(selectedDevice?.device_id);
+  }, [selectedDevice]);
 
   // Always render the outer wrapper so tests/transitions can find it immediately.
   // Inner content transitions: loading → empty → main wizard.
   if (devices.length === 0) {
-    return (
-      <div className="page setup-wizard-page">
-        {isLoading ? (
-          <div
-            className="wizard-loading"
-            role="status"
-            aria-live="polite"
-            aria-label={t("setup.loadingAriaLabel")}
-          >
-            <div className="spinner" aria-hidden="true" />
-            <p className="loading-message">{t("setup.loading")}</p>
-          </div>
-        ) : (
-          <div className="wizard-empty-state">
-            <div className="empty-icon">📱</div>
-            <h2>{t("setup.noDevices")}</h2>
-            <p>{t("setup.noDevicesHint")}</p>
-            {/* REFACT-140: Help link inline */}
-            <p className="wizard-empty-hint">
-              <button className="inline-link-button" onClick={() => navigate("/welcome")}>
-                {t("setup.noDevicesHint2")}
-              </button>
-            </p>
-            <button className="btn btn-primary" onClick={() => navigate("/")}>
-              {t("setup.goHome")}
-            </button>
-          </div>
-        )}
-      </div>
-    );
+    return <SetupWizardNoDevices isLoading={isLoading} />;
   }
 
   // Devices are available — wizard starts directly at step 1.
@@ -215,9 +229,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   };
 
   const completeCurrentStep = () => {
-    setSteps((prev) =>
-      prev.map((step) => (step.id === currentStep ? { ...step, status: "completed" } : step))
-    );
+    setCompletedSteps((prev) => (prev.includes(currentStep) ? prev : [...prev, currentStep]));
   };
 
   const handleNext = () => {
@@ -257,6 +269,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
     if (selectedDevice) {
       try {
         await completeWizard({ device_id: selectedDevice.device_id });
+        void queryClient.invalidateQueries({ queryKey: ["devices"] });
       } catch (err) {
         console.error("Failed to mark setup as complete:", err);
       }
@@ -269,7 +282,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
 
   const handleConfigModified = (data: unknown) => {
     audit?.logDetail("config", "config_modified", 4, { data: JSON.stringify(data) });
-    console.log("Config modified:", data);
+    octDebug("wizard", "Config modified:", data);
     // In Phase 3+: Store modification details
   };
 
@@ -279,7 +292,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
 
   const handleHostsModified = (data: unknown, effectiveIp: string) => {
     audit?.logDetail("config", "hosts_modified", 5, { data: JSON.stringify(data) });
-    console.log("Hosts modified:", data);
+    octDebug("wizard", "Hosts modified:", data);
     // Propagate user-overridden IP so Step7 verification uses the correct address
     if (effectiveIp) {
       setServerIp(effectiveIp);
@@ -288,7 +301,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
 
   const handleBackupComplete = (backupData: unknown) => {
     audit?.logDetail("config", "backup_complete", 3, { data: JSON.stringify(backupData) });
-    console.log("Backup completed:", backupData);
+    octDebug("wizard", "Backup completed:", backupData);
     // Extract backup directory from first successful volume
     if (backupData && typeof backupData === "object" && "volumes" in backupData) {
       const volumes = (backupData as Record<string, unknown>).volumes as
@@ -361,6 +374,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
               setRestoreStep(4);
             }}
             onPrevious={() => setRestoreStep(restoreType === "backup" ? 2 : 1)}
+            onRunningChange={setRestoreRunning}
           />
         );
 
@@ -525,8 +539,19 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
     }
   };
 
+  // Page title for assistive technology. On the choice screen it differs from the card titles on purpose
+  // (the cards are the visible "Setup Wizard" / "Restore Wizard" actions).
+  let pageTitle = t("restore.choice.title", "What would you like to do?");
+  if (wizardMode === "restore") pageTitle = t("restore.choice.restore_title", "Restore Wizard");
+  else if (wizardMode === "setup") pageTitle = t("restore.choice.setup_title", "Setup Wizard");
+
   return (
     <div className="page setup-wizard-page">
+      <h1
+        className={`visually-hidden wz-page-title${wizardMode === "choice" ? " wz-page-title--sr" : ""}`}
+      >
+        {pageTitle}
+      </h1>
       {/* Dev Banner - only visible in development mode, not in production */}
       {import.meta.env.DEV && (
         <div className="global-demo-banner">
@@ -534,10 +559,13 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
         </div>
       )}
 
-      {selectedDevice && <DeviceInfoHeader device={selectedDevice} />}
+      {selectedDevice && <DeviceInfoHeader device={selectedDevice} rebootLocked={restoreRunning} />}
 
       <div className="wizard-content-v2">
-        <ProgressTracker steps={steps} currentStep={currentStep} />
+        {wizardMode === "setup" && <ProgressTracker steps={steps} currentStep={currentStep} />}
+        {wizardMode === "restore" && (
+          <ProgressTracker steps={restoreTrackerSteps} currentStep={restoreStep} />
+        )}
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}

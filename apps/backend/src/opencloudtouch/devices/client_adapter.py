@@ -26,6 +26,7 @@ from opencloudtouch.devices.client import (
     NowPlayingInfo,
     VolumeInfo,
 )
+from opencloudtouch.devices.models import SELECTABLE_SOURCES
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
 
 logger = logging.getLogger(__name__)
@@ -209,6 +210,24 @@ class BoseDeviceClientAdapter(DeviceClient):
 
         except Exception as e:
             logger.exception("Failed to press key %s on %s", key, self.base_url)
+            raise DeviceConnectionError(self.ip, str(e)) from e
+
+    async def select_source(self, source: str) -> None:
+        """Switch the device to an input source (BLUETOOTH, AUX, AIRPLAY)."""
+        if source not in SELECTABLE_SOURCES:
+            raise ValueError(f"Invalid source: {source}")
+        try:
+            # AUX is addressed through its source account, the other inputs have none
+            account = "AUX" if source == "AUX" else None
+            logger.info(
+                "Selecting source on %s: %s",
+                self.ip,
+                source,
+                extra={"device_ip": self.ip, "source": source},
+            )
+            await asyncio.to_thread(self._client.SelectSource, source, account)
+        except Exception as e:
+            logger.exception("Failed to select source %s on %s", source, self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     @staticmethod

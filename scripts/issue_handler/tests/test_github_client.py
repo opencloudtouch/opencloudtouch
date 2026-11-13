@@ -193,3 +193,30 @@ class TestIssueStateCheck:
         with patch.object(client._bot_client, "get", new_callable=AsyncMock, return_value=_resp(200, {"state": "closed"}, "GET")):
             state = await client.get_issue_state(42)
             assert state == "closed"
+
+
+class TestThreadReads:
+    @pytest.mark.asyncio
+    async def test_get_issue_gone_returns_none(self, client: GitHubClient) -> None:
+        with patch.object(client._search_client, "get", new_callable=AsyncMock, return_value=_resp(404, {})):
+            assert await client.get_issue(5) is None
+
+    @pytest.mark.asyncio
+    async def test_search_labelled_threads_builds_label_query(self, client: GitHubClient) -> None:
+        with patch.object(client._search_client, "get", new_callable=AsyncMock, return_value=_resp(200, {"items": [{"number": 1}]})) as get:
+            items = await client.search_labelled_threads("verified-solution", ["speaker", "offline"])
+        assert items == [{"number": 1}]
+        assert 'label:"verified-solution"' in get.call_args.kwargs["params"]["q"]
+
+    @pytest.mark.asyncio
+    async def test_post_discussion_comment_uses_graphql_with_node_id(self, client: GitHubClient) -> None:
+        with patch.object(client._bot_client, "post", new_callable=AsyncMock, return_value=_resp(200, {"data": {"addDiscussionComment": {"comment": {"id": "c"}}}})) as post:
+            await client.post_discussion_comment("D_node", "hello")
+        assert post.call_args.args[0] == "/graphql"
+        assert post.call_args.kwargs["json"]["variables"] == {"id": "D_node", "body": "hello"}
+
+    @pytest.mark.asyncio
+    async def test_graphql_errors_raise(self, client: GitHubClient) -> None:
+        with patch.object(client._search_client, "post", new_callable=AsyncMock, return_value=_resp(200, {"errors": [{"message": "nope"}]})):
+            with pytest.raises(RuntimeError, match="nope"):
+                await client.get_discussion(3)

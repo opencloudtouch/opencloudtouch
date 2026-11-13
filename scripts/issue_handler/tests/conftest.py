@@ -61,3 +61,12 @@ def mock_ai_client() -> AsyncMock:
         }
     )
     return client
+
+
+@pytest.fixture(autouse=True)
+def _no_delay_and_live_writes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tests never wait for the answer delay and never run in dry-run mode."""
+    monkeypatch.setenv("OCT_BOT_DELAY_MIN", "0")
+    monkeypatch.setenv("OCT_BOT_DELAY_MAX", "0")
+    monkeypatch.setenv("OCT_BOT_DRY_RUN", "false")
+    monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)  # tests never write the real job summary

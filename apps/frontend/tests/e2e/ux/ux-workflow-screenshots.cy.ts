@@ -416,7 +416,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
   });
 
   // ===========================================================================
-  // 02 — Presets-Seite (RadioPresets)
+  // 02 — Geräte-Seite (Devices)
   // ===========================================================================
 
   describe("02 — Presets-Seite", () => {

@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from bot_markers import finalize_comment
 from models import ClassificationResult, PipelineDecision, WebhookEvent
 
 logger = logging.getLogger(__name__)
@@ -132,7 +133,7 @@ async def action_stage(event: WebhookEvent, context: dict[str, Any]) -> Pipeline
     # Handle rule match (from Stage 1)
     rule_match = context.get("rule_match")
     if rule_match:
-        return await _handle_rule_match(github_client, issue_number, rule_match)
+        return await _handle_rule_match(github_client, issue_number, rule_match, event)
 
     # Handle AI classification (from Stage 4)
     classification = context.get("classification")
@@ -142,19 +143,28 @@ async def action_stage(event: WebhookEvent, context: dict[str, Any]) -> Pipeline
     return PipelineDecision(stage="action", decision="skip", reason="no classification or rule match", short_circuit=True)
 
 
+async def _post(github_client: Any, issue_number: int, event: WebhookEvent | None, body: str) -> None:
+    """Post to an issue or, for a discussion, through the GraphQL API (the discussion number is not an issue)."""
+    if event is not None and event.is_discussion:
+        await github_client.post_discussion_comment(event.node_id, body)
+    else:
+        await github_client.post_comment(issue_number, body)
+
+
 async def _handle_rule_match(
-    github_client: Any, issue_number: int, rule_match: dict[str, Any]
+    github_client: Any, issue_number: int, rule_match: dict[str, Any], event: WebhookEvent | None = None
 ) -> PipelineDecision:
     """Handle rule engine match: post answer, apply labels, optionally close."""
+    is_discussion = event is not None and event.is_discussion
     labels = rule_match.get("labels", [])
-    if labels:
+    if labels and not is_discussion:
         await github_client.add_labels(issue_number, labels)
 
     answer = rule_match.get("answer", "")
     if answer:
-        await github_client.post_comment(issue_number, answer)
+        await _post(github_client, issue_number, event, finalize_comment(answer))
 
-    if rule_match.get("close", False):
+    if rule_match.get("close", False) and not is_discussion:
         await github_client.close_issue(issue_number)
 
     return PipelineDecision(
@@ -202,9 +212,9 @@ async def _handle_classification(
             await _safe_call(github_client.add_labels, issue_number, ["needs-triage"])
 
     # --- Signal 3: Comment ---
-    comment = _select_comment(classification, context, event)
+    comment = finalize_comment(_select_comment(classification, context, event), context.get("answer_sources"))
     if comment:
-        if not await _safe_call(github_client.post_comment, issue_number, comment):
+        if not await _safe_call(_post, github_client, issue_number, event, comment):
             any_failed = True
 
     # Fallback: if any signal completely failed, ensure needs-triage is set
@@ -237,13 +247,15 @@ def _select_comment(
         return FEATURE_TEMPLATE
 
     if classification.category == "support":
-        # KB match → approved answer
+        # KB match → approved answer, but only if retrieval accepted it as a relevant source (it then lists it)
         kb_match = classification.kb_match
         if kb_match:
-            kb_answers = context.get("kb_answers", [])
-            for answer in kb_answers:
-                if answer.filename == kb_match:
-                    return answer.content
+            kb_sources = [s for s in context.get("sources", []) if s.kind == "kb" and s.url.endswith("/" + kb_match)]
+            if kb_sources:
+                for answer in context.get("kb_answers", []):
+                    if answer.filename == kb_match:
+                        context["answer_sources"] = kb_sources
+                        return answer.content
         # AI-generated response
         return context.get("support_comment", "")
 

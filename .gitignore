@@ -84,6 +84,9 @@ docs/*
 !docs/TROUBLESHOOTING.md
 !docs/CONVENTIONAL_COMMITS.md
 !docs/GIT_HOOKS.md
+!docs/DEFINITION_OF_READY.md
+!docs/DEFINITION_OF_DONE.md
+!docs/UI_QUALITY_CHECKLIST.md
 .specify/
 specs/
 
@@ -99,3 +102,6 @@ bugs/
 # === SECRET Files ===
 doc
 memories
+
+# Playwright MCP browser snapshots
+.playwright-mcp/

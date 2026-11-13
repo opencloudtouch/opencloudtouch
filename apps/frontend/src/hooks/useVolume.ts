@@ -15,7 +15,9 @@ import {
 } from "../api/devices";
 import { isDeviceOffline, markDeviceOffline } from "../api/offlineDeviceStore";
 import { useDeviceEventContext } from "../contexts/DeviceEventContext";
+import i18next from "i18next";
 import { octDebug } from "../utils/debug";
+import { getCachedDeviceData, setCachedDeviceData } from "../utils/deviceDataCache";
 
 const THROTTLE_MS = 150;
 
@@ -28,9 +30,55 @@ export interface UseVolumeResult {
   toggleMute: () => void;
 }
 
-export function useVolume(deviceId: string | undefined): UseVolumeResult {
-  const [volume, setVolume] = useState(0);
-  const [muted, setMuted] = useState(false);
+/**
+ * @param onError called with a translated message when the volume or mute change fails (the page shows it as a toast);
+ *   the slider is rolled back to the volume the device really has.
+ */
+export function useVolume(
+  deviceId: string | undefined,
+  onError?: (message: string) => void
+): UseVolumeResult {
+  // Keyed by device (see useNowPlaying): no volume of the previous device after a switch, cached value at once.
+  const [store, setStore] = useState<{ id: string | undefined; volume: number; muted: boolean }>(
+    () => ({
+      id: deviceId,
+      volume: getCachedDeviceData(deviceId)?.volume?.actual ?? 0,
+      muted: getCachedDeviceData(deviceId)?.volume?.muted ?? false,
+    })
+  );
+  const cachedVolume = getCachedDeviceData(deviceId)?.volume;
+  const volume = store.id === deviceId ? store.volume : (cachedVolume?.actual ?? 0);
+  const muted = store.id === deviceId ? store.muted : (cachedVolume?.muted ?? false);
+  const setVolume = useCallback(
+    (value: number) =>
+      setStore((prev) => {
+        const cached = getCachedDeviceData(deviceId)?.volume;
+        return {
+          id: deviceId,
+          volume: value,
+          muted: prev.id === deviceId ? prev.muted : (cached?.muted ?? false),
+        };
+      }),
+    [deviceId]
+  );
+  const setMuted = useCallback(
+    (value: boolean) =>
+      setStore((prev) => {
+        const cached = getCachedDeviceData(deviceId)?.volume;
+        return {
+          id: deviceId,
+          volume: prev.id === deviceId ? prev.volume : (cached?.actual ?? 0),
+          muted: value,
+        };
+      }),
+    [deviceId]
+  );
+  useEffect(() => {
+    if (deviceId && store.id === deviceId)
+      setCachedDeviceData(deviceId, {
+        volume: { actual: store.volume, target: store.volume, muted: store.muted },
+      });
+  }, [deviceId, store]);
   const [loading, setLoading] = useState(false);
   const [deviceOffline, setDeviceOffline] = useState(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -64,7 +112,7 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
       }
       console.warn("[useVolume] Failed to fetch volume:", err);
     }
-  }, [deviceId]);
+  }, [deviceId, setMuted, setVolume]);
 
   // Initial fetch on mount / device change
   useEffect(() => {
@@ -128,7 +176,7 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
       unsubscribe();
       unsubConnection();
     };
-  }, [deviceId, subscribe]);
+  }, [deviceId, setMuted, setVolume, subscribe]);
 
   // Throttled volume setter — sends API calls during drag, not just on drop
   const setDeviceVolume = useCallback(
@@ -152,12 +200,20 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
           }
         } catch (err) {
           console.error("[useVolume] Failed to set volume:", err);
+          onError?.(i18next.t("errors.volumeFailed"));
+          // roll back to the volume the device really has
+          getVolume(deviceId)
+            .then((real) => {
+              setVolume(real.actual);
+              setMuted(real.muted);
+            })
+            .catch(() => {});
         } finally {
           pendingVolumeRef.current = false;
         }
       }, THROTTLE_MS);
     },
-    [deviceId]
+    [deviceId, setMuted, setVolume, onError]
   );
 
   // Mute toggler
@@ -173,8 +229,9 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
       .catch((err) => {
         console.error("[useVolume] Failed to toggle mute:", err);
         setMuted(!newMuted); // Rollback
+        onError?.(i18next.t("errors.volumeFailed"));
       });
-  }, [deviceId, muted]);
+  }, [deviceId, muted, setMuted, setVolume, onError]);
 
   return { volume, muted, loading, deviceOffline, setDeviceVolume, toggleMute };
 }

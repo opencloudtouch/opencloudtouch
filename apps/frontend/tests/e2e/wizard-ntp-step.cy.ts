@@ -72,7 +72,7 @@ describe("Setup Wizard — NTP step (#469)", () => {
     cy.contains("button", /finalize/i, { timeout: 5000 }).should("exist");
   });
 
-  it("shows the backend error, keeps Next disabled and still allows Skip", () => {
+  it("shows a translated error (no raw backend text), keeps Next disabled and still allows Skip", () => {
     cy.intercept("POST", "/api/setup/wizard/patch-ntp", {
       statusCode: 200,
       body: {
@@ -88,7 +88,7 @@ describe("Setup Wizard — NTP step (#469)", () => {
     cy.get(".ntp-patch-btn").click();
     cy.wait("@patchNtp");
 
-    cy.get(".ntp-error").should("contain.text", "Cannot back up /etc/ntpservers.txt");
+    cy.get(".ntp-error").should("contain.text", "An unexpected error occurred").and("not.contain.text", "Cannot back up");
     cy.contains("button", /^next/i).should("be.disabled");
     cy.contains("button", /skip/i).should("exist");
   });

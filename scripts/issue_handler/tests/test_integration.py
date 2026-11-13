@@ -61,8 +61,7 @@ class TestFullPipelineIntegration:
             "rate_limit_threshold": 2,
             "rules": [],
             "kb_dir": str(FIXTURES_DIR),
-            "github_models_client": mock_ai,
-            "openai_client": None,
+            "openai_client": mock_ai,
             "cost_tracker": None,
             "kb_answers": [],
             "readme_content": "",
@@ -131,8 +130,7 @@ class TestFullPipelineIntegration:
             "rate_limit_threshold": 2,
             "rules": [],
             "kb_dir": str(FIXTURES_DIR),
-            "github_models_client": mock_ai,
-            "openai_client": None,
+            "openai_client": mock_ai,
             "cost_tracker": None,
             "kb_answers": [],
             "readme_content": "",
@@ -216,7 +214,7 @@ class TestCategoryIntegration:
             return_value=self._mock_classify_response("off-topic", 0.85, is_on_topic=False)
         )
         context = {
-            "github_models_client": mock_ai, "openai_client": None, "cost_tracker": None,
+            "openai_client": mock_ai, "cost_tracker": None,
             "kb_answers": [], "readme_content": "", "contributing_content": "",
         }
         event = self._make_event(title="How to cook pasta", body="Recipe please")
@@ -236,7 +234,7 @@ class TestCategoryIntegration:
             return_value=self._mock_classify_response("spam", 0.95, is_on_topic=False)
         )
         context = {
-            "github_models_client": mock_ai, "openai_client": None, "cost_tracker": None,
+            "openai_client": mock_ai, "cost_tracker": None,
             "kb_answers": [], "readme_content": "", "contributing_content": "",
         }
         event = self._make_event(title="Buy watches", body="Visit spam site")
@@ -258,7 +256,7 @@ class TestEdgeCaseIntegration:
         mock_ai = MagicMock()
         mock_ai.chat.completions.create = AsyncMock(side_effect=Exception("AI down"))
         context = {
-            "github_models_client": mock_ai, "openai_client": None, "cost_tracker": None,
+            "openai_client": mock_ai, "cost_tracker": None,
             "kb_answers": [], "readme_content": "", "contributing_content": "",
         }
         event = WebhookEvent(

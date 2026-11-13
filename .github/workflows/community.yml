@@ -1,0 +1,463 @@
+name: Community
+
+# Scheduled community jobs. Each job has its own permissions and runs only for its own
+# cron entry or its checkbox on manual dispatch.
+#   Spotlight : 1st of the month 06:00 UTC, creates the monthly Community Spotlight discussion
+#   Follow-up : daily 07:00 UTC, labels unanswered threads and asks once whether a thread was solved
+
+on:
+  schedule:
+    - cron: '0 6 1 * *'
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+    inputs:
+      spotlight:
+        description: 'Create the Community Spotlight discussion (creates a real discussion)'
+        type: boolean
+        default: false
+      follow_up:
+        description: 'Run the follow-up job now (posts for real unless the repository variable OCT_BOT_DRY_RUN is true)'
+        type: boolean
+        default: false
+
+permissions: {}
+
+jobs:
+  create-spotlight:
+    if: github.event.schedule == '0 6 1 * *' || (github.event_name == 'workflow_dispatch' && inputs.spotlight)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      discussions: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Analyze community activity
+        id: analyze
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get current month name
+          MONTH=$(date +'%B %Y')
+          echo "month=$MONTH" >> $GITHUB_OUTPUT
+
+          # Calculate date 30 days ago
+          SINCE=$(date -d '30 days ago' +'%Y-%m-%d' 2>/dev/null || date -v-30d +'%Y-%m-%d')
+          echo "Analyzing activity since $SINCE..."
+
+          # Excluded logins (maintainers + service accounts) — single source of truth
+          EXCLUDE_LOGINS='["scheilch","oct-support","codecov-commenter","dependabot","github-code-quality","gitar-bot"]'
+
+          # Collect issue comments with body text (last 30 days)
+          echo "📊 Collecting issue comments (last 30 days)..."
+          ISSUE_COMMENTS=$(gh api "/repos/${{ github.repository }}/issues/comments?since=${SINCE}T00:00:00Z&per_page=100" --paginate | jq -s --argjson exclude "$EXCLUDE_LOGINS" '
+            [.[][] | select(.user.type != "Bot" and (.user.login | IN($exclude[]) | not)) | 
+             {author: .user.login, body: .body}]
+          ')
+
+          # Collect issues created with labels (last 30 days)
+          echo "📊 Collecting issues created (last 30 days)..."
+          ISSUES_CREATED=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $since: DateTime!) {
+              repository(owner: $owner, name: $repo) {
+                issues(first: 100, orderBy: {field: CREATED_AT, direction: DESC}, filterBy: {since: $since}) {
+                  nodes {
+                    number
+                    author { login }
+                    createdAt
+                    labels(first: 10) {
+                      nodes { name }
+                    }
+                  }
+                }
+              }
+            }
+          ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -f since="${SINCE}T00:00:00Z" | jq --argjson exclude "$EXCLUDE_LOGINS" '
+            [.data.repository.issues.nodes[] | select(.author.login and (.author.login | IN($exclude[]) | not)) | 
+             {author: .author.login, issue: .number, labels: [.labels.nodes[].name]}] |
+            group_by(.author) |
+            map({
+              author: .[0].author, 
+              issues: map({number: .issue, labels: .labels}),
+              bugCount: [.[] | select(.labels | contains(["bug"]))] | length,
+              featureCount: [.[] | select(.labels | contains(["enhancement"]))] | length
+            })
+          ')
+
+          # Collect PRs created (last 30 days)
+          echo "📊 Collecting PRs created (last 30 days)..."
+          PRS_CREATED=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequests(first: 100, orderBy: {field: CREATED_AT, direction: DESC}, states: [OPEN, MERGED, CLOSED]) {
+                  nodes {
+                    number
+                    author { login }
+                    createdAt
+                    state
+                  }
+                }
+              }
+            }
+          ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" | jq --argjson exclude "$EXCLUDE_LOGINS" "
+            [.data.repository.pullRequests.nodes[] | 
+             select(.createdAt >= \"${SINCE}T00:00:00Z\" and .author.login != null and (.author.login | IN(\$exclude[]) | not)) |
+             {author: .author.login, pr: .number, state: .state}] |
+            group_by(.author) |
+            map({author: .[0].author, prs: map(.pr), merged: [.[] | select(.state == \"MERGED\")] | length})
+          ")
+
+          # Collect PR reviews (last 30 days)
+          echo "📊 Collecting PR reviews (last 30 days)..."
+          PR_REVIEWS=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequests(first: 50, orderBy: {field: UPDATED_AT, direction: DESC}) {
+                  nodes {
+                    reviews(first: 50) {
+                      nodes {
+                        author { login }
+                        createdAt
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" | jq --argjson exclude "$EXCLUDE_LOGINS" "
+            [.data.repository.pullRequests.nodes[].reviews.nodes[] |
+             select(.createdAt >= \"${SINCE}T00:00:00Z\" and .author.login != null and (.author.login | IN(\$exclude[]) | not)) |
+             .author.login] |
+            group_by(.) |
+            map({author: .[0], count: length})
+          ")
+
+          # Collect discussion comments with body text (last 30 days)
+          echo "📊 Collecting discussion comments (last 30 days)..."
+          DISCUSSION_COMMENTS=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!) {
+              repository(owner: $owner, name: $repo) {
+                discussions(first: 50, orderBy: {field: UPDATED_AT, direction: DESC}) {
+                  nodes {
+                    comments(first: 100) {
+                      nodes {
+                        author { login }
+                        body
+                        createdAt
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" | jq --argjson exclude "$EXCLUDE_LOGINS" "
+            [.data.repository.discussions.nodes[].comments.nodes[] | 
+             select(.createdAt >= \"${SINCE}T00:00:00Z\" and .author.login != null and (.author.login | IN(\$exclude[]) | not)) | 
+             {author: .author.login, body: .body}]
+          ")
+
+          # Collect LIFETIME statistics for all contributors
+          echo "📊 Collecting lifetime statistics..."
+          
+          # All-time issue comments
+          LIFETIME_ISSUE_COMMENTS=$(gh api "/repos/${{ github.repository }}/issues/comments?per_page=100" --paginate | jq -s --argjson exclude "$EXCLUDE_LOGINS" '
+            [.[][] | select(.user.type != "Bot" and (.user.login | IN($exclude[]) | not)) | .user.login] |
+            group_by(.) |
+            map({author: .[0], total: length})
+          ')
+          
+          # All-time issues created
+          LIFETIME_ISSUES=$(gh api "/repos/${{ github.repository }}/issues?state=all&per_page=100" --paginate | jq -s --argjson exclude "$EXCLUDE_LOGINS" '
+            [.[][] | select(.user.type != "Bot" and (.user.login | IN($exclude[]) | not) and .pull_request == null) | .user.login] |
+            group_by(.) |
+            map({author: .[0], total: length})
+          ')
+          
+          # All-time PRs
+          LIFETIME_PRS=$(gh api "/repos/${{ github.repository }}/pulls?state=all&per_page=100" --paginate | jq -s --argjson exclude "$EXCLUDE_LOGINS" '
+            [.[][] | select(.user.type != "Bot" and (.user.login | IN($exclude[]) | not)) | .user.login] |
+            group_by(.) |
+            map({author: .[0], total: length})
+          ')
+          
+          # All-time discussion comments
+          LIFETIME_DISCUSSIONS=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!) {
+              repository(owner: $owner, name: $repo) {
+                discussions(first: 100, orderBy: {field: CREATED_AT, direction: DESC}) {
+                  nodes {
+                    comments(first: 100) {
+                      nodes {
+                        author { login }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" | jq --argjson exclude "$EXCLUDE_LOGINS" '
+            [.data.repository.discussions.nodes[].comments.nodes[] | select(.author.login and (.author.login | IN($exclude[]) | not)) | .author.login] |
+            group_by(.) |
+            map({author: .[0], total: length})
+          ')
+
+          # Combine and score contributors
+          echo "📊 Calculating scores and star ratings..."
+          CONTRIBUTORS_JSON=$(jq -s '
+            (.[0] // []) as $issueComments |
+            (.[1] // []) as $issuesCreated |
+            (.[2] // []) as $prsCreated |
+            (.[3] // []) as $prReviews |
+            (.[4] // []) as $discussionComments |
+            (.[5] // []) as $lifetimeIssueComments |
+            (.[6] // []) as $lifetimeIssues |
+            (.[7] // []) as $lifetimePRs |
+            (.[8] // []) as $lifetimeDiscussions |
+            
+            # Calculate lifetime totals per user
+            ([$lifetimeIssueComments[], $lifetimeIssues[], $lifetimePRs[], $lifetimeDiscussions[]] |
+             map(select(.author)) |
+             group_by(.author) |
+             map({
+               author: .[0].author,
+               lifetimeTotal: ([.[] | .total] | add // 0)
+             })
+            ) as $lifetimeTotals |
+            
+            # Sort users by lifetime total contributions and assign percentile-based stars
+            ($lifetimeTotals | 
+             sort_by(.lifetimeTotal) | 
+             reverse |
+             to_entries |
+             map({
+               author: .value.author,
+               lifetimeTotal: .value.lifetimeTotal,
+               rank: (.key + 1),
+               totalUsers: ($lifetimeTotals | length),
+               percentile: (((.key + 1) / ($lifetimeTotals | length)) * 100),
+               stars: (
+                 if (((.key + 1) / ($lifetimeTotals | length)) * 100) <= 3 then 5
+                 elif (((.key + 1) / ($lifetimeTotals | length)) * 100) <= 10 then 4
+                 elif (((.key + 1) / ($lifetimeTotals | length)) * 100) <= 25 then 3
+                 elif (((.key + 1) / ($lifetimeTotals | length)) * 100) <= 50 then 2
+                 elif (((.key + 1) / ($lifetimeTotals | length)) * 100) <= 75 then 1
+                 else 0
+                 end
+               )
+             })
+            ) as $starRatings |
+            
+            # Build combined map for recent activity
+            # Collect all unique authors from all sources
+            ([$issueComments[], $issuesCreated[], $prsCreated[], $prReviews[], $discussionComments[]] | 
+             map(select(.author) | .author) | 
+             unique |
+             map(. as $author | {
+               author: $author,
+               # Issue comments: count comments and calculate logarithmic score based on word count
+               issueCommentCount: ([$issueComments[] | select(.author == $author)] | length),
+               issueCommentWords: ([$issueComments[] | select(.author == $author) | .body | split(" ") | length] | add // 0),
+               issueCommentScore: (
+                 ([$issueComments[] | select(.author == $author) | .body | split(" ") | length] | add // 0) as $words |
+                 if $words > 0 then (1 + ($words / 10)) | log / (2 | log) else 0 end
+               ),
+               issuesCreated: ([$issuesCreated[] | select(.author == $author) | .issues | length] | add // 0),
+               bugReports: ([$issuesCreated[] | select(.author == $author) | .bugCount] | add // 0),
+               featureRequests: ([$issuesCreated[] | select(.author == $author) | .featureCount] | add // 0),
+               prsCreated: ([$prsCreated[] | select(.author == $author) | .prs | length] | add // 0),
+               prsMerged: ([$prsCreated[] | select(.author == $author) | .merged] | add // 0),
+               prReviews: ([$prReviews[] | select(.author == $author) | .count] | add // 0),
+               # Discussion comments: count comments and calculate logarithmic score based on word count
+               discussionCommentCount: ([$discussionComments[] | select(.author == $author)] | length),
+               discussionCommentWords: ([$discussionComments[] | select(.author == $author) | .body | split(" ") | length] | add // 0),
+               discussionCommentScore: (
+                 ([$discussionComments[] | select(.author == $author) | .body | split(" ") | length] | add // 0) as $words |
+                 if $words > 0 then (1 + ($words / 10)) | log / (2 | log) else 0 end
+               )
+             }) |
+             # Add lifetime stats and stars
+             map(. as $user | 
+               ($lifetimeTotals | map(select(.author == $user.author)) | .[0] // {lifetimeTotal: 0}) as $lifetime |
+               ($starRatings | map(select(.author == $user.author)) | .[0] // {stars: 0}) as $rating |
+               $user + {
+                 lifetimeIssues: ([$lifetimeIssues[] | select(.author == $user.author) | .total] | add // 0),
+                 lifetimeComments: ([$lifetimeIssueComments[] | select(.author == $user.author) | .total] | add // 0),
+                 lifetimePRs: ([$lifetimePRs[] | select(.author == $user.author) | .total] | add // 0),
+                 lifetimeDiscussions: ([$lifetimeDiscussions[] | select(.author == $user.author) | .total] | add // 0),
+                 lifetimeTotal: $lifetime.lifetimeTotal,
+                 stars: $rating.stars
+               }
+             ) |
+             map(. + {
+               score: ((.issuesCreated * 10) + (.prsCreated * 15) + (.prsMerged * 5) + (.prReviews * 3) + .issueCommentScore + .discussionCommentScore)
+             }) |
+             sort_by(.score) |
+             reverse |
+             .[0:5]
+            )
+          ' <(echo "$ISSUE_COMMENTS") <(echo "$ISSUES_CREATED") <(echo "$PRS_CREATED") <(echo "$PR_REVIEWS") <(echo "$DISCUSSION_COMMENTS") <(echo "$LIFETIME_ISSUE_COMMENTS") <(echo "$LIFETIME_ISSUES") <(echo "$LIFETIME_PRS") <(echo "$LIFETIME_DISCUSSIONS"))
+
+          echo "contributors<<EOF" >> $GITHUB_OUTPUT
+          echo "$CONTRIBUTORS_JSON" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "✅ Top contributors (with ⭐ ratings):"
+          echo "$CONTRIBUTORS_JSON" | jq -r '.[] | "  \(.author) \(["", "⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"][.stars]) (Score: \(.score), Lifetime: \(.lifetimeTotal))"'
+
+      - name: Generate Discussion Body
+        id: discussion
+        env:
+          MONTH: ${{ steps.analyze.outputs.month }}
+          CONTRIBUTORS: ${{ steps.analyze.outputs.contributors }}
+        run: |
+          # Generate markdown for discussion post
+          BODY=$(echo "$CONTRIBUTORS" | jq -r --arg month "$MONTH" '
+            "# 🌟 Community Spotlight — " + $month + "\n\n" +
+            "## 💙 A Heartfelt Thank You!\n\n" +
+            "This month, we want to shine a light on the incredible people who make **OpenCloudTouch** better every single day. Whether you reported a bug, answered a question, submitted a PR, or shared your knowledge — **you are the reason this project thrives**. Thank you for being part of this journey! 🙏\n\n" +
+            "---\n\n" +
+            "## 🏆 Top Contributors This Month\n\n" +
+            (map(
+              "### [@\(.author)](https://github.com/\(.author)) " + (["", "⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"][.stars]) + "\n\n" +
+              "**Recent Activity (last 30 days):**\n" +
+              (if .issuesCreated > 0 then "- 🐛 **\(.issuesCreated) issue(s)** created (" + 
+                (if .bugReports > 0 then "\(.bugReports) bug report" + (if .bugReports > 1 then "s" else "" end) else "" end) +
+                (if .bugReports > 0 and .featureRequests > 0 then ", " else "" end) +
+                (if .featureRequests > 0 then "\(.featureRequests) feature request" + (if .featureRequests > 1 then "s" else "" end) else "" end) +
+                ") — lifetime: **\(.lifetimeIssues)** total\n" else "" end) +
+              (if .prsCreated > 0 then "- 🔧 **\(.prsCreated) pull request(s)** submitted" + 
+                (if .prsMerged > 0 then " (**\(.prsMerged) merged** ✅)" else "" end) + 
+                " — lifetime: **\(.lifetimePRs)** total\n" else "" end) +
+              (if .prReviews > 0 then "- 👀 **\(.prReviews) PR review(s)** — helping improve code quality\n" else "" end) +
+              (if .issueCommentCount > 0 then "- 💬 **\(.issueCommentCount) comment(s)** on issues — lifetime: **\(.lifetimeComments)** total\n" else "" end) +
+              (if .discussionCommentCount > 0 then "- 💡 **\(.discussionCommentCount) discussion comment(s)** — lifetime: **\(.lifetimeDiscussions)** total\n" else "" end) +
+              "\n**Impact:** " + (
+                # Determine impact based on actual contributions
+                if .prsMerged > 0 and .bugReports > 0 then "Code contributor and bug hunter — directly improving the codebase!"
+                elif .prsMerged > 0 then "Code contributor — thank you for your pull requests!"
+                elif .prsCreated > 0 then "Active contributor — your PRs are in review!"
+                elif .bugReports > 2 and .issueCommentCount > 5 then "Bug detective and community helper — finding issues and supporting others"
+                elif .bugReports > 2 then "Bug reporter — helping us squash those pesky bugs"
+                elif .featureRequests > 2 then "Feature visionary — shaping the future of OpenCloudTouch"
+                elif .issueCommentCount > 10 and .discussionCommentCount > 5 then "Community champion — active support across issues and discussions"
+                elif .issueCommentCount > 10 then "Support hero — always there to help others"
+                elif .discussionCommentCount > 5 then "Knowledge sharer — enriching our community discussions"
+                elif .prReviews > 3 then "Code reviewer — ensuring quality through thorough reviews"
+                else "Active community member — every contribution counts!"
+                end
+              ) + "\n"
+            ) | join("\n")) +
+            "\n---\n\n" +
+            "## 📊 How We Select Contributors\n\n" +
+            "This spotlight recognizes recent activity (last 30 days) combined with all-time contributions:\n\n" +
+            "- 🐛 **Bug Reports** — identifying issues\n" +
+            "- ✨ **Feature Requests** — suggesting improvements\n" +
+            "- 🔧 **Pull Requests** — submitting code\n" +
+            "- 👀 **PR Reviews** — code review feedback\n" +
+            "- 💬 **Issue Comments** — quality over quantity!\n" +
+            "- 💡 **Discussion Comments** — same principle, rewarding thoughtful contributions\n\n" +
+            "**⭐ Star Ratings** are based on your **all-time contributions** compared to the entire community:\n" +
+            "- ⭐⭐⭐⭐⭐ Top 3% of all contributors\n" +
+            "- ⭐⭐⭐⭐ Top 10%\n" +
+            "- ⭐⭐⭐ Top 25%\n" +
+            "- ⭐⭐ Top 50%\n" +
+            "- ⭐ Top 75%\n\n" +
+            "_Quality always matters more than quantity — thank you for making this community awesome!_ 🎉\n\n" +
+            "---\n\n" +
+            "## 💛 Support OpenCloudTouch\n\n" +
+            "Want to help keep this project alive? Your support means the world to us!\n\n" +
+            "☕ **[Buy Me a Coffee](https://buymeacoffee.com/b49rjg5k6vj)**\n\n" +
+            "Financial supporters are featured in the **About** section of the web interface!\n\n" +
+            "---\n\n" +
+            "_Auto-generated monthly announcement • Next spotlight: " + ((now | gmtime | mktime + 2592000) | strftime("%B 1, %Y")) + "_"
+          ')
+          
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "$BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Discussion
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: "🌟 Community Spotlight — ${{ steps.analyze.outputs.month }}"
+          BODY: ${{ steps.discussion.outputs.body }}
+        run: |
+          # Get repository and category IDs
+          REPO_ID=$(gh api /repos/${{ github.repository }} --jq .node_id)
+          CATEGORY_ID=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!) {
+              repository(owner: $owner, name: $repo) {
+                discussionCategories(first: 20) {
+                  nodes {
+                    id
+                    name
+                  }
+                }
+              }
+            }
+          ' -f owner=${{ github.repository_owner }} -f repo=${{ github.event.repository.name }} --jq '.data.repository.discussionCategories.nodes[] | select(.name == "Announcements") | .id')
+          
+          echo "Repository ID: $REPO_ID"
+          echo "Category ID: $CATEGORY_ID"
+          
+          # Create discussion
+          DISCUSSION_URL=$(gh api graphql -f query='
+            mutation($repositoryId: ID!, $categoryId: ID!, $title: String!, $body: String!) {
+              createDiscussion(input: {
+                repositoryId: $repositoryId,
+                categoryId: $categoryId,
+                title: $title,
+                body: $body
+              }) {
+                discussion {
+                  url
+                }
+              }
+            }
+          ' -f repositoryId="$REPO_ID" -f categoryId="$CATEGORY_ID" -f title="$TITLE" -f body="$BODY" --jq '.data.createDiscussion.discussion.url')
+          
+          echo "✅ Discussion created: $DISCUSSION_URL"
+
+  follow-up:
+    if: github.event.schedule == '0 7 * * *' || (github.event_name == 'workflow_dispatch' && inputs.follow_up)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Restore cost tracker cache
+        uses: actions/cache/restore@v6
+        with:
+          path: /tmp/ai-cost-tracker
+          key: ai-cost-tracker-${{ github.run_id }}
+          restore-keys: |
+            ai-cost-tracker-
+
+      - name: Label unanswered threads and post follow-ups
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BOT_PAT: ${{ secrets.BOT_PAT }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          # Dry-run until the repository variable OCT_BOT_DRY_RUN is set to "false"
+          OCT_BOT_DRY_RUN: ${{ vars.OCT_BOT_DRY_RUN || 'true' }}
+        working-directory: scripts/issue_handler
+        run: python followup_main.py
+
+      - name: Save cost tracker cache
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: /tmp/ai-cost-tracker
+          key: ai-cost-tracker-${{ github.run_id }}

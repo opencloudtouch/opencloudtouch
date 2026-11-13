@@ -371,7 +371,7 @@ export interface paths {
      * Rename Device
      * @description Rename a SoundTouch device.
      *
-     *     Tries REST API first (POST /name), falls back to SSH if REST fails.
+     *     Uses the device REST API (POST /name), like the Bose app.
      *     Updates the local database after successful rename.
      *
      *     Args:
@@ -384,7 +384,7 @@ export interface paths {
      *     Raises:
      *         DeviceNotFoundError: If device does not exist
      *         HTTPException(422): If name validation fails
-     *         HTTPException(502): If both REST and SSH methods fail
+     *         HTTPException(502): If the device does not accept the new name
      */
     put: operations["rename_device_api_devices__device_id__name_put"];
     post?: never;
@@ -451,6 +451,26 @@ export interface paths {
      * @description Set mute state.
      */
     put: operations["set_mute_api_devices__device_id__mute_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/{device_id}/source": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Select Source
+     * @description Switch the device to an input source (Bluetooth, AUX or AirPlay).
+     */
+    put: operations["select_source_api_devices__device_id__source_put"];
     post?: never;
     delete?: never;
     options?: never;
@@ -2695,7 +2715,7 @@ export interface components {
       event: string;
       /**
        * Step
-       * @description Wizard step number (0=init)
+       * @description Wizard step number (0=init, up to 8 setup steps)
        */
       step?: number | null;
       /**
@@ -2754,6 +2774,12 @@ export interface components {
        * @default
        */
       validation_message: string;
+      /** Validation Code */
+      validation_code?: string | null;
+      /** Validation Params */
+      validation_params?: {
+        [key: string]: string;
+      };
     };
     /**
      * BackupRequest
@@ -2813,6 +2839,14 @@ export interface components {
        * @default false
        */
       is_match: boolean;
+    };
+    /** Body_select_source_api_devices__device_id__source_put */
+    Body_select_source_api_devices__device_id__source_put: {
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: "BLUETOOTH" | "AUX" | "AIRPLAY";
     };
     /** Body_set_mute_api_devices__device_id__mute_put */
     Body_set_mute_api_devices__device_id__mute_put: {
@@ -3022,6 +3056,50 @@ export interface components {
       message: string;
     };
     /**
+     * DeviceListResponse
+     * @description Response containing all stored devices.
+     */
+    DeviceListResponse: {
+      /** Count */
+      count: number;
+      /** Devices */
+      devices: components["schemas"]["DeviceResponse"][];
+    };
+    /**
+     * DeviceResponse
+     * @description Stored device information, including UUID provenance.
+     */
+    DeviceResponse: {
+      /** Id */
+      id: number | null;
+      /** Device Id */
+      device_id: string;
+      /** Ip */
+      ip: string;
+      /** Name */
+      name: string;
+      /** Model */
+      model: string;
+      /** Mac Address */
+      mac_address: string;
+      /** Firmware Version */
+      firmware_version: string;
+      /** Schema Version */
+      schema_version: string;
+      /** Last Seen */
+      last_seen: string | null;
+      /** Setup Status */
+      setup_status: string;
+      /** Ssh Permanent */
+      ssh_permanent: boolean;
+      /** Setup Completed At */
+      setup_completed_at: string | null;
+      /** Marge Account Uuid */
+      marge_account_uuid: string | null;
+      /** Uuid Source */
+      uuid_source: string;
+    };
+    /**
      * DiagnosticsRequest
      * @description Request body for diagnostics download (no GitHub token needed).
      */
@@ -3112,6 +3190,11 @@ export interface components {
        */
       uuid_was_collision: boolean;
       /**
+       * Uuid Source
+       * @default unknown
+       */
+      uuid_source: string;
+      /**
        * Sources Written
        * @default false
        */
@@ -3159,6 +3242,34 @@ export interface components {
     HTTPValidationError: {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
+    };
+    /**
+     * HealthConfig
+     * @description Non-sensitive configuration flags exposed by /health.
+     */
+    HealthConfig: {
+      /** Discovery Enabled */
+      discovery_enabled: boolean;
+    };
+    /**
+     * HealthResponse
+     * @description Response of GET /health (documented contract used by the frontend).
+     */
+    HealthResponse: {
+      /** Status */
+      status: string;
+      /** Service */
+      service: string;
+      /** Version */
+      version: string;
+      /**
+       * Build
+       * @enum {string}
+       */
+      build: "official" | "community";
+      /** Uptime */
+      uptime: number;
+      config: components["schemas"]["HealthConfig"];
     };
     /**
      * HostsModifyRequest
@@ -3467,6 +3578,12 @@ export interface components {
        * @default 0
        */
       duration_seconds: number;
+      /** Message Code */
+      message_code?: string | null;
+      /** Message Params */
+      message_params?: {
+        [key: string]: string;
+      };
     };
     /**
      * RestoreWizardBackupSet
@@ -3904,6 +4021,104 @@ export interface components {
       /** Ip */
       ip: string;
     };
+    /**
+     * ErrorItem
+     * @description One field-level error inside ``ErrorDetail.errors``.
+     *
+     *     ``field`` keeps the legacy dotted location (``body.port``); ``path`` is the
+     *     same location without the leading ``body``/``query``/``path``/``header``
+     *     segment (``port``) and is what clients map to input names.
+     */
+    ErrorItem: {
+      /** Field */
+      field: string;
+      /**
+       * Path
+       * @default null
+       */
+      path: string | null;
+      /** Message */
+      message: string;
+      /**
+       * Type
+       * @default null
+       */
+      type: string | null;
+      /**
+       * Code
+       * @default null
+       */
+      code: string | null;
+    };
+    /**
+     * ErrorDetail
+     * @description Standardized error response format (RFC 7807-inspired).
+     *
+     *     Provides consistent error structure across all API endpoints.
+     *
+     *     Attributes:
+     *         type: Error category (validation_error, not_found, server_error, etc.)
+     *         title: Human-readable error title
+     *         status: HTTP status code
+     *         detail: Detailed error message
+     *         instance: Request path that triggered error (optional)
+     *         errors: Field-level validation errors (optional, for 422 responses)
+     *         code: Stable machine-readable error identifier (see ``error_codes``)
+     *         params: Flat string map for message interpolation on the client
+     *         extra: Structured data for the client (not for translation)
+     *
+     *     Example:
+     *         {
+     *             "type": "not_found",
+     *             "title": "Device Not Found",
+     *             "status": 404,
+     *             "detail": "Device not found: abc123",
+     *             "instance": "/api/devices/abc123",
+     *             "errors": null,
+     *             "code": "device_not_found",
+     *             "params": null,
+     *             "extra": null
+     *         }
+     */
+    ErrorDetail: {
+      /** Type */
+      type: string;
+      /** Title */
+      title: string;
+      /** Status */
+      status: number;
+      /** Detail */
+      detail: string;
+      /**
+       * Instance
+       * @default null
+       */
+      instance: string | null;
+      /**
+       * Errors
+       * @default null
+       */
+      errors: components["schemas"]["ErrorItem"][] | null;
+      /**
+       * Code
+       * @default null
+       */
+      code: string | null;
+      /**
+       * Params
+       * @default null
+       */
+      params: {
+        [key: string]: string;
+      } | null;
+      /**
+       * Extra
+       * @default null
+       */
+      extra: {
+        [key: string]: unknown;
+      } | null;
+    };
   };
   responses: never;
   parameters: never;
@@ -4087,7 +4302,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["DeviceListResponse"];
         };
       };
     };
@@ -4129,7 +4344,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["DeviceResponse"];
         };
       };
       /** @description Validation Error */
@@ -4336,7 +4551,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Both REST and SSH rename failed */
+      /** @description The device did not accept the new name */
       502: {
         headers: {
           [name: string]: unknown;
@@ -4476,6 +4691,55 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
+      };
+    };
+  };
+  select_source_api_devices__device_id__source_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["Body_select_source_api_devices__device_id__source_put"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Device not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description Device unreachable */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -7467,7 +7731,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["HealthResponse"];
         };
       };
     };

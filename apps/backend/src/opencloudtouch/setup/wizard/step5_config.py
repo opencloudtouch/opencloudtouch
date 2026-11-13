@@ -33,7 +33,7 @@ class Step5ConfigMixin:
         target_host = parsed.hostname or parsed.netloc
         target_port = parsed.port or get_config().port
 
-        async with ssh_operation(device_ip, "modify-config") as ssh:
+        async with ssh_operation(device_ip, "modify-config", write=True) as ssh:
             config_service = SoundTouchConfigService(ssh)
 
             await snapshot_config_files(

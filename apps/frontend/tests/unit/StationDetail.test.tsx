@@ -1,6 +1,7 @@
 ﻿import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import StationDetail from "../../src/components/StationDetail";
+import { i18next } from "../../src/i18n";
 
 const mockStation = {
   uuid: "abc-123",
@@ -105,7 +106,7 @@ describe("StationDetail Component", () => {
       expect(screen.getByText("SWR3")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText("← Back"));
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(mockOnBack).toHaveBeenCalledTimes(1);
   });
 
@@ -131,7 +132,7 @@ describe("StationDetail Component", () => {
       expect(screen.getByText("Failed to load. Please try again.")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText("← Back"));
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(mockOnBack).toHaveBeenCalledTimes(1);
   });
 
@@ -143,7 +144,8 @@ describe("StationDetail Component", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Network error")).toBeInTheDocument();
+      expect(screen.getByText(i18next.t("errors.networkFailed"))).toBeInTheDocument();
+        expect(document.body.textContent).not.toContain("Network error"); // translated message only
     });
   });
 });

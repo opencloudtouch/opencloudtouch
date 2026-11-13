@@ -34,7 +34,7 @@ class NtpPatchMixin:
         Returns:
             Dict with success, message, synced, backup_path, diff
         """
-        async with ssh_operation(device_ip, "patch-ntp") as ssh:
+        async with ssh_operation(device_ip, "patch-ntp", write=True) as ssh:
             await snapshot_config_files(
                 ssh,
                 self._audit_repo,

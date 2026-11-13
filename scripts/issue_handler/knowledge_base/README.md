@@ -25,25 +25,15 @@ This directory contains the curated Knowledge Base (KB) articles, scripts, and a
 
 ---
 
-## 2. Automatisierte KB-Wachstum & Qualitätskontrolle
+## 2. Answers from verified sources
 
-### Scheduled Workflow: `.github/workflows/kb-growth.yml`
-- Läuft wöchentlich (oder manuell via GitHub Actions)
-- Steps:
-  1. **KB Growth Scan:**
-     - Script: `knowledge_base/kb_growth.py`
-     - Scannt geschlossene Support-Issues der letzten Woche
-     - Prüft, ob Thema bereits durch KB abgedeckt ist (Tag-Match)
-     - Markiert gescannte Issues mit Label `kb-scanned`
-     - Erstellt Digest-Report (Markdown)
-  2. **Pattern & Quality Scan:**
-     - Script: `knowledge_base/pattern_quality_scan.py`
-     - Scannt offene Issues/Discussions nach:
-       - Frage-/Problem-Patterns ("how", "doesn't work", "fixed", ...)
-       - Stale-Threads (>7d ohne Aktivität)
-       - KB-Coverage (Tag-Mapping)
-       - Response-Quality (Feedback-Signale)
-     - Output: YAML-Reports in `.local/agent-work/knowledge-kai/scans/`
+The issue handler answers once, 5 to 10 minutes after a new issue or discussion (`answer_delay_*` in `rules.yml`). It stays silent if a human or the bot replied meanwhile, the thread is closed, or it carries `spec` or `needs-human`. Sources are only `approved_answers/`, the README and `docs/` (section by section) and threads labelled `verified-solution` (`retrieval.py`). Without a source above `min_relevance` there is no answer. Every answer lists its sources and carries the marker `<!-- oct-bot:answer -->`.
+
+Operation: dry-run is the default (writes are only logged). To go live, set the repository variable `OCT_BOT_DRY_RUN` to `false`. Locally, `OCT_BOT_DELAY_MIN` / `OCT_BOT_DELAY_MAX` (seconds) override the wait.
+
+**Follow-up and verification (job `follow-up` in the Community workflow, daily):** Quiet support threads (label `support`/`needs-info`, or with a bot answer) get exactly one follow-up. Case 1 (replies exist), after 3 days: the candidates A to F, G "something else", H "not solved". Case 2 (no replies), after 7 days: an open question, plus the label `unanswered` after 3 days. Case 3 (only the starter wrote more): confirmation of the fix they mention. When the starter answers (a letter or free text) the bot says what it understood, then labels `verified-solution` and closes the thread (discussions: marks the answer and closes) for "solved", or labels `needs-human` for "not solved". Only threads labelled `verified-solution` become sources. Settings: `followup_*` and `unanswered_label_days` in `rules.yml`. Manual start: Community workflow, checkbox `follow_up`.
+
+**When the maintainer closes a support issue as "completed":** The bot posts one comment with checkboxes (solution as drafted / duplicate / obsolete / no solution) and a solution drafted from the thread. Only users with write access can tick a box, and ticking triggers the handler: a solution sets the label `verified-solution` and the comment becomes the recorded solution (a source), duplicate/obsolete set the label `duplicate`/`obsolete`. "Not planned" triggers nothing; bugs and features without a support angle are not asked.
 
 ---
 
@@ -65,17 +55,6 @@ This directory contains the curated Knowledge Base (KB) articles, scripts, and a
 
 ---
 
-## 5. Reports & Qualitätsmetriken
-
-- Digest-Reports (Markdown): Übersicht neue/abgedeckte Themen
-- Pattern/Coverage/Quality-Reports (YAML):
-  - `.local/agent-work/knowledge-kai/scans/pattern_quality_threads.yaml`
-  - `.local/agent-work/knowledge-kai/scans/pattern_quality_coverage.yaml`
-  - `.local/agent-work/knowledge-kai/scans/pattern_quality_quality.yaml`
-- Reports dienen als Grundlage für KB-Erweiterung und Bot-Verbesserung
-
----
-
 ## 6. Best Practices
 
 - **Jeder Artikel muss verifiziert und reviewt sein** (keine Halluzinationen)
@@ -88,7 +67,6 @@ This directory contains the curated Knowledge Base (KB) articles, scripts, and a
 ## 7. Troubleshooting
 
 - Workflow läuft nicht? → Logs in GitHub Actions prüfen
-- YAML-Reports fehlen? → Rechte/Verzeichnisse prüfen (`.local/agent-work/knowledge-kai/scans/`)
 - KI-Draft schlägt fehl? → Prompt/Issue-Text prüfen, ggf. manuell nacharbeiten
 
 ---

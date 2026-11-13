@@ -5,10 +5,22 @@
  * Sub-components are mocked to keep tests focused on wizard orchestration.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { i18next } from "../../../src/i18n";
 import React from "react";
+import { MemoryRouter } from "react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import SetupWizard from "../../../src/pages/SetupWizard";
 import type { Device } from "../../../src/api/devices";
+
+/** The wizard needs a QueryClient (it refreshes the device list when it is left) and a router (device icon link). */
+const queryClient = new QueryClient();
+const renderWizard = (ui: React.ReactElement) =>
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  );
 
 // tests/setup.ts mocks react-router's useNavigate with `() => vi.fn()`, which
 // hands out a fresh, unassertable spy on every call. Override it locally with
@@ -49,8 +61,17 @@ vi.mock("../../../src/components/wizard/DeviceInfoHeader", () => ({
 }));
 
 vi.mock("../../../src/components/wizard/ProgressTracker", () => ({
-  default: ({ currentStep }: { currentStep: number }) => (
-    <div data-testid="progress-tracker">Step {currentStep}</div>
+  default: ({
+    currentStep,
+    steps,
+  }: {
+    currentStep: number;
+    steps: { label: string }[];
+  }) => (
+    <div data-testid="progress-tracker">
+      Step {currentStep}
+      <span data-testid="tracker-labels">{steps.map((s) => s.label).join("|")}</span>
+    </div>
   ),
 }));
 
@@ -174,18 +195,18 @@ describe("SetupWizard (pages/SetupWizard)", () => {
 
   describe("Empty State", () => {
     it("shows empty state message when no devices provided", () => {
-      render(<SetupWizard devices={[]} />);
+      renderWizard(<SetupWizard devices={[]} />);
       expect(screen.getByText("No devices found")).toBeInTheDocument();
     });
 
     it("shows loading spinner when isLoading is true", () => {
-      render(<SetupWizard devices={[]} isLoading={true} />);
+      renderWizard(<SetupWizard devices={[]} isLoading={true} />);
       expect(screen.getByRole("status")).toBeInTheDocument();
       expect(screen.queryByText("No devices found")).not.toBeInTheDocument();
     });
 
     it("shows back-to-home button in empty state", () => {
-      render(<SetupWizard devices={[]} />);
+      renderWizard(<SetupWizard devices={[]} />);
       expect(
         screen.getByRole("button", { name: /back to home page/i })
       ).toBeInTheDocument();
@@ -196,12 +217,12 @@ describe("SetupWizard (pages/SetupWizard)", () => {
 
   describe("Direct Wizard Start", () => {
     it("shows WizardChoice initially when devices are available", () => {
-      render(<SetupWizard devices={mockDevices} />);
+      renderWizard(<SetupWizard devices={mockDevices} />);
       expect(screen.getByTestId("wizard-choice")).toBeInTheDocument();
     });
 
     it("renders ProgressTracker and USB step after selecting setup", async () => {
-      render(<SetupWizard devices={mockDevices} />);
+      renderWizard(<SetupWizard devices={mockDevices} />);
       fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
       await waitFor(() => {
         expect(screen.getByTestId("progress-tracker")).toBeInTheDocument();
@@ -209,8 +230,26 @@ describe("SetupWizard (pages/SetupWizard)", () => {
       });
     });
 
+    it("translates the tracker labels when the language changes inside the wizard", async () => {
+      const original = i18next.language;
+      renderWizard(<SetupWizard devices={mockDevices} />);
+      fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
+      const labelsBefore = await screen.findByTestId("tracker-labels");
+      const before = labelsBefore.textContent;
+
+      await act(async () => {
+        await i18next.changeLanguage(original === "en" ? "de" : "en");
+      });
+
+      expect(screen.getByTestId("tracker-labels").textContent).not.toBe(before);
+      await act(async () => {
+        await i18next.changeLanguage(original);
+      });
+      expect(screen.getByTestId("tracker-labels").textContent).toBe(before);
+    });
+
     it("ProgressTracker starts at step 1 after selecting setup", async () => {
-      render(<SetupWizard devices={mockDevices} />);
+      renderWizard(<SetupWizard devices={mockDevices} />);
       fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
       await waitFor(() => {
         expect(screen.getByText("Step 1")).toBeInTheDocument();
@@ -222,7 +261,7 @@ describe("SetupWizard (pages/SetupWizard)", () => {
 
   describe("Step Navigation", () => {
     it("advances from USB Preparation to Power Cycle step", async () => {
-      render(<SetupWizard devices={mockDevices} />);
+      renderWizard(<SetupWizard devices={mockDevices} />);
       fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
       await waitFor(() => expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument());
       fireEvent.click(screen.getByRole("button", { name: /usb prep weiter/i }));
@@ -232,7 +271,7 @@ describe("SetupWizard (pages/SetupWizard)", () => {
     });
 
     it("advances from Power Cycle to Backup step", async () => {
-      render(<SetupWizard devices={mockDevices} />);
+      renderWizard(<SetupWizard devices={mockDevices} />);
       fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
       await waitFor(() => expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument());
       fireEvent.click(screen.getByRole("button", { name: /usb prep weiter/i }));
@@ -244,7 +283,7 @@ describe("SetupWizard (pages/SetupWizard)", () => {
     });
 
     it("shows DeviceInfoHeader with device name", async () => {
-      render(<SetupWizard devices={mockDevices} />);
+      renderWizard(<SetupWizard devices={mockDevices} />);
       fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
       await waitFor(() => {
         expect(screen.getByTestId("device-info-header")).toBeInTheDocument();
@@ -257,7 +296,7 @@ describe("SetupWizard (pages/SetupWizard)", () => {
 
   describe("handleHostsModified IP propagation", () => {
     const navigateToStep6 = async () => {
-      render(<SetupWizard devices={mockDevices} />);
+      renderWizard(<SetupWizard devices={mockDevices} />);
       fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
       await waitFor(() => expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument());
       fireEvent.click(screen.getByRole("button", { name: /usb prep weiter/i }));
@@ -301,7 +340,7 @@ describe("SetupWizard (pages/SetupWizard)", () => {
 
   describe("Skip Verification", () => {
     it("navigates home when skip button is clicked on verification step", async () => {
-      render(<SetupWizard devices={mockDevices} />);
+      renderWizard(<SetupWizard devices={mockDevices} />);
       // Navigate: Choice → USB → Power → Backup → Config → Hosts → Verify
       fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
       await waitFor(() => expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument());
@@ -324,6 +363,15 @@ describe("SetupWizard (pages/SetupWizard)", () => {
       // onSkip navigates home, carrying the auto-selected device's id as a
       // query param (mockDevices[0] is auto-selected since no deviceId is in the URL).
       expect(mockNavigate).toHaveBeenCalledWith("/?device=ST30-001");
+    });
+  });
+  describe("device list refresh and back link", () => {
+    it("refreshes the device list when the wizard is left", () => {
+      const spy = vi.spyOn(queryClient, "invalidateQueries");
+      const { unmount } = renderWizard(<SetupWizard devices={mockDevices} />);
+      unmount();
+      expect(spy).toHaveBeenCalledWith({ queryKey: ["devices"] });
+      spy.mockRestore();
     });
   });
 });

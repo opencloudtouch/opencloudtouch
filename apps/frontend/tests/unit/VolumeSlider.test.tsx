@@ -130,7 +130,7 @@ describe("VolumeSlider Component", () => {
       const { container } = render(
         <VolumeSlider volume={50} onVolumeChange={mockOnVolumeChange} muted={false} onMuteToggle={vi.fn()} />,
       );
-      const track = container.querySelector(".volume-track") as HTMLElement;
+      const track = container.querySelector(".vs-track") as HTMLElement;
       // Mock getBoundingClientRect for value calculation
       vi.spyOn(track, "getBoundingClientRect").mockReturnValue({
         left: 0, right: 200, width: 200, top: 0, bottom: 20, height: 20, x: 0, y: 0, toJSON: vi.fn(),
@@ -148,7 +148,7 @@ describe("VolumeSlider Component", () => {
       const { container } = render(
         <VolumeSlider volume={0} onVolumeChange={mockOnVolumeChange} muted={false} onMuteToggle={vi.fn()} />,
       );
-      const track = container.querySelector(".volume-track") as HTMLElement;
+      const track = container.querySelector(".vs-track") as HTMLElement;
       vi.spyOn(track, "getBoundingClientRect").mockReturnValue({
         left: 0, right: 200, width: 200, top: 0, bottom: 20, height: 20, x: 0, y: 0, toJSON: vi.fn(),
       });
@@ -165,7 +165,7 @@ describe("VolumeSlider Component", () => {
       const { container } = render(
         <VolumeSlider volume={50} onVolumeChange={mockOnVolumeChange} muted={false} onMuteToggle={vi.fn()} />,
       );
-      const track = container.querySelector(".volume-track") as HTMLElement;
+      const track = container.querySelector(".vs-track") as HTMLElement;
 
       fireEvent.pointerMove(track, { clientX: 100, pointerId: 1 });
 
@@ -177,7 +177,7 @@ describe("VolumeSlider Component", () => {
       const { container } = render(
         <VolumeSlider volume={50} onVolumeChange={mockOnVolumeChange} muted={false} onMuteToggle={vi.fn()} />,
       );
-      const track = container.querySelector(".volume-track") as HTMLElement;
+      const track = container.querySelector(".vs-track") as HTMLElement;
 
       fireEvent.pointerUp(track, { clientX: 100, pointerId: 1 });
 
@@ -189,7 +189,7 @@ describe("VolumeSlider Component", () => {
       const { container } = render(
         <VolumeSlider volume={50} onVolumeChange={mockOnVolumeChange} muted={false} onMuteToggle={vi.fn()} />,
       );
-      const track = container.querySelector(".volume-track") as HTMLElement;
+      const track = container.querySelector(".vs-track") as HTMLElement;
       vi.spyOn(track, "getBoundingClientRect").mockReturnValue({
         left: 100, right: 300, width: 200, top: 0, bottom: 20, height: 20, x: 100, y: 0, toJSON: vi.fn(),
       });
@@ -206,7 +206,7 @@ describe("VolumeSlider Component", () => {
       const { container } = render(
         <VolumeSlider volume={50} onVolumeChange={mockOnVolumeChange} muted={false} onMuteToggle={vi.fn()} />,
       );
-      const track = container.querySelector(".volume-track") as HTMLElement;
+      const track = container.querySelector(".vs-track") as HTMLElement;
       vi.spyOn(track, "getBoundingClientRect").mockReturnValue({
         left: 100, right: 300, width: 200, top: 0, bottom: 20, height: 20, x: 100, y: 0, toJSON: vi.fn(),
       });
@@ -256,8 +256,8 @@ describe("VolumeSlider Component", () => {
       const { container, rerender } = render(
         <VolumeSlider volume={volume} onVolumeChange={mockOnVolumeChange} muted={false} onMuteToggle={vi.fn()} />,
       );
-      const track = container.querySelector(".volume-track") as HTMLElement;
-      const fill = container.querySelector(".volume-track-fill") as HTMLElement;
+      const track = container.querySelector(".vs-track") as HTMLElement;
+      const fill = container.querySelector(".vs-track-fill") as HTMLElement;
       vi.spyOn(track, "getBoundingClientRect").mockReturnValue({
         left: 0, right: 200, width: 200, top: 0, bottom: 20, height: 20, x: 0, y: 0, toJSON: vi.fn(),
       });

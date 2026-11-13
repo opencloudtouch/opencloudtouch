@@ -343,6 +343,12 @@ class DeviceService:
             "Successfully pressed key %s on device %s", key, device_id
         )
 
+    async def select_source(self, device_id: str, source: str) -> None:
+        """Switch a device to an input source (BLUETOOTH, AUX, AIRPLAY)."""
+        logger.info("Selecting source %s on device %s", source, device_id)  # NOSONAR
+        async with self._device_client(device_id) as client:
+            await client.select_source(source)
+
     async def delete_all_devices(self, allow_dangerous_operations: bool) -> None:
         """Delete all devices from database.
 

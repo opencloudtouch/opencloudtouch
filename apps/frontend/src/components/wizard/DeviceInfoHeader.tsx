@@ -1,18 +1,19 @@
-/**
- * Device Info Header for Setup Wizard
- * Shows device name, model, and IP at top of wizard
- */
+/** Device Info Header: logic unchanged, markup restyled. File: components/wizard/DeviceInfoHeader.tsx */
 import { useState } from "react";
+import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Device, rebootDevice } from "../../api/devices";
 import ConfirmDialog from "../ConfirmDialog";
-import "./DeviceInfoHeader.css";
+import { Icon } from "./Icon";
+import "./wizard-base.css"; // replaces DeviceInfoHeader.css
 
 interface DeviceInfoHeaderProps {
-  device: Device;
+  readonly device: Device;
+  /** Disables the reboot button (e.g. while a restore is running). */
+  readonly rebootLocked?: boolean;
 }
 
-export default function DeviceInfoHeader({ device }: DeviceInfoHeaderProps) {
+export default function DeviceInfoHeader({ device, rebootLocked = false }: DeviceInfoHeaderProps) {
   const { t } = useTranslation();
   const [rebootState, setRebootState] = useState<"idle" | "sent" | "error">("idle");
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -31,24 +32,46 @@ export default function DeviceInfoHeader({ device }: DeviceInfoHeaderProps) {
 
   return (
     <div className="device-info-header">
-      <div className="device-icon">🔊</div>
-      <div className="device-details">
-        <h2 className="device-name">{device.name || device.device_id}</h2>
-        <div className="device-meta">
-          <span className="device-model">{device.model || "SoundTouch"}</span>
-          <span className="device-separator">•</span>
-          <span className="device-ip">{device.ip}</span>
+      <div className="device-info-main">
+        <Link
+          className="device-icon"
+          to={`/?device=${device.device_id}`}
+          aria-label={t("deviceHeader.backToDevice", { name: device.name || device.device_id })}
+          title={t("deviceHeader.backToDevice", { name: device.name || device.device_id })}
+        >
+          {Icon.Speaker()}
+        </Link>
+        <div className="device-details">
+          <h2 className="device-name">{device.name || device.device_id}</h2>
+          <div className="device-meta">
+            <span className="device-model">{device.model || "SoundTouch"}</span>
+            <span className="device-separator">•</span>
+            <span className="device-ip">{device.ip}</span>
+          </div>
         </div>
       </div>
       <button
         className={`device-reboot-btn device-reboot-btn--${rebootState}`}
         onClick={() => setConfirmOpen(true)}
-        disabled={rebootState === "sent"}
-        title={t("deviceHeader.reboot")}
+        disabled={rebootState === "sent" || rebootLocked}
+        title={rebootLocked ? t("deviceHeader.rebootLocked") : t("deviceHeader.reboot")}
       >
-        {rebootState === "idle" && <>↺ {t("deviceHeader.reboot")}</>}
-        {rebootState === "sent" && t("deviceHeader.sent")}
-        {rebootState === "error" && "✕"}
+        {rebootState === "idle" && (
+          <>
+            {Icon.Rotate()} {t("deviceHeader.reboot")}
+          </>
+        )}
+        {rebootState === "sent" && (
+          <>
+            {Icon.Check()} {t("deviceHeader.sent")}
+          </>
+        )}
+        {rebootState === "error" && (
+          <>
+            {Icon.X()}
+            <span className="visually-hidden">{t("common.error")}</span>
+          </>
+        )}
       </button>
       <ConfirmDialog
         open={confirmOpen}
