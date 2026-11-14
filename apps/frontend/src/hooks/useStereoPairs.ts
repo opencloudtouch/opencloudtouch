@@ -11,6 +11,7 @@ import {
   repairStereoPair,
   type StereoPair,
 } from "../api/stereoPairs";
+import { useDeviceEventContext } from "../contexts/DeviceEventContext";
 import { userErrorMessage } from "../utils/errorMessages";
 
 export interface StereoPairs {
@@ -45,6 +46,10 @@ export function useStereoPairs(): StereoPairs {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // A speaker reports a group change (pair created or dissolved, also outside OCT)
+  const { subscribe } = useDeviceEventContext();
+  useEffect(() => subscribe("group", "*", () => void load()), [subscribe, load]);
 
   const reload = useCallback(() => {
     setIsLoading(true);

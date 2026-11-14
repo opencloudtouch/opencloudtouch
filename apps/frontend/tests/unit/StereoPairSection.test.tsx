@@ -144,6 +144,16 @@ describe("StereoPairSection", () => {
     expect(pairsState.reload).toHaveBeenCalledTimes(1);
   });
 
+  it.each(["succeeded", "failed"] as const)(
+    "reloads the pair list when the create operation %s",
+    (phase) => {
+      pairsState.reload = vi.fn();
+      createState = { ...idleCreate, phase };
+      renderSection([st10("A"), st10("B")]);
+      expect(pairsState.reload).toHaveBeenCalled();
+    }
+  );
+
   it("shows the running create operation as a pending card and disables creating", () => {
     createState = {
       ...idleCreate,

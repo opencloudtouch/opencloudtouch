@@ -40,8 +40,8 @@ class ConnectionState(str, Enum):
 
 
 # Reconnection backoff constants
-# groupUpdated and other unmapped tags arrive as UNKNOWN
-_RAW_LOGGED_EVENTS = frozenset({EventType.ZONE, EventType.UNKNOWN})
+# other unmapped tags arrive as UNKNOWN
+_RAW_LOGGED_EVENTS = frozenset({EventType.ZONE, EventType.GROUP, EventType.UNKNOWN})
 _BACKOFF_BASE: float = 1.0
 _BACKOFF_MAX: float = 30.0
 _JITTER_MAX: float = 1.0

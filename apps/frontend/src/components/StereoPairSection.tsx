@@ -91,6 +91,12 @@ export default function StereoPairSection({ devices }: Readonly<{ devices: Devic
     }
   }, [create, dialogOpen, showToast, t]);
 
+  // The pair list must show the result whether or not the dialog is still open
+  const finished = create.phase === "succeeded" || create.phase === "failed";
+  useEffect(() => {
+    if (finished) reload();
+  }, [finished, reload]);
+
   const emptyKind: EmptyKind =
     capable.length === 0
       ? "none"

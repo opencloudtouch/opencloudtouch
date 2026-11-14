@@ -30,6 +30,7 @@ class EventType(str, Enum):
     VOLUME = "volume"
     PRESETS = "presets"
     ZONE = "zone"
+    GROUP = "group"
     CONNECTION = "connection"
     BASS = "bass"
     METADATA_ENRICHED = "metadata_enriched"
@@ -42,6 +43,7 @@ _TAG_MAP: dict[str, EventType] = {
     "volumeUpdated": EventType.VOLUME,
     "presetsUpdated": EventType.PRESETS,
     "zoneUpdated": EventType.ZONE,
+    "groupUpdated": EventType.GROUP,
     "connectionStateUpdated": EventType.CONNECTION,
     "bassUpdated": EventType.BASS,
     "recentsUpdated": EventType.PRESETS,

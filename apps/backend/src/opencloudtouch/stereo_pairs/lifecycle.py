@@ -257,6 +257,7 @@ class StereoPairLifecycle:
             )
             return
         except GroupClientError as exc:
+            already_there = exc.code == GROUP_ALREADY_EXISTS
             # the master may already have handed the group to the slave (5510):
             # then re-reading the group below confirms it
             if not exc.uncertain and exc.code != GROUP_ALREADY_EXISTS:
@@ -270,7 +271,9 @@ class StereoPairLifecycle:
                 "[STEREO] addGroup outcome uncertain on %s: %s", member.device.ip, exc
             )
         # uncertain outcome: the speaker may still have applied it, look again
-        for delay in self._retry_delays:
+        # 5510 means the group is already there: look right away, then wait between tries
+        delays = (0, *self._retry_delays) if already_there else self._retry_delays
+        for delay in delays:
             await asyncio.sleep(delay)
             try:
                 group = await member.client.get_group()

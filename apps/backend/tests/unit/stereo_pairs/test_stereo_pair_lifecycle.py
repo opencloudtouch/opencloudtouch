@@ -1,5 +1,6 @@
 """Unit tests for StereoPairLifecycle using in-memory speakers."""
 
+import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -193,6 +194,20 @@ class TestCreate:
         speaker.apply_before_error = True
 
         assert (await _create(lifecycle)).status == "active"
+
+    async def test_slave_already_in_the_group_is_confirmed_without_waiting(
+        self, lifecycle, network
+    ):
+        lifecycle._retry_delays = (60,)  # a wait here would blow the timeout
+        speaker = network.speakers[R_IP]
+        speaker.add_group_errors = [
+            GroupClientError("exists", code="GROUP_ALREADY_EXISTS_ERROR")
+        ]
+        speaker.apply_before_error = True
+
+        pair = await asyncio.wait_for(_create(lifecycle), timeout=5)
+
+        assert pair.status == "active"
 
     async def test_already_exists_without_the_group_still_fails(
         self, lifecycle, network
