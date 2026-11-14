@@ -113,9 +113,13 @@ export function getFontSize(supporter: Supporter, maxAmount: number): number {
   return Math.floor(minSize + (maxSize - minSize) * ratio);
 }
 
+export type ThemeName = "dark" | "light";
+
 /**
- * Vivid colours: saturation 85 to 100 %; lightness starts at 58 % and is raised per hue until the text reaches >= 4.8:1
- * on the card surface (#242424). Blues and violets end up lighter than yellows and greens; every name stays readable.
+ * Name colours stay >= 4.8:1 on the card of the theme (4.5 is the requirement, 0.3 margin for rounding).
+ * Dark: vivid, lightness is raised per hue (yellows and greens end up lighter than blues).
+ * Light: calmer saturation, lightness is lowered per hue (yellow ends up olive).
+ * CARD_LUMINANCE must match --surface-card: dark #242424, light #ffffff.
  */
 function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   const a = s * Math.min(l, 1 - l);
@@ -131,19 +135,31 @@ function luminance([r, g, b]: [number, number, number]): number {
   return 0.2126 * c(r) + 0.7152 * c(g) + 0.0722 * c(b);
 }
 
-const CARD_LUMINANCE = luminance([36 / 255, 36 / 255, 36 / 255]);
+const CARD_LUMINANCE: Record<ThemeName, number> = {
+  dark: luminance([36 / 255, 36 / 255, 36 / 255]),
+  light: 1,
+};
+const MIN_RATIO = 4.8;
+const contrast = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 
-export function generateGradientColor(index: number, total: number): string {
+export function generateGradientColor(
+  index: number,
+  total: number,
+  theme: ThemeName = "dark"
+): string {
   const hue = (index / total) * 360;
-  const saturation = 85 + (index % 4) * 5;
-  let lightness = 58 + (index % 2) * 4;
-  while (
-    lightness < 90 &&
-    (luminance(hslToRgb(hue, saturation / 100, lightness / 100)) + 0.05) / (CARD_LUMINANCE + 0.05) <
-      4.8
-  ) {
-    lightness += 1;
+  const card = CARD_LUMINANCE[theme];
+  const readable = (s: number, l: number) =>
+    contrast(luminance(hslToRgb(hue, s / 100, l / 100)), card) >= MIN_RATIO;
+  if (theme === "dark") {
+    const saturation = 85 + (index % 4) * 5;
+    let lightness = 58 + (index % 2) * 4;
+    while (lightness < 90 && !readable(saturation, lightness)) lightness += 1;
+    return `hsl(${hue.toFixed(1)}, ${saturation}%, ${lightness}%)`;
   }
+  const saturation = 70 + (index % 4) * 5;
+  let lightness = 46 + (index % 2) * 4;
+  while (lightness > 12 && !readable(saturation, lightness)) lightness -= 1;
   return `hsl(${hue.toFixed(1)}, ${saturation}%, ${lightness}%)`;
 }
 

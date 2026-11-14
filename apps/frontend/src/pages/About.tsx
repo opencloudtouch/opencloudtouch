@@ -2,6 +2,7 @@ import { useTranslation, Trans } from "react-i18next";
 import { useState, useEffect, useMemo, type CSSProperties } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useHealth } from "../hooks/useHealth";
+import { useTheme } from "../hooks/useTheme";
 import { Skeleton } from "../components/LoadingSkeleton";
 import ThemedLogo from "../components/ThemedLogo";
 import { Icon } from "../components/Icon";
@@ -43,6 +44,7 @@ export function _resetSupportersCache() {
 
 export default function About() {
   const { t, i18n } = useTranslation();
+  const theme = useTheme();
   const { data: health, isLoading: healthLoading } = useHealth();
   const [searchParams] = useSearchParams();
   const deviceParam = searchParams.get("device");
@@ -282,7 +284,7 @@ export default function About() {
           <ul className="ui-card ab-cloud">
             {supporters.map((supporter, index) => {
               const fontSize = getFontSize(supporter, maxAmount);
-              const color = generateGradientColor(index, supporters.length);
+              const color = generateGradientColor(index, supporters.length, theme);
               const isMonthly = supporter.monthlyAmount > 0;
               const supporterKey = `${supporter.name}-${index}`;
 

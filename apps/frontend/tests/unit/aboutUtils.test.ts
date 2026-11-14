@@ -150,6 +150,41 @@ describe("generateGradientColor", () => {
     }
   });
 
+  it.each([5, 12, 30, 60, 200])(
+    "keeps every name readable on the white light card (>= 4.5:1) for %i names",
+    (total) => {
+      const toRgb = (h: number, sat: number, l: number): [number, number, number] => {
+        const a = sat * Math.min(l, 1 - l);
+        const f = (n: number) => {
+          const k = (n + h / 30) % 12;
+          return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+        };
+        return [f(0), f(8), f(4)];
+      };
+      const lum = ([r, g, b]: [number, number, number]) => {
+        const c = (v: number) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+        return 0.2126 * c(r) + 0.7152 * c(g) + 0.0722 * c(b);
+      };
+      for (let i = 0; i < total; i++) {
+        const m = /hsl\(([\d.]+), (\d+)%, (\d+)%\)/.exec(generateGradientColor(i, total, "light"));
+        expect(m).not.toBeNull();
+        const ratio = 1.05 / (lum(toRgb(Number(m![1]), Number(m![2]) / 100, Number(m![3]) / 100)) + 0.05);
+        expect(ratio).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  );
+
+  it("keeps the dark colours as they were when no theme is given", () => {
+    expect(generateGradientColor(3, 10)).toBe(generateGradientColor(3, 10, "dark"));
+  });
+
+  it("uses darker colours in the light theme", () => {
+    const lightness = (c: string) => Number(/(\d+)%\)$/.exec(c)![1]);
+    expect(lightness(generateGradientColor(3, 10, "light"))).toBeLessThan(
+      lightness(generateGradientColor(3, 10, "dark"))
+    );
+  });
+
   it("returns an HSL color string", () => {
     const result = generateGradientColor(0, 10);
     expect(result).toMatch(/^hsl\([\d.]+, \d+%, \d+%\)$/);

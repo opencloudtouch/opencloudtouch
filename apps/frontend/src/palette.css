@@ -38,6 +38,10 @@
   --danger-solid-hover: #b71c1c;
   --solid-text: #ffffff;
   --solid-text-muted: rgba(255, 255, 255, 0.35);
+  --gold-deep: #e8a92b;
+  --gold-base: #f5c542;
+  --gold-sheen: #ffffff;
+  --gold-glow: rgba(245, 197, 66, 0.55);
   --scrim-bg: rgba(0, 0, 0, 0.72);
   --hover-bg: rgba(255, 255, 255, 0.08);
   --pressed-bg: rgba(255, 255, 255, 0.12);
@@ -95,6 +99,10 @@
   --danger-solid-hover: #a81e1e;
   --solid-text: #ffffff;
   --solid-text-muted: rgba(255, 255, 255, 0.35);
+  --gold-deep: #6e4600;
+  --gold-base: #8a5600;
+  --gold-sheen: #a65f00;
+  --gold-glow: rgba(161, 92, 0, 0.2);
   --scrim-bg: rgba(12, 16, 24, 0.6);
   --hover-bg: rgba(20, 30, 50, 0.06);
   --pressed-bg: rgba(20, 30, 50, 0.1);

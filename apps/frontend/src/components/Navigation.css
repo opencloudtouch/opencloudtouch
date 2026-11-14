@@ -1,4 +1,9 @@
-/* nav-: header navigation. Replaces Navigation.css. Height comes from .app-header (64px). */
+/* nav-: header navigation. Height comes from .app-header (64px).
+   Three label modes, chosen by viewport width (measured by Design, see the Theme toggle brief):
+     >= 481px : every link shows its label
+     361-480  : only the active link shows its label, language selector shows the flag only
+     <= 360   : icons only; labels stay in the DOM for screen readers
+   A link never shrinks (flex: none) and its label never wraps, so a label can not leave its link. */
 .nav {
   height: 100%;
 }
@@ -7,29 +12,30 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px;
   height: 100%;
   max-width: var(--page-max);
   margin: 0 auto;
-  padding: 0 var(--space-md);
+  padding: 0 8px;
 }
 .nav-container {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
 .nav-link {
   position: relative;
   box-sizing: border-box;
   display: flex;
+  flex: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
   min-width: var(--touch-target-min);
   min-height: 52px;
-  padding: 4px 12px;
+  padding: 4px 8px;
   border-radius: var(--border-radius-sm);
   color: var(--text-secondary);
   font-size: var(--fs-xs);
@@ -47,6 +53,9 @@
 .nav-icon {
   display: flex;
 }
+.nav-label {
+  white-space: nowrap;
+}
 .nav-link[aria-current="page"] {
   color: var(--text-strong);
   background: var(--primary-bg-strong);
@@ -54,44 +63,16 @@
 .nav-link[aria-current="page"]::after {
   content: "";
   position: absolute;
-  left: 12px;
-  right: 12px;
+  left: 8px;
+  right: 8px;
   bottom: 2px;
   height: 2px;
   border-radius: 1px;
   background: var(--primary-color);
 }
-@media (min-width: 601px) {
-  .nav-link {
-    padding-inline: 16px;
-    font-size: var(--fs-small);
-  }
-  .nav-container {
-    gap: 8px;
-  }
-}
-@media (min-width: 769px) {
-  /* same side padding as .ui-page, so the menu and the page title start on one line */
-  .nav-inner {
-    padding-inline: var(--space-lg);
-  }
-}
-@media (max-width: 360px) {
-  .nav-inner {
-    padding-inline: 8px;
-    gap: 4px;
-  }
-  .nav-container {
-    gap: 2px;
-  }
-  .nav-link {
-    padding-inline: 8px;
-  }
-  .nav-link[aria-current="page"]::after {
-    left: 8px;
-    right: 8px;
-  }
-  /* only the active link shows its label; the others keep it for screen readers */
+
+/* 361-480: active label only. 0-360: no labels. Same visually-hidden pattern for both. */
+@media (max-width: 480px) {
   .nav-link:not([aria-current="page"]) .nav-label {
     position: absolute;
     width: 1px;
@@ -102,6 +83,57 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
+  }
+  .nav-tools .lang-code {
+    display: none;
+  }
+}
+@media (max-width: 360px) {
+  .nav-link .nav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+@media (min-width: 481px) {
+  .nav-inner {
+    gap: 8px;
+    padding-inline: var(--space-md);
+  }
+  .nav-container {
+    gap: 4px;
+  }
+  .nav-link {
+    padding-inline: 12px;
+  }
+  .nav-link[aria-current="page"]::after {
+    left: 12px;
+    right: 12px;
+  }
+}
+@media (min-width: 601px) {
+  .nav-container {
+    gap: 8px;
+  }
+  .nav-link {
+    padding-inline: 16px;
+    font-size: var(--fs-small);
+  }
+  .nav-link[aria-current="page"]::after {
+    left: 16px;
+    right: 16px;
+  }
+}
+@media (min-width: 769px) {
+  /* same side padding as .ui-page, so the menu and the page title start on one line */
+  .nav-inner {
+    padding-inline: var(--space-lg);
   }
 }
 @media (prefers-reduced-motion: reduce) {
