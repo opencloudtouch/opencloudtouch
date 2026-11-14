@@ -3095,6 +3095,150 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/stereo-pairs:
+    get:
+      tags:
+      - Stereo pairs
+      summary: List Stereo Pairs
+      operationId: list_stereo_pairs_api_stereo_pairs_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/StereoPairOut'
+                type: array
+                title: Response List Stereo Pairs Api Stereo Pairs Get
+    post:
+      tags:
+      - Stereo pairs
+      summary: Create Stereo Pair
+      description: Start creating a pair. Poll the operation; it can take up to a
+        minute.
+      operationId: create_stereo_pair_api_stereo_pairs_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStereoPairRequest'
+        required: true
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationAccepted'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/stereo-pairs/operations/{operation_id}:
+    get:
+      tags:
+      - Stereo pairs
+      summary: Get Stereo Pair Operation
+      operationId: get_stereo_pair_operation_api_stereo_pairs_operations__operation_id__get
+      parameters:
+      - name: operation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Operation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/stereo-pairs/{pair_id}:
+    patch:
+      tags:
+      - Stereo pairs
+      summary: Rename Stereo Pair
+      operationId: rename_stereo_pair_api_stereo_pairs__pair_id__patch
+      parameters:
+      - name: pair_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pair Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameStereoPairRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StereoPairOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - Stereo pairs
+      summary: Dissolve Stereo Pair
+      operationId: dissolve_stereo_pair_api_stereo_pairs__pair_id__delete
+      parameters:
+      - name: pair_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pair Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/stereo-pairs/{pair_id}/repair:
+    post:
+      tags:
+      - Stereo pairs
+      summary: Repair Stereo Pair
+      description: Run the removal on both speakers again so the pair ends clean.
+      operationId: repair_stereo_pair_api_stereo_pairs__pair_id__repair_post
+      parameters:
+      - name: pair_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pair Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/devices/{device_id}/zone:
     get:
       tags:
@@ -3865,6 +4009,27 @@ components:
       - ip
       title: ConnectivityCheckRequest
       description: Request to check device connectivity.
+    CreateStereoPairRequest:
+      properties:
+        left_device_id:
+          type: string
+          minLength: 1
+          title: Left Device Id
+        right_device_id:
+          type: string
+          minLength: 1
+          title: Right Device Id
+        name:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Name
+      type: object
+      required:
+      - left_device_id
+      - right_device_id
+      title: CreateStereoPairRequest
     CreateZoneRequest:
       properties:
         master_id:
@@ -4321,6 +4486,72 @@ components:
       - message
       title: NtpPatchResponse
       description: Response with NTP patch result.
+    OperationAccepted:
+      properties:
+        operation_id:
+          type: string
+          title: Operation Id
+      type: object
+      required:
+      - operation_id
+      title: OperationAccepted
+    OperationError:
+      properties:
+        code:
+          type: string
+          title: Code
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - code
+      - message
+      title: OperationError
+    OperationOut:
+      properties:
+        state:
+          type: string
+          title: State
+          description: running, succeeded or failed
+        steps:
+          items:
+            $ref: '#/components/schemas/OperationStep'
+          type: array
+          title: Steps
+        pair:
+          anyOf:
+          - $ref: '#/components/schemas/StereoPairOut'
+          - type: 'null'
+        warnings:
+          items:
+            type: string
+          type: array
+          title: Warnings
+          default: []
+        error:
+          anyOf:
+          - $ref: '#/components/schemas/OperationError'
+          - type: 'null'
+      type: object
+      required:
+      - state
+      - steps
+      title: OperationOut
+    OperationStep:
+      properties:
+        key:
+          type: string
+          title: Key
+        state:
+          type: string
+          title: State
+          description: waiting, running, done or failed
+      type: object
+      required:
+      - key
+      - state
+      title: OperationStep
     PortCheckRequest:
       properties:
         device_ip:
@@ -4543,6 +4774,17 @@ components:
       - country
       title: RadioStationResponse
       description: Radio station response model (unified across all providers).
+    RenameStereoPairRequest:
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Name
+      type: object
+      required:
+      - name
+      title: RenameStereoPairRequest
     RestoreStepResponse:
       properties:
         name:
@@ -4755,6 +4997,63 @@ components:
       - ips
       title: SetManualIPsRequest
       description: Request model for setting all manual IPs at once.
+    StereoPairMemberOut:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+        name:
+          type: string
+          title: Name
+        role:
+          type: string
+          title: Role
+          description: LEFT or RIGHT
+        reachable:
+          type: boolean
+          title: Reachable
+      type: object
+      required:
+      - device_id
+      - name
+      - role
+      - reachable
+      title: StereoPairMemberOut
+    StereoPairOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        name:
+          type: string
+          title: Name
+        status:
+          type: string
+          title: Status
+          description: creating, active or degraded
+        source:
+          type: string
+          title: Source
+          description: oct, or device for pairs created outside OCT
+        members:
+          items:
+            $ref: '#/components/schemas/StereoPairMemberOut'
+          type: array
+          title: Members
+        warnings:
+          items:
+            type: string
+          type: array
+          title: Warnings
+          default: []
+      type: object
+      required:
+      - id
+      - name
+      - status
+      - source
+      - members
+      title: StereoPairOut
     ValidateHostnameRequest:
       properties:
         hostname:

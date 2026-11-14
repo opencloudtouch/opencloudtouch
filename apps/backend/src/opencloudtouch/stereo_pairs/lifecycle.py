@@ -411,3 +411,39 @@ class StereoPairLifecycle:
         renamed = await self._repo.get(pair_id)
         assert renamed is not None
         return renamed
+
+    # ---- read model ----
+
+    async def describe(self, pair: StereoPair) -> dict:
+        """Pair as the API shows it: members with name, role and reachability."""
+
+        async def member(device_id: str, role: str) -> dict:
+            device = await self._device_repo.get_by_device_id(device_id)
+            reachable = False
+            if device is not None:
+                try:
+                    await self._factory(device.ip).get_info()
+                    reachable = True
+                except GroupClientError:
+                    reachable = False
+            return {
+                "device_id": device_id,
+                "name": device.name if device else device_id,
+                "role": role,
+                "reachable": reachable,
+            }
+
+        members = await asyncio.gather(
+            member(pair.left_device_id, "LEFT"), member(pair.right_device_id, "RIGHT")
+        )
+        return {
+            "id": pair.id,
+            "name": pair.name,
+            "status": "creating" if pair.status == "pending" else pair.status,
+            "source": pair.source,
+            "members": list(members),
+            "warnings": [],
+        }
+
+    async def list_pairs(self) -> List[dict]:
+        return [await self.describe(p) for p in await self._repo.list_active()]

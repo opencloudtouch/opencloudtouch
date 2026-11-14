@@ -20,6 +20,7 @@ from opencloudtouch.recents.repository import RecentsRepository
 from opencloudtouch.recents.service import RecentsService
 from opencloudtouch.settings.repository import SettingsRepository
 from opencloudtouch.settings.service import SettingsService
+from opencloudtouch.stereo_pairs.lifecycle import StereoPairLifecycle
 from opencloudtouch.stereo_pairs.service import StereoPairService
 from opencloudtouch.zones.service import ZoneService
 
@@ -106,6 +107,11 @@ def get_stereo_pair_service(request: Request) -> StereoPairService:
     return request.app.state.stereo_pair_service
 
 
+def get_stereo_lifecycle(request: Request) -> StereoPairLifecycle:
+    """Get stereo pair lifecycle instance from app.state (FastAPI dependency)."""
+    return request.app.state.stereo_lifecycle
+
+
 def get_wizard_service(request: Request) -> WizardService:
     """Get wizard service instance from app.state (FastAPI dependency)."""
     return request.app.state.wizard_service
@@ -117,6 +123,7 @@ PresetServiceDep = Annotated[PresetService, Depends(get_preset_service)]
 MargeServiceDep = Annotated[MargeService, Depends(get_marge_service)]
 ZoneServiceDep = Annotated[ZoneService, Depends(get_zone_service)]
 StereoPairServiceDep = Annotated[StereoPairService, Depends(get_stereo_pair_service)]
+StereoLifecycleDep = Annotated[StereoPairLifecycle, Depends(get_stereo_lifecycle)]
 DlnaServiceDep = Annotated[DlnaService, Depends(get_dlna_service)]
 SettingsServiceDep = Annotated[SettingsService, Depends(get_settings_service)]
 DeviceStateManagerDep = Annotated[DeviceStateManager, Depends(get_device_state_manager)]
