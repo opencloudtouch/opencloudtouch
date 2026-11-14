@@ -22,6 +22,8 @@
     "test:ux": "npm run screenshots",
     "test:ux:run": "npm run screenshots:run",
     "audit:a11y": "npm run build && start-server-and-test preview http://localhost:4173 audit:a11y:run",
+    "audit:ui": "npm run build && start-server-and-test preview http://localhost:4173 audit:ui:run",
+    "audit:ui:run": "cypress run --config-file cypress.ui-audit.config.ts --browser chrome",
     "audit:a11y:run": "cypress run --config-file cypress.audit.config.ts --browser chrome",
     "audit:a11y:headed": "npm run build && start-server-and-test preview http://localhost:4173 \"cypress run --config-file cypress.audit.config.ts --browser chrome --headed\"",
     "lint": "eslint .",

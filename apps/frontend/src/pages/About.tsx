@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, type CSSProperties } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useHealth } from "../hooks/useHealth";
 import { Skeleton } from "../components/LoadingSkeleton";
+import ThemedLogo from "../components/ThemedLogo";
 import { Icon } from "../components/Icon";
 import {
   type Supporter,
@@ -186,13 +187,7 @@ export default function About() {
     <div className="ab">
       {/* Header */}
       <header className="ab-header">
-        <img
-          className="ab-logo"
-          src="/images/logo/oct-logo-dark_539x539.png"
-          alt=""
-          width={96}
-          height={96}
-        />
+        <ThemedLogo className="ab-logo" size={96} alt="" />
         <h1 className="ab-title">OpenCloudTouch</h1>
         <div className="ab-version-slot">
           {healthLoading && <Skeleton width="60px" height="24px" borderRadius="20px" />}

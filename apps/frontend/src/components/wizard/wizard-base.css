@@ -178,7 +178,7 @@
   font-weight: var(--font-weight-medium);
 }
 .device-separator {
-  opacity: 0.5;
+  color: var(--text-tertiary);
 }
 .device-ip {
   overflow-wrap: anywhere;

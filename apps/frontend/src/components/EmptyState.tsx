@@ -5,6 +5,7 @@ import { useToast } from "../contexts/ToastContext";
 import { useManualIPs } from "../hooks/useSettings";
 import { useDiscoveryStream } from "../hooks/useDiscoveryStream";
 import LanguageSelector from "./LanguageSelector";
+import ThemedLogo from "./ThemedLogo";
 import ManualIPModal from "./ManualIPModal";
 import { Icon } from "./Icon";
 import "./EmptyState.css";
@@ -78,13 +79,7 @@ export default function EmptyState() {
         <LanguageSelector />
       </div>
       <div className="es-content">
-        <img
-          className="es-logo"
-          src="/images/logo/oct-logo-dark_539x539.png"
-          alt="OpenCloudTouch"
-          width="160"
-          height="160"
-        />
+        <ThemedLogo className="es-logo" size={160} alt="OpenCloudTouch" />
 
         <h1 className="es-title" data-test="welcome-title">
           {t("discovery.welcomeTitle")}

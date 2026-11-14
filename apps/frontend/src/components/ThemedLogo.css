@@ -1,0 +1,7 @@
+/* ThemedLogo: show only the logo that fits the theme (dark is the default, see palette.css). */
+[data-theme="light"] .themed-logo--for-dark {
+  display: none;
+}
+:root:not([data-theme="light"]) .themed-logo--for-light {
+  display: none;
+}

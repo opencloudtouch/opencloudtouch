@@ -45,7 +45,9 @@ export default function DeviceInfoHeader({ device, rebootLocked = false }: Devic
           <h2 className="device-name">{device.name || device.device_id}</h2>
           <div className="device-meta">
             <span className="device-model">{device.model || "SoundTouch"}</span>
-            <span className="device-separator">•</span>
+            <span className="device-separator" aria-hidden="true">
+              •
+            </span>
             <span className="device-ip">{device.ip}</span>
           </div>
         </div>
