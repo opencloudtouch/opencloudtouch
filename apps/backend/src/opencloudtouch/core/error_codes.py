@@ -26,6 +26,7 @@ def validate_code(code: str) -> str:
         )
     return code
 
+
 # Stereo pairs
 STEREO_PAIR_DEVICE_NOT_CAPABLE = "stereo_pair_device_not_capable"
 STEREO_PAIR_DEVICE_NOT_PROVISIONED = "stereo_pair_device_not_provisioned"
