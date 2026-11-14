@@ -29,7 +29,7 @@ describe("design tokens in component CSS", () => {
     const banner = base.slice(base.indexOf(".wizard-warning {"), base.indexOf(".wizard-warning-text"));
     expect(banner).toMatch(/padding: 14px var\(--space-md\)/);
     expect(banner).toMatch(/border-radius: var\(--border-radius-md\)/);
-    expect(banner).toMatch(/color: var\(--warning-color\)/);
+    expect(banner).toMatch(/color: var\(--warning-text\)/);
     expect(banner).not.toMatch(/#ffc107/i);
     const step8 = read("components/wizard/Step8Verification.css");
     expect(step8).not.toMatch(/33, 150, 243|#64b5f6/i); // Material blue is not part of the palette

@@ -69,7 +69,7 @@
 .rp-power--on {
   background: rgba(76, 175, 80, 0.14);
   border-color: rgba(76, 175, 80, 0.7);
-  color: var(--color-success);
+  color: var(--success-text);
 }
 .rp-power--on:hover:not(:disabled) {
   background: rgba(76, 175, 80, 0.24);

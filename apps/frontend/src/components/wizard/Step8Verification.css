@@ -75,7 +75,7 @@
   color: var(--color-bg-darker);
 }
 .verify-phase--done {
-  color: var(--color-success);
+  color: var(--success-text);
 }
 @media (min-width: 401px) {
   .verify-phase {
@@ -230,7 +230,7 @@
   border-color: #4caf50;
 }
 .reboot-status--done .wz-icon {
-  color: var(--color-success);
+  color: var(--success-text);
 }
 .reboot-status--error {
   border-color: var(--color-danger);

@@ -85,7 +85,7 @@
   align-items: flex-start;
   padding: 12px var(--space-md);
   background: rgba(255, 193, 7, 0.12);
-  border: 1px solid var(--warning-color);
+  border: 1px solid var(--color-warning);
   border-radius: var(--border-radius-sm);
   font-size: var(--fs-body);
   font-weight: var(--font-weight-medium);
@@ -95,7 +95,7 @@
 .backup-next-warning svg {
   flex: none;
   margin-top: 2px;
-  color: var(--warning-color);
+  color: var(--warning-text);
 }
 .backup-next-warning span {
   min-width: 0;

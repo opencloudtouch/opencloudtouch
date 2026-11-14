@@ -25,7 +25,7 @@
   align-items: center;
   justify-content: center;
   background: rgba(76, 175, 80, 0.15);
-  color: var(--color-success);
+  color: var(--success-text);
   animation: wz-celebrate 0.6s ease-in-out;
 }
 @keyframes wz-celebrate {
@@ -66,7 +66,7 @@
 .completion .summary-title {
   margin: 0 0 12px;
   font-size: var(--fs-h3);
-  color: var(--color-success);
+  color: var(--success-text);
 }
 .completion .summary-list {
   display: flex;
@@ -90,7 +90,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-success);
+  color: var(--success-text);
 }
 .completion .summary-text {
   min-width: 0;
@@ -130,7 +130,7 @@
   color: #64b5f6;
 }
 .completion-backup-info--missing .backup-info-icon {
-  color: var(--warning-color);
+  color: var(--warning-text);
 }
 .completion-backup-info .backup-info-content {
   flex: 1;

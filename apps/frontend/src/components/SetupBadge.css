@@ -22,7 +22,7 @@
   display: flex;
 }
 .sb--configured {
-  --c: var(--color-success);
+  --c: var(--success-text);
   --bg: rgba(76, 175, 80, 0.12);
   --bd: rgba(76, 175, 80, 0.6);
 }
@@ -33,7 +33,7 @@
 }
 .sb--unconfigured,
 .sb--outdated {
-  --c: var(--warning-color);
+  --c: var(--warning-text);
   --bg: rgba(255, 193, 7, 0.1);
   --bd: rgba(255, 193, 7, 0.6);
 }

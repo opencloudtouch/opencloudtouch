@@ -22,11 +22,11 @@
   animation: toast-in var(--motion-slow) ease-out;
 }
 .toast-success {
-  --c: var(--color-success);
+  --c: var(--success-text);
   --bd: rgba(76, 175, 80, 0.7);
 }
 .toast-warning {
-  --c: var(--warning-color);
+  --c: var(--warning-text);
   --bd: rgba(255, 193, 7, 0.7);
 }
 .toast-error {

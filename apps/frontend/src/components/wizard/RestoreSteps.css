@@ -40,7 +40,7 @@
   overflow-wrap: anywhere;
 }
 .backup-scan__result h3 .wz-icon {
-  color: var(--color-success);
+  color: var(--success-text);
 }
 .backup-scan__result ul {
   display: flex;
@@ -242,7 +242,7 @@
 }
 
 .restore-execution__step--completed .restore-execution__icon {
-  color: var(--color-success);
+  color: var(--success-text);
 }
 .restore-execution__step--skipped {
   border-style: dashed;
@@ -366,7 +366,7 @@
 }
 .restore-completion__section--restored h4 .wz-icon,
 .restore-completion__section--restored li > .wz-icon {
-  color: var(--color-success);
+  color: var(--success-text);
 }
 .restore-completion__section--skipped h4 .wz-icon,
 .restore-completion__section--skipped li > .wz-icon {

@@ -93,7 +93,7 @@
   justify-self: start;
   padding: 3px 8px;
   border-radius: 4px;
-  background: var(--warning-color);
+  background: var(--color-warning);
   color: #1a1a1a;
   font-size: var(--fs-xs);
   font-weight: var(--font-weight-bold);
@@ -182,7 +182,7 @@
   max-height: 360px;
   overflow: auto;
   white-space: pre;
-  color: var(--color-success);
+  color: var(--success-text);
 }
 .hosts-diff code {
   color: inherit;

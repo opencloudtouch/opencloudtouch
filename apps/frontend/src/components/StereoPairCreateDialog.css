@@ -206,7 +206,7 @@
   color: var(--color-text-secondary);
 }
 .sp-op--done .sp-op-icon {
-  color: var(--color-success);
+  color: var(--success-text);
 }
 .sp-op--failed .sp-op-icon,
 .sp-op--failed .sp-op-state {

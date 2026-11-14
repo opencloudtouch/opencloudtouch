@@ -204,7 +204,7 @@
 .device-reboot-btn--sent {
   border-color: #4caf50;
   background: rgba(76, 175, 80, 0.12);
-  color: var(--color-success);
+  color: var(--success-text);
   cursor: default;
 }
 .device-reboot-btn--error {
@@ -371,7 +371,7 @@
     font-weight: var(--font-weight-bold);
   }
   .progress-step.completed .step-label {
-    color: var(--color-success);
+    color: var(--success-text);
   }
 }
 
@@ -438,7 +438,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--warning-color);
+  color: var(--warning-text);
   font-size: 1rem;
 }
 .wizard-warning-text {
@@ -568,12 +568,12 @@
   color: var(--c);
 }
 .wz-status--success {
-  --c: var(--color-success);
+  --c: var(--success-text);
   --bg: rgba(76, 175, 80, 0.1);
   --bd: rgba(76, 175, 80, 0.5);
 }
 .wz-status--warning {
-  --c: var(--warning-color);
+  --c: var(--warning-text);
   --bg: rgba(255, 193, 7, 0.1);
   --bd: rgba(255, 193, 7, 0.5);
 }
@@ -624,7 +624,7 @@
   overflow-wrap: anywhere;
 }
 .verify-check-item .wz-icon {
-  color: var(--color-success);
+  color: var(--success-text);
 }
 .verify-check-item.failed .wz-icon {
   color: var(--color-danger);
@@ -691,7 +691,7 @@
   line-height: 1.6;
 }
 .wz-diff .add {
-  color: var(--color-success);
+  color: var(--success-text);
 }
 
 /* choice cards (also used for .risk-card and RestoreChoice) */
@@ -931,10 +931,10 @@
   color: var(--color-danger);
 }
 .warning-icon {
-  color: var(--warning-color);
+  color: var(--warning-text);
 }
 .success-icon {
-  color: var(--color-success);
+  color: var(--success-text);
 }
 .error-content,
 .warning-content {
@@ -962,7 +962,7 @@
   font-size: var(--fs-xl);
   line-height: 1.3;
   font-weight: var(--font-weight-bold);
-  color: var(--color-success);
+  color: var(--success-text);
 }
 .success-message {
   margin: 0;
@@ -1017,7 +1017,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--warning-color);
+  color: var(--warning-text);
   line-height: 1;
 }
 .failed-title {
@@ -1026,7 +1026,7 @@
   font-size: var(--fs-xl);
   line-height: 1.3;
   font-weight: var(--font-weight-bold);
-  color: var(--warning-color);
+  color: var(--warning-text);
 }
 .failed-message {
   margin: 0;
@@ -1053,7 +1053,7 @@
 /* tracker: "skipped" step (clean restore skips the backup scan): dashed green ring with a dash, connector after it is green */
 .progress-step.skipped .step-circle {
   background: transparent;
-  color: var(--color-success);
+  color: var(--success-text);
   border: 2px dashed #4caf50;
 }
 @media (min-width: 401px) {
@@ -1063,7 +1063,7 @@
 }
 @media (min-width: 601px) {
   .progress-step.skipped .step-label {
-    color: var(--color-success);
+    color: var(--success-text);
   }
 }
 

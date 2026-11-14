@@ -64,11 +64,11 @@
   align-items: flex-start;
 }
 .config-validation-error .error-icon {
-  color: var(--warning-color);
+  color: var(--warning-text);
 }
 .config-validation-error .error-content strong,
 .config-dns-warning .warning-content strong {
-  color: var(--warning-color);
+  color: var(--warning-text);
 }
 .config-validation-error .error-details {
   margin: 0;
@@ -158,7 +158,7 @@
   color: var(--color-danger);
 }
 .config-change-to code {
-  color: var(--color-success);
+  color: var(--success-text);
 }
 .config-change-arrow {
   display: flex;
@@ -254,7 +254,7 @@
     Menlo,
     Consolas,
     monospace;
-  color: var(--color-success);
+  color: var(--success-text);
 }
 .config-diff code {
   color: inherit;

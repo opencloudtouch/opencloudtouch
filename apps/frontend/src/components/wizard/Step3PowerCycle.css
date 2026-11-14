@@ -178,7 +178,7 @@
 }
 .risk-card--temporary.selected .risk-card-icon,
 .risk-card--temporary.selected .risk-card-check {
-  color: var(--color-success);
+  color: var(--success-text);
 }
 
 /* manual SSH test (native <details>): reserves its own space, nothing overlaps Back/Next */
@@ -356,5 +356,5 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--warning-color);
+  background: var(--color-warning);
 }

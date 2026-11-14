@@ -6,7 +6,9 @@
   /* text/ring colours that pass on dark surfaces */
   --primary-text: #8ab8f0; /* blue text and icons on dark/tinted surfaces (>= 4.5:1) */
   --danger-text: #ff8a80; /* red text on dark/tinted surfaces (>= 4.5:1); --color-danger stays for fills and icons */
-  --warning-color: #ffc107;
+  --color-warning: #ffc107; /* fills, borders, icons */
+  --warning-text: #ffc107; /* warning text on dark/tinted surfaces; the light theme needs a darker value (>= 4.5:1) */
+  --success-text: var(--color-success); /* success text; the light theme needs a darker value (>= 4.5:1) */
   --focus-ring: #8ab8f0;
   --ui-control-border: #7a7a7a; /* input/chip/toggle outlines: >= 3:1 on #1a1a1a and #242424 */
   --font-mono: ui-monospace, Menlo, Consolas, monospace;
@@ -225,12 +227,12 @@
   color: var(--c);
 }
 .wz-status--success {
-  --c: var(--color-success);
+  --c: var(--success-text);
   --bg: rgba(76, 175, 80, 0.1);
   --bd: rgba(76, 175, 80, 0.5);
 }
 .wz-status--warning {
-  --c: var(--warning-color);
+  --c: var(--warning-text);
   --bg: rgba(255, 193, 7, 0.1);
   --bd: rgba(255, 193, 7, 0.5);
 }
@@ -479,12 +481,12 @@ fieldset.ui-chips {
   flex: none;
 }
 .ui-badge--success {
-  --c: var(--color-success);
+  --c: var(--success-text);
   --bg: rgba(76, 175, 80, 0.12);
   --bd: rgba(76, 175, 80, 0.5);
 }
 .ui-badge--warning {
-  --c: var(--warning-color);
+  --c: var(--warning-text);
   --bg: rgba(255, 193, 7, 0.1);
   --bd: rgba(255, 193, 7, 0.5);
 }
