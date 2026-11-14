@@ -127,6 +127,7 @@ def _build_init_services_repos():
             "recents_repo",
             "wizard_audit_repo",
             "zone_repo",
+            "stereo_pair_repo",
         )
     }
 

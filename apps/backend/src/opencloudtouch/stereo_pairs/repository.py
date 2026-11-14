@@ -30,16 +30,21 @@ class StereoPair:
     left_device_id: str
     right_device_id: str
     created_at: datetime
+    status: str = "active"  # "pending" | "active"
+    source: str = "oct"  # "oct" | "device" (created outside OCT, imported)
 
 
-_COLUMNS = "id, name, master_device_id, left_device_id, right_device_id, created_at"
+_COLUMNS = (
+    "id, name, master_device_id, left_device_id, right_device_id, created_at, "
+    "status, source"
+)
 
 
 def _row_to_pair(row) -> StereoPair:
     created = row[5]
     if isinstance(created, str):
         created = datetime.fromisoformat(created)
-    return StereoPair(row[0], row[1], row[2], row[3], row[4], created)
+    return StereoPair(row[0], row[1], row[2], row[3], row[4], created, row[6], row[7])
 
 
 class StereoPairRepository(BaseRepository):
@@ -74,7 +79,9 @@ class StereoPairRepository(BaseRepository):
                     left_device_id TEXT NOT NULL,
                     right_device_id TEXT NOT NULL,
                     created_at TIMESTAMP NOT NULL,
-                    dissolved_at TIMESTAMP NULL
+                    dissolved_at TIMESTAMP NULL,
+                    status TEXT NOT NULL DEFAULT 'active',
+                    source TEXT NOT NULL DEFAULT 'oct'
                 )
             """,
         )
@@ -100,7 +107,14 @@ class StereoPairRepository(BaseRepository):
         return _row_to_pair(row) if row else None
 
     async def create_pair(
-        self, name: str, master_device_id: str, left_id: str, right_id: str
+        self,
+        name: str,
+        master_device_id: str,
+        left_id: str,
+        right_id: str,
+        *,
+        status: str = "active",
+        source: str = "oct",
     ) -> StereoPair:
         """Create a pair; raises DeviceAlreadyPairedError if a member is taken."""
         db = self._ensure_initialized()
@@ -111,15 +125,17 @@ class StereoPairRepository(BaseRepository):
             now = datetime.now(UTC)
             cursor = await db.execute(
                 "INSERT INTO stereo_pairs "
-                "(name, master_device_id, left_device_id, right_device_id, created_at) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (name, master_device_id, left_id, right_id, now),
+                "(name, master_device_id, left_device_id, right_device_id, created_at, "
+                "status, source) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (name, master_device_id, left_id, right_id, now, status, source),
             )
             pair_id = cursor.lastrowid
         if pair_id is None:
             raise RuntimeError("Stereo pair has no ID after INSERT")
         logger.info("Created stereo pair %d (%s / %s)", pair_id, left_id, right_id)
-        return StereoPair(pair_id, name, master_device_id, left_id, right_id, now)
+        return StereoPair(
+            pair_id, name, master_device_id, left_id, right_id, now, status, source
+        )
 
     async def get_by_device(self, device_id: str) -> Optional[StereoPair]:
         return await self._find_active(device_id)
@@ -157,3 +173,17 @@ class StereoPairRepository(BaseRepository):
                 "WHERE id = ? AND dissolved_at IS NULL",
                 (datetime.now(UTC), pair_id),
             )
+
+    async def set_status(self, pair_id: int, status: str) -> None:
+        db = self._ensure_initialized()
+        async with self._transaction():
+            await db.execute(
+                "UPDATE stereo_pairs SET status = ? WHERE id = ? AND dissolved_at IS NULL",
+                (status, pair_id),
+            )
+
+    async def delete(self, pair_id: int) -> None:
+        """Remove a row entirely (used to discard a pending pair after rollback)."""
+        db = self._ensure_initialized()
+        async with self._transaction():
+            await db.execute("DELETE FROM stereo_pairs WHERE id = ?", (pair_id,))

@@ -4,12 +4,24 @@ import logging
 from typing import Annotated, Any
 from xml.etree import ElementTree as ET
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
 
-from opencloudtouch.core.dependencies import get_marge_service
+from opencloudtouch.core.dependencies import (
+    get_marge_service,
+    get_stereo_pair_service,
+)
 from opencloudtouch.core.source_types import BASE_SOURCES
 from opencloudtouch.marge.service import MargeService
+from opencloudtouch.stereo_pairs.repository import DeviceAlreadyPairedError
+from opencloudtouch.stereo_pairs.service import StereoPairService, UnknownDeviceError
+from opencloudtouch.stereo_pairs.xml import (
+    EMPTY_GROUP_XML,
+    InvalidGroupError,
+    build_error_xml,
+    build_group_xml,
+    parse_group_request,
+)
 from opencloudtouch.marge.xml_builder import (
     build_devices_xml,
     build_full_account_xml,
@@ -388,3 +400,80 @@ async def set_marge_account() -> Response:
         media_type="application/xml",
         status_code=200,
     )
+
+
+# ---------------------------------------------------------------------------
+# Stereo pair groups (speaker -> OCT). Shapes follow the community Marge
+# implementations; verify against a capture of a real speaker (see spec).
+# ---------------------------------------------------------------------------
+
+StereoPairServiceDep = Annotated[StereoPairService, Depends(get_stereo_pair_service)]
+
+
+def _group_response(body: bytes, status_code: int = 200) -> Response:
+    return Response(
+        content=body, media_type=_MEDIA_STREAMING_XML, status_code=status_code
+    )
+
+
+def _group_error(code: str, message: str) -> Response:
+    return _group_response(build_error_xml(code, message), 400)
+
+
+@router.post("/streaming/account/{account_id}/group/")
+@router.post("/streaming/account/{account_id}/group", include_in_schema=False)
+async def create_device_group(
+    account_id: str, request: Request, stereo: StereoPairServiceDep
+) -> Response:
+    """Create a speaker group (stereo pair); idempotent for the same composition."""
+    try:
+        group_request = parse_group_request(await request.body())
+        pair = await stereo.marge_create(group_request)
+    except DeviceAlreadyPairedError as exc:
+        logger.warning("[MARGE/GROUP] Cannot create group: %s", exc)
+        return _group_error("4041", str(exc))
+    except InvalidGroupError as exc:
+        logger.warning("[MARGE/GROUP] Invalid group request: %s", exc)
+        return _group_error("4000", str(exc))
+    return _group_response(build_group_xml(pair), 201)
+
+
+@router.get("/streaming/account/{account_id}/device/{device_id}/group/")
+@router.get(
+    "/streaming/account/{account_id}/device/{device_id}/group", include_in_schema=False
+)
+async def get_device_group(
+    account_id: str, device_id: str, stereo: StereoPairServiceDep
+) -> Response:
+    """Return the group of a device, or an empty <group/> if it is not in one."""
+    try:
+        pair = await stereo.get_for_device(device_id)
+    except UnknownDeviceError:
+        return _group_error("4012", "Device does not exist")
+    if pair is None:
+        return _group_response(EMPTY_GROUP_XML)
+    return _group_response(build_group_xml(pair))
+
+
+@router.put("/streaming/account/{account_id}/group/{group_id}")
+async def update_device_group(
+    account_id: str, group_id: int, request: Request, stereo: StereoPairServiceDep
+) -> Response:
+    """Rename a group (the only field a speaker updates)."""
+    try:
+        name = parse_group_request(await request.body()).name
+        pair = await stereo.marge_rename(group_id, name)
+    except InvalidGroupError as exc:
+        return _group_error("4000", str(exc))
+    if pair is None:
+        return _group_error("4012", "Group does not exist")
+    return _group_response(build_group_xml(pair))
+
+
+@router.delete("/streaming/account/{account_id}/group/{group_id}")
+async def delete_device_group(
+    account_id: str, group_id: int, stereo: StereoPairServiceDep
+) -> Response:
+    """Dissolve a group. Idempotent: an unknown id is also a success."""
+    await stereo.marge_dissolve(group_id)
+    return _group_response(EMPTY_GROUP_XML)

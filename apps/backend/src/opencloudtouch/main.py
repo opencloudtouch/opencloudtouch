@@ -69,6 +69,8 @@ from opencloudtouch.setup.wizard import WizardService, wizard_router
 from opencloudtouch.swupdate.routes import router as swupdate_router
 from opencloudtouch.wizard_audit.repository import WizardAuditRepository
 from opencloudtouch.wizard_audit.routes import audit_router as wizard_audit_router
+from opencloudtouch.stereo_pairs.repository import StereoPairRepository
+from opencloudtouch.stereo_pairs.service import StereoPairService
 from opencloudtouch.zones.repository import ZoneRepository
 from opencloudtouch.zones.routes import device_zone_router
 from opencloudtouch.zones.routes import router as zones_router
@@ -140,6 +142,7 @@ async def _init_repositories(app: FastAPI, cfg, logger: logging.Logger) -> dict:
         ("recents_repo", RecentsRepository, cfg.effective_db_path),
         ("wizard_audit_repo", WizardAuditRepository, cfg.effective_db_path),
         ("zone_repo", ZoneRepository, cfg.effective_db_path),
+        ("stereo_pair_repo", StereoPairRepository, cfg.effective_db_path),
     ]
 
     repos = {}
@@ -203,6 +206,11 @@ async def _init_services(
         client_factory=get_device_client,
     )
     logger.info("ZoneService initialized")
+
+    app.state.stereo_pair_service = StereoPairService(
+        repo=repos["stereo_pair_repo"], device_repo=device_repo
+    )
+    logger.info("StereoPairService initialized")
 
     # Auto-discover in mock mode
     if cfg.mock_mode:

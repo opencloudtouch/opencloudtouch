@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: OpenCloudTouch
   description: Open-Source replacement for discontinued streaming device cloud features
-  version: 2.0.1
+  version: 1.6.0
 paths:
   /api/devices/discover:
     get:
@@ -2024,6 +2024,128 @@ paths:
           content:
             application/json:
               schema: {}
+  /streaming/account/{account_id}/group/:
+    post:
+      tags:
+      - marge
+      summary: Create Device Group
+      description: Create a speaker group (stereo pair); idempotent for the same composition.
+      operationId: create_device_group_streaming_account__account_id__group__post
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /streaming/account/{account_id}/device/{device_id}/group/:
+    get:
+      tags:
+      - marge
+      summary: Get Device Group
+      description: Return the group of a device, or an empty <group/> if it is not
+        in one.
+      operationId: get_device_group_streaming_account__account_id__device__device_id__group__get
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /streaming/account/{account_id}/group/{group_id}:
+    put:
+      tags:
+      - marge
+      summary: Update Device Group
+      description: Rename a group (the only field a speaker updates).
+      operationId: update_device_group_streaming_account__account_id__group__group_id__put
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Group Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - marge
+      summary: Delete Device Group
+      description: 'Dissolve a group. Idempotent: an unknown id is also a success.'
+      operationId: delete_device_group_streaming_account__account_id__group__group_id__delete
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Group Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /playlist/{device_id}/{preset_number}.m3u:
     get:
       tags:

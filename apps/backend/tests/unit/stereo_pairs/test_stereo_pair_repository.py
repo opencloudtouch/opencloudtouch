@@ -62,3 +62,23 @@ class TestStereoPairRepository:
         pairs = await repo.list_active()
         assert [p.id for p in pairs] == [second.id]
         assert pairs[0].name == "Renamed"
+
+    async def test_status_source_defaults_and_set_status(self, repo):
+        pair = await repo.create_pair("A", "L1", "L1", "R1")
+        assert (pair.status, pair.source) == ("active", "oct")
+
+        pending = await repo.create_pair(
+            "B", "L2", "L2", "R2", status="pending", source="device"
+        )
+        assert (pending.status, pending.source) == ("pending", "device")
+
+        await repo.set_status(pending.id, "active")
+        reloaded = await repo.get(pending.id)
+        assert (reloaded.status, reloaded.source) == ("active", "device")
+
+    async def test_delete_removes_row_and_frees_devices(self, repo):
+        pair = await repo.create_pair("A", "L1", "L1", "R1", status="pending")
+        await repo.delete(pair.id)
+
+        assert await repo.get(pair.id) is None
+        assert await repo.get_by_device("L1") is None
