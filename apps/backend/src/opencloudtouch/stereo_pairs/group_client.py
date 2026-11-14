@@ -22,6 +22,7 @@ SOUNDTOUCH_HTTP_PORT = 8090
 # The speaker retries its Marge call about every 15 s; leave room for a few tries.
 ADD_GROUP_TIMEOUT = 45.0
 READ_TIMEOUT = 5.0
+NO_GROUP_TO_REMOVE = "GROUP_NO_GROUP_TO_REMOVE_ERROR"
 
 
 class GroupClientError(Exception):
@@ -210,7 +211,12 @@ class HttpGroupClient:
         )
 
     async def remove_group(self) -> None:
-        await self._request("GET", "/removeGroup", timeout=ADD_GROUP_TIMEOUT)
+        try:
+            await self._request("GET", "/removeGroup", timeout=ADD_GROUP_TIMEOUT)
+        except GroupClientError as exc:
+            # seen on a real SoundTouch 10 (5550): nothing to remove is the wanted end state
+            if exc.code != NO_GROUP_TO_REMOVE:
+                raise
 
 
 def get_group_client(ip: str) -> GroupClient:

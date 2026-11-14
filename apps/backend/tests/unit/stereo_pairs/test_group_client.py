@@ -158,3 +158,29 @@ async def test_update_group_uses_put_and_remove_group_uses_get(speaker):
     await client.remove_group()
 
     assert [r.method for r in seen] == ["PUT", "GET"]
+
+
+NO_GROUP_ERROR = (
+    '<errors deviceID="X"><error value="5550" '
+    'name="GROUP_NO_GROUP_TO_REMOVE_ERROR" severity="Unknown"> </error></errors>'
+)
+
+
+@pytest.mark.asyncio
+async def test_remove_group_without_a_group_is_a_success(speaker):
+    """A real speaker answers /removeGroup with 5550 when there is nothing to remove."""
+    routes, _ = speaker
+    routes["/removeGroup"] = NO_GROUP_ERROR
+
+    await HttpGroupClient("10.0.0.1").remove_group()
+
+
+@pytest.mark.asyncio
+async def test_remove_group_still_raises_for_other_errors(speaker):
+    routes, _ = speaker
+    routes["/removeGroup"] = MARGE_ERROR
+
+    with pytest.raises(GroupClientError) as caught:
+        await HttpGroupClient("10.0.0.1").remove_group()
+
+    assert caught.value.code == "GROUP_CREATE_GROUP_ON_MARGE_ERROR"
