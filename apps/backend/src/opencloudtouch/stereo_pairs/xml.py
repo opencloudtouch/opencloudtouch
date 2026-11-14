@@ -16,7 +16,14 @@ MARGE_ERROR_DEVICE_IN_GROUP = "4041"
 MARGE_ERROR_UNKNOWN_DEVICE = "4012"
 MARGE_ERROR_INVALID_REQUEST = "4000"
 
-EMPTY_GROUP_XML = b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><group/>'
+_XML_DECLARATION = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+EMPTY_GROUP_XML = (_XML_DECLARATION + "<group/>").encode()
+GROUP_DELETED_XML = (
+    _XML_DECLARATION + "<status>Group deleted successfully</status>"
+).encode()
+GROUP_TEARDOWN_XML = (
+    _XML_DECLARATION + "<status>Group teardown acknowledged</status>"
+).encode()
 
 
 class InvalidGroupError(ValueError):
@@ -72,8 +79,9 @@ def validate_create_request(request: GroupRequest) -> None:
 
 def build_group_xml(pair: StereoPair) -> bytes:
     group = ET.Element("group", id=str(pair.id))
-    ET.SubElement(group, "masterDeviceId").text = pair.master_device_id
+    # element order and declaration match what the speaker itself reports on /getGroup
     ET.SubElement(group, "name").text = pair.name
+    ET.SubElement(group, "masterDeviceId").text = pair.master_device_id
     roles = ET.SubElement(group, "roles")
     for device_id, role in (
         (pair.left_device_id, "LEFT"),
@@ -82,7 +90,7 @@ def build_group_xml(pair: StereoPair) -> bytes:
         entry = ET.SubElement(roles, "groupRole")
         ET.SubElement(entry, "deviceId").text = device_id
         ET.SubElement(entry, "role").text = role
-    return ET.tostring(group, encoding="utf-8", xml_declaration=True)
+    return (_XML_DECLARATION + ET.tostring(group, encoding="unicode")).encode()
 
 
 def build_error_xml(status_code: str, message: str) -> bytes:

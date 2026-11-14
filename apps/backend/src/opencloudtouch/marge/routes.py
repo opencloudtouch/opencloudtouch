@@ -18,6 +18,8 @@ from opencloudtouch.stereo_pairs.repository import DeviceAlreadyPairedError
 from opencloudtouch.stereo_pairs.service import StereoPairService, UnknownDeviceError
 from opencloudtouch.stereo_pairs.xml import (
     EMPTY_GROUP_XML,
+    GROUP_DELETED_XML,
+    GROUP_TEARDOWN_XML,
     MARGE_ERROR_DEVICE_IN_GROUP,
     MARGE_ERROR_INVALID_REQUEST,
     MARGE_ERROR_UNKNOWN_DEVICE,
@@ -471,6 +473,9 @@ async def get_device_group(
 
 
 @router.put("/streaming/account/{account_id}/group/{group_id}")
+@router.post(
+    "/streaming/account/{account_id}/group/{group_id}", include_in_schema=False
+)
 async def update_device_group(
     account_id: str, group_id: int, request: Request, stereo: StereoPairServiceDep
 ) -> Response:
@@ -495,4 +500,34 @@ async def delete_device_group(
     """Dissolve a group. Idempotent: an unknown id is also a success."""
     await stereo.marge_dissolve(group_id)
     _log_group_call(request, 200)
-    return _group_response(EMPTY_GROUP_XML)
+    return _group_response(GROUP_DELETED_XML)
+
+
+@router.delete("/streaming/account/{account_id}/group/", include_in_schema=False)
+@router.delete("/streaming/account/{account_id}/group", include_in_schema=False)
+async def teardown_account_groups(account_id: str, request: Request) -> Response:
+    """Acknowledge a speaker's own group teardown (no group id in the path).
+
+    OCT dissolves groups through its own API and keeps the state itself, so the
+    speaker's report only needs a success answer.
+    """
+    _log_group_call(request, 200)
+    return _group_response(GROUP_TEARDOWN_XML)
+
+
+@router.get(
+    "/streaming/account/{account_id}/provider_settings", include_in_schema=False
+)
+async def get_provider_settings(account_id: str) -> Response:
+    """Static provider settings, same document as the reference Marge servers."""
+    root = ET.Element("providerSettings")
+    for key, value, provider in (
+        ("ELIGIBLE_FOR_TRIAL", "false", "14"),
+        ("STREAMING_QUALITY", "2", "15"),
+    ):
+        setting = ET.SubElement(root, "providerSetting")
+        ET.SubElement(setting, "boseId").text = account_id
+        ET.SubElement(setting, "keyName").text = key
+        ET.SubElement(setting, "value").text = value
+        ET.SubElement(setting, "providerId").text = provider
+    return _xml_response(root, _MEDIA_STREAMING_XML)

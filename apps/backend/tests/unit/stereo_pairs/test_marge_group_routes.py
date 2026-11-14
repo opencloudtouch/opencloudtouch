@@ -10,6 +10,7 @@ from opencloudtouch.core.dependencies import get_stereo_pair_service
 from opencloudtouch.main import app
 from opencloudtouch.stereo_pairs.repository import DeviceAlreadyPairedError, StereoPair
 from opencloudtouch.stereo_pairs.service import UnknownDeviceError
+from opencloudtouch.stereo_pairs.xml import build_group_xml
 
 BODY = (
     b"<group><masterDeviceId>L1</masterDeviceId><name>Office</name><roles>"
@@ -129,4 +130,35 @@ class TestUpdateAndDelete:
         response = client.delete("/streaming/account/123/group/7")
 
         assert response.status_code == 200
+        assert "<status>Group deleted successfully</status>" in response.text
         service.marge_dissolve.assert_awaited_once_with(7)
+
+    def test_post_renames_like_put(self, client, service):
+        service.marge_rename.return_value = _pair()
+
+        response = client.post("/streaming/account/123/group/7", content=BODY)
+
+        assert response.status_code == 200
+        service.marge_rename.assert_awaited_once_with(7, "Office")
+
+    @pytest.mark.parametrize("path", ["/group/", "/group"])
+    def test_teardown_without_id_is_acknowledged(self, client, service, path):
+        response = client.delete("/streaming/account/123" + path)
+
+        assert response.status_code == 200
+        assert "<status>Group teardown acknowledged</status>" in response.text
+        service.marge_dissolve.assert_not_awaited()
+
+    def test_group_xml_lists_name_before_master(self):
+        xml = build_group_xml(_pair()).decode()
+
+        assert xml.startswith('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>')
+        assert xml.index("<name>") < xml.index("<masterDeviceId>")
+
+
+def test_provider_settings_match_reference_servers(client):
+    response = client.get("/streaming/account/123/provider_settings")
+
+    assert response.status_code == 200
+    assert "<boseId>123</boseId>" in response.text
+    assert "<keyName>STREAMING_QUALITY</keyName>" in response.text
