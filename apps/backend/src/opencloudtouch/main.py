@@ -21,6 +21,7 @@ from opencloudtouch.api.bug_report import router as bug_report_router
 from opencloudtouch.bmx.radiobrowser_routes import radiobrowser_router
 from opencloudtouch.bmx.resolve_routes import resolve_router
 from opencloudtouch.bmx.routes import router as bmx_router
+from opencloudtouch.bmx.tunein import resolve_tunein_location
 from opencloudtouch.core.config import get_config, init_config
 from opencloudtouch.core.exception_handlers import (
     register_exception_handlers,  # re-exported for backward compat
@@ -303,6 +304,8 @@ def _make_preset_lookup(
             if preset.station_name and preset.station_name.casefold() == station_lower:
                 value = getattr(preset, attr, None)
                 if value:
+                    if attr == "station_url":
+                        return await resolve_tunein_location(value)
                     return value  # type: ignore[no-any-return]
         return None
 
