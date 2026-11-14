@@ -52,3 +52,5 @@ Colours are chosen by **role**, never by shade. Components use the tokens below 
 | Action / information | selection, links, focus | `--primary-color` | `--primary-text` |
 
 A state is still never shown by colour alone (rule 2).
+
+**Naming:** colour tokens are named role first, property last: `--{role}-color` (fill, border, icon), `--{role}-text` (text) and `--{role}-bg` (tinted background), with role = `success`, `warning`, `danger` or `primary`. The property-first form (`--color-success`) is not used.
