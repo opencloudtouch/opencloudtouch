@@ -1021,7 +1021,8 @@
       "stereo_pair_device_unreachable": "Ein Lautsprecher antwortet nicht. Prüfe Strom und WLAN und versuche es erneut.",
       "stereo_pair_marge_failed": "Die Lautsprecher haben die Kopplung nicht angenommen. Prüfe, ob beide mit OCT eingerichtet sind.",
       "stereo_pair_verification_failed": "Die Kopplung konnte nicht bestätigt werden. Es wurde nichts geändert oder der Vorgang wurde zurückgenommen.",
-      "stereo_pair_degraded": "Die Kopplung ist fehlgeschlagen und konnte nicht vollständig zurückgenommen werden. Repariere das Paar."
+      "stereo_pair_degraded": "Die Kopplung ist fehlgeschlagen und konnte nicht vollständig zurückgenommen werden. Repariere das Paar.",
+      "stereo_pair_timeout": "Der Server wurde nicht rechtzeitig fertig. Prüfe die Liste der Stereopaare und versuche es erneut."
     },
     "toast": {
       "created": "Stereopaar erstellt",

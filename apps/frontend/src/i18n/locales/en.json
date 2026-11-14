@@ -1021,7 +1021,8 @@
       "stereo_pair_device_unreachable": "A speaker does not respond. Check power and Wi-Fi and try again.",
       "stereo_pair_marge_failed": "The speakers did not accept the pairing. Check that both are set up with OCT.",
       "stereo_pair_verification_failed": "The pairing could not be confirmed. Nothing was changed, or the operation was rolled back.",
-      "stereo_pair_degraded": "The pairing failed and could not be fully undone. Repair the pair."
+      "stereo_pair_degraded": "The pairing failed and could not be fully undone. Repair the pair.",
+      "stereo_pair_timeout": "The server did not finish in time. Check the stereo pair list and try again."
     },
     "toast": {
       "created": "Stereo pair created",
