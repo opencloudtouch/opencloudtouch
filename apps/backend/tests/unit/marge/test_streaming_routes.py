@@ -137,9 +137,7 @@ class TestStreamingFullAccount:
         result = await streaming_full_account("9999999", mock_marge)
         assert result.status_code == 200
         root = ElementTree.fromstring(result.body.decode())
-        presets = root.find("presets")
-        assert presets is not None
-        assert len(presets.findall("preset")) == 0
+        assert root.findall(".//preset") == []
 
     @pytest.mark.asyncio
     async def test_media_type_is_bose_streaming(self):
@@ -152,11 +150,13 @@ class TestStreamingFullAccount:
     @pytest.mark.asyncio
     async def test_returns_bose_account_xml(self):
         mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.resolve_device_id_for_account = AsyncMock(return_value="AABB")
         mock_marge.get_full_account = AsyncMock(return_value=([], []))
 
         result = await streaming_full_account("3784726", mock_marge)
         root = ElementTree.fromstring(result.body.decode())
-        assert root.tag == "boseAccount"
+        assert root.tag == "account"
+        assert root.get("id") == "3784726"
 
     @pytest.mark.asyncio
     async def test_includes_presets_in_response(self):
@@ -170,13 +170,12 @@ class TestStreamingFullAccount:
         mock_preset.updated_at.timestamp.return_value = 1234567890
 
         mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.resolve_device_id_for_account = AsyncMock(return_value="AABB")
         mock_marge.get_full_account = AsyncMock(return_value=([mock_preset], []))
 
         result = await streaming_full_account("3784726", mock_marge)
         root = ElementTree.fromstring(result.body.decode())
-        presets = root.find("presets")
-        assert presets is not None
-        assert len(presets.findall("preset")) == 1
+        assert len(root.findall("./devices/device/presets/preset")) == 1
 
     @pytest.mark.asyncio
     async def test_includes_recents_in_response(self):
@@ -187,13 +186,12 @@ class TestStreamingFullAccount:
         mock_recent.name = "WDR 2"
 
         mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.resolve_device_id_for_account = AsyncMock(return_value="AABB")
         mock_marge.get_full_account = AsyncMock(return_value=([], [mock_recent]))
 
         result = await streaming_full_account("3784726", mock_marge)
         root = ElementTree.fromstring(result.body.decode())
-        recents = root.find("recents")
-        assert recents is not None
-        assert len(recents.findall("recent")) == 1
+        assert len(root.findall("./devices/device/recents/recent")) == 1
 
 
 class TestScmudcReporting:

@@ -29,6 +29,7 @@ from opencloudtouch.stereo_pairs.xml import (
 from opencloudtouch.marge.xml_builder import (
     build_devices_xml,
     build_full_account_xml,
+    build_streaming_account_xml,
     build_presets_xml,
     build_recents_xml,
     build_sources_xml,
@@ -265,18 +266,10 @@ async def streaming_full_account(
     account_id: str,
     marge: Annotated[MargeService, Depends(get_marge_service)],
 ) -> Response:
-    """Get full account sync via streaming endpoint.
+    """Account sync of the speaker (every 60 s), answered in the ``<account>`` shape.
 
-    This is the streaming.bose.com version of the account sync endpoint.
-    Resolves the device_id from the account_id (margeAccountUUID) stored
-    during device discovery, then returns that device's presets.
-
-    Args:
-        account_id: Account ID (e.g., "3784726")
-        marge: Marge service dependency
-
-    Returns:
-        XML Response with <account> structure
+    The device is resolved from the account id (margeAccountUUID stored during
+    discovery); an unknown account gets an account without devices.
     """
     logger.info("[MARGE/STREAMING] Full account sync for account %s", account_id)
 
@@ -286,10 +279,11 @@ async def streaming_full_account(
             "[MARGE/STREAMING] No device mapped to account %s - returning empty presets",
             account_id,
         )
-        return _xml_response(build_full_account_xml([], []), _MEDIA_STREAMING_XML)
+        return _xml_response(
+            build_streaming_account_xml(account_id), _MEDIA_STREAMING_XML
+        )
 
     presets, recents = await marge.get_full_account(device_id)
-
     logger.info(
         "[MARGE/STREAMING] Returning %d presets, %d recents for device %s (account %s)",
         len(presets),
@@ -297,8 +291,10 @@ async def streaming_full_account(
         device_id,
         account_id,
     )
-
-    return _xml_response(build_full_account_xml(presets, recents), _MEDIA_STREAMING_XML)
+    return _xml_response(
+        build_streaming_account_xml(account_id, device_id, presets, recents),
+        _MEDIA_STREAMING_XML,
+    )
 
 
 @router.post("/v1/scmudc/{device_id}")

@@ -203,3 +203,78 @@ def build_full_account_xml(
     account_elem.append(sources_xml)
 
     return account_elem
+
+
+def _source_element(parent: ET.Element, src: Any) -> ET.Element:
+    source = ET.SubElement(parent, "source", {"id": src.streaming_id, "type": "Audio"})
+    ET.SubElement(source, "createdOn").text = src.created_on
+    ET.SubElement(source, "credential", {"type": "token"})
+    ET.SubElement(source, "name").text = src.source_type
+    ET.SubElement(source, "sourceproviderid").text = src.streaming_id
+    ET.SubElement(source, "sourcename").text = src.source_type
+    ET.SubElement(source, "sourceSettings")
+    ET.SubElement(source, "updatedOn").text = src.created_on
+    ET.SubElement(source, "username")
+    return source
+
+
+def _sources_by_name() -> dict[str, Any]:
+    return {src.source_type: src for src in BASE_SOURCES}
+
+
+def _item_children(parent: ET.Element, item: ET.Element, now: str) -> None:
+    """Fill the shared preset/recent children from a ``<ContentItem>`` element."""
+    content = item.find("ContentItem")
+    assert content is not None
+    ET.SubElement(parent, "containerArt").text = content.findtext("containerArt") or ""
+    ET.SubElement(parent, "contentItemType").text = "stationurl"
+    ET.SubElement(parent, "createdOn").text = now
+    ET.SubElement(parent, "location").text = content.get("location", "")
+    ET.SubElement(parent, "name").text = content.findtext("itemName") or ""
+    src = _sources_by_name().get(content.get("source", ""))
+    if src is not None:
+        _source_element(parent, src)
+    ET.SubElement(parent, "updatedOn").text = now
+    ET.SubElement(parent, "username")
+
+
+def build_streaming_account_xml(
+    account_id: str,
+    device_id: str | None = None,
+    presets: list[Any] | None = None,
+    recents: list[Any] | None = None,
+) -> ET.Element:
+    """Build the ``<account>`` document the speaker's own Marge sync expects.
+
+    The speaker rejects any other root element ("account expected") and then
+    fails its sync every 60 s, which also breaks group creation (error 5580).
+    Shape follows the Bose cloud / reference servers.
+    """
+    now = "2018-01-01T00:00:00.000+00:00"
+    account = ET.Element("account", {"id": account_id})
+    ET.SubElement(account, "accountStatus").text = "OK"
+    devices = ET.SubElement(account, "devices")
+    if device_id:
+        device = ET.SubElement(devices, "device", {"deviceid": device_id})
+        ET.SubElement(device, "createdOn").text = now
+        preset_list = ET.SubElement(device, "presets")
+        for preset in presets or []:
+            element = build_preset_xml(preset)
+            entry = ET.SubElement(
+                preset_list, "preset", {"buttonNumber": element.get("id", "")}
+            )
+            _item_children(entry, element, now)
+        recent_list = ET.SubElement(device, "recents")
+        for recent in build_recents_xml(recents):
+            entry = ET.SubElement(recent_list, "recent", {"id": "0"})
+            _item_children(entry, recent, now)
+            ET.SubElement(entry, "lastplayedat").text = now
+            ET.SubElement(entry, "sourceid").text = ""
+        ET.SubElement(device, "updatedOn").text = now
+    ET.SubElement(account, "mode").text = "global"
+    ET.SubElement(account, "preferredLanguage").text = "en"
+    ET.SubElement(account, "providerSettings")
+    sources = ET.SubElement(account, "sources")
+    for src in BASE_SOURCES:
+        _source_element(sources, src)
+    return account
