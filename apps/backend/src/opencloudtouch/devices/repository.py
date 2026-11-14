@@ -3,11 +3,15 @@ Database models and repository for device management
 Uses aiosqlite for async SQLite operations
 """
 
+import asyncio
 import json
 import logging
 import unicodedata
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from typing import Any, List, Optional
+from functools import wraps
+from pathlib import Path
+from typing import Any, Concatenate, List, Optional, ParamSpec, TypeVar
 
 import aiosqlite
 
@@ -94,8 +98,40 @@ class Device:
         }
 
 
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+
+
+def _serialize_device_write(
+    method: Callable[Concatenate["DeviceRepository", _P], Awaitable[_R]],
+) -> Callable[Concatenate["DeviceRepository", _P], Awaitable[_R]]:
+    @wraps(method)
+    async def wrapped(
+        repo: "DeviceRepository", *args: _P.args, **kwargs: _P.kwargs
+    ) -> _R:
+        async with repo._write_lock:
+            db = repo._ensure_initialized()
+            try:
+                result = await method(repo, *args, **kwargs)
+                await db.commit()
+                return result
+            except BaseException:
+                # Also roll back on cancellation; preserve the original error.
+                try:
+                    await db.rollback()
+                except BaseException:
+                    logger.exception("Device repository rollback failed")
+                raise
+
+    return wrapped
+
+
 class DeviceRepository(BaseRepository):
     """Repository for device persistence."""
+
+    def __init__(self, db_path: str | Path) -> None:
+        super().__init__(db_path)
+        self._write_lock = asyncio.Lock()
 
     async def _create_schema(self) -> None:
         """Create devices table, indexes, and apply migrations."""
@@ -168,6 +204,7 @@ class DeviceRepository(BaseRepository):
 
         await self._conn.commit()
 
+    @_serialize_device_write
     async def upsert(self, device: Device) -> Device:
         """
         Insert or update device.
@@ -278,7 +315,6 @@ class DeviceRepository(BaseRepository):
                 device.marge_account_uuid,
             )
 
-        await db.commit()
         logger.debug("Upserted device: %s (%s)", device.name, device.device_id)
 
         return device
@@ -321,6 +357,7 @@ class DeviceRepository(BaseRepository):
             return None
         return self._row_to_device(row)
 
+    @_serialize_device_write
     async def update_setup_status(
         self,
         device_id: str,
@@ -352,7 +389,6 @@ class DeviceRepository(BaseRepository):
             f"UPDATE devices SET {', '.join(fields)} WHERE device_id = ?",  # nosec B608 - field names are hardcoded constants
             params,
         )
-        await db.commit()
         logger.info("Updated setup status for %s: %s", device_id, setup_status)
 
     async def get_by_account_uuid(self, account_uuid: str) -> Optional[Device]:
@@ -375,6 +411,7 @@ class DeviceRepository(BaseRepository):
             return None
         return self._row_to_device(row)
 
+    @_serialize_device_write
     async def update_marge_account_uuid(
         self, device_id: str, marge_account_uuid: str, uuid_source: str | None = None
     ) -> None:
@@ -423,7 +460,6 @@ class DeviceRepository(BaseRepository):
             raise ValueError(
                 f"UUID collision or device not found: {marge_account_uuid}"
             )
-        await db.commit()
         logger.info(
             "Updated marge_account_uuid for %s: %s", device_id, marge_account_uuid
         )
@@ -460,23 +496,23 @@ class DeviceRepository(BaseRepository):
             return None
         return self._row_to_device(row)
 
+    @_serialize_device_write
     async def delete_all(self) -> int:
         """Delete all devices from database. Returns number of deleted rows."""
         db = self._ensure_initialized()
 
         cursor = await db.execute("DELETE FROM devices")
-        await db.commit()
 
         deleted_count = cursor.rowcount
         logger.debug("Deleted all devices from database: %d rows", deleted_count)
 
         return deleted_count
 
+    @_serialize_device_write
     async def delete_by_device_id(self, device_id: str) -> None:
         db = self._ensure_initialized()
 
         await db.execute("DELETE FROM devices WHERE device_id = ? ", (device_id,))
-        await db.commit()
 
         logger.debug("Deleted device %s from database", device_id)
 
