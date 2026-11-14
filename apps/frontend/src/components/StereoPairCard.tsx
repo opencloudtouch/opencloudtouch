@@ -40,7 +40,7 @@ function StatusChip({ status }: Readonly<{ status: StereoPair["status"] }>) {
         <span className="ui-badge-icon" aria-hidden="true">
           {Icon.Alert(14)}
         </span>
-        {t("stereo.status.degraded", "Nicht funktionsfähig")}
+        {t("stereo.status.degraded", "Unterbrochen")}
       </span>
     );
   }

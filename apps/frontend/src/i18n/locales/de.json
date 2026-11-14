@@ -938,7 +938,7 @@
     "status": {
       "active": "Aktiv",
       "creating": "Wird erstellt",
-      "degraded": "Nicht funktionsfähig"
+      "degraded": "Unterbrochen"
     },
     "imported": "Importiert",
     "importedTitle": "Außerhalb von OCT erstellt",

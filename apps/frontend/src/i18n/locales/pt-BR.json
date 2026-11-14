@@ -938,7 +938,7 @@
     "status": {
       "active": "Ativo",
       "creating": "Criando",
-      "degraded": "Não funciona"
+      "degraded": "Interrompido"
     },
     "imported": "Importado",
     "importedTitle": "Criado fora do OCT",
