@@ -17,6 +17,9 @@ from opencloudtouch.stereo_pairs.repository import DeviceAlreadyPairedError
 from opencloudtouch.stereo_pairs.service import StereoPairService, UnknownDeviceError
 from opencloudtouch.stereo_pairs.xml import (
     EMPTY_GROUP_XML,
+    MARGE_ERROR_DEVICE_IN_GROUP,
+    MARGE_ERROR_INVALID_REQUEST,
+    MARGE_ERROR_UNKNOWN_DEVICE,
     InvalidGroupError,
     build_error_xml,
     build_group_xml,
@@ -431,10 +434,10 @@ async def create_device_group(
         pair = await stereo.marge_create(group_request)
     except DeviceAlreadyPairedError as exc:
         logger.warning("[MARGE/GROUP] Cannot create group: %s", exc)
-        return _group_error("4041", str(exc))
+        return _group_error(MARGE_ERROR_DEVICE_IN_GROUP, str(exc))
     except InvalidGroupError as exc:
         logger.warning("[MARGE/GROUP] Invalid group request: %s", exc)
-        return _group_error("4000", str(exc))
+        return _group_error(MARGE_ERROR_INVALID_REQUEST, str(exc))
     return _group_response(build_group_xml(pair), 201)
 
 
@@ -449,7 +452,7 @@ async def get_device_group(
     try:
         pair = await stereo.get_for_device(device_id)
     except UnknownDeviceError:
-        return _group_error("4012", "Device does not exist")
+        return _group_error(MARGE_ERROR_UNKNOWN_DEVICE, "Device does not exist")
     if pair is None:
         return _group_response(EMPTY_GROUP_XML)
     return _group_response(build_group_xml(pair))
@@ -464,9 +467,9 @@ async def update_device_group(
         name = parse_group_request(await request.body()).name
         pair = await stereo.marge_rename(group_id, name)
     except InvalidGroupError as exc:
-        return _group_error("4000", str(exc))
+        return _group_error(MARGE_ERROR_INVALID_REQUEST, str(exc))
     if pair is None:
-        return _group_error("4012", "Group does not exist")
+        return _group_error(MARGE_ERROR_UNKNOWN_DEVICE, "Group does not exist")
     return _group_response(build_group_xml(pair))
 
 
