@@ -3217,6 +3217,10 @@ export interface components {
        * @default false
        */
       stereo_master: boolean;
+      /** Stereo Partner Name */
+      stereo_partner_name?: string | null;
+      /** Stereo Master Name */
+      stereo_master_name?: string | null;
     };
     /**
      * DiagnosticsRequest

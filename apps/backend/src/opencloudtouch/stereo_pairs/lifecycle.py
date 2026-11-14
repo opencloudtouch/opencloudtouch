@@ -30,6 +30,8 @@ SUPPORTED_TYPE = "SoundTouch 10"
 STEP_KEYS = ("preflight", "create_left", "create_right", "verify")
 # The speaker retries its Marge call about every 15 s.
 UNCERTAIN_RETRY_DELAYS: Sequence[float] = (15.0, 15.0, 15.0)
+# A pair list must stay responsive when a speaker is switched off.
+REACHABILITY_TIMEOUT = 2.0
 
 
 def stereo_error(status: int, code: str, detail: str, **params) -> CodedApiError:
@@ -422,9 +424,11 @@ class StereoPairLifecycle:
             reachable = False
             if device is not None:
                 try:
-                    await self._factory(device.ip).get_info()
+                    await asyncio.wait_for(
+                        self._factory(device.ip).get_info(), REACHABILITY_TIMEOUT
+                    )
                     reachable = True
-                except GroupClientError:
+                except (GroupClientError, asyncio.TimeoutError):
                     reachable = False
             return {
                 "device_id": device_id,

@@ -67,6 +67,8 @@ function mapDeviceFromAPI(apiDevice: DeviceAPIResponse): Device {
     stereo_pair_id: apiDevice.stereo_pair_id,
     stereo_role: apiDevice.stereo_role,
     stereo_master: apiDevice.stereo_master,
+    stereo_partner_name: apiDevice.stereo_partner_name,
+    stereo_master_name: apiDevice.stereo_master_name,
   };
 }
 

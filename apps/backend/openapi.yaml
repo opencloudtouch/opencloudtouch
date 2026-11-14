@@ -4161,6 +4161,16 @@ components:
           type: boolean
           title: Stereo Master
           default: false
+        stereo_partner_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stereo Partner Name
+        stereo_master_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stereo Master Name
       type: object
       required:
       - id

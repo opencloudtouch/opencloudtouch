@@ -134,3 +134,19 @@ def test_device_list_survives_broken_stereo_repository(monkeypatch):
 
     assert response.status_code == 200
     assert response.json() == {"count": 0, "devices": []}
+
+
+def test_partner_and_master_names_come_with_the_device():
+    pairs = {"L1": _pair(), "R1": _pair()}
+    names = {"L1": "Office left", "R1": "Office right"}
+
+    left = stereo_fields(_device("L1"), pairs, set(), names)
+    right = stereo_fields(_device("R1"), pairs, set(), names)
+
+    assert left["stereo_partner_name"] == "Office right"
+    assert left["stereo_master_name"] == "Office left"
+    assert right["stereo_partner_name"] == "Office left"
+    assert right["stereo_master_name"] == "Office left"
+    assert (
+        stereo_fields(_device("X"), pairs, set(), names)["stereo_partner_name"] is None
+    )
