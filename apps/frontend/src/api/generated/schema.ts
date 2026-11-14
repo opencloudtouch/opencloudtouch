@@ -1645,6 +1645,70 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/streaming/account/{account_id}/group/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create Device Group
+     * @description Create a speaker group (stereo pair); idempotent for the same composition.
+     */
+    post: operations["create_device_group_streaming_account__account_id__group__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/streaming/account/{account_id}/device/{device_id}/group/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Device Group
+     * @description Return the group of a device, or an empty <group/> if it is not in one.
+     */
+    get: operations["get_device_group_streaming_account__account_id__device__device_id__group__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/streaming/account/{account_id}/group/{group_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Update Device Group
+     * @description Rename a group (the only field a speaker updates).
+     */
+    put: operations["update_device_group_streaming_account__account_id__group__group_id__put"];
+    post?: never;
+    /**
+     * Delete Device Group
+     * @description Dissolve a group. Idempotent: an unknown id is also a success.
+     */
+    delete: operations["delete_device_group_streaming_account__account_id__group__group_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/playlist/{device_id}/{preset_number}.m3u": {
     parameters: {
       query?: never;
@@ -6082,6 +6146,133 @@ export interface operations {
         };
         content: {
           "application/json": unknown;
+        };
+      };
+    };
+  };
+  create_device_group_streaming_account__account_id__group__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        account_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_device_group_streaming_account__account_id__device__device_id__group__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        account_id: string;
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_device_group_streaming_account__account_id__group__group_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        account_id: string;
+        group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_device_group_streaming_account__account_id__group__group_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        account_id: string;
+        group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
