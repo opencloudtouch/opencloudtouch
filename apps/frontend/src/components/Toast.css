@@ -2,7 +2,7 @@
    Enter animation moves only (no opacity), so contrast is stable from the first frame. */
 .toast {
   --c: var(--primary-text);
-  --bd: rgba(var(--primary-rgb), 0.6);
+  --bd: var(--primary-border);
   position: fixed;
   z-index: 1000;
   box-sizing: border-box;
@@ -14,7 +14,7 @@
   width: 400px;
   max-width: calc(100vw - 2 * var(--space-md));
   padding: 12px 4px 12px 14px;
-  background: #2f2f2f;
+  background: var(--surface-raised);
   border: 1px solid var(--bd);
   border-radius: var(--border-radius-md);
   box-shadow: var(--elev-toast);
@@ -23,15 +23,15 @@
 }
 .toast-success {
   --c: var(--success-text);
-  --bd: rgba(76, 175, 80, 0.7);
+  --bd: var(--success-border);
 }
 .toast-warning {
   --c: var(--warning-text);
-  --bd: rgba(255, 193, 7, 0.7);
+  --bd: var(--warning-border);
 }
 .toast-error {
   --c: var(--danger-text);
-  --bd: rgba(244, 67, 54, 0.75);
+  --bd: var(--danger-border);
 }
 .toast-icon {
   flex: none;
@@ -77,7 +77,7 @@
   border-radius: 8px;
 }
 .toast--act .toast-action:hover {
-  background: rgba(128, 128, 128, 0.25);
+  background: var(--hover-bg);
 }
 .toast--act .toast-action:focus-visible,
 .toast--act .toast-close:focus-visible {
@@ -86,7 +86,7 @@
 }
 .toast-close:hover {
   color: var(--color-text-primary);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--hover-bg);
 }
 @keyframes toast-in {
   from {

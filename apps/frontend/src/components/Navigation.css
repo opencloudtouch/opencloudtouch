@@ -49,7 +49,7 @@
 }
 .nav-link[aria-current="page"] {
   color: var(--color-text-primary);
-  background: rgba(var(--primary-rgb), 0.15);
+  background: var(--primary-bg-strong);
 }
 .nav-link[aria-current="page"]::after {
   content: "";

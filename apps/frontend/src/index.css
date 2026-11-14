@@ -1,31 +1,11 @@
 /* Design System Variables - Bose Dark Theme with Swipe Enhancements */
 :root {
   /* Colors */
-  --color-bg-dark: #1a1a1a;
-  --color-bg-darker: #0d0d0d;
-  --color-bg-card: #242424;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #b3b3b3;
-  --color-text-tertiary: #949494;
-  --color-border: #333333;
-  --color-accent: #0066cc;
-  --color-accent-hover: #0052a3;
-  --color-disabled: #4d4d4d;
 
   /* ─── Wizard component variable aliases ───────────────────────────────────
      Wizard CSS files use a separate naming convention. Bridge them here so
      all wizard steps render correctly without hardcoded fallbacks.
      ──────────────────────────────────────────────────────────────────────── */
-  --text-primary: #e0e0e0;
-  --text-secondary: #b3b3b3;
-  --surface-color: #2a2a2a;
-  --bg-tertiary: #323232;
-  --border-color: #3a3a3a;
-  --primary-color: #4a90d9;
-  --primary-rgb: 74, 144, 217;
-  --primary-text: #8ab8f0; /* use for text/icons on dark surfaces (contrast >= 4.5:1) */
-  --success-color: #81c784;
-  --danger-color: #ef5350;
 
   /* Typography */
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
@@ -83,7 +63,7 @@ body {
 
 /* Focus Visible (Accessibility) */
 *:focus-visible {
-  outline: 2px solid var(--focus-ring, #8ab8f0); /* light blue: #0066cc has only 2.8:1 on the dark surfaces */
+  outline: 2px solid var(--focus-ring, var(--primary-text)); /* light blue: #0066cc has only 2.8:1 on the dark surfaces */
   outline-offset: 2px;
 }
 

@@ -126,13 +126,13 @@
 /* monthly supporters: gold with a white sheen sweeping through the letters, plus a soft glow. Gold stays >= 9:1 on the card at every point of the sweep. */
 .ab-name--monthly {
   font-weight: var(--font-weight-bold);
-  color: #f5c542;
-  background: linear-gradient(105deg, #e8a92b 0%, #f5c542 35%, #fff 50%, #f5c542 65%, #e8a92b 100%)
+  color: var(--warning-text);
+  background: linear-gradient(105deg, var(--warning-color) 0%, var(--warning-text) 35%, var(--solid-text) 50%, var(--warning-text) 65%, var(--warning-color) 100%)
     100% 0 / 250% 100% no-repeat;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 6px rgba(245, 197, 66, 0.55));
+  filter: drop-shadow(0 0 6px var(--warning-border));
   animation:
     ab-in 0.3s ease-out both,
     ab-sheen 3.4s ease-in-out calc(var(--i, 0) * 10ms + 0.4s) infinite;
@@ -210,7 +210,7 @@
   color: inherit;
 }
 .ab-link--support {
-  border-color: rgba(var(--primary-rgb), 0.5);
+  border-color: var(--primary-border);
 }
 @media (prefers-reduced-motion: reduce) {
   .ab-link {

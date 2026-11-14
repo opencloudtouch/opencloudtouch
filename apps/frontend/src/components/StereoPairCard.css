@@ -13,7 +13,7 @@
   font-weight: var(--font-weight-bold);
   line-height: 1;
   color: var(--primary-text);
-  background: rgba(var(--primary-rgb), 0.18);
+  background: var(--primary-bg-strong);
 }
 .sp-side--RIGHT {
   background: transparent;
@@ -27,7 +27,7 @@
   background: transparent;
 }
 .sp-role .sp-side--LEFT {
-  background: rgba(var(--primary-rgb), 0.3);
+  background: var(--primary-bg-strong);
 }
 
 .sp-card {

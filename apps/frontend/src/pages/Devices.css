@@ -67,12 +67,12 @@
     color var(--motion-base);
 }
 .rp-power--on {
-  background: rgba(76, 175, 80, 0.14);
-  border-color: rgba(76, 175, 80, 0.7);
+  background: var(--success-bg-strong);
+  border-color: var(--success-border);
   color: var(--success-text);
 }
 .rp-power--on:hover:not(:disabled) {
-  background: rgba(76, 175, 80, 0.24);
+  background: var(--success-bg-strong);
 }
 .rp-power--off:hover:not(:disabled) {
   background: var(--bg-tertiary);
@@ -92,7 +92,7 @@
   color: var(--color-text-secondary);
 }
 .rp-loading-spinner {
-  border-color: rgba(var(--primary-rgb), 0.3);
+  border-color: var(--primary-bg-strong);
   border-top-color: var(--primary-color);
 }
 

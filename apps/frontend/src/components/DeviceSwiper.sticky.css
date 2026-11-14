@@ -27,7 +27,7 @@
   .ds-bar[data-stuck] {
     box-shadow:
       0 1px 0 var(--border-color),
-      0 8px 12px -8px rgba(0, 0, 0, 0.7);
+      0 8px 12px -8px var(--scrim);
   } /* hairline + soft edge, only while content runs underneath */
   .ds-viewport {
     grid-area: auto;

@@ -119,7 +119,7 @@
   height: 100%;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--solid-text);
   font-size: var(--fs-body);
   font-weight: var(--font-weight-bold);
 }
@@ -175,7 +175,7 @@
   font-size: var(--fs-md);
 }
 .rs-spinner {
-  border-color: rgba(var(--primary-rgb), 0.3);
+  border-color: var(--primary-bg-strong);
   border-top-color: var(--primary-color);
 }
 .rs-more {

@@ -72,7 +72,7 @@
   align-items: center;
   justify-content: center;
   font-weight: var(--font-weight-bold);
-  background: rgba(var(--primary-rgb), 0.15);
+  background: var(--primary-bg-strong);
   color: var(--primary-text);
 }
 .es-step-body {
@@ -113,16 +113,16 @@
 .es-cta--primary:hover:not(:disabled) {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--solid-text);
 }
 .es-cta--primary:hover:not(:disabled) .spinner-small {
-  border-top-color: #fff;
+  border-top-color: var(--solid-text);
 }
 .es-cta--secondary:hover:not(:disabled) {
   background: var(--bg-tertiary);
 }
 .es-cta .spinner-small {
-  border-color: rgba(var(--primary-rgb), 0.35);
+  border-color: var(--primary-border);
   border-top-color: var(--primary-text);
 }
 
@@ -162,7 +162,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(76, 175, 80, 0.15);
+  background: var(--success-bg-strong);
   color: var(--success-text);
 }
 .es-found-info {

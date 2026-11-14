@@ -42,7 +42,7 @@ Every UI design and every UI change is checked against these rules, whatever the
 
 ## Colour roles
 
-Colours are chosen by **role**, never by shade. Components use the tokens below (defined in `ui-base.css` and `index.css`) and contain no literal colour values. Text uses the `-text` token because it must meet 4.5:1 in the light and the dark theme; fills, borders and icons use the base token.
+Colours are chosen by **role**, never by shade. Components use the tokens below, defined once in `apps/frontend/src/palette.css` (dark is the default, light applies under `<html data-theme="light">`), and contain no literal colour values; a unit test (`cssTokens.test.ts`) enforces this, shadows excepted. Text on a role fill uses `--{role}-on`; white text on solid buttons uses `--solid-text`. Text uses the `-text` token because it must meet 4.5:1 in the light and the dark theme; fills, borders and icons use the base token.
 
 | Role | Used for | Fill, border, icon | Text |
 |---|---|---|---|

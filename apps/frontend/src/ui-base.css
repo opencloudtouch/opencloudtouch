@@ -4,13 +4,6 @@
 
 :root {
   /* text/ring colours that pass on dark surfaces */
-  --primary-text: #8ab8f0; /* blue text and icons on dark/tinted surfaces (>= 4.5:1) */
-  --danger-text: #ff8a80; /* red text on dark/tinted surfaces (>= 4.5:1); --danger-color stays for fills and icons */
-  --warning-color: #ffc107; /* fills, borders, icons */
-  --warning-text: #ffc107; /* warning text on dark/tinted surfaces; the light theme needs a darker value (>= 4.5:1) */
-  --success-text: var(--success-color); /* success text; the light theme needs a darker value (>= 4.5:1) */
-  --focus-ring: #8ab8f0;
-  --ui-control-border: #7a7a7a; /* input/chip/toggle outlines: >= 3:1 on #1a1a1a and #242424 */
   --font-mono: ui-monospace, Menlo, Consolas, monospace;
   /* type scale */
   --fs-h1: 26px;
@@ -66,7 +59,7 @@
 }
 .btn-primary {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--solid-text);
   border-color: var(--color-accent);
 }
 .btn-primary:hover:not(:disabled) {
@@ -76,7 +69,7 @@
 .btn-secondary {
   background: transparent;
   color: var(--text-primary);
-  border-color: var(--color-disabled);
+  border-color: var(--ui-control-border);
 }
 .btn-secondary:hover:not(:disabled) {
   background: var(--bg-tertiary);
@@ -87,7 +80,7 @@
   border-color: var(--primary-color);
 }
 .btn-outline:hover:not(:disabled) {
-  background: rgba(var(--primary-rgb), 0.12);
+  background: var(--primary-bg);
 }
 .btn-ghost {
   background: transparent;
@@ -109,8 +102,8 @@
   animation: spin 0.8s linear infinite;
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: #fff;
+  border: 2px solid var(--solid-text-muted);
+  border-top-color: var(--solid-text);
 }
 .spinner {
   width: 40px;
@@ -127,13 +120,13 @@
 
 /* ---------- Buttons: new in stage 5 ---------- */
 .btn-danger {
-  background: #c62828;
-  color: #fff;
-  border-color: #c62828;
+  background: var(--danger-solid);
+  color: var(--solid-text);
+  border-color: var(--danger-solid);
 } /* solid, destructive confirm: white on #c62828 = 5.6:1 */
 .btn-danger:hover:not(:disabled) {
-  background: #b71c1c;
-  border-color: #b71c1c;
+  background: var(--danger-solid-hover);
+  border-color: var(--danger-solid-hover);
 }
 .btn-danger-outline {
   background: transparent;
@@ -141,7 +134,7 @@
   border-color: var(--danger-color);
 }
 .btn-danger-outline:hover:not(:disabled) {
-  background: rgba(244, 67, 54, 0.12);
+  background: var(--danger-bg);
 }
 .btn-sm {
   padding: 0 14px;
@@ -214,8 +207,8 @@
 /* ---------- Status boxes: info / success / warning / error (identical to wizard-base.css) ---------- */
 .wz-status {
   --c: var(--primary-color);
-  --bg: rgba(var(--primary-rgb), 0.08);
-  --bd: rgba(var(--primary-rgb), 0.45);
+  --bg: var(--primary-bg);
+  --bd: var(--primary-border);
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -228,18 +221,18 @@
 }
 .wz-status--success {
   --c: var(--success-text);
-  --bg: rgba(76, 175, 80, 0.1);
-  --bd: rgba(76, 175, 80, 0.5);
+  --bg: var(--success-bg);
+  --bd: var(--success-border);
 }
 .wz-status--warning {
   --c: var(--warning-text);
-  --bg: rgba(255, 193, 7, 0.1);
-  --bd: rgba(255, 193, 7, 0.5);
+  --bg: var(--warning-bg);
+  --bd: var(--warning-border);
 }
 .wz-status--error {
-  --c: var(--danger-color);
-  --bg: rgba(244, 67, 54, 0.1);
-  --bd: rgba(244, 67, 54, 0.55);
+  --c: var(--danger-text);
+  --bg: var(--danger-bg);
+  --bd: var(--danger-border);
 }
 .wz-icon {
   flex: none;
@@ -280,7 +273,7 @@
   height: 24px;
   box-sizing: border-box;
   border-radius: 50%;
-  border: 3px solid rgba(var(--primary-rgb), 0.3);
+  border: 3px solid var(--primary-bg-strong);
   border-top-color: var(--primary-color);
   animation: spin 0.8s linear infinite;
 }
@@ -324,7 +317,7 @@
 }
 .ui-alert-close:hover {
   color: var(--color-text-primary);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--hover-bg);
 }
 
 /* ---------- Form controls ---------- */
@@ -365,7 +358,7 @@
 }
 .ui-input::placeholder,
 .ui-textarea::placeholder {
-  color: #a0a0a0;
+  color: var(--color-text-tertiary);
   opacity: 1;
 }
 .ui-input:hover:not(:disabled),
@@ -438,9 +431,9 @@ fieldset.ui-chips {
   background: var(--bg-tertiary);
 }
 .ui-chip[aria-pressed="true"] {
-  background: rgba(var(--primary-rgb), 0.2);
+  background: var(--primary-bg-strong);
   border-color: var(--primary-color);
-  color: #fff;
+  color: var(--solid-text);
 }
 .ui-chip[aria-pressed="true"]::before {
   content: "";
@@ -457,7 +450,7 @@ fieldset.ui-chips {
 /* ---------- Badges ---------- */
 .ui-badge {
   --c: var(--text-secondary);
-  --bg: rgba(255, 255, 255, 0.06);
+  --bg: var(--subtle-bg);
   --bd: var(--ui-control-border);
   box-sizing: border-box;
   display: inline-flex;
@@ -482,23 +475,23 @@ fieldset.ui-chips {
 }
 .ui-badge--success {
   --c: var(--success-text);
-  --bg: rgba(76, 175, 80, 0.12);
-  --bd: rgba(76, 175, 80, 0.5);
+  --bg: var(--success-bg);
+  --bd: var(--success-border);
 }
 .ui-badge--warning {
   --c: var(--warning-text);
-  --bg: rgba(255, 193, 7, 0.1);
-  --bd: rgba(255, 193, 7, 0.5);
+  --bg: var(--warning-bg);
+  --bd: var(--warning-border);
 }
 .ui-badge--danger {
   --c: var(--danger-text);
-  --bg: rgba(244, 67, 54, 0.12);
-  --bd: rgba(244, 67, 54, 0.55);
+  --bg: var(--danger-bg);
+  --bd: var(--danger-border);
 }
 .ui-badge--info {
   --c: var(--primary-text);
-  --bg: rgba(var(--primary-rgb), 0.12);
-  --bd: rgba(var(--primary-rgb), 0.5);
+  --bg: var(--primary-bg);
+  --bd: var(--primary-border);
 }
 .ui-badge--small {
   min-height: 20px;
@@ -529,14 +522,14 @@ fieldset.ui-chips {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(var(--primary-rgb), 0.15);
+  background: var(--primary-bg-strong);
   color: var(--primary-text);
 }
 
 /* ---------- Feedback ---------- */
 .ui-skeleton {
   display: block;
-  background: linear-gradient(90deg, #2c2c2c 25%, #383838 50%, #2c2c2c 75%);
+  background: linear-gradient(90deg, var(--surface-color) 25%, var(--bg-tertiary) 50%, var(--surface-color) 75%);
   background-size: 200% 100%;
   animation: ui-shimmer 1.4s ease-in-out infinite;
 }

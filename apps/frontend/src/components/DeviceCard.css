@@ -146,7 +146,7 @@
   height: 76px;
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--solid-text);
 }
 .lc-key--primary:hover:not(:disabled) {
   background: var(--color-accent-hover);
@@ -194,8 +194,8 @@
   min-height: var(--touch-target-min);
   padding: 0 14px;
   border-radius: 999px;
-  border: 1px solid rgba(var(--primary-rgb), 0.5);
-  background: rgba(var(--primary-rgb), 0.12);
+  border: 1px solid var(--primary-border);
+  background: var(--primary-bg);
   color: var(--primary-text);
   font-size: var(--fs-md);
   font-weight: var(--font-weight-medium);

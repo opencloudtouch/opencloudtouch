@@ -77,7 +77,7 @@
 }
 .ds[data-armed] .ds-arrow--next,
 .ds[data-armed] .ds-arrow--prev {
-  background: rgba(var(--primary-rgb), 0.22);
+  background: var(--primary-bg-strong);
 }
 .ds[data-pull="next"]:not([data-armed]) .ds-arrow--prev,
 .ds[data-pull="prev"]:not([data-armed]) .ds-arrow--next {
@@ -118,7 +118,7 @@
   height: var(--ds-dot, 12px);
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: #8c8c8c;
+  background: var(--color-text-tertiary);
   pointer-events: none;
   transition:
     width var(--motion-base),
@@ -126,7 +126,7 @@
     background var(--motion-base);
 }
 .ds-dot:hover::before {
-  background: #fff;
+  background: var(--solid-text);
 }
 .ds-dot--active::before {
   width: calc(var(--ds-dot, 12px) * 2);

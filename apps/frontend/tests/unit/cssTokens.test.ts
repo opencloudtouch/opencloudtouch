@@ -26,7 +26,10 @@ describe("design tokens in component CSS", () => {
 
   it("the wizard banner is the same box as .wz-status and uses tokens (found by the colour and spacing measurement)", () => {
     const base = read("components/wizard/wizard-base.css");
-    const banner = base.slice(base.indexOf(".wizard-warning {"), base.indexOf(".wizard-warning-text"));
+    const banner = base.slice(
+      base.indexOf(".wizard-warning {"),
+      base.indexOf(".wizard-warning-text")
+    );
     expect(banner).toMatch(/padding: 14px var\(--space-md\)/);
     expect(banner).toMatch(/border-radius: var\(--border-radius-md\)/);
     expect(banner).toMatch(/color: var\(--warning-text\)/);
@@ -36,19 +39,25 @@ describe("design tokens in component CSS", () => {
   });
 
   it("vertical rhythm: Zones and the wizard use the same 24px gaps and title offset as the other pages", () => {
-    expect(read("pages/MultiRoom.css")).toMatch(/@media \(min-width: 769px\)[\s\S]*?\.mr \{[^}]*gap: var\(--space-lg\)/);
+    expect(read("pages/MultiRoom.css")).toMatch(
+      /@media \(min-width: 769px\)[\s\S]*?\.mr \{[^}]*gap: var\(--space-lg\)/
+    );
     expect(read("components/wizard/wizard-base.css")).toMatch(
       /@media \(min-width: 769px\)[\s\S]*?\.setup-wizard-page \{[^}]*padding-top: var\(--space-lg\)/
     );
   });
 
   it("every focused element gets the light-blue focus ring token, not the old #0066cc accent (found by the state measurement)", () => {
-    expect(read("index.css")).toMatch(/\*:focus-visible \{[^}]*outline: 2px solid var\(--focus-ring/);
+    expect(read("index.css")).toMatch(
+      /\*:focus-visible \{[^}]*outline: 2px solid var\(--focus-ring/
+    );
   });
 
   it("wizard inputs share the focus border and use the danger token for invalid values", () => {
     const base = read("components/wizard/wizard-base.css");
-    expect(base).toMatch(/\.hosts-input:focus,\s*\.ntp-input:focus \{[^}]*border-color: var\(--primary-color\)/);
+    expect(base).toMatch(
+      /\.hosts-input:focus,\s*\.ntp-input:focus \{[^}]*border-color: var\(--primary-color\)/
+    );
     expect(base).not.toMatch(/#f44336/i);
     expect(read("components/wizard/Step5ConfigModification.css")).not.toMatch(/#f44336/i);
   });
@@ -79,7 +88,9 @@ describe("font sizes come from the token scale", () => {
     };
     walk(root);
     const offenders = files
-      .filter((f) => /font-size:\s*(12|13|14|15|16|17|18|20|24|26)px/.test(readFileSync(f, "utf-8")))
+      .filter((f) =>
+        /font-size:\s*(12|13|14|15|16|17|18|20|24|26)px/.test(readFileSync(f, "utf-8"))
+      )
       .map((f) => relative(root, f));
     expect(offenders, "use var(--fs-xs|small|md|body|lg|h3|xl|h2|2xl|h1)").toEqual([]);
   });
@@ -87,16 +98,55 @@ describe("font sizes come from the token scale", () => {
 
 describe("every font-size token that is used is defined", () => {
   it("each var(--fs-*) in a stylesheet has a definition in ui-base.css", () => {
-    const defined = new Set([...read("ui-base.css").matchAll(/(--fs-[a-z0-9]+)\s*:\s*\d+px/g)].map((m) => m[1]));
+    const defined = new Set(
+      [...read("ui-base.css").matchAll(/(--fs-[a-z0-9]+)\s*:\s*\d+px/g)].map((m) => m[1])
+    );
     const used = new Set<string>();
     const walk = (dir: string) => {
       for (const name of readdirSync(dir)) {
         const full = join(dir, name);
         if (statSync(full).isDirectory()) walk(full);
-        else if (name.endsWith(".css")) for (const m of readFileSync(full, "utf-8").matchAll(/var\((--fs-[a-z0-9]+)/g)) used.add(m[1]);
+        else if (name.endsWith(".css"))
+          for (const m of readFileSync(full, "utf-8").matchAll(/var\((--fs-[a-z0-9]+)/g))
+            used.add(m[1]);
       }
     };
     walk(resolve(__dirname, "../../src"));
     expect([...used].filter((token) => !defined.has(token))).toEqual([]);
+  });
+});
+
+describe("colour palette", () => {
+  const cssFiles = (dir: string): string[] =>
+    readdirSync(dir).flatMap((name) => {
+      const path = join(dir, name);
+      return statSync(path).isDirectory() ? cssFiles(path) : path.endsWith(".css") ? [path] : [];
+    });
+
+  it("component CSS contains no literal colours; they live in palette.css (shadows excepted)", () => {
+    const src = resolve(__dirname, "../../src");
+    const offenders = cssFiles(src)
+      .filter((file) => !file.endsWith("palette.css"))
+      .flatMap((file) => {
+        const css = readFileSync(file, "utf-8").replace(/\/\*[\s\S]*?\*\//g, "");
+        return css
+          .split(/\r?\n/)
+          .filter((line) => !/shadow/.test(line))
+          .flatMap((line) => line.match(/#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)/g) ?? [])
+          .filter((value) => !value.startsWith("rgba(var("))
+          .map((value) => `${file.slice(src.length + 1)}: ${value}`);
+      });
+    expect(offenders).toEqual([]);
+  });
+
+  it("palette.css defines every role with a colour, text, tint and on-fill token in both themes", () => {
+    const css = read("palette.css");
+    const light = css.slice(css.indexOf('[data-theme="light"] {'));
+    for (const role of ["primary", "success", "warning", "danger"]) {
+      for (const suffix of ["color", "text", "on", "bg", "bg-strong", "border"]) {
+        expect(css).toContain(`--${role}-${suffix}:`);
+        expect(light).toContain(`--${role}-${suffix}:`);
+      }
+    }
   });
 });

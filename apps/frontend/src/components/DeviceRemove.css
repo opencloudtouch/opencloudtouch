@@ -17,10 +17,10 @@
 }
 .btn.dm-quiet:hover:not(:disabled) {
   color: var(--danger-text);
-  background: rgba(244, 67, 54, 0.12);
+  background: var(--danger-bg);
 }
 .btn.dm-quiet:active:not(:disabled) {
-  background: rgba(244, 67, 54, 0.2);
+  background: var(--danger-bg-strong);
 }
 /* confirm dialog: who is being removed */
 .dm-who {

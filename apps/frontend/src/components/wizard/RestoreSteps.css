@@ -25,8 +25,8 @@
   flex-direction: column;
   gap: 12px;
   padding: var(--space-md);
-  background: rgba(76, 175, 80, 0.08);
-  border: 1px solid rgba(76, 175, 80, 0.5);
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
   border-radius: var(--border-radius-md);
 }
 .backup-scan__result h3 {
@@ -61,12 +61,12 @@
   border-radius: var(--border-radius-sm);
 }
 .backup-scan__result li:has(.backup-scan__mismatch) {
-  border-color: rgba(255, 193, 7, 0.6);
+  border-color: var(--warning-border);
 }
 .backup-scan__result li strong {
   padding: 2px 8px;
   border-radius: 4px;
-  background: rgba(var(--primary-rgb), 0.18);
+  background: var(--primary-bg-strong);
   color: var(--primary-text);
   font-size: var(--fs-xs);
   letter-spacing: 0.06em;
@@ -89,7 +89,7 @@
   max-width: 100%;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: #ffd54f;
+  color: var(--warning-text);
   overflow-wrap: anywhere;
 }
 .backup-scan__mismatch--invalid {
@@ -167,7 +167,7 @@
   align-items: flex-start;
   padding: 16px var(--space-md);
   border-width: 2px;
-  background: rgba(244, 67, 54, 0.16);
+  background: var(--danger-bg-strong);
 }
 .restore-execution__failed .wz-status-title {
   font-size: var(--fs-h3);
@@ -252,7 +252,7 @@
   color: var(--color-text-secondary);
 }
 .restore-execution__step--failed {
-  background: rgba(244, 67, 54, 0.12);
+  background: var(--danger-bg);
   border-color: var(--danger-color);
   border-width: 2px;
   padding: 11px;
@@ -262,7 +262,7 @@
 }
 .restore-execution__step--in_progress {
   border-color: var(--primary-color);
-  background: rgba(var(--primary-rgb), 0.08);
+  background: var(--primary-bg);
 }
 .restore-execution__step--in_progress .restore-execution__icon {
   color: var(--primary-text);
@@ -361,8 +361,8 @@
   overflow-wrap: anywhere;
 }
 .restore-completion__section--restored {
-  background: rgba(76, 175, 80, 0.08);
-  border-color: rgba(76, 175, 80, 0.5);
+  background: var(--success-bg);
+  border-color: var(--success-border);
 }
 .restore-completion__section--restored h4 .wz-icon,
 .restore-completion__section--restored li > .wz-icon {
@@ -373,7 +373,7 @@
   color: var(--color-text-secondary);
 }
 .restore-completion__section--failed {
-  background: rgba(244, 67, 54, 0.12);
+  background: var(--danger-bg);
   border: 2px solid var(--danger-color);
   padding: 15px;
 }

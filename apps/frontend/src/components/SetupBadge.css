@@ -1,7 +1,7 @@
 /* sb-: setup badge button (44x44). Replaces SetupBadge.css (.setup-badge, .badge-*). */
 .sb {
   --c: var(--text-secondary);
-  --bg: rgba(255, 255, 255, 0.05);
+  --bg: var(--subtle-bg);
   --bd: var(--ui-control-border);
   box-sizing: border-box;
   width: var(--touch-target-min);
@@ -16,31 +16,31 @@
   transition: background var(--motion-base);
 }
 .sb:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--pressed-bg);
 }
 .sb-icon {
   display: flex;
 }
 .sb--configured {
   --c: var(--success-text);
-  --bg: rgba(76, 175, 80, 0.12);
-  --bd: rgba(76, 175, 80, 0.6);
+  --bg: var(--success-bg);
+  --bd: var(--success-border);
 }
 .sb--pending {
   --c: var(--primary-text);
-  --bg: rgba(var(--primary-rgb), 0.12);
-  --bd: rgba(var(--primary-rgb), 0.6);
+  --bg: var(--primary-bg);
+  --bd: var(--primary-border);
 }
 .sb--unconfigured,
 .sb--outdated {
   --c: var(--warning-text);
-  --bg: rgba(255, 193, 7, 0.1);
-  --bd: rgba(255, 193, 7, 0.6);
+  --bg: var(--warning-bg);
+  --bd: var(--warning-border);
 }
 .sb--failed {
   --c: var(--danger-text);
-  --bg: rgba(244, 67, 54, 0.12);
-  --bd: rgba(244, 67, 54, 0.65);
+  --bg: var(--danger-bg);
+  --bd: var(--danger-border);
 }
 @media (prefers-reduced-motion: reduce) {
   .sb {

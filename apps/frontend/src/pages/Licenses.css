@@ -62,7 +62,7 @@
   overflow-wrap: anywhere;
 }
 .lic-name:hover {
-  color: #fff;
+  color: var(--solid-text);
 }
 .lic-ext {
   display: flex;
@@ -109,7 +109,7 @@
   overflow-wrap: anywhere;
 }
 .lic-link:hover {
-  color: #fff;
+  color: var(--solid-text);
 }
 .lic-trademark .wz-status-body {
   gap: 8px;

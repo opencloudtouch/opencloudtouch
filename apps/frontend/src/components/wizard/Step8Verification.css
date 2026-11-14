@@ -11,8 +11,8 @@
 
 /* the step 7 banner is a recommendation, not a warning: blue instead of amber */
 .wizard-step:has(.verification) .wizard-warning {
-  background: rgba(var(--primary-rgb), 0.08); /* the info box of .wz-status */
-  border-color: rgba(var(--primary-rgb), 0.45);
+  background: var(--primary-bg); /* the info box of .wz-status */
+  border-color: var(--primary-border);
 }
 .wizard-step:has(.verification) .wizard-warning-icon {
   color: var(--primary-text);
@@ -61,18 +61,18 @@
 }
 .verify-phase--active {
   border-color: var(--primary-color);
-  background: rgba(var(--primary-rgb), 0.1);
+  background: var(--primary-bg);
   color: var(--color-text-primary);
 }
 .verify-phase--active .verify-phase-num {
   background: var(--color-accent);
   border-color: var(--primary-color);
-  color: #fff;
+  color: var(--solid-text);
 }
 .verify-phase--done .verify-phase-num {
-  background: #4caf50;
-  border-color: #4caf50;
-  color: var(--color-bg-darker);
+  background: var(--success-color);
+  border-color: var(--success-color);
+  color: var(--success-on);
 }
 .verify-phase--done {
   color: var(--success-text);
@@ -164,8 +164,8 @@
   flex-direction: column;
   gap: 12px;
   padding: var(--space-md);
-  background: rgba(255, 152, 0, 0.08);
-  border: 1px solid #ff9800;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-color);
   border-radius: var(--border-radius-md);
 }
 .reboot-header {
@@ -180,13 +180,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffb74d;
+  color: var(--warning-text);
 }
 .reboot-header strong {
   display: block;
   margin-bottom: 2px;
   font-size: var(--fs-lg);
-  color: #ffb74d;
+  color: var(--warning-text);
 }
 .reboot-hint {
   margin: 0;
@@ -205,7 +205,7 @@
   min-height: 64px;
   box-sizing: border-box;
   padding: 12px 14px;
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--inset-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-sm);
   font-size: var(--fs-body);
@@ -220,14 +220,14 @@
 .reboot-status--progress .spinner-small,
 .verify-status .spinner-small,
 .finalize-status .spinner-small {
-  border-color: rgba(var(--primary-rgb), 0.35);
+  border-color: var(--primary-border);
   border-top-color: var(--primary-color);
 }
 .reboot-status--waiting {
-  border-color: #ffd54f;
+  border-color: var(--warning-text);
 }
 .reboot-status--done {
-  border-color: #4caf50;
+  border-color: var(--success-color);
 }
 .reboot-status--done .wz-icon {
   color: var(--success-text);
@@ -245,7 +245,7 @@
   line-height: 1.2;
   font-weight: var(--font-weight-bold);
   font-variant-numeric: tabular-nums;
-  color: #ffd54f;
+  color: var(--warning-text);
   text-align: left;
 }
 .reboot-progress {
@@ -258,7 +258,7 @@
 .reboot-progress-bar {
   display: block;
   height: 100%;
-  background: #ffd54f;
+  background: var(--warning-text);
   transition: width 1s linear;
 }
 .reboot-retry {
@@ -285,8 +285,8 @@
   align-items: flex-start;
   gap: 12px;
   padding: var(--space-md);
-  background: rgba(var(--primary-rgb), 0.08);
-  border: 1px solid rgba(var(--primary-rgb), 0.45);
+  background: var(--primary-bg);
+  border: 1px solid var(--primary-border);
   border-radius: var(--border-radius-md);
 }
 .verification-info .info-icon {

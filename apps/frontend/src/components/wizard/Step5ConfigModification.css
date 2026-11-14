@@ -128,12 +128,12 @@
   border-radius: var(--border-radius-sm);
 }
 .config-change-from {
-  background: rgba(239, 83, 80, 0.12);
-  border: 1px solid #ef5350;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-color);
 }
 .config-change-to {
-  background: rgba(76, 175, 80, 0.12);
-  border: 1px solid #4caf50;
+  background: var(--success-bg);
+  border: 1px solid var(--success-color);
 }
 .config-change-label {
   display: block;

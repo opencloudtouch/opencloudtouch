@@ -66,7 +66,7 @@
 }
 .btn-primary {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--solid-text);
   border-color: var(--color-accent);
 }
 .btn-primary:hover:not(:disabled) {
@@ -87,7 +87,7 @@
   border-color: var(--primary-color);
 }
 .btn-outline:hover:not(:disabled) {
-  background: rgba(var(--primary-rgb), 0.12);
+  background: var(--primary-bg);
 }
 .btn-ghost {
   background: transparent;
@@ -109,8 +109,8 @@
   animation: spin 0.8s linear infinite;
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: #fff;
+  border: 2px solid var(--solid-text-muted);
+  border-top-color: var(--solid-text);
 }
 .spinner {
   width: 40px;
@@ -202,14 +202,14 @@
   background: var(--bg-tertiary);
 }
 .device-reboot-btn--sent {
-  border-color: #4caf50;
-  background: rgba(76, 175, 80, 0.12);
+  border-color: var(--success-color);
+  background: var(--success-bg);
   color: var(--success-text);
   cursor: default;
 }
 .device-reboot-btn--error {
-  border-color: var(--danger-color);
-  background: rgba(244, 67, 54, 0.12);
+  border-color: var(--danger-text);
+  background: var(--danger-bg);
   color: var(--danger-color);
 }
 @media (min-width: 601px) {
@@ -293,24 +293,24 @@
 }
 .progress-step.active .step-circle {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--solid-text);
   border-color: var(--primary-color);
   transform: scale(1.1);
 }
 .progress-step.in-progress .step-circle {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--solid-text);
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.35);
+  box-shadow: 0 0 0 4px var(--primary-border);
 }
 .progress-step.completed .step-circle {
-  background: #4caf50;
-  color: var(--color-bg-darker);
-  border-color: #4caf50;
+  background: var(--success-color);
+  color: var(--success-on);
+  border-color: var(--success-color);
 }
 .progress-step.error .step-circle {
   background: var(--danger-color);
-  color: var(--color-bg-darker);
+  color: var(--danger-on);
   border-color: var(--danger-color);
 }
 @media (max-width: 360px) {
@@ -338,7 +338,7 @@
      so every rendered connector is wanted, including the one before the last step */
   /* a connector is done (green) once the step before it is completed */
   .progress-step.completed + .progress-step .step-connector {
-    background: #4caf50;
+    background: var(--success-color);
   }
 }
 @media (min-width: 601px) {
@@ -403,7 +403,7 @@
   font-size: var(--fs-small);
   font-weight: var(--font-weight-bold);
   color: var(--primary-text);
-  background: rgba(var(--primary-rgb), 0.15);
+  background: var(--primary-bg-strong);
 }
 .wizard-step-title:focus {
   outline: none;
@@ -427,8 +427,8 @@
   gap: 12px;
   margin: 0;
   padding: 14px var(--space-md); /* same box as .wz-status */
-  background: rgba(255, 193, 7, 0.1);
-  border: 1px solid rgba(255, 193, 7, 0.5);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
   border-radius: var(--border-radius-md);
 }
 .wizard-warning-icon {
@@ -555,8 +555,8 @@
 }
 .wz-status {
   --c: var(--primary-color);
-  --bg: rgba(var(--primary-rgb), 0.08);
-  --bd: rgba(var(--primary-rgb), 0.45);
+  --bg: var(--primary-bg);
+  --bd: var(--primary-border);
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -569,18 +569,18 @@
 }
 .wz-status--success {
   --c: var(--success-text);
-  --bg: rgba(76, 175, 80, 0.1);
-  --bd: rgba(76, 175, 80, 0.5);
+  --bg: var(--success-bg);
+  --bd: var(--success-border);
 }
 .wz-status--warning {
   --c: var(--warning-text);
-  --bg: rgba(255, 193, 7, 0.1);
-  --bd: rgba(255, 193, 7, 0.5);
+  --bg: var(--warning-bg);
+  --bd: var(--warning-border);
 }
 .wz-status--error {
-  --c: var(--danger-color);
-  --bg: rgba(244, 67, 54, 0.1);
-  --bd: rgba(244, 67, 54, 0.55);
+  --c: var(--danger-text);
+  --bg: var(--danger-bg);
+  --bd: var(--danger-border);
 }
 .wz-icon {
   flex: none;
@@ -739,7 +739,7 @@
   width: 48px;
   height: 48px;
   border-radius: var(--border-radius-md);
-  background: rgba(var(--primary-rgb), 0.15);
+  background: var(--primary-bg-strong);
   color: var(--primary-text);
   display: flex;
   align-items: center;
@@ -767,11 +767,11 @@
 }
 .risk-card.selected {
   border-color: var(--primary-color);
-  background: rgba(var(--primary-rgb), 0.1);
+  background: var(--primary-bg);
 }
 .risk-card.selected.danger {
   border-color: var(--danger-color);
-  background: rgba(244, 67, 54, 0.08);
+  background: var(--danger-bg);
 }
 @media (min-width: 601px) {
   .wizard-choice__title {
@@ -979,8 +979,8 @@
   min-width: 0;
   padding: var(--space-md);
   border-radius: var(--border-radius-md);
-  background: rgba(76, 175, 80, 0.1);
-  border: 1px solid rgba(76, 175, 80, 0.5);
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
 }
 .wz-result > * {
   grid-column: 1 / -1;
@@ -1035,8 +1035,8 @@
   color: var(--text-primary);
 }
 .wz-result--warning {
-  background: rgba(255, 193, 7, 0.1);
-  border-color: rgba(255, 193, 7, 0.5);
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
 }
 .wz-result > .failed-icon {
   grid-column: 1;
@@ -1054,11 +1054,11 @@
 .progress-step.skipped .step-circle {
   background: transparent;
   color: var(--success-text);
-  border: 2px dashed #4caf50;
+  border: 2px dashed var(--success-color);
 }
 @media (min-width: 401px) {
   .progress-step.skipped + .progress-step .step-connector {
-    background: #4caf50;
+    background: var(--success-color);
   }
 }
 @media (min-width: 601px) {
@@ -1075,7 +1075,7 @@
   height: 24px;
   box-sizing: border-box;
   border-radius: 50%;
-  border: 3px solid rgba(var(--primary-rgb), 0.3);
+  border: 3px solid var(--primary-bg-strong);
   border-top-color: var(--primary-color);
   animation: spin 0.8s linear infinite;
 }

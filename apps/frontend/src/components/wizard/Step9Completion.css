@@ -24,7 +24,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(76, 175, 80, 0.15);
+  background: var(--success-bg-strong);
   color: var(--success-text);
   animation: wz-celebrate 0.6s ease-in-out;
 }
@@ -59,8 +59,8 @@
 
 .completion-summary {
   padding: var(--space-md);
-  background: rgba(76, 175, 80, 0.1);
-  border: 1px solid rgba(76, 175, 80, 0.5);
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
   border-radius: var(--border-radius-md);
 }
 .completion .summary-title {
@@ -111,12 +111,12 @@
   border: 1px solid;
 }
 .completion-backup-info--ok {
-  background: rgba(33, 150, 243, 0.1);
-  border-color: rgba(33, 150, 243, 0.5);
+  background: var(--primary-bg);
+  border-color: var(--primary-border);
 }
 .completion-backup-info--missing {
-  background: rgba(255, 193, 7, 0.1);
-  border-color: rgba(255, 193, 7, 0.5);
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
 }
 .completion-backup-info .backup-info-icon {
   flex: none;
@@ -127,7 +127,7 @@
   justify-content: center;
 }
 .completion-backup-info--ok .backup-info-icon {
-  color: #64b5f6;
+  color: var(--primary-text);
 }
 .completion-backup-info--missing .backup-info-icon {
   color: var(--warning-text);
@@ -203,7 +203,7 @@
   align-items: center;
   justify-content: center;
   background: var(--color-accent);
-  color: #fff;
+  color: var(--solid-text);
   font-weight: var(--font-weight-bold);
 }
 .completion .next-step-content {

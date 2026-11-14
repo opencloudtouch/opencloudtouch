@@ -14,7 +14,7 @@
   text-underline-offset: 3px;
 }
 .pg-back:hover {
-  color: #fff;
+  color: var(--solid-text);
 }
 .pg-back > span:first-child {
   display: flex;

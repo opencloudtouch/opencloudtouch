@@ -41,7 +41,7 @@
   padding: 0 var(--space-md);
   border-radius: var(--border-radius-sm);
   background: var(--color-accent);
-  color: #fff;
+  color: var(--solid-text);
   font-weight: var(--font-weight-medium);
 }
 .skip-link:focus {

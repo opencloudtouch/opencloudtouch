@@ -11,23 +11,23 @@
   max-width: 1200px;
   margin: 0 auto var(--space-xl);
   padding: var(--space-sm) var(--space-lg);
-  background-color: rgba(234, 179, 8, 0.08);
-  border: 1px solid rgba(234, 179, 8, 0.4);
+  background-color: var(--warning-bg);
+  border: 1px solid var(--warning-border);
   border-radius: var(--border-radius-lg);
   text-align: center;
   font-size: var(--fs-small);
-  color: #92400e; /* WCAG AA: dark amber — higher contrast than #fbbf24 */
+  color: var(--warning-text); /* WCAG AA: dark amber — higher contrast than #fbbf24 */
   font-weight: var(--font-weight-medium);
 }
 
 .global-demo-banner a {
-  color: #fcd34d;
+  color: var(--warning-text);
   text-decoration: underline;
   font-weight: var(--font-weight-bold);
 }
 
 .global-demo-banner a:hover {
-  color: #fde68a;
+  color: var(--warning-text);
 }
 
 /* Empty State */
@@ -75,7 +75,7 @@
 .inline-link-button {
   background: none;
   border: none;
-  color: var(--color-accent);
+  color: var(--primary-text);
   text-decoration: underline;
   cursor: pointer;
   padding: 0;

@@ -13,8 +13,8 @@
   gap: 12px;
   align-items: start;
   padding: var(--space-md);
-  background: rgba(var(--primary-rgb), 0.08);
-  border: 1px solid rgba(var(--primary-rgb), 0.45);
+  background: var(--primary-bg);
+  border: 1px solid var(--primary-border);
   border-radius: var(--border-radius-md);
 }
 .usb-icon {
@@ -139,7 +139,7 @@
   align-items: center;
   justify-content: center;
   background: var(--color-accent);
-  color: #fff;
+  color: var(--solid-text);
   font-size: var(--fs-lg);
   font-weight: var(--font-weight-bold);
 }
@@ -241,7 +241,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(var(--primary-rgb), 0.18);
+  background: var(--primary-bg-strong);
   color: var(--primary-text);
   font-size: var(--fs-small);
   font-weight: var(--font-weight-bold);
@@ -279,8 +279,8 @@
   cursor: pointer;
 }
 .usb-checklist-item:has(input:checked) {
-  background: rgba(76, 175, 80, 0.1);
-  border-color: #4caf50;
+  background: var(--success-bg);
+  border-color: var(--success-color);
 }
 .usb-checklist-item:has(input:focus-visible) {
   outline: 2px solid var(--color-accent);

@@ -35,7 +35,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(var(--primary-rgb), 0.15);
+  background: var(--primary-bg-strong);
   color: var(--primary-text);
   font-weight: var(--font-weight-bold);
 }
@@ -86,7 +86,7 @@
   width: 22px;
   height: 22px;
   border-width: 3px;
-  border-color: rgba(var(--primary-rgb), 0.3);
+  border-color: var(--primary-bg-strong);
   border-top-color: var(--primary-color);
 }
 .status-content {
@@ -151,7 +151,7 @@
 }
 .risk-card:hover {
   border-color: var(--primary-color);
-  background: rgba(var(--primary-rgb), 0.06);
+  background: var(--primary-bg);
 }
 .risk-card-icon {
   flex: none;
@@ -173,8 +173,8 @@
   color: var(--primary-text);
 }
 .risk-card--temporary.selected {
-  border-color: #4caf50;
-  background: rgba(76, 175, 80, 0.1);
+  border-color: var(--success-color);
+  background: var(--success-bg);
 }
 .risk-card--temporary.selected .risk-card-icon,
 .risk-card--temporary.selected .risk-card-check {
@@ -233,7 +233,7 @@
 }
 .ssh-manual-test-summary:hover {
   color: var(--color-text-primary);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--subtle-bg);
 }
 .power-cycle-ssh-hint {
   max-width: 100%;
@@ -283,7 +283,7 @@
   background: var(--bg-tertiary);
 }
 .ssh-client-tab.active {
-  background: rgba(var(--primary-rgb), 0.2);
+  background: var(--primary-bg-strong);
   border-color: var(--primary-color);
   color: var(--color-text-primary);
   font-weight: var(--font-weight-bold);
@@ -314,7 +314,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(var(--primary-rgb), 0.18);
+  background: var(--primary-bg-strong);
   color: var(--primary-text);
   font-size: var(--fs-small);
   font-weight: var(--font-weight-bold);

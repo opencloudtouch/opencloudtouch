@@ -57,7 +57,7 @@
   background: var(--bg-tertiary);
 }
 .si-bb[aria-pressed="true"] .si-bb-in {
-  background: rgba(var(--primary-rgb), 0.22);
+  background: var(--primary-bg-strong);
   border: 2px solid var(--primary-color);
   color: var(--color-text-primary);
 }
@@ -87,8 +87,8 @@
   margin: -2px;
   border-radius: 50%;
   border: 2px solid var(--color-bg-card);
-  background: #c62828;
-  color: #fff;
+  background: var(--danger-solid);
+  color: var(--solid-text);
 }
 @media (forced-colors: active) {
   .si-bb-x {

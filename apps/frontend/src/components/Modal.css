@@ -23,7 +23,7 @@ body.dlg-scroll-lock .app-main {
   display: none;
 }
 .dlg::backdrop {
-  background: rgba(0, 0, 0, 0.72);
+  background: var(--scrim);
 }
 .dlg-overlay {
   position: absolute;

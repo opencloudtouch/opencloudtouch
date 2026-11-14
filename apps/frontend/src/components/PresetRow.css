@@ -34,7 +34,7 @@
   background: var(--bg-tertiary);
 }
 .pr-main:active:not([aria-disabled="true"]) {
-  background: rgba(var(--primary-rgb), 0.3);
+  background: var(--primary-bg-strong);
 }
 .pr-main:focus-visible,
 .pr-edit:focus-visible {
@@ -72,7 +72,7 @@
   height: 100%;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--solid-text);
   font-size: var(--fs-md);
   font-weight: var(--font-weight-bold);
 }
@@ -116,7 +116,7 @@
 /* states (never colour alone: frame weight, icon and word) */
 .pr--playing {
   border: 2px solid var(--primary-color);
-  background: rgba(var(--primary-rgb), 0.22);
+  background: var(--primary-bg-strong);
 }
 .pr--playing .pr-state {
   color: var(--color-text-primary);
@@ -124,7 +124,7 @@
 }
 .pr--paused {
   border: 2px dashed var(--primary-color);
-  background: rgba(var(--primary-rgb), 0.1);
+  background: var(--primary-bg);
 }
 .pr--paused .pr-state {
   color: var(--color-text-primary);
