@@ -938,7 +938,7 @@
     "status": {
       "active": "有効",
       "creating": "作成中",
-      "degraded": "制限あり"
+      "degraded": "動作していません"
     },
     "imported": "インポート済み",
     "importedTitle": "OCT以外で作成",
