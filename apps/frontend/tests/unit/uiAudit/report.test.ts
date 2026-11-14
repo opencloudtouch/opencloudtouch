@@ -117,6 +117,14 @@ describe("screenshotName", () => {
     expect(screenshotName("/", "dark", 1280)).toBe("home__dark__1280.png");
     expect(screenshotName("/setup-wizard", "dark", 375)).toBe("setup-wizard__dark__375.png");
   });
+  it("turns state ids with query strings and separators into safe names", () => {
+    expect(screenshotName("/setup-wizard?step=3", "dark", 320)).toBe(
+      "setup-wizard-step-3__dark__320.png"
+    );
+    expect(screenshotName("/multiroom#create dialog: step 2", "light", 375)).toBe(
+      "multiroom-create-dialog-step-2__light__375.png"
+    );
+  });
 });
 
 describe("shouldScreenshot", () => {

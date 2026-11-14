@@ -123,7 +123,11 @@ export function formatConsole(groups: IssueGroup[], meta: ReportMeta): string {
 }
 
 export function screenshotName(page: string, theme: string, width: number): string {
-  const slug = page.replace(/^\/+/, "").replace(/\//g, "-") || "home";
+  const slug =
+    page
+      .replace(/^\/+/, "")
+      .replace(/[^A-Za-z0-9_]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "home";
   return `${slug}__${theme}__${width}.png`;
 }
 
