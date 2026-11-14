@@ -31,8 +31,11 @@ import { useNowPlaying } from "../hooks/useNowPlaying";
 import { useZones } from "../hooks/useZones";
 import { useLastPreset } from "../hooks/useLastPreset";
 import { usePrefetchDevices } from "../hooks/usePrefetchDevices";
+import { useStereoPairs } from "../hooks/useStereoPairs";
+import { StereoRoleBadge } from "../components/StereoPairCard";
 import { useToast } from "../contexts/ToastContext";
 import "../components/DeviceCard.css";
+import "../components/StereoPairCard.css";
 import "./Devices.css";
 import { pickDevice, setLastDeviceId } from "../utils/lastDevice";
 
@@ -42,6 +45,9 @@ interface DevicesProps {
 }
 
 const RADIO_SOURCES = new Set(["INTERNET_RADIO", "LOCAL_INTERNET_RADIO", "TUNEIN"]);
+// The RIGHT speaker of a stereo pair is controlled through the LEFT one. Set to false once the
+// non-master behaviour is verified on hardware: nothing else has to change.
+const STEREO_RIGHT_LOCK = true;
 const PRESET_NUMBERS = [1, 2, 3, 4, 5, 6];
 const SOURCE_LABEL_KEYS: Record<DeviceSource, string> = {
   presets: "device.src.presets",
@@ -122,8 +128,16 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
   const isZoneMember = deviceRole === "slave";
   const masterName = deviceZone?.members.find((m) => m.role === "master")?.name ?? "";
 
+  // Stereo pair: both speakers stay visible; the RIGHT one is not controlled directly.
+  const { pairs } = useStereoPairs();
+  const stereoRole = currentDevice?.stereo_role ?? null;
+  const stereoPair = pairs.find((p) => p.id === currentDevice?.stereo_pair_id) ?? null;
+  const partnerName = stereoPair?.members.find((p) => p.device_id !== deviceId)?.name ?? "";
+  const isStereoLocked = STEREO_RIGHT_LOCK && stereoRole === "RIGHT";
+  const leftName = stereoPair?.members.find((p) => p.role === "LEFT")?.name ?? partnerName;
+
   // The source and the presets cannot be changed in standby, as a zone member, or while a switch runs
-  const controlsLocked = isStandby || isZoneMember;
+  const controlsLocked = isStandby || isZoneMember || isStereoLocked;
 
   const sourceName = (id: DeviceSource) => t(SOURCE_LABEL_KEYS[id]);
 
@@ -417,7 +431,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
       switching={switching}
       failed={switchFailed}
       disabled={switchDisabled}
-      describedBy={isZoneMember ? "dv-slave-hint" : undefined}
+      describedBy={isZoneMember || isStereoLocked ? "dv-slave-hint" : undefined}
       onSelect={handleSelectSource}
     />
   );
@@ -498,6 +512,22 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
                 {isZoneMember && (
                   <p id="dv-slave-hint" className="dv-zone-hint">
                     {t("device.slaveHint", { master: masterName })}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {stereoRole && !deviceOffline && (
+              <div className="dv-zone-row sp-devrow">
+                <StereoRoleBadge role={stereoRole} />
+                {partnerName && (
+                  <span className="sp-partner">
+                    {t("stereo.partner", "Partner: {{name}}", { name: partnerName })}
+                  </span>
+                )}
+                {isStereoLocked && (
+                  <p id="dv-slave-hint" className="dv-zone-hint">
+                    {t("stereo.controlledVia", "Gesteuert über {{master}}", { master: leftName })}
                   </p>
                 )}
               </div>
@@ -643,7 +673,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
                               number={num}
                               preset={presets[num]}
                               state={presetState(num)}
-                              disabled={isZoneMember}
+                              disabled={isZoneMember || isStereoLocked}
                               onToggle={() => handlePresetToggle(num)}
                               onChange={() => handleAssignClick(num)}
                             />
