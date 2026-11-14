@@ -37,7 +37,7 @@
   min-width: 0;
 }
 .sp-card--degraded {
-  border-color: var(--color-warning);
+  border-color: var(--warning-color);
 }
 .sp-card-head {
   display: flex;

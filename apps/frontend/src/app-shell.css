@@ -69,7 +69,7 @@
   height: 64px;
   border-radius: var(--border-radius-lg);
   background: var(--bg-tertiary);
-  color: var(--color-danger);
+  color: var(--danger-color);
   display: flex;
   align-items: center;
   justify-content: center;

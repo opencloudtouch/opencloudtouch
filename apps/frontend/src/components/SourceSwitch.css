@@ -71,7 +71,7 @@
 
 /* failed switch: the key of the source gets a red frame and a small cross; the message is a toast (nothing on the card changes) */
 .si-bb--fail .si-bb-in {
-  border: 2px solid var(--color-danger);
+  border: 2px solid var(--danger-color);
   color: var(--color-text-primary);
 }
 .si-bb-x {

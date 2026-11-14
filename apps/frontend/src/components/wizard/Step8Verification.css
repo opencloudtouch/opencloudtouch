@@ -233,10 +233,10 @@
   color: var(--success-text);
 }
 .reboot-status--error {
-  border-color: var(--color-danger);
+  border-color: var(--danger-color);
 }
 .reboot-status--error .wz-icon {
-  color: var(--color-danger);
+  color: var(--danger-color);
 }
 .reboot-countdown {
   flex: none;
@@ -363,5 +363,5 @@
   text-wrap: balance;
 }
 .verification-skip-btn:hover:not(:disabled) {
-  border-color: var(--color-danger);
+  border-color: var(--danger-color);
 }

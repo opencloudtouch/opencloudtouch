@@ -93,7 +93,7 @@
   justify-self: start;
   padding: 3px 8px;
   border-radius: 4px;
-  background: var(--color-warning);
+  background: var(--warning-color);
   color: #1a1a1a;
   font-size: var(--fs-xs);
   font-weight: var(--font-weight-bold);

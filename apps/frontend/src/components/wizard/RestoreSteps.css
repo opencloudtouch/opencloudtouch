@@ -96,7 +96,7 @@
   color: var(--danger-text);
 }
 .backup-scan__result li:has(.backup-scan__mismatch--invalid) {
-  border-color: var(--color-danger);
+  border-color: var(--danger-color);
 }
 .backup-scan__mismatch .wz-icon {
   width: 18px;
@@ -253,12 +253,12 @@
 }
 .restore-execution__step--failed {
   background: rgba(244, 67, 54, 0.12);
-  border-color: var(--color-danger);
+  border-color: var(--danger-color);
   border-width: 2px;
   padding: 11px;
 }
 .restore-execution__step--failed .restore-execution__icon {
-  color: var(--color-danger);
+  color: var(--danger-color);
 }
 .restore-execution__step--in_progress {
   border-color: var(--primary-color);
@@ -374,12 +374,12 @@
 }
 .restore-completion__section--failed {
   background: rgba(244, 67, 54, 0.12);
-  border: 2px solid var(--color-danger);
+  border: 2px solid var(--danger-color);
   padding: 15px;
 }
 .restore-completion__section--failed h4 .wz-icon,
 .restore-completion__section--failed li > .wz-icon {
-  color: var(--color-danger);
+  color: var(--danger-color);
 }
 .restore-completion__note {
   margin: 0;

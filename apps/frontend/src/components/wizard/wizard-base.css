@@ -208,9 +208,9 @@
   cursor: default;
 }
 .device-reboot-btn--error {
-  border-color: var(--color-danger);
+  border-color: var(--danger-color);
   background: rgba(244, 67, 54, 0.12);
-  color: var(--color-danger);
+  color: var(--danger-color);
 }
 @media (min-width: 601px) {
   .device-reboot-btn {
@@ -309,9 +309,9 @@
   border-color: #4caf50;
 }
 .progress-step.error .step-circle {
-  background: var(--color-danger);
+  background: var(--danger-color);
   color: var(--color-bg-darker);
-  border-color: var(--color-danger);
+  border-color: var(--danger-color);
 }
 @media (max-width: 360px) {
   /* 8 circles of 28px (+ the active one scaled) do not fit into ~223px of a 320px screen */
@@ -578,7 +578,7 @@
   --bd: rgba(255, 193, 7, 0.5);
 }
 .wz-status--error {
-  --c: var(--color-danger);
+  --c: var(--danger-color);
   --bg: rgba(244, 67, 54, 0.1);
   --bd: rgba(244, 67, 54, 0.55);
 }
@@ -627,7 +627,7 @@
   color: var(--success-text);
 }
 .verify-check-item.failed .wz-icon {
-  color: var(--color-danger);
+  color: var(--danger-color);
 }
 .verify-group-title {
   margin-top: 6px;
@@ -770,7 +770,7 @@
   background: rgba(var(--primary-rgb), 0.1);
 }
 .risk-card.selected.danger {
-  border-color: var(--color-danger);
+  border-color: var(--danger-color);
   background: rgba(244, 67, 54, 0.08);
 }
 @media (min-width: 601px) {
@@ -816,7 +816,7 @@
 }
 .hosts-input[aria-invalid="true"],
 .ntp-input[aria-invalid="true"] {
-  border-color: var(--color-danger);
+  border-color: var(--danger-color);
 }
 .wz-hint {
   font-size: var(--fs-small);
@@ -928,7 +928,7 @@
   line-height: 1;
 }
 .error-icon {
-  color: var(--color-danger);
+  color: var(--danger-color);
 }
 .warning-icon {
   color: var(--warning-text);

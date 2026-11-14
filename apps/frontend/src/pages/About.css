@@ -98,7 +98,7 @@
 .ab-heart {
   display: inline-flex;
   vertical-align: -3px;
-  color: var(--color-danger);
+  color: var(--danger-color);
 }
 .ab-thanks {
   margin: 0;

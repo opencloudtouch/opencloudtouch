@@ -48,7 +48,7 @@
   border-color: var(--primary-color);
 }
 .config-input[aria-invalid="true"] {
-  border-color: var(--color-danger);
+  border-color: var(--danger-color);
 }
 .config-hint {
   font-size: var(--fs-small);
@@ -155,7 +155,7 @@
   overflow-wrap: anywhere;
 }
 .config-change-from code {
-  color: var(--color-danger);
+  color: var(--danger-color);
 }
 .config-change-to code {
   color: var(--success-text);

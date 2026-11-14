@@ -46,9 +46,9 @@ Colours are chosen by **role**, never by shade. Components use the tokens below 
 
 | Role | Used for | Fill, border, icon | Text |
 |---|---|---|---|
-| Success | active, saved, completed | `--color-success` | `--success-text` |
-| Warning | needs attention, interrupted, partly working | `--color-warning` | `--warning-text` |
-| Danger | errors, destructive actions | `--color-danger` | `--danger-text` |
+| Success | active, saved, completed | `--success-color` | `--success-text` |
+| Warning | needs attention, interrupted, partly working | `--warning-color` | `--warning-text` |
+| Danger | errors, destructive actions | `--danger-color` | `--danger-text` |
 | Action / information | selection, links, focus | `--primary-color` | `--primary-text` |
 
 A state is still never shown by colour alone (rule 2).

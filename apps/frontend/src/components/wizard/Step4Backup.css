@@ -74,7 +74,7 @@
 .backup-error .error-content strong {
   font-size: var(--fs-xl);
   line-height: 1.3;
-  color: var(--color-danger);
+  color: var(--danger-color);
 }
 .backup-error .error-content p {
   font-size: var(--fs-body);
@@ -85,7 +85,7 @@
   align-items: flex-start;
   padding: 12px var(--space-md);
   background: rgba(255, 193, 7, 0.12);
-  border: 1px solid var(--color-warning);
+  border: 1px solid var(--warning-color);
   border-radius: var(--border-radius-sm);
   font-size: var(--fs-body);
   font-weight: var(--font-weight-medium);
@@ -104,12 +104,12 @@
 /* Next is not blocked, but it must not look like the safe default after a failed backup */
 .wizard-step:has(.backup-error) .wizard-btn-next {
   background: transparent;
-  color: var(--color-danger);
-  border-color: var(--color-danger);
+  color: var(--danger-color);
+  border-color: var(--danger-color);
 }
 .wizard-step:has(.backup-error) .wizard-btn-next:hover:not(:disabled) {
   background: rgba(244, 67, 54, 0.12);
-  border-color: var(--color-danger);
+  border-color: var(--danger-color);
 }
 
 /* success */
