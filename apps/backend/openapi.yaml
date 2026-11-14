@@ -4134,6 +4134,33 @@ components:
         uuid_source:
           type: string
           title: Uuid Source
+        stereo_capable:
+          type: boolean
+          title: Stereo Capable
+          default: false
+        oct_provisioned:
+          type: boolean
+          title: Oct Provisioned
+          default: false
+        stereo_ineligible_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stereo Ineligible Reason
+        stereo_pair_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Stereo Pair Id
+        stereo_role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stereo Role
+        stereo_master:
+          type: boolean
+          title: Stereo Master
+          default: false
       type: object
       required:
       - id

@@ -3196,6 +3196,27 @@ export interface components {
       marge_account_uuid: string | null;
       /** Uuid Source */
       uuid_source: string;
+      /**
+       * Stereo Capable
+       * @default false
+       */
+      stereo_capable: boolean;
+      /**
+       * Oct Provisioned
+       * @default false
+       */
+      oct_provisioned: boolean;
+      /** Stereo Ineligible Reason */
+      stereo_ineligible_reason?: string | null;
+      /** Stereo Pair Id */
+      stereo_pair_id?: number | null;
+      /** Stereo Role */
+      stereo_role?: string | null;
+      /**
+       * Stereo Master
+       * @default false
+       */
+      stereo_master: boolean;
     };
     /**
      * DiagnosticsRequest

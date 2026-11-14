@@ -207,6 +207,7 @@ async def _init_services(
         device_repo=device_repo,
         zone_repo=zone_repo,
         client_factory=get_device_client,
+        stereo_pair_repo=repos["stereo_pair_repo"],
     )
     logger.info("ZoneService initialized")
 

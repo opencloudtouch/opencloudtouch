@@ -4,9 +4,15 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING, Callable
 
-from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
+from opencloudtouch.core.error_codes import STEREO_PAIR_DEVICE_IN_PAIR
+from opencloudtouch.core.exceptions import (
+    CodedApiError,
+    DeviceConnectionError,
+    DeviceNotFoundError,
+)
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
+from opencloudtouch.stereo_pairs.repository import StereoPairRepository
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
 from opencloudtouch.zones.repository import ZoneNotFoundError, ZoneRepository
 
@@ -27,9 +33,11 @@ class ZoneService:
         device_repo: DeviceRepository,
         zone_repo: ZoneRepository,
         client_factory: DeviceClientFactory | None = None,
+        stereo_pair_repo: StereoPairRepository | None = None,
     ) -> None:
         self.device_repo = device_repo
         self.zone_repo = zone_repo
+        self._stereo_pair_repo = stereo_pair_repo
         self._client_factory = client_factory
 
     def _get_client(self, ip: str) -> "DeviceClient":
@@ -44,6 +52,19 @@ class ZoneService:
         return self._client_factory(
             f"http://{ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
         )
+
+    async def _reject_paired(self, device_ids: list[str]) -> None:
+        """A speaker in a stereo pair cannot be part of a zone."""
+        if self._stereo_pair_repo is None:
+            return
+        for device_id in device_ids:
+            if await self._stereo_pair_repo.get_by_device(device_id) is not None:
+                raise CodedApiError(
+                    409,
+                    STEREO_PAIR_DEVICE_IN_PAIR,
+                    f"Device {device_id} is part of a stereo pair",
+                    params={"device_id": device_id},
+                )
 
     async def _get_device_or_raise(self, device_id: str):
         """Get device from repo or raise DeviceNotFoundError."""
@@ -134,6 +155,7 @@ class ZoneService:
     async def create_zone(self, master_id: str, slave_ids: list[str]) -> ZoneStatus:
         """Create a new multi-room zone."""
         logger.info("Creating zone: master=%s, slaves=%s", master_id, slave_ids)
+        await self._reject_paired([master_id, *slave_ids])
         master = await self._get_device_or_raise(master_id)
         slaves = []
         for sid in slave_ids:
@@ -174,6 +196,7 @@ class ZoneService:
 
     async def add_members(self, master_id: str, slave_ids: list[str]) -> None:
         """Add members to an existing zone."""
+        await self._reject_paired([master_id, *slave_ids])
         master = await self._get_device_or_raise(master_id)
         slaves = []
         for sid in slave_ids:
