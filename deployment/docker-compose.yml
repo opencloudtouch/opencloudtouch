@@ -10,6 +10,8 @@ services:
     volumes:
       - oct-data:/data
       - oct-logs:/logs
+      # Opt in to self-update by uncommenting this security-sensitive mount:
+      # - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - OCT_HOST=0.0.0.0
       - OCT_PORT=7777
