@@ -11,6 +11,7 @@ from opencloudtouch.core.dependencies import (
     get_marge_service,
     get_stereo_pair_service,
 )
+from opencloudtouch.core.logging import clip_for_log
 from opencloudtouch.core.source_types import BASE_SOURCES
 from opencloudtouch.marge.service import MargeService
 from opencloudtouch.stereo_pairs.repository import DeviceAlreadyPairedError
@@ -413,6 +414,16 @@ async def set_marge_account() -> Response:
 StereoPairServiceDep = Annotated[StereoPairService, Depends(get_stereo_pair_service)]
 
 
+def _log_group_call(request: Request, status_code: int, body: bytes = b"") -> None:
+    logger.info(
+        "[MARGE/GROUP] %s %s -> %d request=%s",
+        request.method,
+        request.url.path,
+        status_code,
+        clip_for_log(body.decode("utf-8", errors="replace")),
+    )
+
+
 def _group_response(body: bytes, status_code: int = 200) -> Response:
     return Response(
         content=body, media_type=_MEDIA_STREAMING_XML, status_code=status_code
@@ -429,15 +440,18 @@ async def create_device_group(
     account_id: str, request: Request, stereo: StereoPairServiceDep
 ) -> Response:
     """Create a speaker group (stereo pair); idempotent for the same composition."""
+    body = await request.body()
     try:
-        group_request = parse_group_request(await request.body())
-        pair = await stereo.marge_create(group_request)
+        pair = await stereo.marge_create(parse_group_request(body))
     except DeviceAlreadyPairedError as exc:
         logger.warning("[MARGE/GROUP] Cannot create group: %s", exc)
+        _log_group_call(request, 400, body)
         return _group_error(MARGE_ERROR_DEVICE_IN_GROUP, str(exc))
     except InvalidGroupError as exc:
         logger.warning("[MARGE/GROUP] Invalid group request: %s", exc)
+        _log_group_call(request, 400, body)
         return _group_error(MARGE_ERROR_INVALID_REQUEST, str(exc))
+    _log_group_call(request, 201, body)
     return _group_response(build_group_xml(pair), 201)
 
 
@@ -446,13 +460,15 @@ async def create_device_group(
     "/streaming/account/{account_id}/device/{device_id}/group", include_in_schema=False
 )
 async def get_device_group(
-    account_id: str, device_id: str, stereo: StereoPairServiceDep
+    account_id: str, device_id: str, request: Request, stereo: StereoPairServiceDep
 ) -> Response:
     """Return the group of a device, or an empty <group/> if it is not in one."""
     try:
         pair = await stereo.get_for_device(device_id)
     except UnknownDeviceError:
+        _log_group_call(request, 400)
         return _group_error(MARGE_ERROR_UNKNOWN_DEVICE, "Device does not exist")
+    _log_group_call(request, 200)
     if pair is None:
         return _group_response(EMPTY_GROUP_XML)
     return _group_response(build_group_xml(pair))
@@ -463,20 +479,24 @@ async def update_device_group(
     account_id: str, group_id: int, request: Request, stereo: StereoPairServiceDep
 ) -> Response:
     """Rename a group (the only field a speaker updates)."""
+    body = await request.body()
     try:
-        name = parse_group_request(await request.body()).name
-        pair = await stereo.marge_rename(group_id, name)
+        pair = await stereo.marge_rename(group_id, parse_group_request(body).name)
     except InvalidGroupError as exc:
+        _log_group_call(request, 400, body)
         return _group_error(MARGE_ERROR_INVALID_REQUEST, str(exc))
     if pair is None:
+        _log_group_call(request, 400, body)
         return _group_error(MARGE_ERROR_UNKNOWN_DEVICE, "Group does not exist")
+    _log_group_call(request, 200, body)
     return _group_response(build_group_xml(pair))
 
 
 @router.delete("/streaming/account/{account_id}/group/{group_id}")
 async def delete_device_group(
-    account_id: str, group_id: int, stereo: StereoPairServiceDep
+    account_id: str, group_id: int, request: Request, stereo: StereoPairServiceDep
 ) -> Response:
     """Dissolve a group. Idempotent: an unknown id is also a success."""
     await stereo.marge_dissolve(group_id)
+    _log_group_call(request, 200)
     return _group_response(EMPTY_GROUP_XML)

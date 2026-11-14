@@ -14,6 +14,8 @@ import httpx
 from defusedxml.ElementTree import ParseError
 from defusedxml.ElementTree import fromstring as parse_xml_string
 
+from opencloudtouch.core.logging import clip_for_log
+
 logger = logging.getLogger(__name__)
 
 SOUNDTOUCH_HTTP_PORT = 8090
@@ -106,6 +108,9 @@ class HttpGroupClient:
         content: str | None = None,
         timeout: float = READ_TIMEOUT,
     ) -> ET.Element:
+        logger.debug(
+            "[SPEAKER] -> %s %s %s %s", method, self.ip, path, clip_for_log(content)
+        )
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.request(
@@ -117,9 +122,17 @@ class HttpGroupClient:
                     ),
                 )
         except (httpx.TimeoutException, httpx.TransportError) as exc:
+            logger.debug("[SPEAKER] !! %s %s %s", self.ip, path, type(exc).__name__)
             raise GroupClientError(
                 f"{path} on {self.ip}: {type(exc).__name__}", uncertain=True
             ) from exc
+        logger.debug(
+            "[SPEAKER] <- %s %s %s %s",
+            response.status_code,
+            self.ip,
+            path,
+            clip_for_log(response.text),
+        )
         try:
             root = parse_xml_string(response.content)
         except (ParseError, ValueError) as exc:
