@@ -938,7 +938,7 @@
     "status": {
       "active": "Aktivt",
       "creating": "Skapas",
-      "degraded": "Begränsat"
+      "degraded": "Fungerar inte"
     },
     "imported": "Importerat",
     "importedTitle": "Skapat utanför OCT",

@@ -938,7 +938,7 @@
     "status": {
       "active": "Actief",
       "creating": "Wordt gemaakt",
-      "degraded": "Beperkt"
+      "degraded": "Werkt niet"
     },
     "imported": "Geïmporteerd",
     "importedTitle": "Buiten OCT gemaakt",
