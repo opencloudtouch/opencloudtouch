@@ -29,6 +29,10 @@ The update helper currently requires the Docker socket at
 `/var/run/docker.sock` on the host. Rootless Docker and installations using a
 different host-side socket path are not currently supported.
 
+Self-update errors may expose technical details through the API response and
+persisted update status. Access to the API should therefore be limited to
+trusted networks.
+
 The existing `/data` mount is preserved during container replacement and
 rollback. Do not delete Docker volumes while diagnosing an update problem.
 Active states older than 30 minutes are treated as stale automatically. A
