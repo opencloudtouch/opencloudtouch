@@ -464,6 +464,16 @@ export const Icon = {
         <line x1="14" x2="14" y1="11" y2="17" />
       </>
     ),
+  ArrowLeftRight: (s = 18) =>
+    svg(
+      s,
+      <>
+        <path d="M8 3 4 7l4 4" />
+        <path d="M4 7h16" />
+        <path d="m16 21 4-4-4-4" />
+        <path d="M20 17H4" />
+      </>
+    ),
   Plus: (s = 18) =>
     svg(
       s,

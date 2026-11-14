@@ -52,7 +52,13 @@ vi.mock("../../src/api/devices", async (importOriginal) => {
 // Mock device hooks
 const mockSetDeviceVolume = vi.fn();
 const mockToggleMute = vi.fn();
-let mockVolumeState = { volume: 45, muted: false, loading: false, setDeviceVolume: mockSetDeviceVolume, toggleMute: mockToggleMute };
+let mockVolumeState = {
+  volume: 45,
+  muted: false,
+  loading: false,
+  setDeviceVolume: mockSetDeviceVolume,
+  toggleMute: mockToggleMute,
+};
 vi.mock("../../src/hooks/useVolume", () => ({
   useVolume: () => mockVolumeState,
 }));
@@ -75,7 +81,13 @@ import type { ReactNode } from "react";
 
 // Mock child components
 vi.mock("../../src/components/DeviceSwiper", () => ({
-  default: ({ children, onIndexChange }: { children: ReactNode; onIndexChange: (index: number) => void }) => (
+  default: ({
+    children,
+    onIndexChange,
+  }: {
+    children: ReactNode;
+    onIndexChange: (index: number) => void;
+  }) => (
     <div data-testid="device-swiper">
       <button onClick={() => onIndexChange(0)}>Device 1</button>
       <button onClick={() => onIndexChange(1)}>Device 2</button>
@@ -104,12 +116,24 @@ vi.mock("../../src/components/NowPlaying", () => ({
 
 vi.mock("../../src/components/DeviceNameEditor", () => ({
   default: ({ name }: { name: string }) => (
-    <h2 className="device-name" data-test="device-name">{name}</h2>
+    <h2 className="device-name" data-test="device-name">
+      {name}
+    </h2>
   ),
 }));
 
 vi.mock("../../src/components/VolumeSlider", () => ({
-  default: ({ volume, onVolumeChange, muted, onMuteToggle }: { volume: number; onVolumeChange: (v: number) => void; muted: boolean; onMuteToggle: () => void }) => (
+  default: ({
+    volume,
+    onVolumeChange,
+    muted,
+    onMuteToggle,
+  }: {
+    volume: number;
+    onVolumeChange: (v: number) => void;
+    muted: boolean;
+    onMuteToggle: () => void;
+  }) => (
     <div data-testid="volume-slider">
       <input
         type="range"
@@ -125,7 +149,19 @@ vi.mock("../../src/components/VolumeSlider", () => ({
 }));
 
 vi.mock("../../src/components/PresetRow", () => ({
-  default: ({ number, preset, state, onToggle, onChange }: { number: number; preset: { station_name: string } | null; state: string; onToggle: () => void; onChange: () => void }) => (
+  default: ({
+    number,
+    preset,
+    state,
+    onToggle,
+    onChange,
+  }: {
+    number: number;
+    preset: { station_name: string } | null;
+    state: string;
+    onToggle: () => void;
+    onChange: () => void;
+  }) => (
     <div data-testid={`preset-${number}`}>
       <span>Preset {number}</span>
       {preset ? (
@@ -152,8 +188,41 @@ vi.mock("../../src/hooks/useZones", () => ({
   useZones: () => ({ zones: mockZones, isLoading: false, error: null }),
 }));
 
+let mockStereoPairs: unknown[] = [];
+vi.mock("../../src/hooks/useStereoPairs", () => ({
+  useStereoPairs: () => ({
+    pairs: mockStereoPairs,
+    isLoading: false,
+    error: null,
+    reload: vi.fn(),
+    busyId: null,
+    renamePair: vi.fn(),
+    dissolvePair: vi.fn(),
+    repairPair: vi.fn(),
+  }),
+}));
+
 vi.mock("../../src/components/RadioSearch", () => ({
-  default: ({ isOpen, onClose, onStationSelect, onDelete, hasExistingPreset }: { isOpen: boolean; onClose: () => void; onStationSelect: (station: { stationuuid: string; name: string; country: string; url: string; homepage: string; favicon: string }) => void; onDelete?: () => void; hasExistingPreset?: boolean }) => {
+  default: ({
+    isOpen,
+    onClose,
+    onStationSelect,
+    onDelete,
+    hasExistingPreset,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    onStationSelect: (station: {
+      stationuuid: string;
+      name: string;
+      country: string;
+      url: string;
+      homepage: string;
+      favicon: string;
+    }) => void;
+    onDelete?: () => void;
+    hasExistingPreset?: boolean;
+  }) => {
     if (!isOpen) return null;
     return (
       <div data-testid="radio-search-modal">
@@ -213,10 +282,17 @@ describe("Devices Page", () => {
     vi.clearAllMocks();
     mockNowPlayingState = null;
     mockZones = [];
+    mockStereoPairs = [];
     window.localStorage.clear();
 
     // Reset volume hook mock state
-    mockVolumeState = { volume: 45, muted: false, loading: false, setDeviceVolume: mockSetDeviceVolume, toggleMute: mockToggleMute };
+    mockVolumeState = {
+      volume: 45,
+      muted: false,
+      loading: false,
+      setDeviceVolume: mockSetDeviceVolume,
+      toggleMute: mockToggleMute,
+    };
 
     // Setup default API mocks
     vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([]);
@@ -819,7 +895,9 @@ describe("Devices Page", () => {
 
       // Should display error message
       await waitFor(() => {
-        expect(screen.getByTestId("error-message")).toHaveTextContent("Presets could not be loaded. Please try again.");
+        expect(screen.getByTestId("error-message")).toHaveTextContent(
+          "Presets could not be loaded. Please try again."
+        );
       });
     });
 
@@ -857,7 +935,9 @@ describe("Devices Page", () => {
 
       // Should display error
       await waitFor(() => {
-        expect(screen.getByTestId("error-message")).toHaveTextContent("Preset could not be saved. Please try again.");
+        expect(screen.getByTestId("error-message")).toHaveTextContent(
+          "Preset could not be saved. Please try again."
+        );
       });
     });
 
@@ -891,7 +971,9 @@ describe("Devices Page", () => {
 
       // Should display user-friendly error
       await waitFor(() => {
-        expect(screen.getByTestId("error-message")).toHaveTextContent("Preset could not be saved. Please try again.");
+        expect(screen.getByTestId("error-message")).toHaveTextContent(
+          "Preset could not be saved. Please try again."
+        );
       });
     });
   });
@@ -1041,8 +1123,26 @@ describe("Devices Page", () => {
 
   describe("Source switch, keys and preset toggle", () => {
     const presetRows = [
-      { id: 1, device_id: "AABBCC123456", preset_number: 1, station_uuid: "u1", station_name: "SWR3", station_url: "http://a", created_at: "2024-01-01T00:00:00Z", updated_at: "2024-01-01T00:00:00Z" },
-      { id: 2, device_id: "AABBCC123456", preset_number: 2, station_uuid: "u2", station_name: "NDR 2", station_url: "http://b", created_at: "2024-01-01T00:00:00Z", updated_at: "2024-01-01T00:00:00Z" },
+      {
+        id: 1,
+        device_id: "AABBCC123456",
+        preset_number: 1,
+        station_uuid: "u1",
+        station_name: "SWR3",
+        station_url: "http://a",
+        created_at: "2024-01-01T00:00:00Z",
+        updated_at: "2024-01-01T00:00:00Z",
+      },
+      {
+        id: 2,
+        device_id: "AABBCC123456",
+        preset_number: 2,
+        station_uuid: "u2",
+        station_name: "NDR 2",
+        station_url: "http://b",
+        created_at: "2024-01-01T00:00:00Z",
+        updated_at: "2024-01-01T00:00:00Z",
+      },
     ];
     const playing = (source: string, extra: Record<string, unknown> = {}) => ({
       source,
@@ -1059,8 +1159,14 @@ describe("Devices Page", () => {
       mockNowPlayingState = playing("BLUETOOTH", { station_name: "iPhone" });
       await renderDevices();
 
-      expect(screen.getByRole("button", { name: "Bluetooth" })).toHaveAttribute("aria-pressed", "true");
-      expect(screen.getByRole("button", { name: "Presets" })).toHaveAttribute("aria-pressed", "false");
+      expect(screen.getByRole("button", { name: "Bluetooth" })).toHaveAttribute(
+        "aria-pressed",
+        "true"
+      );
+      expect(screen.getByRole("button", { name: "Presets" })).toHaveAttribute(
+        "aria-pressed",
+        "false"
+      );
     });
 
     it("switches to AUX through the backend and refreshes now playing", async () => {
@@ -1081,7 +1187,10 @@ describe("Devices Page", () => {
       mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
       let finish: () => void = () => {};
       vi.mocked(devicesApi.selectSource).mockImplementationOnce(
-        () => new Promise<void>((resolve) => { finish = resolve; })
+        () =>
+          new Promise<void>((resolve) => {
+            finish = resolve;
+          })
       );
       await renderDevices();
 
@@ -1089,7 +1198,10 @@ describe("Devices Page", () => {
         fireEvent.click(screen.getByRole("button", { name: "Bluetooth" }));
       });
       expect(screen.getByTestId("np-label")).toHaveTextContent("Switching to Bluetooth…");
-      expect(screen.getByRole("button", { name: "Bluetooth" })).toHaveAttribute("aria-busy", "true");
+      expect(screen.getByRole("button", { name: "Bluetooth" })).toHaveAttribute(
+        "aria-busy",
+        "true"
+      );
 
       await act(async () => {
         finish();
@@ -1108,7 +1220,10 @@ describe("Devices Page", () => {
 
       const marked = await screen.findByRole("button", { name: "AUX, not reachable. Try again" });
       expect(marked).toHaveClass("si-bb--fail");
-      expect(screen.getByRole("button", { name: "Presets" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { name: "Presets" })).toHaveAttribute(
+        "aria-pressed",
+        "true"
+      );
       expect(mockShowToast).toHaveBeenCalledWith(
         "AUX not reachable",
         "error",
@@ -1215,7 +1330,9 @@ describe("Devices Page", () => {
       vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
       mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
       await renderDevices();
-      await waitFor(() => expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "playing"));
+      await waitFor(() =>
+        expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "playing")
+      );
 
       await act(async () => {
         fireEvent.click(screen.getByTestId("preset-1-play"));
@@ -1227,9 +1344,15 @@ describe("Devices Page", () => {
 
     it("resumes a paused preset", async () => {
       vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
-      mockNowPlayingState = { source: "INTERNET_RADIO", state: "PAUSE_STATE", station_name: "SWR3" };
+      mockNowPlayingState = {
+        source: "INTERNET_RADIO",
+        state: "PAUSE_STATE",
+        station_name: "SWR3",
+      };
       await renderDevices();
-      await waitFor(() => expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "paused"));
+      await waitFor(() =>
+        expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "paused")
+      );
 
       await act(async () => {
         fireEvent.click(screen.getByTestId("preset-1-play"));
@@ -1331,11 +1454,68 @@ describe("Devices Page", () => {
       expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
     });
 
+    it("the right speaker of a stereo pair is controlled through the left one", async () => {
+      mockStereoPairs = [
+        {
+          id: 7,
+          name: "Office",
+          status: "active",
+          source: "oct",
+          members: [
+            { device_id: "LEFT1", name: "Büro links", role: "LEFT", reachable: true },
+            { device_id: "AABBCC123456", name: "Living Room", role: "RIGHT", reachable: true },
+          ],
+          warnings: [],
+        },
+      ];
+      const right = { ...mockDevices[0], stereo_role: "RIGHT", stereo_pair_id: 7 };
+      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
+      await act(async () => {
+        render(<Devices devices={[right, mockDevices[1]]} />);
+      });
+
+      expect(document.querySelector('[data-test="device-stereo"]')).toHaveTextContent("Right");
+      expect(screen.getByText("Partner: Büro links")).toBeInTheDocument();
+      expect(document.getElementById("dv-slave-hint")).toHaveTextContent(
+        "Controlled via Büro links"
+      );
+      expect(screen.getByRole("button", { name: "AUX" })).toHaveAttribute("aria-disabled", "true");
+      expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
+    });
+
+    it("the left speaker of a stereo pair keeps its controls", async () => {
+      mockStereoPairs = [
+        {
+          id: 7,
+          name: "Office",
+          status: "active",
+          source: "oct",
+          members: [
+            { device_id: "AABBCC123456", name: "Living Room", role: "LEFT", reachable: true },
+            { device_id: "R1", name: "Büro rechts", role: "RIGHT", reachable: true },
+          ],
+          warnings: [],
+        },
+      ];
+      const left = { ...mockDevices[0], stereo_role: "LEFT", stereo_pair_id: 7 };
+      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
+      await act(async () => {
+        render(<Devices devices={[left, mockDevices[1]]} />);
+      });
+
+      expect(document.querySelector('[data-test="device-stereo"]')).toHaveTextContent("Left");
+      expect(document.getElementById("dv-slave-hint")).toBeNull();
+      expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled();
+    });
+
     it("drops the result of a switch that finishes after the user moved to another device", async () => {
       mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
       let fail: (err: Error) => void = () => {};
       vi.mocked(devicesApi.selectSource).mockImplementationOnce(
-        () => new Promise<void>((_, reject) => { fail = reject; })
+        () =>
+          new Promise<void>((_, reject) => {
+            fail = reject;
+          })
       );
       await renderDevices();
 

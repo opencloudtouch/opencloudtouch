@@ -3,6 +3,7 @@
  * Centralized API calls for device management
  */
 
+import type { DeviceStereoInfo } from "./stereoPairs";
 import { getErrorMessage, throwIfNotOk } from "./types";
 import { SetupStatus } from "./setup";
 
@@ -23,7 +24,7 @@ interface DeviceAPIResponse {
 }
 
 // Frontend Device interface (matches DeviceSwiper.tsx)
-export interface Device {
+export interface Device extends Partial<DeviceStereoInfo> {
   device_id: string;
   name: string;
   model?: string;
