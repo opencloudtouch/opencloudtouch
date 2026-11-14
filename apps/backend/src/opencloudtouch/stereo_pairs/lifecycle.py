@@ -16,6 +16,7 @@ from opencloudtouch.core import error_codes as codes
 from opencloudtouch.core.exceptions import CodedApiError
 from opencloudtouch.devices.repository import Device, DeviceRepository
 from opencloudtouch.stereo_pairs.group_client import (
+    GROUP_ALREADY_EXISTS,
     GroupClient,
     GroupClientError,
     GroupState,
@@ -256,7 +257,9 @@ class StereoPairLifecycle:
             )
             return
         except GroupClientError as exc:
-            if not exc.uncertain:
+            # the master may already have handed the group to the slave (5510):
+            # then re-reading the group below confirms it
+            if not exc.uncertain and exc.code != GROUP_ALREADY_EXISTS:
                 raise stereo_error(
                     502,
                     codes.STEREO_PAIR_MARGE_FAILED,

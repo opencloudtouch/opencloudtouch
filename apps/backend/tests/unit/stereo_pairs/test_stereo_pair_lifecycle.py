@@ -181,6 +181,29 @@ class TestCreate:
         assert await repo.list_active() == []
         assert await repo.get_by_device("L1") is None
 
+    async def test_slave_already_in_the_group_counts_as_created(
+        self, lifecycle, network
+    ):
+        # seen on hardware: the master hands the group to the slave itself, so
+        # the explicit slave call is answered with 5510 GROUP_ALREADY_EXISTS_ERROR
+        speaker = network.speakers[R_IP]
+        speaker.add_group_errors = [
+            GroupClientError("exists", code="GROUP_ALREADY_EXISTS_ERROR")
+        ]
+        speaker.apply_before_error = True
+
+        assert (await _create(lifecycle)).status == "active"
+
+    async def test_already_exists_without_the_group_still_fails(
+        self, lifecycle, network
+    ):
+        network.speakers[R_IP].add_group_errors = [
+            GroupClientError("exists", code="GROUP_ALREADY_EXISTS_ERROR")
+        ]
+
+        with pytest.raises(CodedApiError):
+            await _create(lifecycle)
+
     async def test_uncertain_timeout_is_resolved_by_rereading_the_group(
         self, lifecycle, network
     ):
