@@ -81,7 +81,11 @@ async def get_stereo_pair_operation(operation_id: str, lifecycle: StereoLifecycl
     return OperationOut(
         state=operation.state,
         steps=[OperationStep(key=k, state=operation.steps[k]) for k in STEP_KEYS],
-        pair=await lifecycle.describe(operation.pair) if operation.pair else None,
+        pair=(
+            StereoPairOut.model_validate(await lifecycle.describe(operation.pair))
+            if operation.pair
+            else None
+        ),
         warnings=operation.warnings,
         error=(
             OperationError(
