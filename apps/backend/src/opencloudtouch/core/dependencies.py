@@ -21,7 +21,9 @@ from opencloudtouch.recents.service import RecentsService
 from opencloudtouch.settings.repository import SettingsRepository
 from opencloudtouch.settings.service import SettingsService
 from opencloudtouch.stereo_pairs.lifecycle import StereoPairLifecycle
+from opencloudtouch.stereo_pairs.repository import StereoPairRepository
 from opencloudtouch.stereo_pairs.service import StereoPairService
+from opencloudtouch.zones.repository import ZoneRepository
 from opencloudtouch.zones.service import ZoneService
 
 if TYPE_CHECKING:
@@ -105,6 +107,16 @@ def get_marge_service(request: Request) -> MargeService:
 def get_stereo_pair_service(request: Request) -> StereoPairService:
     """Get stereo pair service instance from app.state (FastAPI dependency)."""
     return request.app.state.stereo_pair_service
+
+
+def get_stereo_pair_repo(request: Request) -> StereoPairRepository | None:
+    """Stereo pair repository, or None when the app runs without it."""
+    return getattr(request.app.state, "stereo_pair_repo", None)
+
+
+def get_zone_repo(request: Request) -> ZoneRepository | None:
+    """Zone repository, or None when the app runs without it."""
+    return getattr(request.app.state, "zone_repo", None)
 
 
 def get_stereo_lifecycle(request: Request) -> StereoPairLifecycle:

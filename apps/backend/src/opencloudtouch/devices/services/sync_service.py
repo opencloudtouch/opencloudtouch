@@ -352,6 +352,7 @@ class DeviceSyncService:
                 detected = DeviceCapabilities(
                     device_id=info.device_id,
                     device_type=info.type,
+                    has_lr_stereo="SoundTouch 10" in (info.type or ""),
                 )
             else:
                 detected = await get_capabilities_for_ip(device_ip)

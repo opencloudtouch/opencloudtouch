@@ -12,6 +12,8 @@ from pydantic import BaseModel, StrictInt
 
 from opencloudtouch.core.config import AppConfig, get_config
 from opencloudtouch.core.dependencies import (
+    get_stereo_pair_repo,
+    get_zone_repo,
     get_device_service,
     get_device_state_manager,
     get_preset_service,
@@ -29,6 +31,9 @@ from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.service import PresetService
 from opencloudtouch.streaming.icy_metadata import IcyMetadata, probe_stream
 from opencloudtouch.streaming.metadata_cache import MISSING, MetadataCache, _Missing
+from opencloudtouch.stereo_pairs.device_info import load_stereo_context, stereo_fields
+from opencloudtouch.stereo_pairs.repository import StereoPairRepository
+from opencloudtouch.zones.repository import ZoneRepository
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +93,12 @@ class DeviceResponse(BaseModel):
     setup_completed_at: str | None
     marge_account_uuid: str | None
     uuid_source: str
+    stereo_capable: bool = False
+    oct_provisioned: bool = False
+    stereo_ineligible_reason: str | None = None
+    stereo_pair_id: int | None = None
+    stereo_role: str | None = None
+    stereo_master: bool = False
 
 
 class DeviceListResponse(BaseModel):
@@ -98,7 +109,11 @@ class DeviceListResponse(BaseModel):
 
 
 @router.get("", response_model=DeviceListResponse)
-async def get_devices(device_service: DeviceService = Depends(get_device_service)):
+async def get_devices(
+    device_service: DeviceService = Depends(get_device_service),
+    stereo_repo: StereoPairRepository | None = Depends(get_stereo_pair_repo),
+    zone_repo: ZoneRepository | None = Depends(get_zone_repo),
+):
     """
     Get all devices from database.
 
@@ -106,10 +121,17 @@ async def get_devices(device_service: DeviceService = Depends(get_device_service
         List of devices with details
     """
     devices = await device_service.get_all_devices()
+    try:
+        pairs, zone_ids = await load_stereo_context(stereo_repo, zone_repo)
+    except Exception:  # noqa: BLE001 - stereo fields are optional extras
+        logger.warning("Stereo pair info unavailable for device list", exc_info=True)
+        pairs, zone_ids = {}, set()
 
     return {
         "count": len(devices),
-        "devices": [d.to_dict() for d in devices],
+        "devices": [
+            {**d.to_dict(), **stereo_fields(d, pairs, zone_ids)} for d in devices
+        ],
     }
 
 
