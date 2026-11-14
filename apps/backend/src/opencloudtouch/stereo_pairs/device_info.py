@@ -46,8 +46,12 @@ def stereo_fields(
     checked by the create preflight.
     """
     features = ((device.capabilities or {}).get("features")) or {}
-    capable = SUPPORTED_MODEL in (device.model or "") and bool(
-        features.get("lr_stereo")
+    # Devices stored before the capability was detected have no "lr_stereo" value (None):
+    # the model decides, and the create preflight checks the speaker live. Only an
+    # explicit False excludes a device.
+    capable = (
+        SUPPORTED_MODEL in (device.model or "")
+        and features.get("lr_stereo") is not False
     )
     provisioned = bool(device.marge_account_uuid)
     pair = pairs.get(device.device_id)

@@ -46,14 +46,24 @@ class TestStereoFields:
     def test_reasons_from_stored_data(self, device, reason):
         assert stereo_fields(device, {}, set())["stereo_ineligible_reason"] == reason
 
-    def test_missing_capabilities_means_not_capable(self):
-        device = _device()
-        device.capabilities = None
+    def test_legacy_device_without_stored_capability_is_judged_by_model(self):
+        """Devices synced before lr_stereo was detected must not all look incapable."""
+        legacy = _device()
+        legacy.capabilities = None
+        no_flag = _device()
+        no_flag.capabilities = {"features": {"bass_control": True}}
+        other_model = _device(model="SoundTouch 20")
+        other_model.capabilities = None
 
+        assert stereo_fields(legacy, {}, set())["stereo_capable"] is True
+        assert stereo_fields(no_flag, {}, set())["stereo_capable"] is True
         assert (
-            stereo_fields(device, {}, set())["stereo_ineligible_reason"]
+            stereo_fields(other_model, {}, set())["stereo_ineligible_reason"]
             == "not_capable"
         )
+
+    def test_explicit_false_still_excludes_a_device(self):
+        assert stereo_fields(_device(lr=False), {}, set())["stereo_capable"] is False
 
     def test_in_zone(self):
         fields = stereo_fields(_device(), {}, {"L1"})
