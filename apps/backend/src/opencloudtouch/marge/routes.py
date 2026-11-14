@@ -1,9 +1,12 @@
 """Marge (streaming.bose.com) account sync routes."""
 
 import logging
+from datetime import datetime
 from typing import Annotated, Any
 from xml.etree import ElementTree as ET
 
+from defusedxml.ElementTree import ParseError
+from defusedxml.ElementTree import fromstring as parse_xml_string
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
 
@@ -14,6 +17,7 @@ from opencloudtouch.core.dependencies import (
 from opencloudtouch.core.logging import clip_for_log
 from opencloudtouch.core.source_types import BASE_SOURCES
 from opencloudtouch.marge.service import MargeService
+from opencloudtouch.recents.models import RecentPlay
 from opencloudtouch.stereo_pairs.repository import DeviceAlreadyPairedError
 from opencloudtouch.stereo_pairs.service import StereoPairService, UnknownDeviceError
 from opencloudtouch.stereo_pairs.xml import (
@@ -33,8 +37,10 @@ from opencloudtouch.marge.xml_builder import (
     build_full_account_xml,
     build_streaming_account_xml,
     build_presets_xml,
+    build_recent_response_xml,
     build_recents_xml,
     build_sources_xml,
+    source_name_for_id,
 )
 
 logger = logging.getLogger(__name__)
@@ -45,7 +51,9 @@ _MEDIA_XML = "application/xml"
 _MEDIA_STREAMING_XML = "application/vnd.bose.streaming-v1.2+xml"
 
 
-def _xml_response(element: ET.Element, media_type: str = _MEDIA_XML) -> Response:
+def _xml_response(
+    element: ET.Element, media_type: str = _MEDIA_XML, status_code: int = 200
+) -> Response:
     """Serialize an ElementTree element to a FastAPI XML Response.
 
     Args:
@@ -56,7 +64,7 @@ def _xml_response(element: ET.Element, media_type: str = _MEDIA_XML) -> Response
         FastAPI Response with UTF-8 encoded XML content
     """
     content = ET.tostring(element, encoding="utf-8", xml_declaration=True)
-    return Response(content=content, media_type=media_type)
+    return Response(content=content, media_type=media_type, status_code=status_code)
 
 
 @router.get("/v1/systems/devices/{device_id}")
@@ -432,6 +440,50 @@ def _group_error(code: str, message: str) -> Response:
     return _group_response(build_error_xml(code, message), 400)
 
 
+@router.post(
+    "/streaming/account/{account_id}/device/{device_id}/recent", include_in_schema=False
+)
+async def add_device_recent(
+    account_id: str,
+    device_id: str,
+    request: Request,
+    marge: Annotated[MargeService, Depends(get_marge_service)],
+) -> Response:
+    """Store what the speaker just played; answers 201 with the stored recent."""
+    body = await request.body()
+    logger.info(
+        "[MARGE/RECENT] POST %s request=%s",
+        request.url.path,
+        clip_for_log(body.decode("utf-8", errors="replace")),
+    )
+    try:
+        root = parse_xml_string(body)
+    except (ParseError, ValueError):
+        return Response(status_code=400)
+    if root.tag != "recent" or not (root.findtext("location") or "").strip():
+        return Response(status_code=400)
+    source_id = (root.findtext("sourceid") or "").strip()
+    played_at = None
+    raw_time = (root.findtext("lastplayedat") or "").strip()
+    if raw_time:
+        try:
+            played_at = datetime.fromisoformat(raw_time.replace("Z", "+00:00"))
+        except ValueError:
+            played_at = None  # shortcut: unparsable time falls back to "now"
+    stored = await marge.add_recent(
+        RecentPlay(
+            device_id=device_id,
+            source=source_name_for_id(source_id) or source_id,
+            location=(root.findtext("location") or "").strip(),
+            name=(root.findtext("name") or "").strip(),
+            played_at=played_at,
+        )
+    )
+    return _xml_response(
+        build_recent_response_xml(stored), _MEDIA_STREAMING_XML, status_code=201
+    )
+
+
 @router.post("/streaming/account/{account_id}/group/")
 @router.post("/streaming/account/{account_id}/group", include_in_schema=False)
 async def create_device_group(
@@ -450,7 +502,12 @@ async def create_device_group(
         _log_group_call(request, 400, body)
         return _group_error(MARGE_ERROR_INVALID_REQUEST, str(exc))
     _log_group_call(request, 201, body)
-    return _group_response(build_group_xml(pair), 201)
+    response = _group_response(build_group_xml(pair), 201)
+    # same form as the reference Marge server (it omits the /streaming prefix)
+    response.headers["Location"] = (
+        f"{str(request.base_url).rstrip('/')}/account/{account_id}/group/{pair.id}"
+    )
+    return response
 
 
 @router.get("/streaming/account/{account_id}/device/{device_id}/group/")

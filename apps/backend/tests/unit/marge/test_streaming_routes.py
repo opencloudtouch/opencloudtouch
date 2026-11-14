@@ -1,5 +1,6 @@
 """Tests for marge streaming-specific and auxiliary routes."""
 
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 from xml.etree import ElementTree
 
@@ -184,6 +185,8 @@ class TestStreamingFullAccount:
         mock_recent.source = "TUNEIN"
         mock_recent.location = "/v1/playback/station/s33828"
         mock_recent.name = "WDR 2"
+        mock_recent.id = 42
+        mock_recent.played_at = datetime(2026, 3, 29, 21, 33, tzinfo=UTC)
 
         mock_marge = AsyncMock(spec=MargeService)
         mock_marge.resolve_device_id_for_account = AsyncMock(return_value="AABB")
@@ -191,7 +194,11 @@ class TestStreamingFullAccount:
 
         result = await streaming_full_account("3784726", mock_marge)
         root = ElementTree.fromstring(result.body.decode())
-        assert len(root.findall("./devices/device/recents/recent")) == 1
+        recents = root.findall("./devices/device/recents/recent")
+        assert len(recents) == 1
+        assert recents[0].get("id") == "42"
+        assert recents[0].findtext("lastplayedat") == "2026-03-29T21:33:00.000+00:00"
+        assert recents[0].findtext("sourceid") == "25"
 
 
 class TestScmudcReporting:
@@ -275,3 +282,62 @@ class TestSetMargeAccount:
     async def test_returns_status_xml(self):
         result = await set_marge_account()
         assert b"/setMargeAccount" in result.body
+
+
+class TestAddRecent:
+    """The speaker reports what it played via POST .../device/{id}/recent."""
+
+    BODY = (
+        "<recent><contentItemType>stationurl</contentItemType>"
+        "<lastplayedat>2026-03-29T21:33:00+00:00</lastplayedat>"
+        "<location>/v1/playback/station/s166521</location><name>SMOOTH JAZZ</name>"
+        "<sourceid>25</sourceid></recent>"
+    )
+    URL = "/streaming/account/123/device/AABB/recent"
+
+    @pytest.fixture
+    def marge(self):
+        from opencloudtouch.core.dependencies import get_marge_service
+        from opencloudtouch.main import app
+
+        service = AsyncMock(spec=MargeService)
+        service.add_recent = AsyncMock(side_effect=lambda recent: _with_id(recent))
+        app.dependency_overrides[get_marge_service] = lambda: service
+        yield service
+        app.dependency_overrides.pop(get_marge_service, None)
+
+    def test_stores_recent_and_answers_201(self, marge):
+        from fastapi.testclient import TestClient
+
+        from opencloudtouch.main import app
+
+        response = TestClient(app).post(self.URL, content=self.BODY)
+
+        assert response.status_code == 201
+        stored = marge.add_recent.await_args.args[0]
+        assert (stored.device_id, stored.source, stored.name) == (
+            "AABB",
+            "TUNEIN",
+            "SMOOTH JAZZ",
+        )
+        assert stored.location == "/v1/playback/station/s166521"
+        root = ElementTree.fromstring(response.text)
+        assert root.tag == "recent"
+        assert root.get("id") == "7"
+        assert root.findtext("sourceid") == "25"
+
+    @pytest.mark.parametrize(
+        "body", ["not xml", "<other/>", "<recent><name>x</name></recent>"]
+    )
+    def test_rejects_unusable_body(self, marge, body):
+        from fastapi.testclient import TestClient
+
+        from opencloudtouch.main import app
+
+        assert TestClient(app).post(self.URL, content=body).status_code == 400
+        marge.add_recent.assert_not_awaited()
+
+
+def _with_id(recent):
+    recent.id = 7
+    return recent

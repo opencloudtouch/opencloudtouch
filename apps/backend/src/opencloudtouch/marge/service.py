@@ -92,6 +92,10 @@ class MargeService:
         """Get presets for a device."""
         return await self._preset_repo.get_all_presets(device_id)
 
+    async def add_recent(self, recent: RecentPlay) -> RecentPlay:
+        """Store a recent the speaker reported (upserts by location)."""
+        return await self._recents_repo.add_recent(recent)
+
     async def get_recents(self, device_id: str) -> list[RecentPlay]:
         """Get recently played items for a device."""
         return await self._recents_repo.get_recents(device_id)

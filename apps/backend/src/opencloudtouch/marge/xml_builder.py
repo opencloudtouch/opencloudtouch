@@ -3,6 +3,7 @@
 import base64
 import json
 import logging
+from datetime import UTC
 from typing import Any
 from xml.etree import ElementTree as ET
 
@@ -222,6 +223,35 @@ def _sources_by_name() -> dict[str, Any]:
     return {src.source_type: src for src in BASE_SOURCES}
 
 
+def source_name_for_id(streaming_id: str) -> str | None:
+    """Source type for the Marge source id a speaker reports (e.g. "25" -> TUNEIN)."""
+    for src in BASE_SOURCES:
+        if src.streaming_id == streaming_id:
+            return src.source_type
+    return None
+
+
+def _format_time(moment: Any) -> str:
+    return moment.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%S.000+00:00")
+
+
+def build_recent_response_xml(recent: Any) -> ET.Element:
+    """Answer of ``POST .../device/{id}/recent``: the stored recent as a flat ``<recent>``."""
+    now = _format_time(recent.played_at)
+    element = ET.Element("recent", {"id": str(recent.id or 0)})
+    ET.SubElement(element, "contentItemType").text = "stationurl"
+    ET.SubElement(element, "createdOn").text = now
+    ET.SubElement(element, "lastplayedat").text = now
+    ET.SubElement(element, "location").text = recent.location
+    ET.SubElement(element, "name").text = recent.name
+    src = _sources_by_name().get(recent.source)
+    if src is not None:
+        _source_element(element, src)
+    ET.SubElement(element, "sourceid").text = src.streaming_id if src else ""
+    ET.SubElement(element, "updatedOn").text = now
+    return element
+
+
 def _item_children(parent: ET.Element, item: ET.Element, now: str) -> None:
     """Fill the shared preset/recent children from a ``<ContentItem>`` element."""
     content = item.find("ContentItem")
@@ -265,11 +295,12 @@ def build_streaming_account_xml(
             )
             _item_children(entry, element, now)
         recent_list = ET.SubElement(device, "recents")
-        for recent in build_recents_xml(recents):
-            entry = ET.SubElement(recent_list, "recent", {"id": "0"})
+        for stored, recent in zip(recents or [], build_recents_xml(recents)):
+            entry = ET.SubElement(recent_list, "recent", {"id": str(stored.id or 0)})
             _item_children(entry, recent, now)
-            ET.SubElement(entry, "lastplayedat").text = now
-            ET.SubElement(entry, "sourceid").text = ""
+            ET.SubElement(entry, "lastplayedat").text = _format_time(stored.played_at)
+            src = _sources_by_name().get(stored.source)
+            ET.SubElement(entry, "sourceid").text = src.streaming_id if src else ""
         ET.SubElement(device, "updatedOn").text = now
     ET.SubElement(account, "mode").text = "global"
     ET.SubElement(account, "preferredLanguage").text = "en"
