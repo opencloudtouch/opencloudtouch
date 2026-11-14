@@ -8,6 +8,14 @@ from defusedxml.ElementTree import fromstring as parse_xml_string
 
 from opencloudtouch.stereo_pairs.repository import StereoPair
 
+# TODO: verify these status codes against a capture of a real SoundTouch speaker
+# talking to Marge. 4041 and 4012 are taken from the Ueberboese reference
+# implementation (not confirmed to be the original Bose codes); 4000 was chosen
+# by us. Hardware verification is planned (see the stereo pair spec, section 9).
+MARGE_ERROR_DEVICE_IN_GROUP = "4041"
+MARGE_ERROR_UNKNOWN_DEVICE = "4012"
+MARGE_ERROR_INVALID_REQUEST = "4000"
+
 EMPTY_GROUP_XML = b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><group/>'
 
 
