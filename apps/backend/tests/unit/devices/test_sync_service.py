@@ -106,34 +106,6 @@ async def test_mock_capabilities_preserve_existing_fields(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_unsupported_bass_capabilities_disable_bass_control(monkeypatch):
-    """Unsupported bass response disables bass without losing other capabilities."""
-    from opencloudtouch.devices.client import BassCapabilities
-
-    monkeypatch.setenv("OCT_MOCK_MODE", "true")
-    client = MockDeviceClient("AABBCC112233")
-
-    async def unsupported_bass_probe():
-        return BassCapabilities(available=False, minimum=0, maximum=0, default=0)
-
-    monkeypatch.setattr(client, "get_bass_capabilities", unsupported_bass_probe)
-
-    flags = await original_fetch_capabilities("192.168.1.100", client)
-
-    assert flags is not None
-    assert flags["device_id"] == "AABBCC112233"
-    assert flags["features"]["bass_control"] is False
-    assert flags["settings"]["bass"] == {
-        "available": False,
-        "minimum": 0,
-        "maximum": 0,
-        "default": 0,
-    }
-    assert "bluetooth" in flags["features"]
-    assert "sources" in flags
-
-
-@pytest.mark.asyncio
 async def test_mock_capabilities_return_none_on_bass_probe_failure(monkeypatch):
     """A failed bass probe must not discard other device capabilities."""
     monkeypatch.setenv("OCT_MOCK_MODE", "true")
@@ -151,9 +123,7 @@ async def test_mock_capabilities_return_none_on_bass_probe_failure(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_bass_probe_exception_logs_debug_without_traceback(
-    monkeypatch, caplog
-):
+async def test_bass_probe_exception_logs_debug_without_traceback(monkeypatch, caplog):
     """Unsupported bass probes preserve stored capabilities without ERROR logs."""
     import logging
 

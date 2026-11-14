@@ -434,8 +434,13 @@ class BoseDeviceClientAdapter(DeviceClient):
         except Exception as e:
             raise DeviceConnectionError(self.ip, str(e)) from e
 
-        # A successful HTTP response without usable bass metadata indicates
-        # that this device does not expose bass control.
+        # An empty successful response is the known unsupported-device case.
+        if not response.content.strip():
+            logger.debug(
+                "Bass control unsupported on %s: empty response", self.base_url
+            )
+            return BassCapabilities(available=False, minimum=0, maximum=0, default=0)
+
         try:
             root = ElementTree.fromstring(response.text)
             if root.tag != "bassCapabilities":
@@ -446,7 +451,9 @@ class BoseDeviceClientAdapter(DeviceClient):
                 raise ValueError("Missing bassAvailable")
             available = available_text.strip().lower()
             if available == "false":
-                logger.debug("Bass control unsupported on %s", self.base_url)
+                logger.debug(
+                    "Bass control unsupported on %s: bassAvailable=false", self.base_url
+                )
                 return BassCapabilities(
                     available=False, minimum=0, maximum=0, default=0
                 )
@@ -461,12 +468,13 @@ class BoseDeviceClientAdapter(DeviceClient):
             return BassCapabilities(
                 available=True, minimum=minimum, maximum=maximum, default=default
             )
-        except (ValueError, TypeError, ElementTree.ParseError):
+        except (ValueError, TypeError, ElementTree.ParseError) as e:
             logger.debug(
-                "No usable bass capabilities from %s; treating as unsupported",
+                "Invalid bass capabilities from %s; preserving stored capabilities: %s",
                 self.base_url,
+                e,
             )
-            return BassCapabilities(available=False, minimum=0, maximum=0, default=0)
+            raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def set_bass(self, level: int) -> None:
         """Set bass level on the device."""
