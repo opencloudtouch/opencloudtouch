@@ -8,7 +8,7 @@ import { getErrorMessage, throwIfNotOk } from "./types";
 import { SetupStatus } from "./setup";
 
 // Backend API response structure (matches Device.to_dict() from repository.py)
-interface DeviceAPIResponse {
+interface DeviceAPIResponse extends Partial<Omit<DeviceStereoInfo, "firmware">> {
   id?: number;
   device_id: string;
   ip: string; // Backend uses 'ip', not 'ip_address'
@@ -61,6 +61,12 @@ function mapDeviceFromAPI(apiDevice: DeviceAPIResponse): Device {
     ssh_permanent: apiDevice.ssh_permanent,
     setup_completed_at: apiDevice.setup_completed_at,
     last_seen: apiDevice.last_seen,
+    stereo_capable: apiDevice.stereo_capable,
+    oct_provisioned: apiDevice.oct_provisioned,
+    stereo_ineligible_reason: apiDevice.stereo_ineligible_reason,
+    stereo_pair_id: apiDevice.stereo_pair_id,
+    stereo_role: apiDevice.stereo_role,
+    stereo_master: apiDevice.stereo_master,
   };
 }
 
