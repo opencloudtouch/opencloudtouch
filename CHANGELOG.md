@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No changes yet._
+### Fixed
+- Avoid error logs for unsupported or invalid SoundTouch bass capabilities (#640).
 
 ---
 

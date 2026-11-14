@@ -422,39 +422,58 @@ class BoseDeviceClientAdapter(DeviceClient):
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def get_bass_capabilities(self) -> BassCapabilities:
-        """Get supported bass range from the device."""
+        """Get supported bass range, treating unsupported responses as unavailable."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(f"{self.base_url}/bassCapabilities")
                 response.raise_for_status()
-
-            root = ElementTree.fromstring(response.text)
-            available_text = root.findtext("bassAvailable")
-            minimum_text = root.findtext("bassMin")
-            maximum_text = root.findtext("bassMax")
-            default_text = root.findtext("bassDefault")
-
-            if None in (
-                available_text,
-                minimum_text,
-                maximum_text,
-                default_text,
-            ):
-                raise ValueError("Invalid /bassCapabilities response")
-
-            return BassCapabilities(
-                available=available_text.strip().lower() == "true",
-                minimum=int(minimum_text),
-                maximum=int(maximum_text),
-                default=int(default_text),
-            )
-
         except httpx.HTTPStatusError as e:
             raise DeviceConnectionError(
                 self.ip, f"HTTP {e.response.status_code}"
             ) from e
         except Exception as e:
-            logger.exception("Failed to get bass capabilities from %s", self.base_url)
+            raise DeviceConnectionError(self.ip, str(e)) from e
+
+        # An empty successful response is the known unsupported-device case.
+        if not response.content.strip():
+            logger.debug(
+                "Bass control unsupported on %s: empty response", self.base_url
+            )
+            return BassCapabilities(available=False, minimum=0, maximum=0, default=0)
+
+        try:
+            root = ElementTree.fromstring(response.text)
+            if root.tag != "bassCapabilities":
+                raise ValueError("Unexpected bass capabilities root")
+
+            available_text = root.findtext("bassAvailable")
+            if available_text is None:
+                raise ValueError("Missing bassAvailable")
+            available = available_text.strip().lower()
+            if available == "false":
+                logger.debug(
+                    "Bass control unsupported on %s: bassAvailable=false", self.base_url
+                )
+                return BassCapabilities(
+                    available=False, minimum=0, maximum=0, default=0
+                )
+            if available != "true":
+                raise ValueError("Invalid bassAvailable")
+
+            minimum = int(root.findtext("bassMin"))
+            maximum = int(root.findtext("bassMax"))
+            default = int(root.findtext("bassDefault"))
+            if minimum > maximum or not minimum <= default <= maximum:
+                raise ValueError("Invalid bass range")
+            return BassCapabilities(
+                available=True, minimum=minimum, maximum=maximum, default=default
+            )
+        except (ValueError, TypeError, ElementTree.ParseError) as e:
+            logger.debug(
+                "Invalid bass capabilities from %s; preserving stored capabilities: %s",
+                self.base_url,
+                e,
+            )
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def set_bass(self, level: int) -> None:
