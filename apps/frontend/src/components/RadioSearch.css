@@ -45,7 +45,7 @@
 .rs-foot {
   flex: none;
   padding: 12px var(--space-md) var(--space-md) 20px;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 .rs-delete-btn {
   width: 100%;
@@ -61,7 +61,7 @@
   min-height: 0;
   overflow-y: auto;
   padding: 0 var(--space-md) var(--space-md) 20px;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 .rs-scroll:focus-visible {
   outline-offset: -2px;
@@ -95,11 +95,11 @@
   padding: 8px 8px;
   border-radius: var(--border-radius-sm);
   text-align: left;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   transition: background var(--motion-base);
 }
 .rs-item:hover {
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .rs-logo {
   flex: none;
@@ -107,7 +107,7 @@
   height: 44px;
   border-radius: var(--border-radius-sm);
   overflow: hidden;
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .rs-favicon {
   width: 100%;
@@ -143,7 +143,7 @@
 }
 .rs-country {
   font-size: var(--fs-small);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -151,7 +151,7 @@
 .rs-chevron {
   flex: none;
   display: flex;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .rs-note {
@@ -163,7 +163,7 @@
   text-align: center;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 .rs-note--hint svg,

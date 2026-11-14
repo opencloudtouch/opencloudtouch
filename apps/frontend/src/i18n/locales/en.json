@@ -1029,5 +1029,11 @@
       "createFailed": "The stereo pair could not be created",
       "details": "Details"
     }
+  },
+  "theme": {
+    "toLight": "Switch to light theme",
+    "toDark": "Switch to dark theme",
+    "nowLight": "Light theme on",
+    "nowDark": "Dark theme on"
   }
 }

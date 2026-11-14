@@ -16,14 +16,14 @@ body.dlg-scroll-lock .app-main {
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow: hidden;
 }
 .dlg:not([open]) {
   display: none;
 }
 .dlg::backdrop {
-  background: var(--scrim);
+  background: var(--scrim-bg);
 }
 .dlg-overlay {
   position: absolute;
@@ -45,8 +45,8 @@ body.dlg-scroll-lock .app-main {
   min-width: 0;
   max-height: 100%;
   margin: auto;
-  background: var(--color-bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--elev-modal);
   animation: dlg-in var(--motion-slow) ease-out; /* transform only: text never sits on a half-transparent layer */
@@ -106,21 +106,21 @@ body.dlg-scroll-lock .app-main {
   font-size: var(--fs-h2);
   line-height: 1.3;
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow-wrap: anywhere;
 }
 .dlg-close {
   flex: none;
   margin: -4px 0;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   border-radius: var(--border-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .dlg-close:hover {
-  color: var(--color-text-primary);
-  background: var(--bg-tertiary);
+  color: var(--text-strong);
+  background: var(--surface-muted);
 }
 .dlg-body {
   min-width: 0;
@@ -135,7 +135,7 @@ body.dlg-scroll-lock .app-main {
   margin: 0;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
   text-wrap: pretty;
 }

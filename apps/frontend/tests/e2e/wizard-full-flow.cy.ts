@@ -315,23 +315,23 @@ describe("Setup Wizard — Bug Regression Suite", () => {
   // ─── BUG-08: CSS-Variablen / Sichtbarkeit ──────────────────────────────────
   describe("BUG-08: CSS variables defined → wizard elements visible", () => {
     /**
-     * --text-primary, --surface-color, --border-color etc. waren undefiniert.
+     * --text-default, --surface-panel, --border-default etc. waren undefiniert.
      * Browser-Fallback: initial = schwarzer Text auf transparentem Hintergrund
      * → auf dunklen Cards komplett unsichtbar.
      */
-    it("should have --text-primary CSS variable defined on :root", () => {
+    it("should have --text-default CSS variable defined on :root", () => {
       cy.document().then((doc) => {
         const style = getComputedStyle(doc.documentElement);
-        const textPrimary = style.getPropertyValue("--text-primary").trim();
+        const textPrimary = style.getPropertyValue("--text-default").trim();
         expect(textPrimary).to.not.be.empty;
         expect(textPrimary).to.not.equal("initial");
       });
     });
 
-    it("should have --surface-color CSS variable defined on :root", () => {
+    it("should have --surface-panel CSS variable defined on :root", () => {
       cy.document().then((doc) => {
         const style = getComputedStyle(doc.documentElement);
-        const surfaceColor = style.getPropertyValue("--surface-color").trim();
+        const surfaceColor = style.getPropertyValue("--surface-panel").trim();
         expect(surfaceColor).to.not.be.empty;
       });
     });

@@ -16,7 +16,7 @@
 .backup-scan__loading p {
   margin: 0;
   font-size: var(--fs-body);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 
 .backup-scan__result {
@@ -36,7 +36,7 @@
   margin: 0;
   font-size: var(--fs-xl);
   line-height: 1.3;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow-wrap: anywhere;
 }
 .backup-scan__result h3 .wz-icon {
@@ -56,8 +56,8 @@
   gap: 6px;
   min-width: 0;
   padding: 12px;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-sm);
 }
 .backup-scan__result li:has(.backup-scan__mismatch) {
@@ -79,7 +79,7 @@
     Menlo,
     Consolas,
     monospace;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 .backup-scan__mismatch {
@@ -122,19 +122,19 @@
   margin: 0;
   font-size: var(--fs-h3);
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow-wrap: anywhere;
 }
 .restore-execution__hint {
   margin: 0;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   text-wrap: pretty;
 }
 .restore-execution__error .restore-execution__hint {
   margin-top: 6px;
-  color: var(--text-primary);
+  color: var(--text-default);
 }
 
 /* result list */
@@ -160,7 +160,7 @@
   font-size: var(--fs-lg);
   font-weight: var(--font-weight-bold);
   line-height: 1.4;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow-wrap: anywhere;
 }
 .restore-execution__failed {
@@ -182,8 +182,8 @@
   align-items: start;
   min-width: 0;
   padding: 12px;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-sm);
 }
 .restore-execution__icon {
@@ -193,7 +193,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .restore-execution__label {
   grid-area: label;
@@ -202,7 +202,7 @@
   font-size: var(--fs-body);
   font-weight: var(--font-weight-bold);
   line-height: 1.4;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow-wrap: break-word;
 }
 .restore-execution__duration {
@@ -216,7 +216,7 @@
     monospace;
   font-variant-numeric: tabular-nums;
   text-align: right;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 .restore-execution__message {
@@ -224,7 +224,7 @@
   min-width: 0;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 /* Phones: label and duration in one row left only ~120px for the label ("Konfigurationsdateien" broke mid-word);
@@ -249,7 +249,7 @@
 }
 .restore-execution__step--skipped .restore-execution__label,
 .restore-execution__step--skipped .restore-execution__message {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .restore-execution__step--failed {
   background: var(--danger-bg);
@@ -272,7 +272,7 @@
 }
 .restore-execution__step--pending .restore-execution__label,
 .restore-execution__step--pending .restore-execution__message {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 /* ── Step 4: verification ────────────────────────────────────────────── */
@@ -297,7 +297,7 @@
   margin: 0;
   font-size: var(--fs-lg);
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 
 /* ── Step 5: completion ──────────────────────────────────────────────── */
@@ -311,7 +311,7 @@
   margin: 0;
   font-size: var(--fs-xl);
   line-height: 1.3;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow-wrap: anywhere;
 }
 @media (min-width: 601px) {
@@ -322,8 +322,8 @@
 .restore-completion__section {
   min-width: 0;
   padding: var(--space-md);
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
 }
 .restore-completion__section h4 {
@@ -333,7 +333,7 @@
   margin: 0 0 12px;
   font-size: var(--fs-lg);
   line-height: 1.3;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .restore-completion__section ul {
   display: flex;
@@ -349,7 +349,7 @@
   min-width: 0;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
 }
 .restore-completion__section li > .wz-icon {
   width: 20px;
@@ -370,7 +370,7 @@
 }
 .restore-completion__section--skipped h4 .wz-icon,
 .restore-completion__section--skipped li > .wz-icon {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .restore-completion__section--failed {
   background: var(--danger-bg);
@@ -389,7 +389,7 @@
 }
 .restore-completion__note > span:last-child {
   min-width: 0;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 
@@ -441,7 +441,7 @@
 .restore-execution__warning {
   margin: 8px 0 0;
   font-weight: 600;
-  color: var(--color-text-primary, inherit);
+  color: var(--text-strong, inherit);
 }
 .device-reboot-btn:disabled {
   cursor: not-allowed;

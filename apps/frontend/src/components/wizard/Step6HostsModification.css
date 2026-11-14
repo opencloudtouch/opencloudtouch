@@ -22,7 +22,7 @@
   margin: 0;
   font-size: var(--fs-xl);
   line-height: 1.3;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .hosts-domains-group {
   display: flex;
@@ -36,7 +36,7 @@
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 /* phone: checkbox | domain, badge on its own row under the domain. 601px+: one row. */
@@ -48,8 +48,8 @@
   min-height: var(--touch-target-min);
   padding: 10px 12px;
   min-width: 0;
-  background: var(--color-bg-darker);
-  border: 1px solid var(--border-color);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-sm);
   cursor: pointer;
 }
@@ -61,18 +61,18 @@
   border-color: var(--primary-color);
 }
 .hosts-domain-item:has(input:focus-visible) {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--primary-solid);
   outline-offset: 2px;
 }
 .hosts-domain-item.required {
   cursor: default;
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .hosts-domain-item input[type="checkbox"] {
   width: 22px;
   height: 22px;
   margin: 0;
-  accent-color: var(--color-accent);
+  accent-color: var(--primary-solid);
   cursor: pointer;
 }
 .hosts-domain-item.required input[type="checkbox"] {
@@ -85,7 +85,7 @@
     Menlo,
     Consolas,
     monospace;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 .hosts-domain-badge {
@@ -126,8 +126,8 @@
   flex-direction: column;
   gap: 12px;
   padding: var(--space-md);
-  background: var(--color-bg-darker);
-  border: 1px solid var(--border-color);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
 }
 .hosts-detail-item {
@@ -139,22 +139,22 @@
 .hosts-detail-item strong {
   font-size: var(--fs-small);
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .hosts-detail-value,
 .hosts-detail-item code {
   display: block;
   min-width: 0;
   padding: 8px 10px;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   font:
     13px/1.6 ui-monospace,
     Menlo,
     Consolas,
     monospace;
-  color: var(--text-primary);
+  color: var(--text-default);
 }
 .hosts-detail-value {
   white-space: pre-wrap;

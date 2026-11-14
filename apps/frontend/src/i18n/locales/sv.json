@@ -1029,5 +1029,11 @@
       "createFailed": "Stereoparet kunde inte skapas",
       "details": "Detaljer"
     }
+  },
+  "theme": {
+    "toLight": "Byt till ljust tema",
+    "toDark": "Byt till mörkt tema",
+    "nowLight": "Ljust tema på",
+    "nowDark": "Mörkt tema på"
   }
 }

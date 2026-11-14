@@ -149,4 +149,35 @@ describe("colour palette", () => {
       }
     }
   });
+
+  it("palette.css defines every neutral token in both themes", () => {
+    const css = read("palette.css");
+    const light = css.slice(css.indexOf('[data-theme="light"] {'));
+    const neutrals = [
+      ...["sunken", "page", "card", "panel", "muted", "raised"].map((l) => `surface-${l}`),
+      ...["strong", "default", "secondary", "tertiary"].map((l) => `text-${l}`),
+      "border-default",
+      "border-control",
+      "disabled-bg",
+      "focus-ring",
+      "scrim-bg",
+    ];
+    for (const name of neutrals) {
+      expect(css).toContain(`--${name}:`);
+      expect(light).toContain(`--${name}:`);
+    }
+  });
+
+  it("every colour variable used in CSS is defined", () => {
+    const src = resolve(__dirname, "../../src");
+    const files = cssFiles(src);
+    const all = files.map((f) => readFileSync(f, "utf-8")).join(" ");
+    const defined = new Set([...all.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]));
+    const colourRe =
+      /^--(surface|text|border|primary|success|warning|danger|color|scrim|focus|disabled|hover|pressed|subtle|inset|solid|bg|ui)-/;
+    const used = [...all.matchAll(/var\((--[\w-]+)/g)]
+      .map((m) => m[1])
+      .filter((n) => colourRe.test(n));
+    expect([...new Set(used)].filter((n) => !defined.has(n))).toEqual([]);
+  });
 });

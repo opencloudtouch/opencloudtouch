@@ -5,7 +5,7 @@
   flex-direction: column;
   margin-top: var(--space-xs);
   padding-top: var(--space-md);
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 .dm-remove {
   width: 100%;
@@ -29,27 +29,27 @@
   gap: 10px;
   margin: 0 0 12px;
   padding: 10px 12px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
+  background: var(--surface-muted);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
   min-width: 0;
 }
 .dm-who > span:first-child {
   display: flex;
   flex: none;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .dm-who-name {
   flex: 1;
   min-width: 0;
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow-wrap: anywhere;
 }
 .dm-who-ip {
   flex: none;
   font-size: var(--fs-small);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 @media (max-width: 380px) {
   .dm-who {

@@ -20,14 +20,14 @@
     box-sizing: border-box;
     margin: 0 calc(-1 * var(--space-md)) calc(8px - var(--space-lg)); /* full bleed over the page padding; 8px to the card instead of the page gap */
     padding: 4px max(var(--space-md), calc((100% - 560px) / 2 + var(--space-md))); /* arrows stay on the 560px column of the card */
-    background: var(--color-bg-dark);
+    background: var(--surface-page);
     box-shadow: 0 1px 0 transparent;
     transition: box-shadow var(--motion-base);
   }
   .ds-bar[data-stuck] {
     box-shadow:
-      0 1px 0 var(--border-color),
-      0 8px 12px -8px var(--scrim);
+      0 1px 0 var(--border-default),
+      0 8px 12px -8px var(--scrim-bg);
   } /* hairline + soft edge, only while content runs underneath */
   .ds-viewport {
     grid-area: auto;
@@ -51,7 +51,7 @@
     text-align: center;
     font-size: var(--fs-lg);
     font-weight: var(--font-weight-bold);
-    color: var(--color-text-primary);
+    color: var(--text-strong);
   }
   .app-main {
     scroll-padding-top: calc(var(--touch-target-min) + 16px);

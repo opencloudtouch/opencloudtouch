@@ -21,7 +21,7 @@
   width: 44px;
   height: 44px;
   border-radius: var(--border-radius-sm);
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
   color: var(--primary-text);
   display: flex;
   align-items: center;
@@ -34,7 +34,7 @@
   gap: 6px;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
 }
 .usb-device-needs {
   overflow-wrap: anywhere;
@@ -44,7 +44,7 @@
   align-items: flex-start;
   gap: 6px;
   font-size: var(--fs-md);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 .usb-device-line svg {
@@ -56,11 +56,11 @@
   margin-top: 6px;
   padding: 12px;
   border-radius: var(--border-radius-sm);
-  background: var(--color-bg-darker);
-  border: 1px solid var(--border-color);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
 }
 .usb-dual-hint {
   display: flex;
@@ -102,10 +102,10 @@
   overflow-wrap: anywhere;
 }
 .usb-adapter-links a:hover {
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .usb-adapter-price {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -123,7 +123,7 @@
   margin: 0;
   font-size: var(--fs-xl);
   line-height: 1.3;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .usb-section-title-text {
   min-width: 0;
@@ -138,7 +138,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-accent);
+  background: var(--primary-solid);
   color: var(--solid-text);
   font-size: var(--fs-lg);
   font-weight: var(--font-weight-bold);
@@ -147,17 +147,17 @@
   margin: 0;
   font-size: var(--fs-body);
   line-height: 1.6;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 .usb-section-description code,
 .usb-section-description strong {
-  color: var(--text-primary);
+  color: var(--text-default);
 }
 .usb-section-description code {
   padding: 2px 6px;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   font:
     0.9em ui-monospace,
@@ -176,7 +176,7 @@
 .usb-platform-label {
   font-size: var(--fs-md);
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .usb-platform-select {
   box-sizing: border-box;
@@ -185,9 +185,9 @@
   min-width: 0;
   min-height: var(--touch-target-min);
   padding: 0 12px;
-  background: var(--color-bg-dark);
-  color: var(--text-primary);
-  border: 1px solid var(--color-disabled);
+  background: var(--surface-page);
+  color: var(--text-default);
+  border: 1px solid var(--disabled-bg);
   border-radius: var(--border-radius-sm);
   font: 16px inherit;
   cursor: pointer;
@@ -196,8 +196,8 @@
   border-color: var(--primary-color);
 }
 .usb-platform-select option {
-  background: var(--color-bg-dark);
-  color: var(--text-primary);
+  background: var(--surface-page);
+  color: var(--text-default);
 }
 @media (min-width: 601px) {
   .usb-section-header {
@@ -221,12 +221,12 @@
   display: flex;
   align-items: center;
   padding: 10px 12px 10px 52px;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-sm);
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 .usb-instruction-item::before {
@@ -259,8 +259,8 @@
   gap: 12px;
   min-height: var(--touch-target-min);
   padding: 10px 12px;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-sm);
   font-size: var(--fs-body);
   line-height: 1.4;
@@ -275,7 +275,7 @@
   width: 22px;
   height: 22px;
   margin: 0;
-  accent-color: var(--color-accent);
+  accent-color: var(--primary-solid);
   cursor: pointer;
 }
 .usb-checklist-item:has(input:checked) {
@@ -283,9 +283,9 @@
   border-color: var(--success-color);
 }
 .usb-checklist-item:has(input:focus-visible) {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--primary-solid);
   outline-offset: 2px;
 }
 .usb-checklist-item strong {
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }

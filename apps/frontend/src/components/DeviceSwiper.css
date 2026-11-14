@@ -54,15 +54,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface-color);
-  border: 1px solid var(--ui-control-border);
-  color: var(--color-text-primary);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-control);
+  color: var(--text-strong);
   transition:
     background var(--motion-base),
     border-color var(--motion-base);
 }
 .ds-arrow:hover:not(:disabled) {
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .ds-arrow--prev {
   grid-area: prev;
@@ -81,11 +81,11 @@
 }
 .ds[data-pull="next"]:not([data-armed]) .ds-arrow--prev,
 .ds[data-pull="prev"]:not([data-armed]) .ds-arrow--next {
-  border-color: var(--ui-control-border);
+  border-color: var(--border-control);
 }
 .ds[data-armed][data-pull="next"] .ds-arrow--prev,
 .ds[data-armed][data-pull="prev"] .ds-arrow--next {
-  background: var(--surface-color);
+  background: var(--surface-panel);
 }
 
 .ds-dots {
@@ -118,7 +118,7 @@
   height: var(--ds-dot, 12px);
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: var(--color-text-tertiary);
+  background: var(--text-tertiary);
   pointer-events: none;
   transition:
     width var(--motion-base),
@@ -164,8 +164,8 @@
     bottom: 28px;
     width: calc(var(--space-md) - 8px);
     box-sizing: border-box;
-    background: var(--color-bg-card);
-    border: 1px solid var(--ui-control-border);
+    background: var(--surface-card);
+    border: 1px solid var(--border-control);
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--motion-base);

@@ -58,12 +58,12 @@ const UX_SCREENSHOT_OPTS: Cypress.ScreenshotOptions = {
 
 const LIGHT_MODE_CSS = `
   :root {
-    --color-bg-dark:        #f8f9fa !important;
-    --color-bg-card:        #ffffff !important;
-    --color-text-primary:   #212529 !important;
-    --color-text-secondary: #6c757d !important;
-    --color-border:         #dee2e6 !important;
-    --color-accent:         #0055aa !important;
+    --surface-page:        #f8f9fa !important;
+    --surface-card:        #ffffff !important;
+    --text-strong:   #212529 !important;
+    --text-secondary: #6c757d !important;
+    --border-default:         #dee2e6 !important;
+    --primary-solid:         #0055aa !important;
   }
   body, html, .app, .app-main, #root {
     background: #f8f9fa !important;

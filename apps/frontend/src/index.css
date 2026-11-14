@@ -53,8 +53,8 @@ body,
 body {
   font-family: var(--font-sans);
   font-weight: var(--font-weight-normal);
-  background-color: var(--color-bg-dark);
-  color: var(--color-text-primary);
+  background-color: var(--surface-page);
+  color: var(--text-strong);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;

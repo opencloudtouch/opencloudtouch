@@ -17,9 +17,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px dashed var(--ui-control-border);
+  border: 1px dashed var(--border-control);
   background: transparent;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .np-empty-inner {
   display: flex;
@@ -34,7 +34,7 @@
 }
 .np-placeholder {
   font-size: var(--fs-body);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .np-header {
   display: flex;
@@ -48,7 +48,7 @@
   min-width: 0;
   font-size: var(--fs-body);
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -61,7 +61,7 @@
   aspect-ratio: 1;
   border-radius: var(--border-radius-md);
   overflow: hidden;
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .np-art img {
   width: 100%;
@@ -85,13 +85,13 @@
   font-size: var(--fs-h3);
   line-height: var(--np-track-h);
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .np-artist {
   grid-row: 2;
   font-size: var(--fs-body);
   line-height: var(--np-artist-h);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .np-marquee-inner {
   display: block;
@@ -128,9 +128,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  color: var(--color-text-secondary);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
 }
 @media (forced-colors: active) {
   .np-art--none {

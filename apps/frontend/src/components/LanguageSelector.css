@@ -10,17 +10,17 @@
   gap: 6px;
   min-height: var(--touch-target-min);
   padding: 0 10px;
-  border: 1px solid var(--ui-control-border);
+  border: 1px solid var(--border-control);
   border-radius: var(--border-radius-sm);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   font-size: var(--fs-md);
   font-weight: var(--font-weight-medium);
 }
 .lang-selector:hover {
-  background: var(--surface-color);
+  background: var(--surface-panel);
 }
 .lang-selector[aria-expanded="true"] {
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .lang-flag,
 .lang-option-flag {
@@ -44,8 +44,8 @@
   max-height: calc(100dvh - var(--header-h) - 16px);
   overflow-y: auto;
   padding: 4px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
   box-shadow: var(--elev-modal);
 }
@@ -56,18 +56,18 @@
   min-height: var(--touch-target-min);
   padding: 0 12px;
   border-radius: var(--border-radius-sm);
-  color: var(--text-primary);
+  color: var(--text-default);
   cursor: pointer;
 }
 .lang-option:hover {
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .lang-option:focus-visible {
   outline-offset: -2px;
 }
 .lang-option--active {
   background: var(--primary-bg-strong);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .lang-option-name {
   flex: 1;
@@ -80,7 +80,7 @@
   flex: none;
   font-family: var(--font-mono);
   font-size: var(--fs-small);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .lang-option-check {
   flex: none;

@@ -14,7 +14,7 @@
   height: 32px;
   border-radius: 4px;
   object-fit: cover;
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .dnp-icon {
   width: 32px;
@@ -39,11 +39,11 @@
 .dnp-title {
   font-size: var(--fs-md);
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .dnp-artist {
   font-size: var(--fs-small);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .dnp-title + .dnp-artist::before {
   content: "\00b7";

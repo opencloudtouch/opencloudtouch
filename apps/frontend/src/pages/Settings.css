@@ -50,7 +50,7 @@
 }
 .st-method + .st-method {
   padding-top: var(--space-lg);
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 .st-method > .ui-h3,
 .st-card > .st-text {
@@ -60,7 +60,7 @@
   margin: 0;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   text-wrap: pretty;
   overflow-wrap: anywhere;
 }
@@ -115,7 +115,7 @@
 .st-select .ui-select:disabled {
   cursor: progress;
   opacity: 1;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .st-select-icon {
   position: absolute;
@@ -123,7 +123,7 @@
   top: 50%;
   transform: translateY(-50%);
   display: flex;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   pointer-events: none;
 }
 
@@ -134,7 +134,7 @@
   align-items: flex-start;
   gap: 12px;
   padding-top: var(--space-lg);
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 .st-download-btn {
   min-width: 200px;

@@ -6,7 +6,7 @@
 
 .setup-wizard-page {
   min-height: 100vh;
-  background: var(--color-bg-dark);
+  background: var(--surface-page);
   padding: var(--space-md) 0 var(--space-2xl);
 }
 .wizard-content-v2 {
@@ -65,21 +65,21 @@
     color 0.2s;
 }
 .btn-primary {
-  background: var(--color-accent);
+  background: var(--primary-solid);
   color: var(--solid-text);
-  border-color: var(--color-accent);
+  border-color: var(--primary-solid);
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-  border-color: var(--color-accent-hover);
+  background: var(--primary-solid-hover);
+  border-color: var(--primary-solid-hover);
 }
 .btn-secondary {
   background: transparent;
-  color: var(--text-primary);
-  border-color: var(--color-disabled);
+  color: var(--text-default);
+  border-color: var(--disabled-bg);
 }
 .btn-secondary:hover:not(:disabled) {
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .btn-outline {
   background: transparent;
@@ -94,8 +94,8 @@
   color: var(--text-secondary);
 }
 .btn-ghost:hover:not(:disabled) {
-  color: var(--color-text-primary);
-  background: var(--surface-color);
+  color: var(--text-strong);
+  background: var(--surface-panel);
 }
 .btn svg,
 .wz-icon svg {
@@ -116,7 +116,7 @@
   width: 40px;
   height: 40px;
   border-width: 4px;
-  border-color: var(--border-color);
+  border-color: var(--border-default);
   border-top-color: var(--primary-color);
 }
 @keyframes spin {
@@ -131,8 +131,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
   padding: var(--space-md);
 }
@@ -148,7 +148,7 @@
   width: 44px;
   height: 44px;
   border-radius: var(--border-radius-sm);
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
   color: var(--primary-text);
   display: flex;
   align-items: center;
@@ -163,7 +163,7 @@
   font-size: var(--fs-h3);
   line-height: 1.25;
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow-wrap: anywhere;
 }
 .device-meta {
@@ -172,7 +172,7 @@
   align-items: center;
   gap: 0 var(--space-sm);
   font-size: var(--fs-md);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .device-model {
   font-weight: var(--font-weight-medium);
@@ -191,15 +191,15 @@
   gap: var(--space-sm);
   padding: 0 var(--space-md);
   border-radius: var(--border-radius-sm);
-  border: 1px solid var(--color-disabled);
+  border: 1px solid var(--disabled-bg);
   background: transparent;
-  color: var(--text-primary);
+  color: var(--text-default);
   font-size: var(--fs-body);
   font-weight: var(--font-weight-medium);
   text-align: center;
 }
 .device-reboot-btn:hover:not(:disabled) {
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .device-reboot-btn--sent {
   border-color: var(--success-color);
@@ -224,8 +224,8 @@
 /* ---------- 4.3 Progress tracker ---------- */
 .progress-tracker {
   --step-size: 28px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
   padding: var(--space-md) var(--space-sm);
   display: flex;
@@ -235,7 +235,7 @@
 .progress-tracker-compact {
   text-align: center;
   font-size: var(--fs-md);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   padding-inline: var(--space-sm);
 }
 .progress-steps {
@@ -269,9 +269,9 @@
   justify-content: center;
   font-size: var(--fs-small);
   font-weight: var(--font-weight-bold);
-  background: var(--color-bg-dark);
-  color: var(--color-text-secondary);
-  border: 2px solid var(--color-disabled);
+  background: var(--surface-page);
+  color: var(--text-secondary);
+  border: 2px solid var(--disabled-bg);
 }
 .step-icon,
 .step-number {
@@ -292,13 +292,13 @@
   white-space: nowrap;
 }
 .progress-step.active .step-circle {
-  background: var(--color-accent);
+  background: var(--primary-solid);
   color: var(--solid-text);
   border-color: var(--primary-color);
   transform: scale(1.1);
 }
 .progress-step.in-progress .step-circle {
-  background: var(--color-accent);
+  background: var(--primary-solid);
   color: var(--solid-text);
   border-color: var(--primary-color);
   box-shadow: 0 0 0 4px var(--primary-border);
@@ -329,7 +329,7 @@
     position: absolute;
     z-index: 0;
     height: 2px;
-    background: var(--color-border);
+    background: var(--border-default);
     top: calc(var(--step-size) / 2 - 1px);
     left: calc(-50% + var(--step-size) / 2 + 4px);
     width: calc(100% - var(--step-size) - 8px);
@@ -364,10 +364,10 @@
     text-align: center;
     overflow-wrap: anywhere;
     padding-inline: 2px;
-    color: var(--color-text-secondary);
+    color: var(--text-secondary);
   }
   .progress-step.active .step-label {
-    color: var(--color-text-primary);
+    color: var(--text-strong);
     font-weight: var(--font-weight-bold);
   }
   .progress-step.completed .step-label {
@@ -380,8 +380,8 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-lg);
   padding: 20px var(--space-md);
   max-width: none;
@@ -412,13 +412,13 @@
   margin: 0;
   font-size: var(--fs-h2);
   line-height: 1.25;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .wizard-step-description {
   margin: 0;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   text-wrap: pretty;
 }
 .wizard-warning {
@@ -443,7 +443,7 @@
 }
 .wizard-warning-text {
   min-width: 0;
-  color: var(--text-primary);
+  color: var(--text-default);
   font-size: var(--fs-body);
   font-weight: var(--font-weight-medium);
   line-height: 1.5;
@@ -470,7 +470,7 @@
   flex-direction: column-reverse;
   gap: 12px;
   padding-top: var(--space-md);
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 .wizard-actions-right {
   display: flex;
@@ -501,7 +501,7 @@
   font-size: var(--fs-small);
   line-height: 1.5;
   font-style: normal;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .wizard-next-hint svg {
   flex: none;
@@ -543,8 +543,8 @@
 /* ---------- 4.5 Cards, status boxes ---------- */
 .wz-card {
   min-width: 0;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
   padding: var(--space-md);
 }
@@ -599,12 +599,12 @@
 .wz-status-title {
   font-size: var(--fs-body);
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .wz-status-text {
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 
@@ -620,7 +620,7 @@
   min-width: 0;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 .verify-check-item .wz-icon {
@@ -633,7 +633,7 @@
   margin-top: 6px;
   font-family: ui-monospace, Menlo, Consolas, monospace;
   font-size: var(--fs-md);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .verify-group .verify-check-item {
   padding-left: 20px;
@@ -645,8 +645,8 @@
   display: flex;
   align-items: stretch;
   min-width: 0;
-  background: var(--color-bg-darker);
-  border: 1px solid var(--border-color);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-sm);
 }
 .ssh-hint-command,
@@ -660,7 +660,7 @@
     Menlo,
     Consolas,
     monospace;
-  color: var(--text-primary);
+  color: var(--text-default);
 }
 .ssh-hint-command,
 .wz-code pre {
@@ -670,22 +670,22 @@
 .ssh-copy-btn {
   flex: none;
   width: var(--touch-target-min);
-  border-left: 1px solid var(--border-color);
+  border-left: 1px solid var(--border-default);
   border-radius: 0;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .ssh-copy-btn:hover,
 .ssh-copy-btn.copied {
-  color: var(--color-text-primary);
-  background: var(--color-bg-dark);
+  color: var(--text-strong);
+  background: var(--surface-page);
 }
 .wz-diff {
   padding: 12px var(--space-md);
-  background: var(--color-bg-darker);
-  border: 1px solid var(--border-color);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-sm);
   font-size: var(--fs-small);
   line-height: 1.6;
@@ -707,7 +707,7 @@
   font-size: var(--fs-2xl);
   line-height: 1.2;
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .wizard-choice__cards {
   display: grid;
@@ -725,9 +725,9 @@
   flex-direction: column;
   gap: 12px;
   padding: var(--space-lg);
-  background: var(--color-bg-card);
-  color: var(--color-text-primary);
-  border: 1px solid var(--border-color);
+  background: var(--surface-card);
+  color: var(--text-strong);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-lg);
   cursor: pointer;
   transition: border-color 0.2s;
@@ -750,20 +750,20 @@
   margin: 0;
   font-size: var(--fs-h2);
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .wizard-choice__card p {
   margin: 0;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .risk-card {
   padding: var(--space-md);
   gap: var(--space-sm);
   border-width: 2px;
   border-radius: var(--border-radius-md);
-  background: var(--surface-color);
+  background: var(--surface-panel);
 }
 .risk-card.selected {
   border-color: var(--primary-color);
@@ -789,7 +789,7 @@
 .wz-label {
   font-size: var(--fs-md);
   font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
+  color: var(--text-default);
 }
 .config-input,
 .hosts-input,
@@ -799,9 +799,9 @@
   min-width: 0;
   min-height: var(--touch-target-min);
   padding: 0 12px;
-  background: var(--color-bg-dark);
-  color: var(--text-primary);
-  border: 1px solid var(--color-disabled);
+  background: var(--surface-page);
+  color: var(--text-default);
+  border: 1px solid var(--disabled-bg);
   border-radius: var(--border-radius-sm);
   font:
     16px ui-monospace,
@@ -821,7 +821,7 @@
 .wz-hint {
   font-size: var(--fs-small);
   line-height: 1.5;
-  color: var(--color-text-tertiary);
+  color: var(--text-tertiary);
   white-space: pre-line;
 }
 
@@ -839,8 +839,8 @@
   justify-content: center;
   gap: var(--space-md);
   text-align: center;
-  background: var(--color-bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-lg);
   padding: 40px var(--space-lg);
 }
@@ -851,7 +851,7 @@
 .loading-message {
   margin: 0;
   font-size: var(--fs-h3);
-  color: var(--text-primary);
+  color: var(--text-default);
 }
 .wizard-empty-state .empty-icon {
   width: 64px;
@@ -859,8 +859,8 @@
   margin: 0;
   opacity: 1;
   border-radius: var(--border-radius-lg);
-  background: var(--bg-tertiary);
-  color: var(--color-text-secondary);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -870,14 +870,14 @@
   margin: 0;
   font-size: 22px;
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .wizard-empty-state p {
   margin: 0;
   max-width: 44ch;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   text-wrap: pretty;
 }
 .wizard-empty-hint {
@@ -946,14 +946,14 @@
   display: block;
   margin-bottom: 4px;
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .error-content p,
 .warning-content p {
   margin: 0;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 .success-title {
@@ -968,7 +968,7 @@
   margin: 0;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
 }
 
 /* result card: icon + title on one row, all other children full width */
@@ -1032,7 +1032,7 @@
   margin: 0;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
 }
 .wz-result--warning {
   background: var(--warning-bg);
@@ -1086,7 +1086,7 @@
   width: 100%;
   height: 6px;
   border-radius: 3px;
-  background: var(--border-color);
+  background: var(--border-default);
   overflow: hidden;
 }
 .wz-progress-bar {
@@ -1124,7 +1124,7 @@
   margin: 0;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 .wz-status-actions {
@@ -1156,7 +1156,7 @@ a.device-icon {
   transition: background var(--motion-base);
 }
 a.device-icon:hover {
-  background: var(--border-color);
+  background: var(--border-default);
 }
 
 /* Full-width wizard (Stage 14) */
@@ -1187,7 +1187,7 @@ a.device-icon:hover {
     font-size: var(--fs-h1);
     line-height: 1.2;
     font-weight: var(--font-weight-bold);
-    color: var(--color-text-primary);
+    color: var(--text-strong);
     text-wrap: balance;
   }
 }

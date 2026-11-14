@@ -21,7 +21,7 @@
   max-width: 70ch;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
   text-wrap: pretty;
 }
 .sp-list {

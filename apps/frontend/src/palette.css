@@ -1,24 +1,24 @@
 /* OpenCloudTouch colour tokens: one palette by role, dark and light.
    Dark is the default (:root). Light applies under <html data-theme="light">.
-   Naming: --{role}-color (fill, border, icon) | --{role}-text | --{role}-bg | --{role}-bg-strong | --{role}-border | --{role}-on (text on the fill)
+   Naming: --surface-{level} | --text-{strength} | --border-{kind} | --{state}-bg overlays | --{role}-color (fill, border, icon) | --{role}-text | --{role}-bg | --{role}-bg-strong | --{role}-border | --{role}-on (text on the fill)
+   surface levels: sunken, page, panel, card, muted, raised | text: strong, default, secondary, tertiary | border: default, control, focus (--focus-ring)
    role = primary | success | warning | danger. Components use these tokens only, no literal colours. */
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  --color-bg-darker: #0d0d0d;
-  --color-bg-dark: #1a1a1a;
-  --color-bg-card: #242424;
-  --surface-color: #2a2a2a;
-  --bg-tertiary: #323232;
+  --surface-sunken: #0d0d0d;
+  --surface-page: #1a1a1a;
+  --surface-card: #242424;
+  --surface-panel: #2a2a2a;
+  --surface-muted: #323232;
   --surface-raised: #2f2f2f;
-  --border-color: #3a3a3a;
-  --color-border: #333333;
-  --ui-control-border: #858585;
-  --color-disabled: #4d4d4d;
-  --color-text-primary: #ffffff;
-  --text-primary: #e0e0e0;
-  --color-text-secondary: #b3b3b3;
-  --color-text-tertiary: #9e9e9e;
+  --border-default: #3a3a3a;
+  --border-control: #858585;
+  --disabled-bg: #4d4d4d;
+  --text-strong: #ffffff;
+  --text-default: #e0e0e0;
+  --text-secondary: #b3b3b3;
+  --text-tertiary: #9e9e9e;
   --focus-ring: #8ab8f0;
   --primary-color: #4a90d9;
   --primary-text: #8ab8f0;
@@ -38,7 +38,7 @@
   --danger-solid-hover: #b71c1c;
   --solid-text: #ffffff;
   --solid-text-muted: rgba(255, 255, 255, 0.35);
-  --scrim: rgba(0, 0, 0, 0.72);
+  --scrim-bg: rgba(0, 0, 0, 0.72);
   --hover-bg: rgba(255, 255, 255, 0.08);
   --pressed-bg: rgba(255, 255, 255, 0.12);
   --subtle-bg: rgba(255, 255, 255, 0.05);
@@ -59,29 +59,23 @@
   --danger-bg: rgba(var(--danger-rgb), 0.1);
   --danger-bg-strong: rgba(var(--danger-rgb), 0.18);
   --danger-border: rgba(var(--danger-rgb), 0.55);
-  /* aliases, so nothing breaks */
-  --color-accent: var(--primary-solid);
-  --color-accent-hover: var(--primary-solid-hover);
-  --text-secondary: var(--color-text-secondary);
-  --text-tertiary: var(--color-text-tertiary);
 }
 
 [data-theme="light"] {
   color-scheme: light;
-  --color-bg-darker: #e6e9ee;
-  --color-bg-dark: #f1f3f6;
-  --color-bg-card: #ffffff;
-  --surface-color: #eef1f5;
-  --bg-tertiary: #e4e8ee;
+  --surface-sunken: #e6e9ee;
+  --surface-page: #f1f3f6;
+  --surface-card: #ffffff;
+  --surface-panel: #eef1f5;
+  --surface-muted: #e4e8ee;
   --surface-raised: #ffffff;
-  --border-color: #cfd5de;
-  --color-border: #dde2e9;
-  --ui-control-border: #728092;
-  --color-disabled: #b4bcc8;
-  --color-text-primary: #14171c;
-  --text-primary: #1c2128;
-  --color-text-secondary: #4a525e;
-  --color-text-tertiary: #5c6573;
+  --border-default: #cfd5de;
+  --border-control: #728092;
+  --disabled-bg: #b4bcc8;
+  --text-strong: #14171c;
+  --text-default: #1c2128;
+  --text-secondary: #4a525e;
+  --text-tertiary: #5c6573;
   --focus-ring: #0f4f98;
   --primary-color: #1a62b0;
   --primary-text: #0f4f98;
@@ -101,7 +95,7 @@
   --danger-solid-hover: #a81e1e;
   --solid-text: #ffffff;
   --solid-text-muted: rgba(255, 255, 255, 0.35);
-  --scrim: rgba(12, 16, 24, 0.6);
+  --scrim-bg: rgba(12, 16, 24, 0.6);
   --hover-bg: rgba(20, 30, 50, 0.06);
   --pressed-bg: rgba(20, 30, 50, 0.1);
   --subtle-bg: rgba(20, 30, 50, 0.04);
@@ -122,11 +116,6 @@
   --danger-bg: rgba(var(--danger-rgb), 0.1);
   --danger-bg-strong: rgba(var(--danger-rgb), 0.18);
   --danger-border: rgba(var(--danger-rgb), 0.6);
-  /* aliases, so nothing breaks */
-  --color-accent: var(--primary-solid);
-  --color-accent-hover: var(--primary-solid-hover);
-  --text-secondary: var(--color-text-secondary);
-  --text-tertiary: var(--color-text-tertiary);
   --shadow-sm: 0 2px 8px rgba(20, 30, 50, 0.12);
   --shadow-md: 0 4px 12px rgba(20, 30, 50, 0.16);
   --shadow-lg: 0 8px 24px rgba(20, 30, 50, 0.2);

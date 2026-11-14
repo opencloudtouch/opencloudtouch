@@ -18,7 +18,7 @@
   border: 1px solid var(--bd);
   border-radius: var(--border-radius-md);
   box-shadow: var(--elev-toast);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   animation: toast-in var(--motion-slow) ease-out;
 }
 .toast-success {
@@ -48,14 +48,14 @@
   margin: 0;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow-wrap: anywhere;
   white-space: pre-line;
 }
 .toast-close {
   flex: none;
   margin: -6px 0;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   border-radius: var(--border-radius-sm);
   display: flex;
   align-items: center;
@@ -85,7 +85,7 @@
   outline-offset: 1px;
 }
 .toast-close:hover {
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   background: var(--hover-bg);
 }
 @keyframes toast-in {

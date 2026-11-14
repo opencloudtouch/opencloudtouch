@@ -10,11 +10,11 @@
   margin: 0;
   font-size: var(--fs-md);
   line-height: 1.4;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .sp-stepline-num {
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .sp-stepline-bar {
   display: grid;
@@ -24,7 +24,7 @@
 .sp-stepline-seg {
   height: 4px;
   border-radius: 2px;
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .sp-stepline-seg--on {
   background: var(--primary-color);
@@ -48,7 +48,7 @@
   font-size: var(--fs-h3);
   font-weight: var(--font-weight-bold);
   line-height: 1.3;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .sp-pick-list {
   display: grid;
@@ -59,7 +59,7 @@
   margin: 0;
   font-size: var(--fs-body);
   line-height: 1.4;
-  color: var(--text-primary);
+  color: var(--text-default);
 }
 .sp-wizard-link {
   grid-column: 2 / -1;
@@ -98,9 +98,9 @@
   gap: 6px;
   min-width: 0;
   padding: 12px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
-  background: var(--color-bg-card);
+  background: var(--surface-card);
 }
 .sp-slot--right {
   grid-area: right;
@@ -113,13 +113,13 @@
 .sp-slot-label {
   font-size: var(--fs-h3);
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .sp-slot-name {
   font-size: var(--fs-lg);
   line-height: 1.3;
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow-wrap: anywhere;
 }
 .sp-slot .mr-dev-model {
@@ -173,10 +173,10 @@
   gap: 12px;
   min-height: 52px;
   padding: 6px 0;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 .sp-op:last-child {
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 .sp-op-icon {
   display: flex;
@@ -193,17 +193,17 @@
   box-sizing: border-box;
   width: 16px;
   height: 16px;
-  border: 2px dashed var(--ui-control-border);
+  border: 2px dashed var(--border-control);
   border-radius: 50%;
 }
 .sp-op-label {
   font-size: var(--fs-body);
   line-height: 1.35;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow-wrap: anywhere;
 }
 .sp-op--waiting .sp-op-label {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .sp-op--done .sp-op-icon {
   color: var(--success-text);
@@ -219,7 +219,7 @@
   min-width: 7.5em;
   text-align: right;
   font-size: var(--fs-small);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 @media (max-width: 400px) {
   .sp-op-state {

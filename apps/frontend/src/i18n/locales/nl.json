@@ -1029,5 +1029,11 @@
       "createFailed": "Het stereopaar kon niet worden gemaakt",
       "details": "Details"
     }
+  },
+  "theme": {
+    "toLight": "Overschakelen naar licht thema",
+    "toDark": "Overschakelen naar donker thema",
+    "nowLight": "Licht thema aan",
+    "nowDark": "Donker thema aan"
   }
 }

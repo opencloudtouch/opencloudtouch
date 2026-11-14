@@ -16,8 +16,8 @@
   gap: var(--space-md);
   padding: 40px var(--space-lg);
   text-align: center;
-  background: var(--color-bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-lg);
 }
 .nf-code {
@@ -34,7 +34,7 @@
   font-size: var(--fs-h1);
   line-height: 1.25;
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   text-wrap: balance;
   overflow-wrap: anywhere;
 }
@@ -43,7 +43,7 @@
   max-width: 40ch;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   text-wrap: pretty;
 }
 @media (max-width: 400px) {

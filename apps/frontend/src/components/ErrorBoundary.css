@@ -5,7 +5,7 @@
   min-height: 100dvh;
   display: flex;
   padding: var(--space-md);
-  background: var(--color-bg-dark);
+  background: var(--surface-page);
 }
 .eb-card {
   box-sizing: border-box;
@@ -18,8 +18,8 @@
   gap: var(--space-md);
   padding: 32px var(--space-md);
   text-align: center;
-  background: var(--color-bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-lg);
 }
 @media (min-width: 601px) {
@@ -31,7 +31,7 @@
   width: 64px;
   height: 64px;
   border-radius: var(--border-radius-lg);
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
   color: var(--danger-color);
   display: flex;
   align-items: center;
@@ -42,21 +42,21 @@
   font-size: var(--fs-2xl);
   line-height: 1.25;
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .eb-message {
   margin: 0;
   max-width: 46ch;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   text-wrap: pretty;
 }
 .eb-details {
   width: 100%;
   min-width: 0;
   text-align: left;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-sm);
 }
 .eb-details > summary {
@@ -68,7 +68,7 @@
   padding: 0 var(--space-md);
   cursor: pointer;
   list-style: none;
-  color: var(--text-primary);
+  color: var(--text-default);
   font-size: var(--fs-md);
   font-weight: var(--font-weight-medium);
 }
@@ -87,15 +87,15 @@
   padding: 12px var(--space-md);
   max-height: 220px;
   overflow: auto;
-  border-top: 1px solid var(--border-color);
-  background: var(--color-bg-darker);
+  border-top: 1px solid var(--border-default);
+  background: var(--surface-sunken);
   font: 13px/1.5 var(--font-mono);
-  color: var(--text-primary);
+  color: var(--text-default);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .eb-stack {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .eb-actions {
   width: 100%;

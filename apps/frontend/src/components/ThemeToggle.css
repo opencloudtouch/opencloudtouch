@@ -1,0 +1,95 @@
+/* tt-: theme toggle. Tokens only. Sits left of .lang-selector-wrapper inside .nav-tools. */
+.nav-tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+.tt {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  padding: 0;
+  border: 1px solid var(--border-control);
+  border-radius: var(--border-radius-sm);
+  background: transparent;
+  color: var(--text-strong);
+  cursor: pointer;
+  transition:
+    background var(--motion-base),
+    color var(--motion-base);
+}
+.tt:hover {
+  background: var(--surface-panel);
+}
+.tt:active {
+  background: var(--pressed-bg);
+}
+.tt:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.tt:disabled {
+  border-color: var(--disabled-bg);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+.tt-icon {
+  display: flex;
+  animation: tt-swap 200ms ease-out;
+}
+@keyframes tt-swap {
+  from {
+    opacity: 0;
+    transform: rotate(-60deg) scale(0.7);
+  }
+}
+
+/* colour crossfade on the whole page, only while the class is set (added for 250 ms after a click, never on load) */
+.theme-anim,
+.theme-anim *,
+.theme-anim *::before,
+.theme-anim *::after {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    fill 150ms ease,
+    stroke 150ms ease !important;
+}
+
+/* 360 px and below: language shows the flag only (its aria-label keeps the name) */
+@media (max-width: 360px) {
+  .nav-tools {
+    gap: 4px;
+  }
+  .nav-tools .lang-code {
+    display: none;
+  }
+  .nav-tools .lang-selector {
+    padding-inline: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tt {
+    transition: none;
+  }
+  .tt-icon {
+    animation: none;
+  }
+}
+@media (forced-colors: active) {
+  .tt {
+    border-color: ButtonText;
+    color: ButtonText;
+  }
+  .tt:disabled {
+    border-color: GrayText;
+    color: GrayText;
+  }
+}

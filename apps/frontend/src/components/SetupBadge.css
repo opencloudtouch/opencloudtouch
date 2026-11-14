@@ -2,7 +2,7 @@
 .sb {
   --c: var(--text-secondary);
   --bg: var(--subtle-bg);
-  --bd: var(--ui-control-border);
+  --bd: var(--border-control);
   box-sizing: border-box;
   width: var(--touch-target-min);
   height: var(--touch-target-min);

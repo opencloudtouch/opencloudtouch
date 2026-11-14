@@ -2,7 +2,7 @@
 
 .setup-wizard-page {
   min-height: 100vh;
-  background-color: var(--color-bg-dark);
+  background-color: var(--surface-page);
   padding: var(--space-xl) var(--space-md);
 }
 
@@ -39,7 +39,7 @@
   min-height: 60vh;
   text-align: center;
   padding: var(--space-2xl);
-  background-color: var(--color-bg-card);
+  background-color: var(--surface-card);
   border-radius: var(--border-radius-xl);
   margin: 0 auto;
   max-width: 600px;
@@ -54,20 +54,20 @@
 .wizard-empty-state h2 {
   font-size: 28px;
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   margin-bottom: var(--space-md);
 }
 
 .wizard-empty-state p {
   font-size: var(--fs-lg);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   margin-bottom: var(--space-xl);
 }
 
 /* REFACT-140: Help hint + inline link button */
 .wizard-empty-hint {
   font-size: var(--fs-body);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   margin-bottom: var(--space-md);
   margin-top: calc(-1 * var(--space-lg));
 }

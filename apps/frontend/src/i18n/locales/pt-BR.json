@@ -1029,5 +1029,11 @@
       "createFailed": "Não foi possível criar o par estéreo",
       "details": "Detalhes"
     }
+  },
+  "theme": {
+    "toLight": "Mudar para o tema claro",
+    "toDark": "Mudar para o tema escuro",
+    "nowLight": "Tema claro ativado",
+    "nowDark": "Tema escuro ativado"
   }
 }

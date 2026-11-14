@@ -24,7 +24,7 @@
   font-size: 30px;
   line-height: 1.15;
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow-wrap: anywhere;
 }
 .ab-version-slot {
@@ -174,10 +174,10 @@
   gap: 12px;
   min-height: 56px;
   padding: 0 16px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   font-size: var(--fs-lg);
   font-weight: var(--font-weight-medium);
   transition:
@@ -185,11 +185,11 @@
     border-color var(--motion-base);
 }
 .ab-link:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--ui-control-border);
+  background: var(--surface-muted);
+  border-color: var(--border-control);
 }
 .ab-link:active {
-  background: var(--surface-color);
+  background: var(--surface-panel);
 }
 .ab-link-icon {
   display: flex;
@@ -204,7 +204,7 @@
 .ab-ext {
   display: flex;
   flex: none;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .btn .ab-ext {
   color: inherit;

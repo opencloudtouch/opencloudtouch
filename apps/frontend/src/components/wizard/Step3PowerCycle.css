@@ -9,7 +9,7 @@
   margin: 0;
   font-size: var(--fs-xl);
   line-height: 1.3;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 
 /* instructions */
@@ -23,8 +23,8 @@
   gap: 12px;
   min-width: 0;
   padding: var(--space-md);
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
 }
 .power-cycle-step-number {
@@ -47,13 +47,13 @@
   display: block;
   margin-bottom: 2px;
   font-size: var(--fs-body);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .power-cycle-step-content p {
   margin: 0;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 
@@ -63,8 +63,8 @@
   flex-direction: column;
   gap: var(--space-md);
   padding: var(--space-md);
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
   min-width: 0;
 }
@@ -97,7 +97,7 @@
   margin: 0;
   font-size: var(--fs-body);
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow-wrap: anywhere;
 }
 .status-content small {
@@ -105,7 +105,7 @@
   margin-top: 2px;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 .power-cycle-check-btn {
@@ -118,7 +118,7 @@
   flex-direction: column;
   gap: var(--space-md);
   padding-top: var(--space-md);
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
   min-width: 0;
 }
 .risk-title {
@@ -128,7 +128,7 @@
   margin: 0;
   font-size: var(--fs-h3);
   line-height: 1.3;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .risk-title svg {
   flex: none;
@@ -156,7 +156,7 @@
 .risk-card-icon {
   flex: none;
   display: flex;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .risk-card-label {
   flex: 1;
@@ -183,9 +183,9 @@
 
 /* manual SSH test (native <details>): reserves its own space, nothing overlaps Back/Next */
 .ssh-manual-test-collapsible {
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
-  background: var(--surface-color);
+  background: var(--surface-panel);
 }
 .ssh-manual-test-summary {
   list-style: none;
@@ -197,7 +197,7 @@
   border-radius: var(--border-radius-md);
   font-size: var(--fs-body);
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   cursor: pointer;
   user-select: none;
 }
@@ -224,15 +224,15 @@
   transition: transform 0.15s;
 }
 .ssh-manual-test-collapsible[open] > .ssh-manual-test-summary {
-  color: var(--color-text-primary);
-  border-bottom: 1px solid var(--border-color);
+  color: var(--text-strong);
+  border-bottom: 1px solid var(--border-default);
   border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
 }
 .ssh-manual-test-collapsible[open] > .ssh-manual-test-summary::after {
   transform: rotate(-135deg);
 }
 .ssh-manual-test-summary:hover {
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   background: var(--subtle-bg);
 }
 .power-cycle-ssh-hint {
@@ -247,21 +247,21 @@
 .ssh-manual-test-hint {
   margin: 0;
   padding: 12px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-sm);
-  background: var(--color-bg-darker);
+  background: var(--surface-sunken);
   font-size: var(--fs-md);
   line-height: 1.6;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .ssh-manual-test-hint strong {
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .ssh-hint-description {
   margin: 0;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .ssh-client-tabs {
   display: grid;
@@ -271,21 +271,21 @@
 .ssh-client-tab {
   min-height: var(--touch-target-min);
   padding: 8px 12px;
-  border: 1px solid var(--color-disabled);
+  border: 1px solid var(--disabled-bg);
   border-radius: var(--border-radius-sm);
   background: transparent;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-size: var(--fs-md);
   line-height: 1.3;
 }
 .ssh-client-tab:hover {
-  color: var(--color-text-primary);
-  background: var(--bg-tertiary);
+  color: var(--text-strong);
+  background: var(--surface-muted);
 }
 .ssh-client-tab.active {
   background: var(--primary-bg-strong);
   border-color: var(--primary-color);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   font-weight: var(--font-weight-bold);
 }
 .putty-instructions {
@@ -299,7 +299,7 @@
   gap: 12px;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 .putty-step > span:last-child {
@@ -321,7 +321,7 @@
 }
 .ssh-hint-note {
   font-size: var(--fs-small);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 /* troubleshooting (status box variant: warning) */
@@ -331,7 +331,7 @@
 .troubleshooting-title {
   margin: 0 0 8px;
   font-size: var(--fs-body);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .troubleshooting-list {
   display: flex;
@@ -345,7 +345,7 @@
   padding-left: 16px;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 .troubleshooting-list li::before {

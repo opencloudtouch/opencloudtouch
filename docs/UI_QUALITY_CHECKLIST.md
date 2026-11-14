@@ -53,4 +53,6 @@ Colours are chosen by **role**, never by shade. Components use the tokens below,
 
 A state is still never shown by colour alone (rule 2).
 
-**Naming:** colour tokens are named role first, property last: `--{role}-color` (fill, border, icon), `--{role}-text` (text) and `--{role}-bg` (tinted background), with role = `success`, `warning`, `danger` or `primary`. The property-first form (`--color-success`) is not used.
+**Naming:** colour tokens are named role first, property last: `--{role}-color` (fill, border, icon), `--{role}-text` (text) and `--{role}-bg` (tinted background), with role = `success`, `warning`, `danger` or `primary`. The property-first form (`--color-success`) is not used. Neutrals follow the same idea: `--surface-{sunken|page|card|panel|muted|raised}`, `--text-{strong|default|secondary|tertiary}`, `--border-{default|control}`, `--disabled-bg`, `--scrim-bg`.
+
+**Theme:** the user switches dark/light with the toggle left of the language selector; the choice is stored under `oct-theme` and applied before the first paint by the inline script in `index.html`. Check every new screen in both themes.

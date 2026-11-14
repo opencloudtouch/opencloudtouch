@@ -11,7 +11,7 @@ interface VolumeSliderProps {
 }
 
 const ACCENT_COLOR = "var(--primary-text)"; // design token, same blue as links and active chips
-const MUTED_COLOR = "var(--color-text-tertiary, #949494)"; // was rgba(255,255,255,.35): too faint against the track (UI contrast 3:1)
+const MUTED_COLOR = "var(--text-tertiary, #949494)"; // was rgba(255,255,255,.35): too faint against the track (UI contrast 3:1)
 
 function calcValueFromClientX(trackEl: HTMLDivElement, clientX: number): number {
   const { left, width } = trackEl.getBoundingClientRect();

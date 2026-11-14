@@ -8,8 +8,8 @@
   gap: 12px;
   min-width: 0;
   padding: 12px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
 }
 .sk-device {

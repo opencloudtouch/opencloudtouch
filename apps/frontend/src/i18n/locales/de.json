@@ -1029,5 +1029,11 @@
       "createFailed": "Das Stereopaar konnte nicht erstellt werden",
       "details": "Details"
     }
+  },
+  "theme": {
+    "toLight": "Zum hellen Design wechseln",
+    "toDark": "Zum dunklen Design wechseln",
+    "nowLight": "Helles Design aktiv",
+    "nowDark": "Dunkles Design aktiv"
   }
 }

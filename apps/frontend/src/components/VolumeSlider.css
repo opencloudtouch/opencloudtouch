@@ -13,10 +13,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .vs-mute:hover {
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .vs-mute.muted {
   color: var(--danger-text);
@@ -38,7 +38,7 @@
   height: 6px;
   margin-top: -3px;
   border-radius: 3px;
-  background: var(--color-disabled);
+  background: var(--disabled-bg);
 }
 .vs-track-fill {
   position: absolute;
@@ -56,7 +56,7 @@
   height: 20px;
   margin: -10px 0 0 -10px;
   border-radius: 50%;
-  background: var(--color-text-primary);
+  background: var(--text-strong);
   border: 2px solid var(--primary-color);
   box-shadow: var(--shadow-sm);
 }
@@ -73,7 +73,7 @@
   text-align: right;
   font-size: var(--fs-md);
   font-variant-numeric: tabular-nums;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 @media (forced-colors: active) {
   .vs-track-fill {

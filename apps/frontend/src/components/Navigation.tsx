@@ -1,6 +1,7 @@
 import { Link, NavLink, useLocation, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
+import ThemeToggle from "./ThemeToggle";
 import { Icon } from "./Icon";
 import { useScrollbarGutter } from "../hooks/useScrollbarGutter";
 import { getLastDeviceId } from "../utils/lastDevice";
@@ -59,7 +60,10 @@ export default function Navigation() {
             <span className="nav-label">{t("nav.about")}</span>
           </Link>
         </div>
-        <LanguageSelector />
+        <div className="nav-tools">
+          <ThemeToggle />
+          <LanguageSelector />
+        </div>
       </div>
     </nav>
   );

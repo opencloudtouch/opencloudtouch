@@ -1029,5 +1029,11 @@
       "createFailed": "Impossibile creare la coppia stereo",
       "details": "Dettagli"
     }
+  },
+  "theme": {
+    "toLight": "Passa al tema chiaro",
+    "toDark": "Passa al tema scuro",
+    "nowLight": "Tema chiaro attivo",
+    "nowDark": "Tema scuro attivo"
   }
 }

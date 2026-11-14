@@ -15,13 +15,13 @@
   margin: 0;
   font-size: var(--fs-xl);
   line-height: 1.3;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .config-description {
   margin: 0;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .config-detecting {
   align-items: center;
@@ -29,7 +29,7 @@
 .config-detecting p {
   margin: 0;
   font-size: var(--fs-body);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 
 /* field */
@@ -42,7 +42,7 @@
 .config-label {
   font-size: var(--fs-md);
   font-weight: var(--font-weight-bold);
-  color: var(--text-primary);
+  color: var(--text-default);
 }
 .config-input:focus {
   border-color: var(--primary-color);
@@ -53,7 +53,7 @@
 .config-hint {
   font-size: var(--fs-small);
   line-height: 1.5;
-  color: var(--color-text-tertiary);
+  color: var(--text-tertiary);
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
@@ -73,7 +73,7 @@
 .config-validation-error .error-details {
   margin: 0;
   font: 14px/1.6 inherit;
-  color: var(--text-primary);
+  color: var(--text-default);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -105,14 +105,14 @@
 /* change preview: side by side from 601 px, stacked with a downward arrow on phones */
 .config-change-preview {
   padding: var(--space-md);
-  background: var(--color-bg-darker);
-  border: 1px solid var(--border-color);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
 }
 .config-preview-title {
   margin: 0 0 12px;
   font-size: var(--fs-body);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .config-change-item {
   display: grid;
@@ -142,7 +142,7 @@
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .config-change-from code,
 .config-change-to code {
@@ -163,7 +163,7 @@
 .config-change-arrow {
   display: flex;
   justify-content: center;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   transform: rotate(90deg);
 }
 @media (min-width: 601px) {
@@ -186,15 +186,15 @@
   margin: 0;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .config-details {
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: var(--space-md);
-  background: var(--color-bg-darker);
-  border: 1px solid var(--border-color);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
 }
 .config-detail-item {
@@ -205,27 +205,27 @@
 }
 .config-detail-item strong {
   font-size: var(--fs-small);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-weight: var(--font-weight-medium);
 }
 .config-detail-item span {
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 .config-detail-item code {
   display: block;
   padding: 6px 8px;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   font:
     13px/1.5 ui-monospace,
     Menlo,
     Consolas,
     monospace;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 
@@ -246,8 +246,8 @@
   margin: 0;
   padding: 12px var(--space-md);
   overflow: auto;
-  background: var(--color-bg-darker);
-  border: 1px solid var(--border-color);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-sm);
   font:
     13px/1.6 ui-monospace,

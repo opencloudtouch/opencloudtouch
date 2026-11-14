@@ -1029,5 +1029,11 @@
       "createFailed": "Impossible de créer la paire stéréo",
       "details": "Détails"
     }
+  },
+  "theme": {
+    "toLight": "Passer au thème clair",
+    "toDark": "Passer au thème sombre",
+    "nowLight": "Thème clair activé",
+    "nowDark": "Thème sombre activé"
   }
 }

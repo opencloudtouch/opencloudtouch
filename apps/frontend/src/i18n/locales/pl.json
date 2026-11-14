@@ -1029,5 +1029,11 @@
       "createFailed": "Nie udało się utworzyć pary stereo",
       "details": "Szczegóły"
     }
+  },
+  "theme": {
+    "toLight": "Przełącz na jasny motyw",
+    "toDark": "Przełącz na ciemny motyw",
+    "nowLight": "Włączono jasny motyw",
+    "nowDark": "Włączono ciemny motyw"
   }
 }

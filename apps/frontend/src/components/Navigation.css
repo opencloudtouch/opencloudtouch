@@ -31,7 +31,7 @@
   min-height: 52px;
   padding: 4px 12px;
   border-radius: var(--border-radius-sm);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-size: var(--fs-xs);
   line-height: 1.2;
   font-weight: var(--font-weight-medium);
@@ -41,14 +41,14 @@
     color var(--motion-base);
 }
 .nav-link:hover {
-  color: var(--color-text-primary);
-  background: var(--surface-color);
+  color: var(--text-strong);
+  background: var(--surface-panel);
 }
 .nav-icon {
   display: flex;
 }
 .nav-link[aria-current="page"] {
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   background: var(--primary-bg-strong);
 }
 .nav-link[aria-current="page"]::after {

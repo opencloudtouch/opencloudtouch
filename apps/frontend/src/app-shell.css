@@ -4,16 +4,16 @@
   flex-direction: column;
   height: 100vh;
   height: 100dvh;
-  background: var(--color-bg-dark);
-  color: var(--color-text-primary);
+  background: var(--surface-page);
+  color: var(--text-strong);
 }
 .app-header {
   flex: none;
   position: relative;
   z-index: 20;
   height: var(--header-h);
-  background: var(--color-bg-card);
-  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--border-default);
 }
 .app-main {
   flex: 1;
@@ -40,7 +40,7 @@
   min-height: var(--touch-target-min);
   padding: 0 var(--space-md);
   border-radius: var(--border-radius-sm);
-  background: var(--color-accent);
+  background: var(--primary-solid);
   color: var(--solid-text);
   font-weight: var(--font-weight-medium);
 }
@@ -60,15 +60,15 @@
   gap: var(--space-md);
   padding: 40px var(--space-lg);
   text-align: center;
-  background: var(--color-bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-lg);
 }
 .app-state-icon {
   width: 64px;
   height: 64px;
   border-radius: var(--border-radius-lg);
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
   color: var(--danger-color);
   display: flex;
   align-items: center;
@@ -79,13 +79,13 @@
   font-size: 22px;
   line-height: 1.25;
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .app-state-message {
   margin: 0;
   font-size: var(--fs-h3);
   line-height: 1.4;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 .app-state-hint {
@@ -93,7 +93,7 @@
   max-width: 40ch;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   text-wrap: pretty;
 }
 

@@ -30,14 +30,14 @@
   min-height: var(--touch-target-min);
   padding: 0 6px;
   border-radius: var(--border-radius-sm);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   font-size: var(--dne-fs);
   font-weight: var(--font-weight-bold);
   line-height: 1.2;
   transition: background var(--motion-base);
 }
 .dne-btn:hover {
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .dne-text-wrap {
   flex: 0 1 auto;

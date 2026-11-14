@@ -35,12 +35,12 @@
   min-width: 0;
   min-height: 64px;
   padding: 8px 4px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-sm);
   text-align: center;
   font-size: var(--fs-xs);
   line-height: 1.2;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .verify-phase-num {
   flex: none;
@@ -48,7 +48,7 @@
   height: 24px;
   box-sizing: border-box;
   border-radius: 50%;
-  border: 2px solid var(--color-disabled);
+  border: 2px solid var(--disabled-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -62,10 +62,10 @@
 .verify-phase--active {
   border-color: var(--primary-color);
   background: var(--primary-bg);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .verify-phase--active .verify-phase-num {
-  background: var(--color-accent);
+  background: var(--primary-solid);
   border-color: var(--primary-color);
   color: var(--solid-text);
 }
@@ -97,7 +97,7 @@
 }
 .verification .finalize-status {
   align-items: center;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   font-size: var(--fs-body);
 }
 .verification .setup-error {
@@ -110,7 +110,7 @@
   margin: 0;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 .verification .setup-error .btn {
@@ -121,14 +121,14 @@
 .verification .verify-checklist,
 .verification .verification-summary-list {
   padding: var(--space-md);
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-md);
 }
 .verification .verify-checklist h3 {
   margin: 0 0 4px;
   font-size: var(--fs-h3);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .verification .verify-group {
   display: flex;
@@ -155,7 +155,7 @@
 .verification-title {
   margin: 0 0 12px;
   font-size: var(--fs-h3);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 
 /* phase 2: reboot. Every status row has the same min-height, so nothing moves while the countdown runs. */
@@ -192,7 +192,7 @@
   margin: 0;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
 }
 .reboot-action .reboot-btn {
   width: 100%;
@@ -206,11 +206,11 @@
   box-sizing: border-box;
   padding: 12px 14px;
   background: var(--inset-bg);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-sm);
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
 }
 .reboot-status-text {
   flex: 1 1 0;
@@ -252,7 +252,7 @@
   flex: 1 1 100%;
   height: 6px;
   border-radius: 3px;
-  background: var(--border-color);
+  background: var(--border-default);
   overflow: hidden;
 }
 .reboot-progress-bar {
@@ -306,7 +306,7 @@
   margin: 0 0 8px;
   font-size: var(--fs-h3);
   line-height: 1.3;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .verification-info .info-content ul {
   display: flex;
@@ -320,7 +320,7 @@
   padding-left: 16px;
   font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-default);
   overflow-wrap: anywhere;
 }
 .verification-info .info-content li::before {
@@ -342,7 +342,7 @@
 /* verifying (status box) */
 .verify-status {
   align-items: center;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   font-size: var(--fs-body);
 }
 
@@ -355,7 +355,7 @@
   height: auto;
   min-height: var(--touch-target-min);
   padding: 10px 16px;
-  border-color: var(--color-disabled);
+  border-color: var(--disabled-bg);
   font-size: var(--fs-md);
   line-height: 1.4;
   text-align: center;

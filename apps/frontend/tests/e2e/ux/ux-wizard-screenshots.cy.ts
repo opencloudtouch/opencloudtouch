@@ -97,17 +97,17 @@ function injectLightMode(): void {
     style.id = "ux-light-override";
     style.textContent = `
       :root {
-        --color-bg-dark:        #f8f9fa !important;
-        --color-bg-card:        #ffffff !important;
+        --surface-page:        #f8f9fa !important;
+        --surface-card:        #ffffff !important;
         --color-bg-input:       #ffffff !important;
         --color-bg-hover:       #e9ecef !important;
-        --color-text-primary:   #212529 !important;
-        --color-text-secondary: #6c757d !important;
-        --color-border:         #dee2e6 !important;
-        --color-accent:         #0055aa !important;
-        --text-primary:         #212529 !important;
-        --surface-color:        #ffffff !important;
-        --border-color:         #dee2e6 !important;
+        --text-strong:   #212529 !important;
+        --text-secondary: #6c757d !important;
+        --border-default:         #dee2e6 !important;
+        --primary-solid:         #0055aa !important;
+        --text-default:         #212529 !important;
+        --surface-panel:        #ffffff !important;
+        --border-default:         #dee2e6 !important;
       }
       body, html, .app, .app-main, #root {
         background: #f8f9fa !important;

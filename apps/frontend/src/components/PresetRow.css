@@ -7,8 +7,8 @@
   align-items: stretch;
   min-width: 0;
   height: 76px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--ui-control-border);
+  background: var(--surface-card);
+  border: 1px solid var(--border-control);
   border-radius: var(--border-radius-md);
   overflow: hidden;
   transition: background var(--motion-base);
@@ -24,21 +24,21 @@
   padding: 8px 12px;
   background: transparent;
   border: 0;
-  color: var(--text-primary);
+  color: var(--text-default);
   text-align: left;
   font: inherit;
   cursor: pointer;
   border-radius: inherit;
 }
 .pr-main:hover:not([aria-disabled="true"]) {
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .pr-main:active:not([aria-disabled="true"]) {
   background: var(--primary-bg-strong);
 }
 .pr-main:focus-visible,
 .pr-edit:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--primary-solid);
   outline-offset: -4px;
 }
 .pr-num {
@@ -51,8 +51,8 @@
   justify-content: center;
   font-size: var(--fs-small);
   font-weight: var(--font-weight-bold);
-  background: var(--bg-tertiary);
-  color: var(--color-text-primary);
+  background: var(--surface-muted);
+  color: var(--text-strong);
 }
 .pb-logo {
   flex: none;
@@ -60,7 +60,7 @@
   height: 40px;
   border-radius: var(--border-radius-sm);
   overflow: hidden;
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .pb-favicon {
   width: 100%;
@@ -92,7 +92,7 @@
   font-size: var(--fs-lg);
   line-height: 1.3;
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .pr-state {
   display: flex;
@@ -101,7 +101,7 @@
   min-height: 18px;
   font-size: var(--fs-small);
   line-height: 1.3;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
 }
@@ -119,7 +119,7 @@
   background: var(--primary-bg-strong);
 }
 .pr--playing .pr-state {
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   font-weight: var(--font-weight-medium);
 }
 .pr--paused {
@@ -127,13 +127,13 @@
   background: var(--primary-bg);
 }
 .pr--paused .pr-state {
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .pr--starting {
   border: 2px solid var(--primary-color);
 }
 .pr--starting .pr-state {
-  color: var(--color-text-primary);
+  color: var(--text-strong);
 }
 .pr--failed {
   border: 2px solid var(--danger-text);
@@ -146,10 +146,10 @@
   border-style: dashed;
 }
 .pr--empty .pr-main {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .pr--empty .pr-name {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-weight: var(--font-weight-normal);
   display: flex;
   align-items: center;
@@ -178,13 +178,13 @@
   padding: 0;
   background: transparent;
   border: 0;
-  border-left: 1px solid var(--border-color);
-  color: var(--color-text-secondary);
+  border-left: 1px solid var(--border-default);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 .pr-edit:hover:not([aria-disabled="true"]) {
-  color: var(--color-text-primary);
-  background: var(--bg-tertiary);
+  color: var(--text-strong);
+  background: var(--surface-muted);
 }
 .pr-plus {
   display: flex;

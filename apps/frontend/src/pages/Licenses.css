@@ -27,7 +27,7 @@
   margin: 0;
   font-size: var(--fs-body);
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   text-wrap: pretty;
   overflow-wrap: anywhere;
 }
@@ -42,7 +42,7 @@
   align-items: center;
   gap: 0 12px;
   padding: 4px 0;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 .lic-item:first-child {
   border-top: 0;
@@ -77,7 +77,7 @@
   grid-column: 1 / -1;
   padding-bottom: 8px;
   font-size: var(--fs-small);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 .lic-k {

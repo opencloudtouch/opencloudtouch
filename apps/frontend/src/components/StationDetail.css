@@ -4,7 +4,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
   margin-top: 12px;
 }
 .sd-loading {
@@ -15,7 +15,7 @@
   justify-content: center;
   gap: var(--space-md);
   padding: 40px var(--space-md);
-  color: var(--text-primary);
+  color: var(--text-default);
   font-size: var(--fs-h3);
 }
 .sd-body {
@@ -42,7 +42,7 @@
   height: 64px;
   border-radius: var(--border-radius-sm);
   object-fit: contain;
-  background: var(--bg-tertiary);
+  background: var(--surface-muted);
 }
 .sd-title {
   min-width: 0;
@@ -55,12 +55,12 @@
   font-size: var(--fs-h2);
   line-height: 1.25;
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow-wrap: anywhere;
 }
 .sd-country {
   font-size: var(--fs-md);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 .sd-meta {
@@ -76,21 +76,21 @@
   gap: 12px;
   min-width: 0;
   padding: 10px 12px;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius-sm);
 }
 .sd-label {
   flex: none;
   font-size: var(--fs-small);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 .sd-value {
   margin: 0;
   min-width: 0;
   font-size: var(--fs-body);
   text-align: right;
-  color: var(--color-text-primary);
+  color: var(--text-strong);
   overflow-wrap: anywhere;
 }
 .sd-link {
@@ -118,7 +118,7 @@
   flex-direction: column-reverse;
   gap: 12px;
   padding: var(--space-md) var(--space-md) var(--space-md) 20px;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 @media (min-width: 601px) {
   .sd-actions {
