@@ -31,7 +31,6 @@ import { useNowPlaying } from "../hooks/useNowPlaying";
 import { useZones } from "../hooks/useZones";
 import { useLastPreset } from "../hooks/useLastPreset";
 import { usePrefetchDevices } from "../hooks/usePrefetchDevices";
-import { useStereoPairs } from "../hooks/useStereoPairs";
 import { StereoRoleBadge } from "../components/StereoPairCard";
 import { useToast } from "../contexts/ToastContext";
 import "../components/DeviceCard.css";
@@ -45,8 +44,9 @@ interface DevicesProps {
 }
 
 const RADIO_SOURCES = new Set(["INTERNET_RADIO", "LOCAL_INTERNET_RADIO", "TUNEIN"]);
-// The RIGHT speaker of a stereo pair is controlled through the LEFT one. Set to false once the
-// non-master behaviour is verified on hardware: nothing else has to change.
+// The RIGHT speaker of a stereo pair is controlled through the LEFT one: transport keys, source
+// switch and presets are locked. Power and volume stay usable (decided with the product owner).
+// Set to false once the non-master behaviour is verified on hardware: nothing else has to change.
 const STEREO_RIGHT_LOCK = true;
 const PRESET_NUMBERS = [1, 2, 3, 4, 5, 6];
 const SOURCE_LABEL_KEYS: Record<DeviceSource, string> = {
@@ -129,12 +129,11 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
   const masterName = deviceZone?.members.find((m) => m.role === "master")?.name ?? "";
 
   // Stereo pair: both speakers stay visible; the RIGHT one is not controlled directly.
-  const { pairs } = useStereoPairs();
+  // The names come with the device list, so the row is complete when the card is first drawn.
   const stereoRole = currentDevice?.stereo_role ?? null;
-  const stereoPair = pairs.find((p) => p.id === currentDevice?.stereo_pair_id) ?? null;
-  const partnerName = stereoPair?.members.find((p) => p.device_id !== deviceId)?.name ?? "";
+  const partnerName = currentDevice?.stereo_partner_name ?? "";
   const isStereoLocked = STEREO_RIGHT_LOCK && stereoRole === "RIGHT";
-  const leftName = stereoPair?.members.find((p) => p.role === "LEFT")?.name ?? partnerName;
+  const leftName = currentDevice?.stereo_master_name ?? partnerName;
 
   // The source and the presets cannot be changed in standby, as a zone member, or while a switch runs
   const controlsLocked = isStandby || isZoneMember || isStereoLocked;

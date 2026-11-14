@@ -14,6 +14,8 @@ NO_STEREO_INFO: Dict[str, Any] = {
     "stereo_pair_id": None,
     "stereo_role": None,
     "stereo_master": False,
+    "stereo_partner_name": None,
+    "stereo_master_name": None,
 }
 
 
@@ -38,7 +40,10 @@ async def load_stereo_context(
 
 
 def stereo_fields(
-    device: Any, pairs: Dict[str, StereoPair], zone_device_ids: Set[str]
+    device: Any,
+    pairs: Dict[str, StereoPair],
+    zone_device_ids: Set[str],
+    names: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
     """Stereo fields for one device (stored data only, no live device calls).
 
@@ -66,6 +71,15 @@ def stereo_fields(
     elif device.device_id in zone_device_ids:
         reason = "in_zone"
 
+    names = names or {}
+    partner_id = master_name = None
+    if pair is not None:
+        partner_id = (
+            pair.right_device_id
+            if pair.left_device_id == device.device_id
+            else pair.left_device_id
+        )
+        master_name = names.get(pair.master_device_id)
     role = None
     if pair is not None:
         role = "LEFT" if pair.left_device_id == device.device_id else "RIGHT"
@@ -76,4 +90,6 @@ def stereo_fields(
         "stereo_pair_id": pair.id if pair else None,
         "stereo_role": role,
         "stereo_master": pair is not None and pair.master_device_id == device.device_id,
+        "stereo_partner_name": names.get(partner_id) if partner_id else None,
+        "stereo_master_name": master_name,
     }

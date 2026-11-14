@@ -26,6 +26,10 @@ export interface DeviceStereoInfo {
   stereo_pair_id: number | null;
   stereo_role: StereoRole | null;
   stereo_master: boolean;
+  /** name of the other speaker of the pair, null outside a pair */
+  stereo_partner_name: string | null;
+  /** name of the LEFT (main) speaker of the pair, null outside a pair */
+  stereo_master_name: string | null;
   /** firmware of the speaker, needed for the mismatch warning before the pair exists */
   firmware?: string;
 }

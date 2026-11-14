@@ -99,6 +99,8 @@ class DeviceResponse(BaseModel):
     stereo_pair_id: int | None = None
     stereo_role: str | None = None
     stereo_master: bool = False
+    stereo_partner_name: str | None = None
+    stereo_master_name: str | None = None
 
 
 class DeviceListResponse(BaseModel):
@@ -121,6 +123,7 @@ async def get_devices(
         List of devices with details
     """
     devices = await device_service.get_all_devices()
+    names = {d.device_id: d.name for d in devices}
     try:
         pairs, zone_ids = await load_stereo_context(stereo_repo, zone_repo)
     except Exception:  # noqa: BLE001 - stereo fields are optional extras
@@ -130,7 +133,7 @@ async def get_devices(
     return {
         "count": len(devices),
         "devices": [
-            {**d.to_dict(), **stereo_fields(d, pairs, zone_ids)} for d in devices
+            {**d.to_dict(), **stereo_fields(d, pairs, zone_ids, names)} for d in devices
         ],
     }
 

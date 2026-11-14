@@ -188,20 +188,6 @@ vi.mock("../../src/hooks/useZones", () => ({
   useZones: () => ({ zones: mockZones, isLoading: false, error: null }),
 }));
 
-let mockStereoPairs: unknown[] = [];
-vi.mock("../../src/hooks/useStereoPairs", () => ({
-  useStereoPairs: () => ({
-    pairs: mockStereoPairs,
-    isLoading: false,
-    error: null,
-    reload: vi.fn(),
-    busyId: null,
-    renamePair: vi.fn(),
-    dissolvePair: vi.fn(),
-    repairPair: vi.fn(),
-  }),
-}));
-
 vi.mock("../../src/components/RadioSearch", () => ({
   default: ({
     isOpen,
@@ -282,7 +268,6 @@ describe("Devices Page", () => {
     vi.clearAllMocks();
     mockNowPlayingState = null;
     mockZones = [];
-    mockStereoPairs = [];
     window.localStorage.clear();
 
     // Reset volume hook mock state
@@ -1455,20 +1440,13 @@ describe("Devices Page", () => {
     });
 
     it("the right speaker of a stereo pair is controlled through the left one", async () => {
-      mockStereoPairs = [
-        {
-          id: 7,
-          name: "Office",
-          status: "active",
-          source: "oct",
-          members: [
-            { device_id: "LEFT1", name: "Büro links", role: "LEFT", reachable: true },
-            { device_id: "AABBCC123456", name: "Living Room", role: "RIGHT", reachable: true },
-          ],
-          warnings: [],
-        },
-      ];
-      const right = { ...mockDevices[0], stereo_role: "RIGHT", stereo_pair_id: 7 };
+      const right = {
+        ...mockDevices[0],
+        stereo_role: "RIGHT",
+        stereo_pair_id: 7,
+        stereo_partner_name: "Büro links",
+        stereo_master_name: "Büro links",
+      };
       mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
       await act(async () => {
         render(<Devices devices={[right, mockDevices[1]]} />);
@@ -1483,27 +1461,32 @@ describe("Devices Page", () => {
       expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
     });
 
+    it("keeps power and volume usable on the right speaker", async () => {
+      const right = { ...mockDevices[0], stereo_role: "RIGHT", stereo_pair_id: 7 };
+      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
+      await act(async () => {
+        render(<Devices devices={[right, mockDevices[1]]} />);
+      });
+
+      expect(screen.getByRole("button", { name: "Power on/off" })).toBeEnabled();
+      expect(document.querySelector('[data-test="dv-volume"]')).not.toHaveAttribute("inert");
+    });
+
     it("the left speaker of a stereo pair keeps its controls", async () => {
-      mockStereoPairs = [
-        {
-          id: 7,
-          name: "Office",
-          status: "active",
-          source: "oct",
-          members: [
-            { device_id: "AABBCC123456", name: "Living Room", role: "LEFT", reachable: true },
-            { device_id: "R1", name: "Büro rechts", role: "RIGHT", reachable: true },
-          ],
-          warnings: [],
-        },
-      ];
-      const left = { ...mockDevices[0], stereo_role: "LEFT", stereo_pair_id: 7 };
+      const left = {
+        ...mockDevices[0],
+        stereo_role: "LEFT",
+        stereo_pair_id: 7,
+        stereo_partner_name: "Büro rechts",
+        stereo_master_name: "Living Room",
+      };
       mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
       await act(async () => {
         render(<Devices devices={[left, mockDevices[1]]} />);
       });
 
       expect(document.querySelector('[data-test="device-stereo"]')).toHaveTextContent("Left");
+      expect(screen.getByText("Partner: Büro rechts")).toBeInTheDocument();
       expect(document.getElementById("dv-slave-hint")).toBeNull();
       expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled();
     });

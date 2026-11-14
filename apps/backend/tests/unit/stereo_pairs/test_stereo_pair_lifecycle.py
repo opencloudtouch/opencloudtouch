@@ -277,3 +277,27 @@ class TestDissolveAndRename:
         with pytest.raises(CodedApiError) as raised:
             await lifecycle.rename(999, "x")
         assert raised.value.code == codes.STEREO_PAIR_NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_pair_list_stays_responsive_when_a_speaker_hangs(
+    lifecycle, network, monkeypatch
+):
+    """A switched-off speaker must not block the list for the full HTTP timeout."""
+    import asyncio
+
+    from opencloudtouch.stereo_pairs import lifecycle as lifecycle_module
+
+    pair = await _create(lifecycle)
+    monkeypatch.setattr(lifecycle_module, "REACHABILITY_TIMEOUT", 0.05)
+
+    async def hang():
+        await asyncio.sleep(5)
+
+    network.speakers[R_IP].reachable = True
+    client = network.client(R_IP)
+    monkeypatch.setattr(type(client), "get_info", lambda self: hang())
+
+    described = await asyncio.wait_for(lifecycle.describe(pair), 1.0)
+
+    assert all(member["reachable"] is False for member in described["members"])
