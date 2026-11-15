@@ -75,6 +75,8 @@ async def set_preset(
 
         return PresetResponse(**saved_preset.to_dict())
 
+    except DeviceConnectionError:
+        raise
     except DeviceNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))  # NOSONAR
     except ValueError as e:
@@ -237,6 +239,8 @@ async def sync_presets_from_device(
             message=f"Synced {count} presets from device {device_id}"
         )
 
+    except DeviceConnectionError:
+        raise
     except ValueError as e:
         logger.exception("Device %s not found", device_id)
         raise HTTPException(status_code=404, detail=str(e))

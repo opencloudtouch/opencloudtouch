@@ -14,7 +14,7 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
 
-from opencloudtouch.core.exceptions import DeviceNotFoundError
+from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.presets.models import Preset
@@ -163,12 +163,41 @@ class PresetService:
             The saved Preset object
 
         Raises:
-            ValueError: If preset_number is not between 1-6 or device not found
+            ValueError: If preset_number is not between 1-6
+            DeviceNotFoundError: If the device is unknown
+            DeviceConnectionError: If the speaker is unreachable (nothing is saved)
         """
         if station_uuid.startswith("manual-"):
             await self._check_stream_reachable(station_url)
 
-        # 1. Save to OpenCloudTouch database
+        # 1. Program the speaker first: if it is unreachable this raises
+        # DeviceConnectionError and nothing is saved, so OCT and speaker stay in sync.
+        device = await self.device_repository.get_by_device_id(device_id)
+        if not device:
+            raise DeviceNotFoundError(device_id)
+
+        from opencloudtouch.core.config import get_config
+        from opencloudtouch.devices.adapter import get_device_client
+
+        base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
+        client = get_device_client(base_url)
+        try:
+            await client.store_preset(
+                device_id=device_id,
+                preset_number=preset_number,
+                station_url=station_url,
+                station_name=station_name,
+                oct_backend_url=get_config().station_descriptor_base_url,
+                station_image_url=station_favicon or "",
+                station_uuid=station_uuid,
+            )
+        finally:
+            await client.close()
+        logger.info(
+            "Bose device programmed: Preset %d = %s", preset_number, station_name
+        )
+
+        # 2. Save to the OpenCloudTouch database
         preset = Preset(
             device_id=device_id,
             preset_number=preset_number,
@@ -179,63 +208,13 @@ class PresetService:
             station_favicon=station_favicon,
             source="LOCAL_INTERNET_RADIO",  # OCT-managed presets from RadioBrowser
         )
-
         saved_preset = await self.repository.set_preset(preset)
-
         logger.info(
             "Set preset %d in database for device %s: %s",
             preset_number,
             device_id,
             station_name,
         )
-
-        # 2. Program Bose device via /storePreset API
-        try:
-            device = await self.device_repository.get_by_device_id(device_id)
-            if not device:
-                raise DeviceNotFoundError(device_id)
-
-            from opencloudtouch.core.config import get_config
-            from opencloudtouch.devices.adapter import get_device_client
-
-            # Get OCT backend URL from config
-            cfg = get_config()
-            oct_backend_url = cfg.station_descriptor_base_url
-
-            base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
-            client = get_device_client(base_url)
-
-            try:
-                await client.store_preset(
-                    device_id=device_id,
-                    preset_number=preset_number,
-                    station_url=station_url,
-                    station_name=station_name,
-                    oct_backend_url=oct_backend_url,
-                    station_image_url=station_favicon or "",
-                    station_uuid=station_uuid,
-                )
-                logger.info(
-                    "✅ Bose device programmed: Preset %d = %s",
-                    preset_number,
-                    station_name,
-                )
-            finally:
-                await client.close()
-
-        except Exception as e:
-            logger.error(
-                "Failed to program Bose device for preset %d: %s",
-                preset_number,
-                e,
-                exc_info=True,
-            )
-            # Don't fail the whole operation if Bose programming fails
-            # Database record is still saved, user can retry
-            logger.warning(
-                "Preset %d saved to database but NOT programmed on Bose device",
-                preset_number,
-            )
 
         return saved_preset
 
@@ -389,9 +368,15 @@ class PresetService:
 
         Returns:
             Raw XML response bytes
+
+        Raises:
+            DeviceConnectionError: If the device is unreachable
         """
         device_url = f"http://{device_ip}:{SOUNDTOUCH_HTTP_PORT}/presets"  # NOSONAR — Bose devices only support HTTP
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(device_url)
-            response.raise_for_status()
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(device_url)
+                response.raise_for_status()
+        except httpx.HTTPError as e:
+            raise DeviceConnectionError(device_ip, str(e)) from e
         return response.content

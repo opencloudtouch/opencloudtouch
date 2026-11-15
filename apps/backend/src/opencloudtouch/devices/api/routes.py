@@ -345,7 +345,7 @@ async def press_key(
     "/{device_id}/name",
     responses={
         422: {"description": "Invalid name"},
-        502: {"description": "The device did not accept the new name"},
+        503: {"description": "The device is unreachable or rejected the new name"},
     },
 )
 async def rename_device(
@@ -369,7 +369,7 @@ async def rename_device(
     Raises:
         DeviceNotFoundError: If device does not exist
         HTTPException(422): If name validation fails
-        HTTPException(502): If the device does not accept the new name
+        DeviceConnectionError: If the device is unreachable (503, nothing changed)
     """
     name = body.get("name", "").strip()
 
@@ -395,6 +395,8 @@ async def rename_device(
     try:
         async with device_service._device_client(device_id) as client:
             await client.set_name(name)
+    except DeviceConnectionError:
+        raise
     except Exception as e:
         logger.exception("Rename of device %r failed", device.device_id)
         raise HTTPException(status_code=502, detail="Could not rename device") from e

@@ -14,7 +14,7 @@ from xml.etree import ElementTree as ET
 import httpx
 import pytest
 
-from opencloudtouch.core.exceptions import DeviceNotFoundError
+from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.service import PresetService
 
@@ -96,7 +96,7 @@ async def test_sync_presets_raises_if_device_not_found(service, mock_device_repo
 
 @pytest.mark.asyncio
 async def test_sync_presets_raises_on_http_error(service):
-    """Device HTTP request fails → httpx error propagates."""
+    """Device HTTP request fails → DeviceConnectionError (HTTP 503 at the API)."""
     with patch("opencloudtouch.presets.service.httpx.AsyncClient") as mock_client_cls:
         instance = AsyncMock()
         instance.__aenter__ = AsyncMock(return_value=instance)
@@ -104,7 +104,7 @@ async def test_sync_presets_raises_on_http_error(service):
         instance.get = AsyncMock(side_effect=httpx.ConnectError("Connection refused"))
         mock_client_cls.return_value = instance
 
-        with pytest.raises(httpx.ConnectError):
+        with pytest.raises(DeviceConnectionError):
             await service.sync_presets_from_device("dev-001")
 
 
@@ -816,51 +816,43 @@ async def test_common_url_validation_does_not_open_http_connection(
 
 
 @pytest.mark.asyncio
-async def test_set_preset_device_programming_failure_does_not_reraise(
-    service, mock_device_repo
-):
-    """If Bose device programming fails, DB record is still returned."""
-    saved_preset = MagicMock()
-    service.repository.set_preset = AsyncMock(return_value=saved_preset)
-
+async def test_set_preset_offline_speaker_saves_nothing(service, mock_repo):
+    """Speaker unreachable -> DeviceConnectionError and no OCT row (stay in sync)."""
     with patch("opencloudtouch.devices.adapter.get_device_client") as mock_get_client:
         mock_client = AsyncMock()
         mock_client.store_preset = AsyncMock(
-            side_effect=Exception("Device unreachable")
+            side_effect=DeviceConnectionError("192.168.1.100", "offline")
         )
-        mock_client.close = AsyncMock()
         mock_get_client.return_value = mock_client
 
-        result = await service.set_preset(
-            device_id="dev-001",
-            preset_number=2,
-            station_uuid="uuid-xyz",
-            station_name="Fails Station",
-            station_url="http://fails.station/stream.mp3",
-        )
+        with pytest.raises(DeviceConnectionError):
+            await service.set_preset(
+                device_id="dev-001",
+                preset_number=2,
+                station_uuid="uuid-xyz",
+                station_name="Fails Station",
+                station_url="http://fails.station/stream.mp3",
+            )
 
-    # Must NOT raise — failure is logged and swallowed
-    assert result == saved_preset
+    mock_repo.set_preset.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_set_preset_device_not_found_during_programming(
-    service, mock_device_repo
+async def test_set_preset_unknown_device_raises_not_found(
+    service, mock_device_repo, mock_repo
 ):
-    """If device is missing when programming, a warning is logged but preset is returned."""
     mock_device_repo.get_by_device_id = AsyncMock(return_value=None)
-    saved_preset = MagicMock()
-    service.repository.set_preset = AsyncMock(return_value=saved_preset)
 
-    result = await service.set_preset(
-        device_id="missing-dev",
-        preset_number=3,
-        station_uuid="uuid-zzz",
-        station_name="Ghost Station",
-        station_url="http://ghost/stream.mp3",
-    )
+    with pytest.raises(DeviceNotFoundError):
+        await service.set_preset(
+            device_id="missing-dev",
+            preset_number=3,
+            station_uuid="uuid-zzz",
+            station_name="Ghost Station",
+            station_url="http://ghost/stream.mp3",
+        )
 
-    assert result == saved_preset
+    mock_repo.set_preset.assert_not_awaited()
 
 
 # ---------------------------------------------------------------------------
