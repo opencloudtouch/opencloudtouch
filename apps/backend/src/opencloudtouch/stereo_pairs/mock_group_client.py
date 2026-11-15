@@ -16,6 +16,7 @@ class FakeSpeaker:
         self.ip = ip
         self.info = info
         self.group: Optional[GroupState] = None
+        self.updates: List[tuple] = []
         self.zone_ids: List[str] = []
         self.reachable = True
         # failure injection: list of exceptions raised by the next calls
@@ -108,8 +109,15 @@ class FakeGroupClient:
             raise pending_error
         return group_id
 
-    async def update_group(self, name: str, master_id: str) -> None:
+    async def update_group(
+        self,
+        name: str,
+        master_id: str,
+        roles: Dict[str, tuple[str, str]],
+        group_id: str,
+    ) -> None:
         self._check("update_group")
+        self._speaker.updates.append((name, master_id, roles, group_id))
         if self._speaker.group is not None:
             self._speaker.group.name = name
 

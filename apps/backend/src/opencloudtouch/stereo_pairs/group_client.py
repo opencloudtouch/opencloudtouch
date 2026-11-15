@@ -73,7 +73,13 @@ class GroupClient(Protocol):
         sender_ip: Optional[str] = None,
     ) -> Optional[str]: ...
 
-    async def update_group(self, name: str, master_id: str) -> None: ...
+    async def update_group(
+        self,
+        name: str,
+        master_id: str,
+        roles: Dict[str, tuple[str, str]],
+        group_id: str,
+    ) -> None: ...
 
     async def remove_group(self) -> None: ...
 
@@ -109,6 +115,7 @@ class HttpGroupClient:
         *,
         content: str | None = None,
         timeout: float = READ_TIMEOUT,
+        content_type: str = "text/xml",
     ) -> ET.Element:
         logger.debug(
             "[SPEAKER] -> %s %s %s %s", method, self.ip, path, clip_for_log(content)
@@ -120,7 +127,7 @@ class HttpGroupClient:
                     f"{self._base}{path}",
                     content=content.encode("utf-8") if content is not None else None,
                     headers=(
-                        {"Content-Type": "text/xml"} if content is not None else None
+                        {"Content-Type": content_type} if content is not None else None
                     ),
                 )
         except (httpx.TimeoutException, httpx.TransportError) as exc:
@@ -202,13 +209,34 @@ class HttpGroupClient:
         )
         return response.get("id")
 
-    async def update_group(self, name: str, master_id: str) -> None:
+    async def update_group(
+        self,
+        name: str,
+        master_id: str,
+        roles: Dict[str, tuple[str, str]],
+        group_id: str,
+    ) -> None:
+        """Rename the group: a POST of the whole group, as the Gesellix client does.
+
+        A PUT is answered with 405 and a name-only body with 5540 (checked on a real
+        SoundTouch 10, firmware 27.0.6).
+        """
+        entries = "".join(
+            f"<groupRole><deviceId>{escape(device_id)}</deviceId>"
+            f"<role>{role}</role><ipAddress>{escape(ip)}</ipAddress></groupRole>"
+            for device_id, (role, ip) in roles.items()
+        )
         body = (
-            f"<group><name>{escape(name)}</name>"
-            f"<masterDeviceId>{escape(master_id)}</masterDeviceId></group>"
+            f'<group id="{escape(group_id)}"><name>{escape(name)}</name>'
+            f"<masterDeviceId>{escape(master_id)}</masterDeviceId>"
+            f"<roles>{entries}</roles></group>"
         )
         await self._request(
-            "PUT", "/updateGroup", content=body, timeout=ADD_GROUP_TIMEOUT
+            "POST",
+            "/updateGroup",
+            content=body,
+            timeout=ADD_GROUP_TIMEOUT,
+            content_type="application/xml; charset=utf-8",
         )
 
     async def remove_group(self) -> None:

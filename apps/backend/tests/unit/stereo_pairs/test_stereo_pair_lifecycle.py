@@ -308,6 +308,17 @@ class TestDissolveAndRename:
         assert renamed.name == "Living room"
         assert network.speakers[L_IP].group.name == "Living room"
 
+    async def test_rename_sends_the_group_id_and_both_roles_with_ips(
+        self, lifecycle, network
+    ):
+        pair = await _create(lifecycle)
+
+        await lifecycle.rename(pair.id, "Living room")
+
+        name, master_id, roles, group_id = network.speakers[L_IP].updates[-1]
+        assert (name, master_id, group_id) == ("Living room", "L1", str(pair.id))
+        assert roles == {"L1": ("LEFT", L_IP), "R1": ("RIGHT", R_IP)}
+
     async def test_rename_rejects_empty_name_and_unknown_pair(self, lifecycle):
         pair = await _create(lifecycle)
         with pytest.raises(CodedApiError):

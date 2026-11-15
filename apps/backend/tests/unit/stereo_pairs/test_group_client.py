@@ -147,17 +147,43 @@ async def test_timeout_is_uncertain_and_bad_xml_is_not(speaker):
     assert raised.value.uncertain is False
 
 
+GESELLIX_RENAME_BODY = (
+    '<group id="7"><name>Büro Stereo</name><masterDeviceId>L1</masterDeviceId>'
+    "<roles><groupRole><deviceId>L1</deviceId><role>LEFT</role>"
+    "<ipAddress>10.0.0.1</ipAddress></groupRole>"
+    "<groupRole><deviceId>R1</deviceId><role>RIGHT</role>"
+    "<ipAddress>10.0.0.2</ipAddress></groupRole></roles></group>"
+)
+
+
 @pytest.mark.asyncio
-async def test_update_group_uses_put_and_remove_group_uses_get(speaker):
+async def test_update_group_posts_the_full_group_like_gesellix(speaker):
+    """The speaker answers PUT /updateGroup with 405; the working form is a POST of the whole group."""
     routes, seen = speaker
     routes["/updateGroup"] = GROUP
-    routes["/removeGroup"] = "<group />"
     client = HttpGroupClient("10.0.0.1")
 
-    await client.update_group("New", "L1")
-    await client.remove_group()
+    await client.update_group(
+        "Büro Stereo",
+        "L1",
+        {"L1": ("LEFT", "10.0.0.1"), "R1": ("RIGHT", "10.0.0.2")},
+        "7",
+    )
 
-    assert [r.method for r in seen] == ["PUT", "GET"]
+    request = seen[0]
+    assert request.method == "POST"
+    assert request.headers["content-type"] == "application/xml; charset=utf-8"
+    assert request.content == GESELLIX_RENAME_BODY.encode("utf-8")
+
+
+@pytest.mark.asyncio
+async def test_remove_group_uses_get(speaker):
+    routes, seen = speaker
+    routes["/removeGroup"] = "<group />"
+
+    await HttpGroupClient("10.0.0.1").remove_group()
+
+    assert [r.method for r in seen] == ["GET"]
 
 
 NO_GROUP_ERROR = (

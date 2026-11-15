@@ -402,8 +402,21 @@ class StereoPairLifecycle:
                 raise stereo_error(
                     502, codes.STEREO_PAIR_DEVICE_UNREACHABLE, "Master is unknown"
                 )
+            roles: Dict[str, tuple[str, str]] = {}
+            for device_id, role in (
+                (pair.left_device_id, "LEFT"),
+                (pair.right_device_id, "RIGHT"),
+            ):
+                device = await self._device_repo.get_by_device_id(device_id)
+                if device is None:
+                    raise stereo_error(
+                        502, codes.STEREO_PAIR_DEVICE_UNREACHABLE, "Member is unknown"
+                    )
+                roles[device_id] = (role, device.ip)
             try:
-                await master.update_group(name, pair.master_device_id)
+                await master.update_group(
+                    name, pair.master_device_id, roles, str(pair.id)
+                )
                 group: Optional[GroupState] = await master.get_group()
             except GroupClientError as exc:
                 raise stereo_error(
