@@ -215,12 +215,7 @@ export default function StereoPairCard({
               style={{ width: `${((progress?.done ?? 0) / (progress?.total ?? 4)) * 100}%` }}
             />
           </div>
-          <p className="sp-reason">
-            {t(
-              "stereo.creatingText",
-              "Wird erstellt."
-            )}
-          </p>
+          <p className="sp-reason">{t("stereo.creatingText", "Wird erstellt.")}</p>
           {onShowProgress && (
             <button type="button" className="btn btn-secondary" onClick={onShowProgress}>
               {t("stereo.showProgress", "Fortschritt anzeigen")}

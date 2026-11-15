@@ -344,10 +344,7 @@ export default function StereoPairCreateDialog({
                     {t("stereo.dlg.runningTitle", "Stereopaar wird erstellt")}
                   </h3>
                   <p className="sp-reason">
-                    {t(
-                      "stereo.dlg.runningHint",
-                      "Lass beide Lautsprecher eingeschaltet."
-                    )}
+                    {t("stereo.dlg.runningHint", "Lass beide Lautsprecher eingeschaltet.")}
                   </p>
                 </div>
                 <div

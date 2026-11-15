@@ -488,7 +488,9 @@ export default function Devices({
                     deviceId={currentDevice.device_id}
                     name={pairName}
                     maxLength={100}
-                    rename={async (name) => ({ name: (await renameStereoPair(stereoPairId, name)).name })}
+                    rename={async (name) => ({
+                      name: (await renameStereoPair(stereoPairId, name)).name,
+                    })}
                   />
                 ) : currentDevice ? (
                   <DeviceNameEditor deviceId={currentDevice.device_id} name={currentDevice.name} />
@@ -728,7 +730,7 @@ export default function Devices({
                         onDissolved: () => onDevicesChanged?.(),
                       }
                 }
-                name={stereoPairId === null ? currentDevice.name ?? "" : pairName}
+                name={stereoPairId === null ? (currentDevice.name ?? "") : pairName}
               />
             )}
           </div>

@@ -43,7 +43,11 @@ export default function RemoveDevice({
         pair.onDissolved();
       } catch (err) {
         console.error("Failed to dissolve stereo pair:", err);
-        show(t("stereo.dissolveFailed", "Das Stereopaar konnte nicht aufgelöst werden"), "error", 8000);
+        show(
+          t("stereo.dissolveFailed", "Das Stereopaar konnte nicht aufgelöst werden"),
+          "error",
+          8000
+        );
       }
       return;
     }
@@ -71,7 +75,11 @@ export default function RemoveDevice({
       </div>
       <ConfirmDialog
         open={open}
-        title={pair ? t("stereo.confirmDissolveTitle", "Stereopaar auflösen?") : t("presets.removeDeviceTitle")}
+        title={
+          pair
+            ? t("stereo.confirmDissolveTitle", "Stereopaar auflösen?")
+            : t("presets.removeDeviceTitle")
+        }
         message={
           pair
             ? t(
