@@ -37,7 +37,9 @@ from opencloudtouch.marge.xml_builder import (
     build_full_account_xml,
     build_streaming_account_xml,
     build_presets_xml,
+    build_preset_response_xml,
     build_recent_response_xml,
+    build_recents_response_xml,
     build_recents_xml,
     build_sources_xml,
     source_name_for_id,
@@ -438,6 +440,92 @@ def _group_response(body: bytes, status_code: int = 200) -> Response:
 
 def _group_error(code: str, message: str) -> Response:
     return _group_response(build_error_xml(code, message), 400)
+
+
+MargeServiceDep = Annotated[MargeService, Depends(get_marge_service)]
+
+
+@router.put(
+    "/streaming/account/{account_id}/device/{device_id}", include_in_schema=False
+)
+async def rename_device(
+    account_id: str, device_id: str, request: Request, marge: MargeServiceDep
+) -> Response:
+    """Speaker rename: the speaker only applies a new name after this answers 2xx."""
+    body = await request.body()
+    logger.info(
+        "[MARGE/DEVICE] PUT %s request=%s",
+        request.url.path,
+        clip_for_log(body.decode("utf-8", errors="replace")),
+    )
+    try:
+        root = parse_xml_string(body)
+    except (ParseError, ValueError):
+        return Response(status_code=400)
+    name = (root.findtext("name") or "").strip()
+    if root.tag != "device" or not name or root.get("deviceid", device_id) != device_id:
+        return Response(status_code=400)
+    if not await marge.rename_device(device_id, name):
+        return Response(status_code=404)
+    device = ET.Element("device", {"deviceid": device_id})
+    ET.SubElement(device, "name").text = name
+    ET.SubElement(device, "macaddress").text = device_id
+    return _xml_response(device, _MEDIA_STREAMING_XML)
+
+
+@router.put(
+    "/streaming/account/{account_id}/device/{device_id}/preset/{slot}",
+    include_in_schema=False,
+)
+async def put_device_preset(
+    account_id: str, device_id: str, slot: int, request: Request, marge: MargeServiceDep
+) -> Response:
+    """Speaker stored a preset on its own: take it over and echo the stored entry."""
+    body = await request.body()
+    logger.info(
+        "[MARGE/PRESET] PUT %s request=%s",
+        request.url.path,
+        clip_for_log(body.decode("utf-8", errors="replace")),
+    )
+    try:
+        root = parse_xml_string(body)
+    except (ParseError, ValueError):
+        return Response(status_code=400)
+    location = (root.findtext("location") or "").strip()
+    name = (root.findtext("name") or root.findtext("username") or "").strip()
+    if root.tag != "preset" or not location or not 1 <= slot <= 6:
+        return Response(status_code=400)
+    stored = await marge.store_preset(
+        device_id, slot, (root.findtext("sourceid") or "").strip(), name, location
+    )
+    return _xml_response(build_preset_response_xml(stored), _MEDIA_STREAMING_XML)
+
+
+@router.delete(
+    "/streaming/account/{account_id}/device/{device_id}/preset/{slot}",
+    include_in_schema=False,
+)
+async def delete_device_preset(
+    account_id: str, device_id: str, slot: int, marge: MargeServiceDep
+) -> Response:
+    """Speaker removed a preset (also sent before it overwrites a duplicate)."""
+    logger.info("[MARGE/PRESET] DELETE device %s slot %d", device_id, slot)
+    if not 1 <= slot <= 6:
+        return Response(status_code=400)
+    await marge.delete_preset(device_id, slot)
+    return Response(status_code=200)
+
+
+@router.get(
+    "/streaming/account/{account_id}/device/{device_id}/recents",
+    include_in_schema=False,
+)
+async def get_device_recents(
+    account_id: str, device_id: str, marge: MargeServiceDep
+) -> Response:
+    """The speaker reads its recents back after reporting one."""
+    recents = await marge.get_recents(device_id)
+    return _xml_response(build_recents_response_xml(recents), _MEDIA_STREAMING_XML)
 
 
 @router.post(

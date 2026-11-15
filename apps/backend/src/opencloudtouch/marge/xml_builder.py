@@ -55,6 +55,10 @@ def build_preset_xml(preset: Any) -> ET.Element:
         # RadioBrowser preset (real format)
         preset_id = str(preset.preset_number)
         source = getattr(preset, "source", None) or "LOCAL_INTERNET_RADIO"
+        if source not in _sources_by_name():
+            # e.g. INTERNET_RADIO imported from a speaker: without a known <source>
+            # the speaker drops the preset; the Orion location plays it anyway.
+            source = "LOCAL_INTERNET_RADIO"
         name = preset.station_name
         image_url = preset.station_favicon or ""
         # Build Orion adapter URL so the device resolves streams via BMX
@@ -219,6 +223,9 @@ def _source_element(parent: ET.Element, src: Any) -> ET.Element:
     return source
 
 
+_EPOCH = "2018-01-01T00:00:00.000+00:00"
+
+
 def _sources_by_name() -> dict[str, Any]:
     return {src.source_type: src for src in BASE_SOURCES}
 
@@ -268,6 +275,26 @@ def _item_children(parent: ET.Element, item: ET.Element, now: str) -> None:
     ET.SubElement(parent, "username")
 
 
+def build_preset_response_xml(preset: Any) -> ET.Element:
+    """One ``<preset buttonNumber>`` entry as the speaker's Marge calls expect it."""
+    element = build_preset_xml(preset)
+    entry = ET.Element("preset", {"buttonNumber": element.get("id", "")})
+    _item_children(entry, element, _EPOCH)
+    return entry
+
+
+def build_recents_response_xml(recents: list[Any] | None) -> ET.Element:
+    """``<recents>`` as listed in ``/full`` and answered to ``GET .../recents``."""
+    recent_list = ET.Element("recents")
+    for stored, recent in zip(recents or [], build_recents_xml(recents)):
+        entry = ET.SubElement(recent_list, "recent", {"id": str(stored.id or 0)})
+        _item_children(entry, recent, _EPOCH)
+        ET.SubElement(entry, "lastplayedat").text = _format_time(stored.played_at)
+        src = _sources_by_name().get(stored.source)
+        ET.SubElement(entry, "sourceid").text = src.streaming_id if src else ""
+    return recent_list
+
+
 def build_streaming_account_xml(
     account_id: str,
     device_id: str | None = None,
@@ -277,10 +304,10 @@ def build_streaming_account_xml(
     """Build the ``<account>`` document the speaker's own Marge sync expects.
 
     The speaker rejects any other root element ("account expected") and then
-    fails its sync every 60 s, which also breaks group creation (error 5580).
+    fails its sync, which also breaks group creation (error 5580).
     Shape follows the Bose cloud / reference servers.
     """
-    now = "2018-01-01T00:00:00.000+00:00"
+    now = _EPOCH
     account = ET.Element("account", {"id": account_id})
     ET.SubElement(account, "accountStatus").text = "OK"
     devices = ET.SubElement(account, "devices")
@@ -289,18 +316,8 @@ def build_streaming_account_xml(
         ET.SubElement(device, "createdOn").text = now
         preset_list = ET.SubElement(device, "presets")
         for preset in presets or []:
-            element = build_preset_xml(preset)
-            entry = ET.SubElement(
-                preset_list, "preset", {"buttonNumber": element.get("id", "")}
-            )
-            _item_children(entry, element, now)
-        recent_list = ET.SubElement(device, "recents")
-        for stored, recent in zip(recents or [], build_recents_xml(recents)):
-            entry = ET.SubElement(recent_list, "recent", {"id": str(stored.id or 0)})
-            _item_children(entry, recent, now)
-            ET.SubElement(entry, "lastplayedat").text = _format_time(stored.played_at)
-            src = _sources_by_name().get(stored.source)
-            ET.SubElement(entry, "sourceid").text = src.streaming_id if src else ""
+            preset_list.append(build_preset_response_xml(preset))
+        device.append(build_recents_response_xml(recents))
         ET.SubElement(device, "updatedOn").text = now
     ET.SubElement(account, "mode").text = "global"
     ET.SubElement(account, "preferredLanguage").text = "en"

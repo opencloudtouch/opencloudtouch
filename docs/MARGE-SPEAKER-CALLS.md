@@ -33,11 +33,19 @@ The master forwards the group to `POST /streaming/account/{account}/group/` (tra
 on teardown it calls `DELETE /streaming/account/{account}/group/{id}` (or without id). A group is `<group id><name/><masterDeviceId/><roles><groupRole>(deviceId, role)</groupRole>...</roles></group>`;
 no group is `<group/>` with status 200. The master learns the slave from the `ipAddress` of each `groupRole` in `/addGroup`; a `senderIPAddress` in the body marks the receiving speaker as slave.
 
-## Known gaps (speaker sends them, OCT answers 404)
+## Writes the speaker mirrors to Marge
 
-- `PUT /streaming/account/{account}/device/{device}/preset/{n}` (preset store): the speaker logs "Update or Add preset failed".
-- `PUT /streaming/account/{account}/device/{device}` (speaker rename): the speaker logs `HandleNameFailureCB` and keeps its old name.
-- `GET /streaming/account/{account}/device/{device}/recents` (read-back of recents).
+The speaker applies a rename or a preset write only after OCT answered 2xx; on a 404 it keeps the old state, logs the failure and does not retry.
+
+| Speaker request | OCT |
+|---|---|
+| `PUT .../device/{device}` body `<device deviceid><name/><macaddress/></device>` (rename) | stores the name, 200 with the `<device>` |
+| `PUT .../device/{device}/preset/{n}` body `<preset buttonNumber><sourceid/><name/><username/><location/><contentItemType/><containerArt/></preset>` | stores the slot (an Orion location is unwrapped to the stream URL), 200 with the `<preset>` entry |
+| `DELETE .../device/{device}/preset/{n}` (also sent first when a new preset duplicates another slot) | removes the slot, 200 |
+| `GET .../device/{device}/recents` (read-back after each recent) | `<recents>` as in `/full` |
+
+In `/full` every preset must carry a `<source>` the speaker knows; a preset without it is silently dropped from the speaker's `/presets`.
+OCT therefore announces presets of an unknown source (for example `INTERNET_RADIO` imported earlier) as `LOCAL_INTERNET_RADIO`, which is how they play anyway.
 
 Other routes the firmware knows but that were not triggered: `/streaming/support/customersupport`, `/streaming/software/update/account/...`,
 `/streaming/music/account/...`, `/streaming/efe/environments`, `/requestToken`, `/navigate`.

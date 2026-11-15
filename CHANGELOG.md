@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Group changes on a speaker (`groupUpdated`) are parsed and forwarded as a `group` event on the device event stream; the pair list refreshes on it
 
 ### Fixed
+- Renaming a speaker (from the app or `/name`) works again with the OCT Marge emulation: the speaker's rename call `PUT .../device/{id}` is answered and the new name is stored
+- Presets written on the speaker (`PUT/DELETE .../device/{id}/preset/{n}`) are taken over, and `GET .../device/{id}/recents` is answered; the speaker no longer logs 404 for them
+- Presets with an unknown source (for example `INTERNET_RADIO`) were missing on the speaker after the account sync change; they are announced as `LOCAL_INTERNET_RADIO` now
 - The speaker's account sync (`/streaming/account/{id}/full`) is answered with an `<account>` document; the old `<boseAccount>` root made the speaker fail its sync every minute and broke group creation
 - Metadata (title/artist) for TuneIn presets learned from a speaker: the relative station location is resolved to a stream URL before the stream is probed
 
