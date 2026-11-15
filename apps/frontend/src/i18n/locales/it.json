@@ -960,8 +960,6 @@
     "background": "Continua in background",
     "confirmDissolveTitle": "Sciogliere la coppia stereo?",
     "confirmDissolveMessage": "«{{name}}» verrà sciolta. {{left}} e {{right}} suoneranno di nuovo singolarmente.",
-    "partner": "Partner: {{name}}",
-    "controlledVia": "Controllato tramite {{master}}",
     "inPair": "In una coppia stereo",
     "defaultName": "{{left}} + {{right}}",
     "reason": {
@@ -1028,6 +1026,11 @@
       "created": "Coppia stereo creata",
       "createFailed": "Impossibile creare la coppia stereo",
       "details": "Dettagli"
-    }
+    },
+    "pairBadge": "Stereo L/R",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Sinistra: {{left}} · Destra: {{right}}",
+    "dissolved": "Coppia stereo «{{name}}» sciolta",
+    "dissolveFailed": "Impossibile sciogliere la coppia stereo"
   }
 }

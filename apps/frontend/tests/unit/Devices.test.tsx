@@ -13,10 +13,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
 import { i18next } from "../../src/i18n";
 import Devices from "../../src/pages/Devices";
 import { deleteDeviceById } from "../../src/api/devices";
+import { dissolveStereoPair } from "../../src/api/stereoPairs";
 import { markDeviceOffline, _resetOfflineStore } from "../../src/api/offlineDeviceStore";
 
 // Mock toast context so tests don't require ToastProvider wrapper
@@ -25,6 +26,11 @@ const mockHideToast = vi.fn();
 vi.mock("../../src/contexts/ToastContext", () => ({
   useToast: () => ({ show: mockShowToast, hide: mockHideToast }),
   ToastProvider: ({ children }: { children: ReactNode }) => children,
+}));
+
+vi.mock("../../src/api/stereoPairs", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/api/stereoPairs")>()),
+  dissolveStereoPair: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock API module
@@ -1439,56 +1445,93 @@ describe("Devices Page", () => {
       expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
     });
 
-    it("the right speaker of a stereo pair is controlled through the left one", async () => {
-      const right = {
-        ...mockDevices[0],
-        stereo_role: "RIGHT",
+    describe("stereo pair shown as one device", () => {
+      const left = {
+        ...mockDevices[1],
+        name: "Büro links",
+        ip: "10.0.0.5",
+        stereo_role: "LEFT",
+        stereo_master: true,
         stereo_pair_id: 7,
+        stereo_pair_name: "Büro Stereo",
+        stereo_partner_name: "Büro rechts",
+        stereo_master_name: "Büro links",
+      };
+      const right = {
+        ...mockDevices[1],
+        device_id: "RIGHT00000001",
+        name: "Büro rechts",
+        ip: "10.0.0.6",
+        stereo_role: "RIGHT",
+        stereo_master: false,
+        stereo_pair_id: 7,
+        stereo_pair_name: "Büro Stereo",
         stereo_partner_name: "Büro links",
         stereo_master_name: "Büro links",
       };
-      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
-      await act(async () => {
-        render(<Devices devices={[right, mockDevices[1]]} />);
-      });
 
-      expect(document.querySelector('[data-test="device-stereo"]')).toHaveTextContent("Right");
-      expect(screen.getByText("Partner: Büro links")).toBeInTheDocument();
-      expect(document.getElementById("dv-slave-hint")).toHaveTextContent(
-        "Controlled via Büro links"
-      );
-      expect(screen.getByRole("button", { name: "AUX" })).toHaveAttribute("aria-disabled", "true");
-      expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
-    });
+      const q = (id: string) => document.querySelector(`[data-test="${id}"]`);
 
-    it("keeps power and volume usable on the right speaker", async () => {
-      const right = { ...mockDevices[0], stereo_role: "RIGHT", stereo_pair_id: 7 };
-      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
-      await act(async () => {
-        render(<Devices devices={[right, mockDevices[1]]} />);
-      });
-
-      expect(screen.getByRole("button", { name: "Power on/off" })).toBeEnabled();
-      expect(document.querySelector('[data-test="dv-volume"]')).not.toHaveAttribute("inert");
-    });
-
-    it("the left speaker of a stereo pair keeps its controls", async () => {
-      const left = {
-        ...mockDevices[0],
-        stereo_role: "LEFT",
-        stereo_pair_id: 7,
-        stereo_partner_name: "Büro rechts",
-        stereo_master_name: "Living Room",
+      const renderPair = async () => {
+        mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
+        await act(async () => {
+          render(<Devices devices={[left, right]} />);
+        });
       };
-      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
-      await act(async () => {
-        render(<Devices devices={[left, mockDevices[1]]} />);
+
+      it("shows the pair name, the doubled model, the master ip and the pair badge", async () => {
+        await renderPair();
+
+        expect(q("device-name")).toHaveTextContent("Büro Stereo");
+        expect(q("device-model")).toHaveTextContent("2× SoundTouch 10");
+        expect(q("device-ip")).toHaveTextContent("10.0.0.5");
+        expect(q("device-stereo")).toHaveTextContent("L/R Stereo");
       });
 
-      expect(document.querySelector('[data-test="device-stereo"]')).toHaveTextContent("Left");
-      expect(screen.getByText("Partner: Büro rechts")).toBeInTheDocument();
-      expect(document.getElementById("dv-slave-hint")).toBeNull();
-      expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled();
+      it("lists both speakers instead of a partner line", async () => {
+        await renderPair();
+
+        expect(q("device-stereo-members")).toHaveTextContent(
+          "Left: Büro links · Right: Büro rechts"
+        );
+        expect(screen.queryByText(/Partner:/)).toBeNull();
+      });
+
+      it("does not offer the right speaker as a device of its own", async () => {
+        await renderPair();
+
+        expect(document.querySelectorAll('[data-test="device-card"]')).toHaveLength(1);
+        expect(q("device-name")).not.toHaveTextContent("Büro rechts");
+      });
+
+      it("keeps every control usable, including AUX and the transport keys", async () => {
+        await renderPair();
+
+        expect(screen.getByRole("button", { name: "AUX" })).not.toHaveAttribute("aria-disabled", "true");
+        expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled();
+        expect(document.getElementById("dv-slave-hint")).toBeNull();
+      });
+
+      it("offers Dissolve instead of Remove device and dissolves the pair", async () => {
+        await renderPair();
+
+        expect(screen.queryByRole("button", { name: /Remove device/ })).toBeNull();
+        fireEvent.click(q("device-remove"));
+        fireEvent.click(
+          within(screen.getByRole("alertdialog")).getByRole("button", { name: "Dissolve" })
+        );
+
+        await waitFor(() => expect(dissolveStereoPair).toHaveBeenCalledWith(7));
+        expect(deleteDeviceById).not.toHaveBeenCalled();
+      });
+
+      it("does not announce that presets are lost when the pair is dissolved", async () => {
+        await renderPair();
+
+        fireEvent.click(q("device-remove"));
+
+        expect(screen.getByRole("alertdialog")).not.toHaveTextContent(/preset/i);
+      });
     });
 
     it("drops the result of a switch that finishes after the user moved to another device", async () => {

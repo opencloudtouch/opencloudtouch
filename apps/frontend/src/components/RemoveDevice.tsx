@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { deleteDeviceById } from "../api/devices";
+import { dissolveStereoPair } from "../api/stereoPairs";
 import { useToast } from "../contexts/ToastContext";
 import { Icon } from "./Icon";
 import ConfirmDialog from "./ConfirmDialog";
@@ -14,6 +15,8 @@ interface RemoveDeviceProps {
   offline: boolean;
   /** Called after the device was removed in the backend. */
   onRemoved: (deviceId: string) => void;
+  /** A stereo pair card dissolves the pair instead of removing the device. */
+  pair?: { id: number; left: string; right: string; onDissolved: () => void };
 }
 
 /**
@@ -26,12 +29,24 @@ export default function RemoveDevice({
   ip,
   offline,
   onRemoved,
+  pair,
 }: Readonly<RemoveDeviceProps>) {
   const { t } = useTranslation();
   const { show } = useToast();
   const [open, setOpen] = useState(false);
 
   const remove = async () => {
+    if (pair) {
+      try {
+        await dissolveStereoPair(pair.id);
+        show(t("stereo.dissolved", "Stereopaar „{{name}}“ aufgelöst", { name }), "success", 6000);
+        pair.onDissolved();
+      } catch (err) {
+        console.error("Failed to dissolve stereo pair:", err);
+        show(t("stereo.dissolveFailed", "Das Stereopaar konnte nicht aufgelöst werden"), "error", 8000);
+      }
+      return;
+    }
     try {
       await deleteDeviceById(deviceId);
       show(t("presets.deviceRemoved", { name }), "success", 6000);
@@ -51,16 +66,22 @@ export default function RemoveDevice({
           onClick={() => setOpen(true)}
           data-test="device-remove"
         >
-          {Icon.Trash(18)} {t("presets.removeDevice")}
+          {Icon.Trash(18)} {pair ? t("stereo.dissolve", "Auflösen") : t("presets.removeDevice")}
         </button>
       </div>
       <ConfirmDialog
         open={open}
-        title={t("presets.removeDeviceTitle")}
-        message={t(offline ? "presets.removeDeviceOffline" : "presets.removeDeviceOnline", {
-          name,
-        })}
-        confirmLabel={t("presets.removeDeviceConfirm")}
+        title={pair ? t("stereo.confirmDissolveTitle", "Stereopaar auflösen?") : t("presets.removeDeviceTitle")}
+        message={
+          pair
+            ? t(
+                "stereo.confirmDissolveMessage",
+                "„{{name}}“ wird aufgelöst. {{left}} und {{right}} spielen danach wieder einzeln.",
+                { name, left: pair.left, right: pair.right }
+              )
+            : t(offline ? "presets.removeDeviceOffline" : "presets.removeDeviceOnline", { name })
+        }
+        confirmLabel={pair ? t("stereo.dissolve", "Auflösen") : t("presets.removeDeviceConfirm")}
         cancelLabel={t("common.cancel")}
         destructive
         onConfirm={() => {

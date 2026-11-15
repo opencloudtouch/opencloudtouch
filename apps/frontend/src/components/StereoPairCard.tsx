@@ -13,13 +13,12 @@ export function SideTile({ role }: Readonly<{ role: StereoRole }>) {
   );
 }
 
-/** Role badge for the device card: letter tile + word (not colour alone). */
-export function StereoRoleBadge({ role }: Readonly<{ role: StereoRole }>) {
+/** Badge of the pair card in the device list: the pair is one device playing left and right. */
+export function StereoPairBadge() {
   const { t } = useTranslation();
   return (
     <span className="ui-badge ui-badge--info ui-badge--small sp-role" data-test="device-stereo">
-      <SideTile role={role} />
-      {role === "LEFT" ? t("stereo.left", "Links") : t("stereo.right", "Rechts")}
+      {t("stereo.pairBadge", "L/R Stereo")}
     </span>
   );
 }

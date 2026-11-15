@@ -960,8 +960,6 @@
     "background": "Op de achtergrond doorgaan",
     "confirmDissolveTitle": "Stereopaar ontkoppelen?",
     "confirmDissolveMessage": "‘{{name}}’ wordt ontkoppeld. {{left}} en {{right}} spelen daarna weer los van elkaar.",
-    "partner": "Partner: {{name}}",
-    "controlledVia": "Bediend via {{master}}",
     "inPair": "In een stereopaar",
     "defaultName": "{{left}} + {{right}}",
     "reason": {
@@ -1028,6 +1026,11 @@
       "created": "Stereopaar gemaakt",
       "createFailed": "Het stereopaar kon niet worden gemaakt",
       "details": "Details"
-    }
+    },
+    "pairBadge": "L/R stereo",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Links: {{left}} · Rechts: {{right}}",
+    "dissolved": "Stereopaar “{{name}}” ontkoppeld",
+    "dissolveFailed": "Het stereopaar kon niet worden ontkoppeld"
   }
 }

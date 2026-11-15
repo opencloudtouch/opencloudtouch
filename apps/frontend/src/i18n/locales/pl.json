@@ -960,8 +960,6 @@
     "background": "Kontynuuj w tle",
     "confirmDissolveTitle": "Rozłączyć parę stereo?",
     "confirmDissolveMessage": "Para „{{name}}” zostanie rozłączona. {{left}} i {{right}} będą potem znowu grać osobno.",
-    "partner": "Partner: {{name}}",
-    "controlledVia": "Sterowany przez {{master}}",
     "inPair": "W parze stereo",
     "defaultName": "{{left}} + {{right}}",
     "reason": {
@@ -1028,6 +1026,11 @@
       "created": "Utworzono parę stereo",
       "createFailed": "Nie udało się utworzyć pary stereo",
       "details": "Szczegóły"
-    }
+    },
+    "pairBadge": "Stereo L/P",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Lewy: {{left}} · Prawy: {{right}}",
+    "dissolved": "Para stereo „{{name}}” rozwiązana",
+    "dissolveFailed": "Nie udało się rozwiązać pary stereo"
   }
 }

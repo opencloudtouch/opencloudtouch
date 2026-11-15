@@ -960,8 +960,6 @@
     "background": "Fortsätt i bakgrunden",
     "confirmDissolveTitle": "Lösa upp stereoparet?",
     "confirmDissolveMessage": "”{{name}}” löses upp. {{left}} och {{right}} spelar därefter var för sig igen.",
-    "partner": "Partner: {{name}}",
-    "controlledVia": "Styrs via {{master}}",
     "inPair": "I ett stereopar",
     "defaultName": "{{left}} + {{right}}",
     "reason": {
@@ -1028,6 +1026,11 @@
       "created": "Stereopar skapat",
       "createFailed": "Stereoparet kunde inte skapas",
       "details": "Detaljer"
-    }
+    },
+    "pairBadge": "L/R-stereo",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Vänster: {{left}} · Höger: {{right}}",
+    "dissolved": "Stereopar ”{{name}}” upplöst",
+    "dissolveFailed": "Stereoparet kunde inte upplösas"
   }
 }

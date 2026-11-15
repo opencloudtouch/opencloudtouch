@@ -960,8 +960,6 @@
     "background": "Continue in background",
     "confirmDissolveTitle": "Dissolve stereo pair?",
     "confirmDissolveMessage": "“{{name}}” will be dissolved. {{left}} and {{right}} play individually again afterwards.",
-    "partner": "Partner: {{name}}",
-    "controlledVia": "Controlled via {{master}}",
     "inPair": "In a stereo pair",
     "defaultName": "{{left}} + {{right}}",
     "reason": {
@@ -1028,6 +1026,11 @@
       "created": "Stereo pair created",
       "createFailed": "The stereo pair could not be created",
       "details": "Details"
-    }
+    },
+    "pairBadge": "L/R Stereo",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Left: {{left}} · Right: {{right}}",
+    "dissolved": "Stereo pair “{{name}}” dissolved",
+    "dissolveFailed": "The stereo pair could not be dissolved"
   }
 }

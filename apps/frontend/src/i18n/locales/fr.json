@@ -960,8 +960,6 @@
     "background": "Continuer en arrière-plan",
     "confirmDissolveTitle": "Dissocier la paire stéréo ?",
     "confirmDissolveMessage": "« {{name}} » va être dissociée. {{left}} et {{right}} rejoueront ensuite chacune de leur côté.",
-    "partner": "Partenaire : {{name}}",
-    "controlledVia": "Commandée via {{master}}",
     "inPair": "Dans une paire stéréo",
     "defaultName": "{{left}} + {{right}}",
     "reason": {
@@ -1028,6 +1026,11 @@
       "created": "Paire stéréo créée",
       "createFailed": "Impossible de créer la paire stéréo",
       "details": "Détails"
-    }
+    },
+    "pairBadge": "Stéréo G/D",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Gauche : {{left}} · Droite : {{right}}",
+    "dissolved": "Paire stéréo « {{name}} » dissoute",
+    "dissolveFailed": "La paire stéréo n’a pas pu être dissoute"
   }
 }

@@ -960,8 +960,6 @@
     "background": "バックグラウンドで続行",
     "confirmDissolveTitle": "ステレオペアを解除しますか？",
     "confirmDissolveMessage": "「{{name}}」を解除します。その後、{{left}} と {{right}} は再び個別に再生します。",
-    "partner": "パートナー: {{name}}",
-    "controlledVia": "{{master}} 経由で操作",
     "inPair": "ステレオペア内",
     "defaultName": "{{left}} + {{right}}",
     "reason": {
@@ -1028,6 +1026,11 @@
       "created": "ステレオペアを作成しました",
       "createFailed": "ステレオペアを作成できませんでした",
       "details": "詳細"
-    }
+    },
+    "pairBadge": "L/R ステレオ",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "左: {{left}} · 右: {{right}}",
+    "dissolved": "ステレオペア「{{name}}」を解除しました",
+    "dissolveFailed": "ステレオペアを解除できませんでした"
   }
 }

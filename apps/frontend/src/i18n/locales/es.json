@@ -960,8 +960,6 @@
     "background": "Continuar en segundo plano",
     "confirmDissolveTitle": "¿Disolver el par estéreo?",
     "confirmDissolveMessage": "«{{name}}» se disolverá. {{left}} y {{right}} volverán a sonar por separado.",
-    "partner": "Pareja: {{name}}",
-    "controlledVia": "Controlado mediante {{master}}",
     "inPair": "En un par estéreo",
     "defaultName": "{{left}} + {{right}}",
     "reason": {
@@ -1028,6 +1026,11 @@
       "created": "Par estéreo creado",
       "createFailed": "No se pudo crear el par estéreo",
       "details": "Detalles"
-    }
+    },
+    "pairBadge": "L/R Estéreo",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Izquierda: {{left}} · Derecha: {{right}}",
+    "dissolved": "Par estéreo «{{name}}» disuelto",
+    "dissolveFailed": "No se pudo disolver el par estéreo"
   }
 }

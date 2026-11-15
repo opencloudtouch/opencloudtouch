@@ -960,8 +960,6 @@
     "background": "Continuar em segundo plano",
     "confirmDissolveTitle": "Desfazer o par estéreo?",
     "confirmDissolveMessage": "“{{name}}” será desfeito. {{left}} e {{right}} voltarão a tocar separadamente.",
-    "partner": "Parceiro: {{name}}",
-    "controlledVia": "Controlado por {{master}}",
     "inPair": "Em um par estéreo",
     "defaultName": "{{left}} + {{right}}",
     "reason": {
@@ -1028,6 +1026,11 @@
       "created": "Par estéreo criado",
       "createFailed": "Não foi possível criar o par estéreo",
       "details": "Detalhes"
-    }
+    },
+    "pairBadge": "Estéreo L/R",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Esquerdo: {{left}} · Direito: {{right}}",
+    "dissolved": "Par estéreo “{{name}}” desfeito",
+    "dissolveFailed": "Não foi possível desfazer o par estéreo"
   }
 }

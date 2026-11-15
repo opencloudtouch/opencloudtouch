@@ -960,8 +960,6 @@
     "background": "Im Hintergrund fortsetzen",
     "confirmDissolveTitle": "Stereopaar auflösen?",
     "confirmDissolveMessage": "„{{name}}“ wird aufgelöst. {{left}} und {{right}} spielen danach wieder einzeln.",
-    "partner": "Partner: {{name}}",
-    "controlledVia": "Gesteuert über {{master}}",
     "inPair": "In einem Stereopaar",
     "defaultName": "{{left}} + {{right}}",
     "reason": {
@@ -1028,6 +1026,11 @@
       "created": "Stereopaar erstellt",
       "createFailed": "Das Stereopaar konnte nicht erstellt werden",
       "details": "Details"
-    }
+    },
+    "pairBadge": "L/R Stereo",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Links: {{left}} · Rechts: {{right}}",
+    "dissolved": "Stereopaar „{{name}}“ aufgelöst",
+    "dissolveFailed": "Das Stereopaar konnte nicht aufgelöst werden"
   }
 }

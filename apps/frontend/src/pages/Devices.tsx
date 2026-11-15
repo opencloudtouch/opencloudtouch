@@ -31,7 +31,9 @@ import { useNowPlaying } from "../hooks/useNowPlaying";
 import { useZones } from "../hooks/useZones";
 import { useLastPreset } from "../hooks/useLastPreset";
 import { usePrefetchDevices } from "../hooks/usePrefetchDevices";
-import { StereoRoleBadge } from "../components/StereoPairCard";
+import { StereoPairBadge } from "../components/StereoPairCard";
+import { renameStereoPair } from "../api/stereoPairs";
+import { visibleDevices } from "../utils/visibleDevices";
 import { useToast } from "../contexts/ToastContext";
 import "../components/DeviceCard.css";
 import "../components/StereoPairCard.css";
@@ -42,13 +44,11 @@ import { getDeviceActionError } from "../utils/apiErrors";
 interface DevicesProps {
   devices?: Device[];
   onRemoveDevice?: (deviceId: string) => void;
+  /** The list changed on the server (a stereo pair was dissolved): fetch it anew. */
+  onDevicesChanged?: () => void;
 }
 
 const RADIO_SOURCES = new Set(["INTERNET_RADIO", "LOCAL_INTERNET_RADIO", "TUNEIN"]);
-// The RIGHT speaker of a stereo pair is controlled through the LEFT one: transport keys, source
-// switch and presets are locked. Power and volume stay usable (decided with the product owner).
-// Set to false once the non-master behaviour is verified on hardware: nothing else has to change.
-const STEREO_RIGHT_LOCK = true;
 const PRESET_NUMBERS = [1, 2, 3, 4, 5, 6];
 const SOURCE_LABEL_KEYS: Record<DeviceSource, string> = {
   presets: "device.src.presets",
@@ -65,8 +65,14 @@ function toDeviceSource(source?: string): DeviceSource | null {
   return null;
 }
 
-export default function Devices({ devices = [], onRemoveDevice }: Readonly<DevicesProps>) {
+export default function Devices({
+  devices: allDevices = [],
+  onRemoveDevice,
+  onDevicesChanged,
+}: Readonly<DevicesProps>) {
   const { t } = useTranslation();
+  // A stereo pair is one device: the speaker that is not the master of its pair is not shown
+  const devices = useMemo(() => visibleDevices(allDevices), [allDevices]);
   const [searchParams, setSearchParams] = useSearchParams();
   // Start on the device of the URL: choosing it in an effect would show the first device and then slide to the right one
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(() => {
@@ -129,15 +135,14 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
   const isZoneMember = deviceRole === "slave";
   const masterName = deviceZone?.members.find((m) => m.role === "master")?.name ?? "";
 
-  // Stereo pair: both speakers stay visible; the RIGHT one is not controlled directly.
-  // The names come with the device list, so the row is complete when the card is first drawn.
-  const stereoRole = currentDevice?.stereo_role ?? null;
+  // Stereo pair: the card is the pair (the master speaker stands for it). The names come with the
+  // device list, so the card is complete when it is first drawn.
+  const stereoPairId = currentDevice?.stereo_pair_id ?? null;
   const partnerName = currentDevice?.stereo_partner_name ?? "";
-  const isStereoLocked = STEREO_RIGHT_LOCK && stereoRole === "RIGHT";
-  const leftName = currentDevice?.stereo_master_name ?? partnerName;
+  const pairName = currentDevice?.stereo_pair_name ?? currentDevice?.name ?? "";
 
   // The source and the presets cannot be changed in standby, as a zone member, or while a switch runs
-  const controlsLocked = isStandby || isZoneMember || isStereoLocked;
+  const controlsLocked = isStandby || isZoneMember;
 
   const sourceName = (id: DeviceSource) => t(SOURCE_LABEL_KEYS[id]);
 
@@ -433,7 +438,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
       switching={switching}
       failed={switchFailed}
       disabled={switchDisabled}
-      describedBy={isZoneMember || isStereoLocked ? "dv-slave-hint" : undefined}
+      describedBy={isZoneMember ? "dv-slave-hint" : undefined}
       onSelect={handleSelectSource}
     />
   );
@@ -478,7 +483,14 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
                 {powerLoading ? <span className="ui-spin">{Icon.Loader(22)}</span> : Icon.Power(22)}
               </button>
               <div className="rp-device-info">
-                {currentDevice ? (
+                {currentDevice && stereoPairId !== null ? (
+                  <DeviceNameEditor
+                    deviceId={currentDevice.device_id}
+                    name={pairName}
+                    maxLength={100}
+                    rename={async (name) => ({ name: (await renameStereoPair(stereoPairId, name)).name })}
+                  />
+                ) : currentDevice ? (
                   <DeviceNameEditor deviceId={currentDevice.device_id} name={currentDevice.name} />
                 ) : (
                   <h2 className="rp-device-name" data-test="device-name">
@@ -486,7 +498,9 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
                   </h2>
                 )}
                 <span className="rp-device-model" data-test="device-model">
-                  {currentDevice?.model || t("presets.unknownModel")}
+                  {stereoPairId !== null
+                    ? t("stereo.pairModel", "2× {{model}}", { model: currentDevice?.model })
+                    : currentDevice?.model || t("presets.unknownModel")}
                 </span>
                 <span className="rp-device-ip" data-test="device-ip">
                   {currentDevice?.ip || t("presets.unknownIp")}
@@ -520,18 +534,16 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
               </div>
             )}
 
-            {stereoRole && !deviceOffline && (
+            {stereoPairId !== null && !deviceOffline && (
               <div className="dv-zone-row sp-devrow">
-                <StereoRoleBadge role={stereoRole} />
+                <StereoPairBadge />
                 {partnerName && (
-                  <span className="sp-partner">
-                    {t("stereo.partner", "Partner: {{name}}", { name: partnerName })}
+                  <span className="sp-partner" data-test="device-stereo-members">
+                    {t("stereo.pairMembers", "Links: {{left}} · Rechts: {{right}}", {
+                      left: currentDevice?.name,
+                      right: partnerName,
+                    })}
                   </span>
-                )}
-                {isStereoLocked && (
-                  <p id="dv-slave-hint" className="dv-zone-hint">
-                    {t("stereo.controlledVia", "Gesteuert über {{master}}", { master: leftName })}
-                  </p>
                 )}
               </div>
             )}
@@ -676,7 +688,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
                               number={num}
                               preset={presets[num]}
                               state={presetState(num)}
-                              disabled={isZoneMember || isStereoLocked}
+                              disabled={isZoneMember}
                               onToggle={() => handlePresetToggle(num)}
                               onChange={() => handleAssignClick(num)}
                             />
@@ -702,10 +714,21 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
             {currentDevice && (
               <RemoveDevice
                 deviceId={currentDevice.device_id}
-                name={currentDevice.name ?? ""}
                 ip={currentDevice.ip ?? ""}
                 offline={deviceOffline}
                 onRemoved={handleDeviceRemoved}
+                pair={
+                  stereoPairId === null
+                    ? undefined
+                    : {
+                        id: stereoPairId,
+                        left: currentDevice.name ?? "",
+                        right: partnerName,
+                        // both speakers are single devices again: the list is fetched anew
+                        onDissolved: () => onDevicesChanged?.(),
+                      }
+                }
+                name={stereoPairId === null ? currentDevice.name ?? "" : pairName}
               />
             )}
           </div>
