@@ -15,11 +15,14 @@ import "./StereoPairSection.css";
 
 type EmptyKind = "none" | "one" | "setup" | "ready";
 
-export default function StereoPairSection({ devices }: Readonly<{ devices: Device[] }>) {
+export default function StereoPairSection({
+  devices,
+  onPairsChanged,
+}: Readonly<{ devices: Device[]; onPairsChanged?: () => void }>) {
   const { t } = useTranslation();
   const noteId = useId();
   const { pairs, isLoading, error, reload, busyId, renamePair, dissolvePair, repairPair } =
-    useStereoPairs();
+    useStereoPairs(onPairsChanged);
   const create = useStereoPairCreate();
   const { show: showToast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);

@@ -34,4 +34,18 @@ describe("useStereoPairs", () => {
 
     await waitFor(() => expect(getStereoPairs).toHaveBeenCalledTimes(2));
   });
+
+  it("reports a changed pair list (not the first load) so the device list can refresh", async () => {
+    const onChanged = vi.fn();
+    getStereoPairs
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([{ id: 1, status: "active", members: [] }]);
+    renderHook(() => useStereoPairs(onChanged));
+    await waitFor(() => expect(getStereoPairs).toHaveBeenCalledTimes(1));
+    expect(onChanged).not.toHaveBeenCalled();
+
+    act(() => groupHandler?.({ device_id: "A" }));
+
+    await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(1));
+  });
 });

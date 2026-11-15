@@ -160,7 +160,17 @@ function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRo
                             <Devices devices={devices} onRemoveDevice={handleRemoveDevice} />
                           }
                         />
-                        <Route path="/multiroom" element={<MultiRoom devices={devices} />} />
+                        <Route
+                          path="/multiroom"
+                          element={
+                            <MultiRoom
+                              devices={devices}
+                              onDevicesStale={() =>
+                                void queryClient.invalidateQueries({ queryKey: ["devices"] })
+                              }
+                            />
+                          }
+                        />
                         <Route path="/settings" element={<Settings />} />
                         <Route path="/diagnostics" element={<Diagnostics />} />
                         <Route path="/about" element={<About />} />

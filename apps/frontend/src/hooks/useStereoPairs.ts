@@ -3,7 +3,7 @@
  * Lists stereo pairs and offers rename / dissolve / repair. Reloads after each action.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   dissolveStereoPair,
   getStereoPairs,
@@ -26,16 +26,27 @@ export interface StereoPairs {
   repairPair: (id: number) => Promise<void>;
 }
 
-export function useStereoPairs(): StereoPairs {
+/** `onChanged` runs when the loaded pairs differ from the previous load (not on the first one). */
+export function useStereoPairs(onChanged?: () => void): StereoPairs {
   const [pairs, setPairs] = useState<StereoPair[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
 
+  const lastSignatureRef = useRef<string | null>(null);
+  const onChangedRef = useRef(onChanged);
+  onChangedRef.current = onChanged;
+
   const load = useCallback(async () => {
     try {
-      setPairs(await getStereoPairs());
+      const loaded = await getStereoPairs();
+      setPairs(loaded);
       setError(null);
+      const signature = JSON.stringify(loaded.map((p) => [p.id, p.status, p.members]));
+      if (lastSignatureRef.current !== null && lastSignatureRef.current !== signature) {
+        onChangedRef.current?.();
+      }
+      lastSignatureRef.current = signature;
     } catch (e) {
       setError(userErrorMessage(e));
     } finally {

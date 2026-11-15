@@ -9,7 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No changes yet._
+### Added
+- Stereo pairs for SoundTouch 10 (LEFT/RIGHT) can be created, listed, repaired and dissolved from the multi-room page, without SSH access to the speakers
+- The speaker-facing Marge emulation answers the group calls (create, read, rename, delete, teardown), `provider_settings` and the recents the speaker reports (`POST .../device/{id}/recent`)
+- Group changes on a speaker (`groupUpdated`) are parsed and forwarded as a `group` event on the device event stream; the pair list refreshes on it
+
+### Fixed
+- The speaker's account sync (`/streaming/account/{id}/full`) is answered with an `<account>` document; the old `<boseAccount>` root made the speaker fail its sync every minute and broke group creation
+- Metadata (title/artist) for TuneIn presets learned from a speaker: the relative station location is resolved to a stream URL before the stream is probed
 
 ---
 

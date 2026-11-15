@@ -17,6 +17,8 @@ import { useToast } from "../contexts/ToastContext";
 
 interface MultiRoomProps {
   readonly devices?: Device[];
+  /** The stereo pairs changed: the device list (pair flags) is outdated */
+  readonly onDevicesStale?: () => void;
 }
 
 // ---- Zone Volume per Member ----
@@ -262,7 +264,7 @@ function EditableZoneName({
   );
 }
 
-export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
+export default function MultiRoom({ devices = [], onDevicesStale }: Readonly<MultiRoomProps>) {
   const { t } = useTranslation();
   const [dissolving, setDissolving] = useState<{ masterId: string; name: string } | null>(null);
   const {
@@ -545,7 +547,7 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
       </motion.section>
 
       {/* Stereo pairs */}
-      <StereoPairSection devices={devices} />
+      <StereoPairSection devices={devices} onPairsChanged={onDevicesStale} />
 
       {/* Info Box */}
       <motion.div

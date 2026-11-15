@@ -39,9 +39,10 @@ class ConnectionState(str, Enum):
     FAILED = "failed"
 
 
-# Reconnection backoff constants
-# other unmapped tags arrive as UNKNOWN
+# Events whose raw XML is logged at debug level (unmapped tags arrive as UNKNOWN)
 _RAW_LOGGED_EVENTS = frozenset({EventType.ZONE, EventType.GROUP, EventType.UNKNOWN})
+
+# Reconnection backoff constants
 _BACKOFF_BASE: float = 1.0
 _BACKOFF_MAX: float = 30.0
 _JITTER_MAX: float = 1.0

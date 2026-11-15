@@ -1469,18 +1469,10 @@ export interface paths {
     };
     /**
      * Streaming Full Account
-     * @description Get full account sync via streaming endpoint.
+     * @description Account sync of the speaker (every 60 s), answered in the ``<account>`` shape.
      *
-     *     This is the streaming.bose.com version of the account sync endpoint.
-     *     Resolves the device_id from the account_id (margeAccountUUID) stored
-     *     during device discovery, then returns that device's presets.
-     *
-     *     Args:
-     *         account_id: Account ID (e.g., "3784726")
-     *         marge: Marge service dependency
-     *
-     *     Returns:
-     *         XML Response with <account> structure
+     *     The device is resolved from the account id (margeAccountUUID stored during
+     *     discovery); an unknown account gets an account without devices.
      */
     get: operations["streaming_full_account_streaming_account__account_id__full_get"];
     put?: never;
