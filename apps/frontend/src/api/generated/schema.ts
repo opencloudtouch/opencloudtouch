@@ -384,7 +384,7 @@ export interface paths {
      *     Raises:
      *         DeviceNotFoundError: If device does not exist
      *         HTTPException(422): If name validation fails
-     *         HTTPException(502): If the device does not accept the new name
+     *         DeviceConnectionError: If the device is unreachable (503, nothing changed)
      */
     put: operations["rename_device_api_devices__device_id__name_put"];
     post?: never;
@@ -1469,18 +1469,10 @@ export interface paths {
     };
     /**
      * Streaming Full Account
-     * @description Get full account sync via streaming endpoint.
+     * @description Account sync of the speaker (every 60 s), answered in the ``<account>`` shape.
      *
-     *     This is the streaming.bose.com version of the account sync endpoint.
-     *     Resolves the device_id from the account_id (margeAccountUUID) stored
-     *     during device discovery, then returns that device's presets.
-     *
-     *     Args:
-     *         account_id: Account ID (e.g., "3784726")
-     *         marge: Marge service dependency
-     *
-     *     Returns:
-     *         XML Response with <account> structure
+     *     The device is resolved from the account id (margeAccountUUID stored during
+     *     discovery); an unknown account gets an account without devices.
      */
     get: operations["streaming_full_account_streaming_account__account_id__full_get"];
     put?: never;
@@ -1640,6 +1632,70 @@ export interface paths {
      */
     post: operations["set_marge_account_setMargeAccount_post"];
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/streaming/account/{account_id}/group/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create Device Group
+     * @description Create a speaker group (stereo pair); idempotent for the same composition.
+     */
+    post: operations["create_device_group_streaming_account__account_id__group__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/streaming/account/{account_id}/device/{device_id}/group/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Device Group
+     * @description Return the group of a device, or an empty <group/> if it is not in one.
+     */
+    get: operations["get_device_group_streaming_account__account_id__device__device_id__group__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/streaming/account/{account_id}/group/{group_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Update Device Group
+     * @description Rename a group (the only field a speaker updates).
+     */
+    put: operations["update_device_group_streaming_account__account_id__group__group_id__put"];
+    post?: never;
+    /**
+     * Delete Device Group
+     * @description Dissolve a group. Idempotent: an unknown id is also a success.
+     */
+    delete: operations["delete_device_group_streaming_account__account_id__group__group_id__delete"];
     options?: never;
     head?: never;
     patch?: never;
@@ -2345,6 +2401,82 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/stereo-pairs": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Stereo Pairs */
+    get: operations["list_stereo_pairs_api_stereo_pairs_get"];
+    put?: never;
+    /**
+     * Create Stereo Pair
+     * @description Start creating a pair. Poll the operation; it can take up to a minute.
+     */
+    post: operations["create_stereo_pair_api_stereo_pairs_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/stereo-pairs/operations/{operation_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Stereo Pair Operation */
+    get: operations["get_stereo_pair_operation_api_stereo_pairs_operations__operation_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/stereo-pairs/{pair_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Dissolve Stereo Pair */
+    delete: operations["dissolve_stereo_pair_api_stereo_pairs__pair_id__delete"];
+    options?: never;
+    head?: never;
+    /** Rename Stereo Pair */
+    patch: operations["rename_stereo_pair_api_stereo_pairs__pair_id__patch"];
+    trace?: never;
+  };
+  "/api/stereo-pairs/{pair_id}/repair": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Repair Stereo Pair
+     * @description Run the removal on both speakers again so the pair ends clean.
+     */
+    post: operations["repair_stereo_pair_api_stereo_pairs__pair_id__repair_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/devices/{device_id}/zone": {
     parameters: {
       query?: never;
@@ -2976,6 +3108,15 @@ export interface components {
       /** Ip */
       ip: string;
     };
+    /** CreateStereoPairRequest */
+    CreateStereoPairRequest: {
+      /** Left Device Id */
+      left_device_id: string;
+      /** Right Device Id */
+      right_device_id: string;
+      /** Name */
+      name?: string | null;
+    };
     /**
      * CreateZoneRequest
      * @description Request to create a new zone.
@@ -3047,6 +3188,33 @@ export interface components {
       marge_account_uuid: string | null;
       /** Uuid Source */
       uuid_source: string;
+      /**
+       * Stereo Capable
+       * @default false
+       */
+      stereo_capable: boolean;
+      /**
+       * Oct Provisioned
+       * @default false
+       */
+      oct_provisioned: boolean;
+      /** Stereo Ineligible Reason */
+      stereo_ineligible_reason?: string | null;
+      /** Stereo Pair Id */
+      stereo_pair_id?: number | null;
+      /** Stereo Role */
+      stereo_role?: string | null;
+      /**
+       * Stereo Master
+       * @default false
+       */
+      stereo_master: boolean;
+      /** Stereo Partner Name */
+      stereo_partner_name?: string | null;
+      /** Stereo Master Name */
+      stereo_master_name?: string | null;
+      /** Stereo Pair Name */
+      stereo_pair_name?: string | null;
     };
     /**
      * DiagnosticsRequest
@@ -3350,6 +3518,45 @@ export interface components {
        */
       diff: string;
     };
+    /** OperationAccepted */
+    OperationAccepted: {
+      /** Operation Id */
+      operation_id: string;
+    };
+    /** OperationError */
+    OperationError: {
+      /** Code */
+      code: string;
+      /** Message */
+      message: string;
+    };
+    /** OperationOut */
+    OperationOut: {
+      /**
+       * State
+       * @description running, succeeded or failed
+       */
+      state: string;
+      /** Steps */
+      steps: components["schemas"]["OperationStep"][];
+      pair?: components["schemas"]["StereoPairOut"] | null;
+      /**
+       * Warnings
+       * @default []
+       */
+      warnings: string[];
+      error?: components["schemas"]["OperationError"] | null;
+    };
+    /** OperationStep */
+    OperationStep: {
+      /** Key */
+      key: string;
+      /**
+       * State
+       * @description waiting, running, done or failed
+       */
+      state: string;
+    };
     /**
      * PortCheckRequest
      * @description Request to check SSH port.
@@ -3505,6 +3712,11 @@ export interface components {
        * @default unknown
        */
       provider: string;
+    };
+    /** RenameStereoPairRequest */
+    RenameStereoPairRequest: {
+      /** Name */
+      name: string;
     };
     /**
      * RestoreStepResponse
@@ -3667,6 +3879,44 @@ export interface components {
        * @description List of IP addresses to set
        */
       ips: string[];
+    };
+    /** StereoPairMemberOut */
+    StereoPairMemberOut: {
+      /** Device Id */
+      device_id: string;
+      /** Name */
+      name: string;
+      /**
+       * Role
+       * @description LEFT or RIGHT
+       */
+      role: string;
+      /** Reachable */
+      reachable: boolean;
+    };
+    /** StereoPairOut */
+    StereoPairOut: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+      /**
+       * Status
+       * @description creating, active or degraded
+       */
+      status: string;
+      /**
+       * Source
+       * @description oct, or device for pairs created outside OCT
+       */
+      source: string;
+      /** Members */
+      members: components["schemas"]["StereoPairMemberOut"][];
+      /**
+       * Warnings
+       * @default []
+       */
+      warnings: string[];
     };
     /**
      * ValidateHostnameRequest
@@ -4450,8 +4700,8 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description The device did not accept the new name */
-      502: {
+      /** @description The device is unreachable or rejected the new name */
+      503: {
         headers: {
           [name: string]: unknown;
         };
@@ -6086,6 +6336,133 @@ export interface operations {
       };
     };
   };
+  create_device_group_streaming_account__account_id__group__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        account_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_device_group_streaming_account__account_id__device__device_id__group__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        account_id: string;
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_device_group_streaming_account__account_id__group__group_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        account_id: string;
+        group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_device_group_streaming_account__account_id__group__group_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        account_id: string;
+        group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   get_playlist_m3u_playlist__device_id___preset_number__m3u_get: {
     parameters: {
       query?: never;
@@ -7133,6 +7510,183 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["ZoneStatus"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_stereo_pairs_api_stereo_pairs_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["StereoPairOut"][];
+        };
+      };
+    };
+  };
+  create_stereo_pair_api_stereo_pairs_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateStereoPairRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OperationAccepted"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_stereo_pair_operation_api_stereo_pairs_operations__operation_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        operation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OperationOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  dissolve_stereo_pair_api_stereo_pairs__pair_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        pair_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  rename_stereo_pair_api_stereo_pairs__pair_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        pair_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RenameStereoPairRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["StereoPairOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  repair_stereo_pair_api_stereo_pairs__pair_id__repair_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        pair_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {

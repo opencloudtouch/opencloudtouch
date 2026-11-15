@@ -317,3 +317,14 @@ class TestKnownWebSocketEvents:
         xml = "<totallyUnknownElement/>"
         event = parse_event(xml)
         assert event is None
+
+
+def test_group_updated_is_a_group_event():
+    # seen on a real SoundTouch 10 while a stereo pair is created or dissolved
+    event = parse_event(
+        '<updates deviceID="AABB"><groupUpdated><group id="2"><name>x</name></group>'
+        "</groupUpdated></updates>"
+    )
+    assert event is not None
+    assert event.event_type == EventType.GROUP
+    assert event.device_id == "AABB"

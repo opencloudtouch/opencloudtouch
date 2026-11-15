@@ -363,6 +363,28 @@ class BoseDeviceClientAdapter(DeviceClient):
             )
             raise DeviceConnectionError(self.ip, str(e)) from e
 
+    async def remove_preset(self, preset_number: int) -> None:
+        """Clear a preset slot via POST /removePreset.
+
+        Raises:
+            DeviceConnectionError: If the device is unreachable or rejects the call
+        """
+        if not 1 <= preset_number <= 6:
+            raise ValueError(f"Preset number must be 1-6, got {preset_number}")
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}/removePreset",
+                    content=f'<preset id="{preset_number}"/>',
+                    headers={"Content-Type": "application/xml"},
+                )
+                response.raise_for_status()
+        except Exception as e:
+            logger.exception(
+                "Failed to remove preset %d on %s", preset_number, self.base_url
+            )
+            raise DeviceConnectionError(self.ip, str(e)) from e
+
     async def get_volume(self) -> VolumeInfo:
         """Get current volume state from device."""
         try:

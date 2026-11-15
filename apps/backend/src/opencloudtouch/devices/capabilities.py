@@ -42,6 +42,7 @@ class DeviceCapabilities:
     # Zone/Group capabilities
     has_zone_support: bool = False
     has_group_support: bool = False
+    has_lr_stereo: bool = False  # L/R stereo pair capable (SoundTouch 10)
 
     # Supported sources
     supported_sources: List[str] = field(default_factory=list)
@@ -156,6 +157,7 @@ async def get_device_capabilities(client: SoundTouchClient) -> DeviceCapabilitie
         has_zone_support="getZone" in supported_endpoints
         or "setZone" in supported_endpoints,
         has_group_support="getGroup" in supported_endpoints,
+        has_lr_stereo=bool(getattr(caps, "IsLrStereoCapable", False)),
         # Supported sources and endpoints
         supported_sources=supported_sources,
         supported_endpoints=supported_endpoints,
@@ -301,6 +303,7 @@ def get_feature_flags_for_ui(capabilities: DeviceCapabilities) -> dict[str, Any]
             # Multi-room
             "zone_support": capabilities.has_zone_support,
             "group_support": capabilities.has_group_support,
+            "lr_stereo": capabilities.has_lr_stereo,
         },
         "sources": capabilities.supported_sources,
         # Endpoint availability for advanced features

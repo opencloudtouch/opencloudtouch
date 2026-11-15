@@ -694,7 +694,7 @@
       "unknown": "Er is iets misgegaan.",
       "unknownWithCode": "Er is iets misgegaan (code: {{code}}).",
       "device_not_found": "Het apparaat is niet gevonden.",
-      "device_unreachable": "Het apparaat is niet bereikbaar. Controleer of het is ingeschakeld en met het netwerk is verbonden.",
+      "device_unreachable": "Het apparaat is niet bereikbaar. Controleer of het is ingeschakeld en met het netwerk is verbonden. De actie is niet uitgevoerd. Probeer het opnieuw zodra het weer online is.",
       "not_found": "De gevraagde bron is niet gevonden.",
       "validation_error": "De aanvraag bevat ongeldige gegevens. Controleer je invoer.",
       "internal_error": "Er is een interne fout opgetreden. Probeer het later opnieuw."
@@ -906,5 +906,131 @@
     },
     "sourceUnreachable": "{{source}} niet bereikbaar",
     "sourceFailedKey": "{{source}}, niet bereikbaar. Opnieuw proberen"
+  },
+  "stereo": {
+    "title": "Stereoparen",
+    "lead": "Twee SoundTouch 10-speakers werken als één speler: één links, één rechts. Het paar blijft ook na een herstart bestaan.",
+    "create": "Stereopaar maken",
+    "createNeedTwo": "Voor het maken van een paar zijn twee vrije SoundTouch 10-speakers nodig.",
+    "createRunning": "Er wordt een stereopaar gemaakt.",
+    "loading": "Stereoparen laden",
+    "errorLoading": "Stereoparen konden niet worden geladen",
+    "retry": "Opnieuw laden",
+    "empty": {
+      "none": {
+        "title": "Geen speaker voor stereoparen",
+        "text": "Stereoparen werken alleen met de SoundTouch 10. Er is nog geen gevonden."
+      },
+      "one": {
+        "title": "Een tweede SoundTouch 10 ontbreekt",
+        "text": "Voor een stereopaar zijn twee SoundTouch 10-speakers nodig. Gevonden: {{name}}."
+      },
+      "setup": {
+        "title": "Speakers nog niet ingesteld",
+        "text": "Stereoparen hebben speakers nodig die met OCT zijn ingesteld. Start de installatie voor je SoundTouch 10-speakers."
+      },
+      "ready": {
+        "title": "Nog geen stereopaar",
+        "text": "{{count}} SoundTouch 10-speakers kunnen tot een stereopaar worden gekoppeld. Eén speelt links, de andere rechts."
+      }
+    },
+    "openWizard": "Installatie starten",
+    "status": {
+      "active": "Actief",
+      "creating": "Wordt gemaakt",
+      "degraded": "Onderbroken"
+    },
+    "imported": "Geïmporteerd",
+    "importedTitle": "Buiten OCT gemaakt",
+    "left": "Links",
+    "right": "Rechts",
+    "master": "Hoofdspeaker",
+    "offline": "Offline",
+    "members": "Speakers van het stereopaar",
+    "dissolve": "Ontkoppelen",
+    "repair": "Herstellen",
+    "repairing": "Wordt hersteld",
+    "renameLabel": "Naam van het stereopaar",
+    "clickToEdit": "Klik om de naam te wijzigen",
+    "dissolveNeedsBoth": "Beide speakers moeten bereikbaar zijn om het paar te ontkoppelen. {{name}} is offline.",
+    "degradedTitle": "Slechts één speaker is gekoppeld",
+    "degradedText": "Het paar werkt niet goed. Bij het herstellen worden beide speakers teruggezet naar een schone toestand. Daarna kun je het stereopaar opnieuw maken.",
+    "creatingText": "Wordt gemaakt.",
+    "showProgress": "Voortgang tonen",
+    "background": "Op de achtergrond doorgaan",
+    "confirmDissolveTitle": "Stereopaar ontkoppelen?",
+    "confirmDissolveMessage": "‘{{name}}’ wordt ontkoppeld. {{left}} en {{right}} spelen daarna weer los van elkaar.",
+    "inPair": "In een stereopaar",
+    "defaultName": "{{left}} + {{right}}",
+    "reason": {
+      "not_provisioned": "Niet ingesteld met OCT",
+      "offline": "Offline",
+      "in_zone": "In een zone",
+      "in_pair": "In een stereopaar"
+    },
+    "dlg": {
+      "step1": "Speakers kiezen",
+      "step2": "Kanten toewijzen",
+      "step3": "Maken",
+      "stepOf": "Stap {{current}} van 3",
+      "pickLegend": "Kies twee speakers",
+      "pickHint": "Alleen SoundTouch 10-speakers die met OCT zijn ingesteld, kunnen een paar vormen.",
+      "pickCount": "{{count}} van 2 geselecteerd",
+      "next": "Volgende",
+      "back": "Terug",
+      "sidesTitle": "Welke speaker staat waar?",
+      "sidesHint": "Links en rechts, zoals je voor de speakers staat.",
+      "swap": "Kanten wisselen",
+      "masterHint": "De linkerspeaker is altijd de hoofdspeaker. Weergave, bron en voorkeuzes lopen daarlangs.",
+      "firmwareWarn": "De firmwareversies verschillen ({{left}} en {{right}}). Je kunt het stereopaar toch maken.",
+      "nameLabel": "Naam (optioneel)",
+      "nameHint": "Zonder invoer: {{name}}",
+      "runningTitle": "Stereopaar wordt gemaakt",
+      "runningHint": "Laat beide speakers aanstaan.",
+      "backgroundHint": "Je kunt dit venster sluiten. Het paar verschijnt dan met de status ‘Wordt gemaakt’.",
+      "stepAnn": "Stap {{n}} van 4: {{label}}",
+      "stepsLabel": "Stappen",
+      "successTitle": "Stereopaar ‘{{name}}’ is actief",
+      "successText": "{{left}} speelt links, {{right}} rechts. Bedien de weergave via {{left}}.",
+      "failedTitle": "Het stereopaar is niet gemaakt",
+      "failedNothing": "Er is niets gewijzigd.",
+      "failedCode": "Foutcode: {{code}}",
+      "degradedText": "Herstel het paar zodat beide speakers weer los kunnen worden gebruikt.",
+      "retry": "Opnieuw proberen",
+      "done": "Klaar"
+    },
+    "step": {
+      "preflight": "Speakers controleren",
+      "create_left": "Linkerspeaker instellen",
+      "create_right": "Rechterspeaker instellen",
+      "verify": "Resultaat controleren"
+    },
+    "stepState": {
+      "waiting": "Wacht",
+      "running": "Bezig",
+      "done": "Klaar",
+      "failed": "Mislukt"
+    },
+    "err": {
+      "stereo_pair_device_not_capable": "Een speaker ondersteunt geen stereoparen. Alleen de SoundTouch 10 kan een paar vormen.",
+      "stereo_pair_device_not_provisioned": "Minstens één speaker is niet met OCT ingesteld. Start eerst de installatie.",
+      "stereo_pair_device_in_zone": "Minstens één speaker maakt deel uit van een zone. Ontkoppel eerst de zone.",
+      "stereo_pair_device_in_pair": "Minstens één speaker zit al in een stereopaar.",
+      "stereo_pair_device_unreachable": "Een speaker reageert niet. Controleer stroom en wifi en probeer het opnieuw.",
+      "stereo_pair_marge_failed": "De speakers hebben de koppeling niet geaccepteerd. Controleer of beide met OCT zijn ingesteld.",
+      "stereo_pair_verification_failed": "De koppeling kon niet worden bevestigd. Er is niets gewijzigd, of de bewerking is teruggedraaid.",
+      "stereo_pair_degraded": "De koppeling is mislukt en kon niet volledig worden teruggedraaid. Herstel het paar.",
+      "stereo_pair_timeout": "De server was niet op tijd klaar. Controleer de lijst met stereoparen en probeer het opnieuw."
+    },
+    "toast": {
+      "created": "Stereopaar gemaakt",
+      "createFailed": "Het stereopaar kon niet worden gemaakt",
+      "details": "Details"
+    },
+    "pairBadge": "L/R stereo",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Links: {{left}} · Rechts: {{right}}",
+    "dissolved": "Stereopaar “{{name}}” ontkoppeld",
+    "dissolveFailed": "Het stereopaar kon niet worden ontkoppeld"
   }
 }

@@ -19,7 +19,12 @@ from websockets.asyncio.client import ClientConnection
 from websockets.asyncio.client import connect as ws_connect
 from websockets.exceptions import ConnectionClosed, InvalidHandshake
 
-from opencloudtouch.devices.websocket.parser import DeviceEvent, parse_event
+from opencloudtouch.core.logging import clip_for_log
+from opencloudtouch.devices.websocket.parser import (
+    DeviceEvent,
+    EventType,
+    parse_event,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +38,9 @@ class ConnectionState(str, Enum):
     DISCONNECTED = "disconnected"
     FAILED = "failed"
 
+
+# Events whose raw XML is logged at debug level (unmapped tags arrive as UNKNOWN)
+_RAW_LOGGED_EVENTS = frozenset({EventType.ZONE, EventType.GROUP, EventType.UNKNOWN})
 
 # Reconnection backoff constants
 _BACKOFF_BASE: float = 1.0
@@ -220,6 +228,10 @@ class DeviceWebSocket:
             event = parse_event(message)
             if event is None:
                 continue
+
+            if event.event_type in _RAW_LOGGED_EVENTS:
+                # zone and group events carry the stereo pair state: keep the raw XML
+                logger.debug("ws.raw %s %s", self.device_id, clip_for_log(message))
 
             event.raw_xml = ""  # Free XML memory after parsing (#366)
             self._events_received += 1

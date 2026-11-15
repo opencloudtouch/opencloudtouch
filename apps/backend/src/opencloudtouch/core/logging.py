@@ -267,6 +267,14 @@ def setup_logging() -> None:
     )
 
 
+def clip_for_log(text: Optional[str], limit: int = 2000) -> str:
+    """One-line, length-limited text for protocol dumps (XML bodies) in the log."""
+    flat = " ".join((text or "").split())
+    if len(flat) <= limit:
+        return flat
+    return f"{flat[:limit]}... ({len(flat) - limit} more)"
+
+
 def get_logger(name: str) -> logging.Logger:
     """Get a logger instance with the given name."""
     return logging.getLogger(name)

@@ -21,6 +21,7 @@ from opencloudtouch.api.bug_report import router as bug_report_router
 from opencloudtouch.bmx.radiobrowser_routes import radiobrowser_router
 from opencloudtouch.bmx.resolve_routes import resolve_router
 from opencloudtouch.bmx.routes import router as bmx_router
+from opencloudtouch.bmx.tunein import resolve_tunein_location
 from opencloudtouch.core.config import get_config, init_config
 from opencloudtouch.core.exception_handlers import (
     register_exception_handlers,  # re-exported for backward compat
@@ -69,6 +70,11 @@ from opencloudtouch.setup.wizard import WizardService, wizard_router
 from opencloudtouch.swupdate.routes import router as swupdate_router
 from opencloudtouch.wizard_audit.repository import WizardAuditRepository
 from opencloudtouch.wizard_audit.routes import audit_router as wizard_audit_router
+from opencloudtouch.stereo_pairs.group_client import get_group_client
+from opencloudtouch.stereo_pairs.lifecycle import StereoPairLifecycle
+from opencloudtouch.stereo_pairs.repository import StereoPairRepository
+from opencloudtouch.stereo_pairs.routes import router as stereo_pairs_router
+from opencloudtouch.stereo_pairs.service import StereoPairService
 from opencloudtouch.zones.repository import ZoneRepository
 from opencloudtouch.zones.routes import device_zone_router
 from opencloudtouch.zones.routes import router as zones_router
@@ -140,6 +146,7 @@ async def _init_repositories(app: FastAPI, cfg, logger: logging.Logger) -> dict:
         ("recents_repo", RecentsRepository, cfg.effective_db_path),
         ("wizard_audit_repo", WizardAuditRepository, cfg.effective_db_path),
         ("zone_repo", ZoneRepository, cfg.effective_db_path),
+        ("stereo_pair_repo", StereoPairRepository, cfg.effective_db_path),
     ]
 
     repos = {}
@@ -201,8 +208,20 @@ async def _init_services(
         device_repo=device_repo,
         zone_repo=zone_repo,
         client_factory=get_device_client,
+        stereo_pair_repo=repos["stereo_pair_repo"],
     )
     logger.info("ZoneService initialized")
+
+    app.state.stereo_pair_service = StereoPairService(
+        repo=repos["stereo_pair_repo"], device_repo=device_repo
+    )
+    app.state.stereo_lifecycle = StereoPairLifecycle(
+        app.state.stereo_pair_service,
+        repos["stereo_pair_repo"],
+        device_repo,
+        get_group_client,
+    )
+    logger.info("StereoPairService initialized")
 
     # Auto-discover in mock mode
     if cfg.mock_mode:
@@ -267,6 +286,17 @@ async def _init_services(
     await _init_websocket_pipeline(app, cfg, device_repo, logger)
 
 
+def _find_preset_value(presets, station_name: str, attr: str) -> str | None:
+    """Value of ``attr`` of the first preset with this station name, if it has one."""
+    station_lower = station_name.casefold()
+    for preset in presets:
+        if preset.station_name and preset.station_name.casefold() == station_lower:
+            value = getattr(preset, attr, None)
+            if value:
+                return value  # type: ignore[no-any-return]
+    return None
+
+
 def _make_preset_lookup(
     app: FastAPI, logger: logging.Logger, attr: str
 ) -> Callable[[str, str], Awaitable[str | None]]:
@@ -280,13 +310,10 @@ def _make_preset_lookup(
                 "Preset %s lookup failed for %s", attr, device_id, exc_info=True
             )
             return None
-        station_lower = station_name.casefold()
-        for preset in presets:
-            if preset.station_name and preset.station_name.casefold() == station_lower:
-                value = getattr(preset, attr, None)
-                if value:
-                    return value  # type: ignore[no-any-return]
-        return None
+        value = _find_preset_value(presets, station_name, attr)
+        if value and attr == "station_url":
+            return await resolve_tunein_location(value)
+        return value
 
     return _lookup
 
@@ -433,6 +460,7 @@ app.include_router(setup_router)  # Device setup wizard
 app.include_router(wizard_router)  # SSH-driven wizard step endpoints
 app.include_router(swupdate_router)  # SWUpdate firmware index emulation
 app.include_router(zones_router)  # Multi-room zone management
+app.include_router(stereo_pairs_router)  # Stereo pairs (LEFT/RIGHT)
 app.include_router(device_zone_router)  # Per-device zone status
 app.include_router(logs_router)  # Backend log download
 app.include_router(bug_report_router)  # Bug report submission

@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import i18next from "i18next";
+import { getDeviceActionError } from "../utils/apiErrors";
 import { Preset } from "../components/PresetRow";
 import { RadioStation } from "../components/RadioSearch";
 import {
@@ -128,7 +129,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
           setPresets(buildPresetsMap(devicePresets));
         } catch (err) {
           console.error("[usePresets] Failed to load presets:", err);
-          setError(i18next.t("errors.presetsLoadFailed"));
+          setError(getDeviceActionError(i18next.t, err, "errors.presetsLoadFailed"));
         } finally {
           setLoadingFlag(false);
         }
@@ -165,7 +166,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
       return true;
     } catch (err) {
       console.error("[usePresets] Failed to sync presets:", err);
-      setError(i18next.t("errors.presetsSyncFailed"));
+      setError(getDeviceActionError(i18next.t, err, "errors.presetsSyncFailed"));
       return false;
     } finally {
       setSyncing(false);
@@ -202,7 +203,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
       }));
     } catch (err) {
       console.error("[usePresets] Failed to save preset:", err);
-      setError(i18next.t("errors.presetSaveFailed"));
+      setError(getDeviceActionError(i18next.t, err, "errors.presetSaveFailed"));
       throw err;
     } finally {
       setLoadingFlag(false);
@@ -226,7 +227,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
       });
     } catch (err) {
       console.error("[usePresets] Failed to clear preset:", err);
-      setError(i18next.t("errors.presetClearFailed"));
+      setError(getDeviceActionError(i18next.t, err, "errors.presetClearFailed"));
     } finally {
       setLoadingFlag(false);
     }

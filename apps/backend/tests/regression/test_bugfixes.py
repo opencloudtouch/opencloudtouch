@@ -521,8 +521,8 @@ class TestBugfix188HardcodedDeviceIdInStreamingAccount:
 
         assert result.status_code == 200
         root = ElementTree.fromstring(result.body.decode())
-        presets = root.find("presets")
-        assert len(presets.findall("preset")) == 0
+        assert root.tag == "account"
+        assert root.findall(".//preset") == []
         # Must NOT have tried to load presets with some guessed device
         mock_marge.get_full_account.assert_not_called()
 

@@ -12,6 +12,8 @@ from pydantic import BaseModel, StrictInt
 
 from opencloudtouch.core.config import AppConfig, get_config
 from opencloudtouch.core.dependencies import (
+    get_stereo_pair_repo,
+    get_zone_repo,
     get_device_service,
     get_device_state_manager,
     get_preset_service,
@@ -29,6 +31,9 @@ from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.service import PresetService
 from opencloudtouch.streaming.icy_metadata import IcyMetadata, probe_stream
 from opencloudtouch.streaming.metadata_cache import MISSING, MetadataCache, _Missing
+from opencloudtouch.stereo_pairs.device_info import load_stereo_context, stereo_fields
+from opencloudtouch.stereo_pairs.repository import StereoPairRepository
+from opencloudtouch.zones.repository import ZoneRepository
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +93,15 @@ class DeviceResponse(BaseModel):
     setup_completed_at: str | None
     marge_account_uuid: str | None
     uuid_source: str
+    stereo_capable: bool = False
+    oct_provisioned: bool = False
+    stereo_ineligible_reason: str | None = None
+    stereo_pair_id: int | None = None
+    stereo_role: str | None = None
+    stereo_master: bool = False
+    stereo_partner_name: str | None = None
+    stereo_master_name: str | None = None
+    stereo_pair_name: str | None = None
 
 
 class DeviceListResponse(BaseModel):
@@ -98,7 +112,11 @@ class DeviceListResponse(BaseModel):
 
 
 @router.get("", response_model=DeviceListResponse)
-async def get_devices(device_service: DeviceService = Depends(get_device_service)):
+async def get_devices(
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+    stereo_repo: Annotated[StereoPairRepository | None, Depends(get_stereo_pair_repo)],
+    zone_repo: Annotated[ZoneRepository | None, Depends(get_zone_repo)],
+):
     """
     Get all devices from database.
 
@@ -106,10 +124,18 @@ async def get_devices(device_service: DeviceService = Depends(get_device_service
         List of devices with details
     """
     devices = await device_service.get_all_devices()
+    names = {d.device_id: d.name for d in devices}
+    try:
+        pairs, zone_ids = await load_stereo_context(stereo_repo, zone_repo)
+    except Exception:  # noqa: BLE001 - stereo fields are optional extras
+        logger.warning("Stereo pair info unavailable for device list", exc_info=True)
+        pairs, zone_ids = {}, set()
 
     return {
         "count": len(devices),
-        "devices": [d.to_dict() for d in devices],
+        "devices": [
+            {**d.to_dict(), **stereo_fields(d, pairs, zone_ids, names)} for d in devices
+        ],
     }
 
 
@@ -320,7 +346,7 @@ async def press_key(
     "/{device_id}/name",
     responses={
         422: {"description": "Invalid name"},
-        502: {"description": "The device did not accept the new name"},
+        503: {"description": "The device is unreachable or rejected the new name"},
     },
 )
 async def rename_device(
@@ -344,7 +370,7 @@ async def rename_device(
     Raises:
         DeviceNotFoundError: If device does not exist
         HTTPException(422): If name validation fails
-        HTTPException(502): If the device does not accept the new name
+        DeviceConnectionError: If the device is unreachable (503, nothing changed)
     """
     name = body.get("name", "").strip()
 
@@ -370,6 +396,8 @@ async def rename_device(
     try:
         async with device_service._device_client(device_id) as client:
             await client.set_name(name)
+    except DeviceConnectionError:
+        raise
     except Exception as e:
         logger.exception("Rename of device %r failed", device.device_id)
         raise HTTPException(status_code=502, detail="Could not rename device") from e

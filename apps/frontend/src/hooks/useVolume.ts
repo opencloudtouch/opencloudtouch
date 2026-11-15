@@ -16,6 +16,7 @@ import {
 import { isDeviceOffline, markDeviceOffline } from "../api/offlineDeviceStore";
 import { useDeviceEventContext } from "../contexts/DeviceEventContext";
 import i18next from "i18next";
+import { getDeviceActionError } from "../utils/apiErrors";
 import { octDebug } from "../utils/debug";
 import { getCachedDeviceData, setCachedDeviceData } from "../utils/deviceDataCache";
 
@@ -200,7 +201,7 @@ export function useVolume(
           }
         } catch (err) {
           console.error("[useVolume] Failed to set volume:", err);
-          onError?.(i18next.t("errors.volumeFailed"));
+          onError?.(getDeviceActionError(i18next.t, err, "errors.volumeFailed"));
           // roll back to the volume the device really has
           getVolume(deviceId)
             .then((real) => {
@@ -229,7 +230,7 @@ export function useVolume(
       .catch((err) => {
         console.error("[useVolume] Failed to toggle mute:", err);
         setMuted(!newMuted); // Rollback
-        onError?.(i18next.t("errors.volumeFailed"));
+        onError?.(getDeviceActionError(i18next.t, err, "errors.volumeFailed"));
       });
   }, [deviceId, muted, setMuted, setVolume, onError]);
 

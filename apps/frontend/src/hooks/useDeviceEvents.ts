@@ -16,6 +16,7 @@ export type DeviceEventType =
   | "now_playing"
   | "presets"
   | "zone"
+  | "group"
   | "connection"
   | "metadata_enriched";
 
@@ -88,6 +89,7 @@ export function useDeviceEvents(): UseDeviceEventsReturn {
       "now_playing",
       "presets",
       "zone",
+      "group",
       "connection",
       "metadata_enriched",
     ];

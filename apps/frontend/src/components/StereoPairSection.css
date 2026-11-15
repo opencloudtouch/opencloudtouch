@@ -1,0 +1,51 @@
+/* sp-: stereo pairs section on the Multi-room page. Same section rhythm as .mr-section. */
+.sp-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sp-head .ui-h2 {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .sp-create {
+    flex: 1 1 100%;
+  }
+}
+.sp-lead {
+  margin: 0;
+  max-width: 70ch;
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  color: var(--text-primary);
+  text-wrap: pretty;
+}
+.sp-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+  gap: var(--space-md);
+  align-items: start;
+}
+.sp-skeleton {
+  gap: 12px;
+}
+.sp-sk-line {
+  width: min(100%, 220px);
+  height: 22px;
+  border-radius: 4px;
+}
+.sp-sk-block {
+  height: 72px;
+  border-radius: var(--border-radius-md);
+}
+.sp-empty .wz-status-body {
+  align-items: flex-start;
+}
+.sp-wizard,
+.sp-retry {
+  margin-top: 12px;
+}

@@ -38,7 +38,7 @@ export default function SourceSwitch({
   onSelect,
 }: Readonly<SourceSwitchProps>) {
   const { t } = useTranslation();
-  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const buttonsRef = useRef<(HTMLButtonElement | null)[]>([]);
   const tabStop = current ?? "presets";
 
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -55,7 +55,7 @@ export default function SourceSwitch({
     }
     if (next === null) return;
     event.preventDefault();
-    refs.current[next]?.focus();
+    buttonsRef.current[next]?.focus();
   };
 
   return (
@@ -70,7 +70,7 @@ export default function SourceSwitch({
           <button
             key={source.id}
             ref={(el) => {
-              refs.current[index] = el;
+              buttonsRef.current[index] = el;
             }}
             type="button"
             className={isFailed ? "si-bb si-bb--fail" : "si-bb"}

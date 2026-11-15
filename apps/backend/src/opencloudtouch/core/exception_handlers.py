@@ -243,10 +243,18 @@ async def device_not_found_handler(
     )
 
 
+# The text the caller sees is fixed: the exception text carries the device IP and, for a
+# failed speaker call, raw text of the client library. Both go to the log only.
+DEVICE_UNREACHABLE_DETAIL = (
+    "The device did not respond. The action was not carried out; "
+    "try again when it is back online."
+)
+
 device_connection_error_handler = _make_domain_handler(
     status_code=503,
     error_type="service_unavailable",
     title="Device Unavailable",
+    detail=DEVICE_UNREACHABLE_DETAIL,
     exc_info=True,
     code=error_codes.DEVICE_UNREACHABLE,
 )

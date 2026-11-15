@@ -694,7 +694,7 @@
       "unknown": "Algo deu errado.",
       "unknownWithCode": "Algo deu errado (código: {{code}}).",
       "device_not_found": "O dispositivo não foi encontrado.",
-      "device_unreachable": "Não foi possível acessar o dispositivo. Verifique se ele está ligado e conectado à rede.",
+      "device_unreachable": "Não foi possível acessar o dispositivo. Verifique se ele está ligado e conectado à rede. A ação não foi executada. Tente novamente quando ele estiver on-line novamente.",
       "not_found": "O recurso solicitado não foi encontrado.",
       "validation_error": "A solicitação contém dados inválidos. Verifique o que você digitou.",
       "internal_error": "Ocorreu um erro interno. Tente novamente mais tarde."
@@ -906,5 +906,131 @@
     },
     "sourceUnreachable": "{{source}} inacessível",
     "sourceFailedKey": "{{source}}, inacessível. Tentar novamente"
+  },
+  "stereo": {
+    "title": "Pares estéreo",
+    "lead": "Dois SoundTouch 10 tocam como um único player: um à esquerda e outro à direita. O par continua existindo após uma reinicialização.",
+    "create": "Criar par estéreo",
+    "createNeedTwo": "São necessários dois SoundTouch 10 livres para criar um par.",
+    "createRunning": "Um par estéreo está sendo criado.",
+    "loading": "Carregando pares estéreo",
+    "errorLoading": "Não foi possível carregar os pares estéreo",
+    "retry": "Recarregar",
+    "empty": {
+      "none": {
+        "title": "Nenhum alto-falante para pares estéreo",
+        "text": "Pares estéreo só funcionam com o SoundTouch 10. Nenhum foi encontrado ainda."
+      },
+      "one": {
+        "title": "Falta um segundo SoundTouch 10",
+        "text": "Um par estéreo precisa de dois SoundTouch 10. Encontrado: {{name}}."
+      },
+      "setup": {
+        "title": "Alto-falantes ainda não configurados",
+        "text": "Pares estéreo precisam de alto-falantes configurados com o OCT. Inicie a configuração dos seus SoundTouch 10."
+      },
+      "ready": {
+        "title": "Ainda não há par estéreo",
+        "text": "{{count}} SoundTouch 10 podem ser unidos em um par estéreo. Um toca à esquerda e o outro à direita."
+      }
+    },
+    "openWizard": "Iniciar configuração",
+    "status": {
+      "active": "Ativo",
+      "creating": "Criando",
+      "degraded": "Interrompido"
+    },
+    "imported": "Importado",
+    "importedTitle": "Criado fora do OCT",
+    "left": "Esquerda",
+    "right": "Direita",
+    "master": "Alto-falante principal",
+    "offline": "Offline",
+    "members": "Alto-falantes do par estéreo",
+    "dissolve": "Desfazer",
+    "repair": "Reparar",
+    "repairing": "Reparando",
+    "renameLabel": "Nome do par estéreo",
+    "clickToEdit": "Clique para renomear",
+    "dissolveNeedsBoth": "Os dois alto-falantes precisam estar acessíveis para desfazer o par. {{name}} está offline.",
+    "degradedTitle": "Apenas um alto-falante está pareado",
+    "degradedText": "O par não está funcionando corretamente. Ao reparar, os dois alto-falantes voltam a um estado limpo. Depois você pode criar o par estéreo novamente.",
+    "creatingText": "Criando.",
+    "showProgress": "Mostrar progresso",
+    "background": "Continuar em segundo plano",
+    "confirmDissolveTitle": "Desfazer o par estéreo?",
+    "confirmDissolveMessage": "“{{name}}” será desfeito. {{left}} e {{right}} voltarão a tocar separadamente.",
+    "inPair": "Em um par estéreo",
+    "defaultName": "{{left}} + {{right}}",
+    "reason": {
+      "not_provisioned": "Não configurado com o OCT",
+      "offline": "Offline",
+      "in_zone": "Em uma zona",
+      "in_pair": "Em um par estéreo"
+    },
+    "dlg": {
+      "step1": "Escolher alto-falantes",
+      "step2": "Atribuir lados",
+      "step3": "Criar",
+      "stepOf": "Etapa {{current}} de 3",
+      "pickLegend": "Escolha dois alto-falantes",
+      "pickHint": "Somente SoundTouch 10 configurados com o OCT podem formar um par.",
+      "pickCount": "{{count}} de 2 selecionados",
+      "next": "Avançar",
+      "back": "Voltar",
+      "sidesTitle": "Qual alto-falante fica onde?",
+      "sidesHint": "Esquerda e direita, como você vê de frente para os alto-falantes.",
+      "swap": "Trocar lados",
+      "masterHint": "O alto-falante esquerdo é sempre o principal. Reprodução, fonte e predefinições passam por ele.",
+      "firmwareWarn": "As versões de firmware são diferentes ({{left}} e {{right}}). Você ainda pode criar o par estéreo.",
+      "nameLabel": "Nome (opcional)",
+      "nameHint": "Se ficar vazio: {{name}}",
+      "runningTitle": "Criando par estéreo",
+      "runningHint": "Mantenha os dois alto-falantes ligados.",
+      "backgroundHint": "Você pode fechar esta janela. O par aparecerá então com o status “Criando”.",
+      "stepAnn": "Etapa {{n}} de 4: {{label}}",
+      "stepsLabel": "Etapas",
+      "successTitle": "O par estéreo “{{name}}” está ativo",
+      "successText": "{{left}} toca à esquerda, {{right}} à direita. Controle a reprodução por {{left}}.",
+      "failedTitle": "O par estéreo não foi criado",
+      "failedNothing": "Nada foi alterado.",
+      "failedCode": "Código de erro: {{code}}",
+      "degradedText": "Repare o par para que os dois alto-falantes possam voltar a ser usados separadamente.",
+      "retry": "Tentar novamente",
+      "done": "Concluído"
+    },
+    "step": {
+      "preflight": "Verificando alto-falantes",
+      "create_left": "Configurando o alto-falante esquerdo",
+      "create_right": "Configurando o alto-falante direito",
+      "verify": "Verificando o resultado"
+    },
+    "stepState": {
+      "waiting": "Aguardando",
+      "running": "Em andamento",
+      "done": "Concluído",
+      "failed": "Falhou"
+    },
+    "err": {
+      "stereo_pair_device_not_capable": "Um alto-falante não oferece suporte a pares estéreo. Somente o SoundTouch 10 pode formar um par.",
+      "stereo_pair_device_not_provisioned": "Pelo menos um alto-falante não está configurado com o OCT. Inicie primeiro a configuração.",
+      "stereo_pair_device_in_zone": "Pelo menos um alto-falante faz parte de uma zona. Desfaça a zona primeiro.",
+      "stereo_pair_device_in_pair": "Pelo menos um alto-falante já está em um par estéreo.",
+      "stereo_pair_device_unreachable": "Um alto-falante não responde. Verifique a energia e o Wi-Fi e tente novamente.",
+      "stereo_pair_marge_failed": "Os alto-falantes não aceitaram o pareamento. Verifique se ambos estão configurados com o OCT.",
+      "stereo_pair_verification_failed": "Não foi possível confirmar o pareamento. Nada foi alterado ou a operação foi revertida.",
+      "stereo_pair_degraded": "O pareamento falhou e não pôde ser totalmente desfeito. Repare o par.",
+      "stereo_pair_timeout": "O servidor não terminou a tempo. Verifique a lista de pares estéreo e tente novamente."
+    },
+    "toast": {
+      "created": "Par estéreo criado",
+      "createFailed": "Não foi possível criar o par estéreo",
+      "details": "Detalhes"
+    },
+    "pairBadge": "Estéreo L/R",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Esquerdo: {{left}} · Direito: {{right}}",
+    "dissolved": "Par estéreo “{{name}}” desfeito",
+    "dissolveFailed": "Não foi possível desfazer o par estéreo"
   }
 }

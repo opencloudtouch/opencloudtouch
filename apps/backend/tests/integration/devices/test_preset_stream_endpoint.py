@@ -22,7 +22,7 @@ that Bose SoundTouch devices call when a custom preset button is pressed.
 to ensure mocks are active before the endpoint handler makes requests.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import respx
@@ -30,6 +30,22 @@ from httpx import AsyncClient, Response
 
 # Module-level respx router for external HTTP mocks
 external_mock = respx.mock(assert_all_called=False)
+
+
+@pytest.fixture(autouse=True)
+def reachable_speaker():
+    """The preset API programs the speaker first: give it a device that answers."""
+    with (
+        patch(
+            "opencloudtouch.devices.repository.DeviceRepository.get_by_device_id",
+            new=AsyncMock(return_value=MagicMock(ip="10.0.0.1")),
+        ),
+        patch(
+            "opencloudtouch.devices.adapter.get_device_client",
+            return_value=AsyncMock(),
+        ),
+    ):
+        yield
 
 
 @pytest.fixture(autouse=True)
