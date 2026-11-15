@@ -269,6 +269,12 @@ class MockDeviceClient(DeviceClient):
             device_id,
         )
 
+    async def remove_preset(self, preset_number: int) -> None:
+        """Mock remove preset (no-op for testing)."""
+        logger.info(
+            "[MOCK] remove_preset(%d) for device %s", preset_number, self.device_id
+        )
+
     # ---- Zone Methods ----
 
     async def get_zone_status(self) -> ZoneStatus | None:

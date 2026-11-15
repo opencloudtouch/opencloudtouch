@@ -922,3 +922,72 @@ async def test_clear_all_presets_returns_count(service, mock_repo):
 
     assert count == 4
     mock_repo.clear_all_presets.assert_called_once_with("dev-001")
+
+
+# ---------------------------------------------------------------------------
+# The device is the source of truth (regression: stale OCT rows, speaker kept presets)
+# ---------------------------------------------------------------------------
+
+
+class TestDeviceIsSourceOfTruth:
+    @pytest.mark.asyncio
+    async def test_sync_drops_oct_slots_the_device_does_not_have(
+        self, service, mock_repo
+    ):
+        xml = _build_presets_xml({"id": 1}, {"id": 3})
+        with patch.object(
+            service, "_fetch_device_presets", AsyncMock(return_value=xml)
+        ):
+            await service.sync_presets_from_device("dev-001")
+
+        cleared = {c.args[1] for c in mock_repo.clear_preset.await_args_list}
+        assert cleared == {2, 4, 5, 6}
+
+    @pytest.mark.asyncio
+    async def test_sync_of_an_empty_device_empties_oct(self, service, mock_repo):
+        with patch.object(
+            service, "_fetch_device_presets", AsyncMock(return_value=b"<presets/>")
+        ):
+            assert await service.sync_presets_from_device("dev-001") == 0
+
+        assert mock_repo.clear_preset.await_count == 6
+
+    @pytest.mark.asyncio
+    async def test_clear_preset_also_clears_the_speaker(self, service, mock_repo):
+        client = AsyncMock()
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client", return_value=client
+        ):
+            assert await service.clear_preset("dev-001", 4) is True
+
+        client.remove_preset.assert_awaited_once_with(4)
+        mock_repo.clear_preset.assert_awaited_once_with("dev-001", 4)
+
+    @pytest.mark.asyncio
+    async def test_unreachable_speaker_does_not_block_the_oct_delete(
+        self, service, mock_repo
+    ):
+        client = AsyncMock()
+        client.remove_preset.side_effect = RuntimeError("offline")
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client", return_value=client
+        ):
+            assert await service.clear_preset("dev-001", 4) is True
+
+        mock_repo.clear_preset.assert_awaited_once_with("dev-001", 4)
+
+    @pytest.mark.asyncio
+    async def test_clear_all_clears_every_stored_slot_on_the_speaker(
+        self, service, mock_repo
+    ):
+        mock_repo.get_all_presets.return_value = [
+            MagicMock(preset_number=1),
+            MagicMock(preset_number=5),
+        ]
+        client = AsyncMock()
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client", return_value=client
+        ):
+            await service.clear_all_presets("dev-001")
+
+        assert [c.args[0] for c in client.remove_preset.await_args_list] == [1, 5]

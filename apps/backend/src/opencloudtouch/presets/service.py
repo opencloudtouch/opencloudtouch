@@ -275,6 +275,7 @@ class PresetService:
         Returns:
             True if preset was deleted, False if it didn't exist
         """
+        await self._remove_on_device(device_id, preset_number)
         result = await self.repository.clear_preset(device_id, preset_number)
 
         if result:
@@ -293,6 +294,8 @@ class PresetService:
         Returns:
             Number of presets deleted
         """
+        for preset in await self.repository.get_all_presets(device_id):
+            await self._remove_on_device(device_id, preset.preset_number)
         count = await self.repository.clear_all_presets(device_id)
 
         logger.info("Cleared %d presets for device %s", count, device_id)  # NOSONAR
@@ -345,6 +348,12 @@ class PresetService:
                 },
             )
 
+        # The device is the source of truth: drop OCT slots the device does not have.
+        on_device = {p.preset_number for p in parsed_presets}
+        for slot in range(1, 7):
+            if slot not in on_device:
+                await self.repository.clear_preset(device_id, slot)
+
         logger.info(
             "Synced %d presets from device %s",
             synced_count,
@@ -352,6 +361,29 @@ class PresetService:
             extra={"device_id": device_id, "synced_count": synced_count},
         )
         return synced_count
+
+    async def _remove_on_device(self, device_id: str, preset_number: int) -> None:
+        """Clear a slot on the speaker; failures are logged, the DB delete still runs."""
+        from opencloudtouch.devices.adapter import get_device_client
+
+        try:
+            device = await self.device_repository.get_by_device_id(device_id)
+            if not device:
+                return
+            client = get_device_client(
+                f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"
+            )  # NOSONAR
+            try:
+                await client.remove_preset(preset_number)
+            finally:
+                await client.close()
+        except Exception as e:
+            logger.warning(
+                "Preset %d cleared in OCT but NOT on device %s: %s",
+                preset_number,
+                device_id,
+                e,
+            )
 
     async def _fetch_device_presets(self, device_ip: str) -> bytes:
         """Fetch presets XML from device.

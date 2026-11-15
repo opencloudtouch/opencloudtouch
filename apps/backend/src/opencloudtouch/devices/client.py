@@ -199,6 +199,11 @@ class DeviceClient(ABC):
         """
         pass
 
+    @abstractmethod
+    async def remove_preset(self, preset_number: int) -> None:
+        """Clear a preset slot on the Bose device."""
+        pass
+
     # ---- Zone Methods ----
 
     @abstractmethod
