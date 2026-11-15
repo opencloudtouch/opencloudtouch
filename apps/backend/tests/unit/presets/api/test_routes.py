@@ -188,6 +188,24 @@ class TestClearPreset:
         r = client.delete("/api/presets/DEV1/1")
         assert r.status_code == 500
 
+    def test_returns_503_when_the_speaker_is_offline(self, client, mock_service):
+        from opencloudtouch.core.exceptions import DeviceConnectionError
+
+        mock_service.clear_preset = AsyncMock(
+            side_effect=DeviceConnectionError("10.0.0.1", "offline")
+        )
+        assert client.delete("/api/presets/DEV1/1").status_code == 503
+
+    def test_clear_all_returns_503_when_the_speaker_is_offline(
+        self, client, mock_service
+    ):
+        from opencloudtouch.core.exceptions import DeviceConnectionError
+
+        mock_service.clear_all_presets = AsyncMock(
+            side_effect=DeviceConnectionError("10.0.0.1", "offline")
+        )
+        assert client.delete("/api/presets/DEV1").status_code == 503
+
 
 # ---------------------------------------------------------------------------
 # clear_all_presets

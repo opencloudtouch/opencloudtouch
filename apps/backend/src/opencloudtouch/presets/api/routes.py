@@ -8,7 +8,7 @@ from fastapi import Path as FastAPIPath
 from pydantic import BaseModel, Field
 
 from opencloudtouch.core.dependencies import get_preset_service
-from opencloudtouch.core.exceptions import DeviceNotFoundError
+from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
 from opencloudtouch.presets.service import PresetService
 
 logger = logging.getLogger(__name__)
@@ -178,7 +178,7 @@ async def clear_preset(
             message=f"Preset {preset_number} cleared for device {device_id}"
         )
 
-    except HTTPException:
+    except (HTTPException, DeviceConnectionError):
         raise
     except Exception as e:
         logger.error(
@@ -204,6 +204,8 @@ async def clear_all_presets(
             message=f"Cleared {count} presets for device {device_id}"
         )
 
+    except DeviceConnectionError:
+        raise
     except Exception:
         logger.exception("Error clearing all presets for device %s", device_id)
         raise HTTPException(status_code=500, detail="Failed to clear presets")

@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Group changes on a speaker (`groupUpdated`) are parsed and forwarded as a `group` event on the device event stream; the pair list refreshes on it
 
 ### Fixed
-- Deleting a preset in OCT now also clears the slot on the speaker, and "Load from device" mirrors the speaker: slots the speaker does not have are removed from OCT.
+- Deleting a preset in OCT now also clears the slot on the speaker (HTTP 503 and nothing deleted when the speaker is unreachable), and "Load from device" mirrors the speaker: slots the speaker does not have are removed from OCT.
 - Renaming a speaker (from the app or `/name`) works again with the OCT Marge emulation: the speaker's rename call `PUT .../device/{id}` is answered and the new name is stored
 - Presets written on the speaker (`PUT/DELETE .../device/{id}/preset/{n}`) are taken over, and `GET .../device/{id}/recents` is answered; the speaker no longer logs 404 for them
 - Presets with an unknown source (for example `INTERNET_RADIO`) were missing on the speaker after the account sync change; they are announced as `LOCAL_INTERNET_RADIO` now

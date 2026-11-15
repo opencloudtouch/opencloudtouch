@@ -363,27 +363,23 @@ class PresetService:
         return synced_count
 
     async def _remove_on_device(self, device_id: str, preset_number: int) -> None:
-        """Clear a slot on the speaker; failures are logged, the DB delete still runs."""
+        """Clear a slot on the speaker.
+
+        Raises whatever the speaker call raises (for example DeviceConnectionError
+        when it is offline), so the caller can leave the OCT database untouched.
+        """
         from opencloudtouch.devices.adapter import get_device_client
 
+        device = await self.device_repository.get_by_device_id(device_id)
+        if not device:
+            return
+        client = get_device_client(
+            f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"
+        )  # NOSONAR
         try:
-            device = await self.device_repository.get_by_device_id(device_id)
-            if not device:
-                return
-            client = get_device_client(
-                f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"
-            )  # NOSONAR
-            try:
-                await client.remove_preset(preset_number)
-            finally:
-                await client.close()
-        except Exception as e:
-            logger.warning(
-                "Preset %d cleared in OCT but NOT on device %s: %s",
-                preset_number,
-                device_id,
-                e,
-            )
+            await client.remove_preset(preset_number)
+        finally:
+            await client.close()
 
     async def _fetch_device_presets(self, device_ip: str) -> bytes:
         """Fetch presets XML from device.

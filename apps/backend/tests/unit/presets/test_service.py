@@ -964,17 +964,22 @@ class TestDeviceIsSourceOfTruth:
         mock_repo.clear_preset.assert_awaited_once_with("dev-001", 4)
 
     @pytest.mark.asyncio
-    async def test_unreachable_speaker_does_not_block_the_oct_delete(
+    async def test_offline_speaker_aborts_the_delete_and_keeps_the_oct_row(
         self, service, mock_repo
     ):
+        from opencloudtouch.core.exceptions import DeviceConnectionError
+
         client = AsyncMock()
-        client.remove_preset.side_effect = RuntimeError("offline")
+        client.remove_preset.side_effect = DeviceConnectionError(
+            "192.168.1.100", "offline"
+        )
         with patch(
             "opencloudtouch.devices.adapter.get_device_client", return_value=client
         ):
-            assert await service.clear_preset("dev-001", 4) is True
+            with pytest.raises(DeviceConnectionError):
+                await service.clear_preset("dev-001", 4)
 
-        mock_repo.clear_preset.assert_awaited_once_with("dev-001", 4)
+        mock_repo.clear_preset.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_clear_all_clears_every_stored_slot_on_the_speaker(
