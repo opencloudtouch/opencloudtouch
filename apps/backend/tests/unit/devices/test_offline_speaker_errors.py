@@ -96,6 +96,21 @@ def test_offline_speaker_answers_503_device_unreachable(
     assert response.json()["code"] == "device_unreachable"
 
 
+@pytest.mark.parametrize("method,url,body", ACTIONS)
+def test_offline_error_text_is_fixed_and_has_no_ip_or_library_text(
+    offline_speaker, method, url, body
+):
+    kwargs = {"json": body} if body is not None else {}
+    response = getattr(TestClient(app), method)(url, **kwargs)
+
+    detail = response.json()["detail"]
+    assert "10.0.0.1" not in detail and "offline" not in detail
+    assert detail == (
+        "The device did not respond. The action was not carried out; "
+        "try again when it is back online."
+    )
+
+
 def test_failed_rename_does_not_touch_the_oct_database(offline_speaker):
     TestClient(app).put(f"/api/devices/{DEV}/name", json={"name": "New"})
 

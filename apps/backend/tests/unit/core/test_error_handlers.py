@@ -192,7 +192,7 @@ class TestDeviceConnectionErrorHandler:
         assert error["type"] == "service_unavailable"
         assert error["title"] == "Device Unavailable"
         assert error["status"] == 503
-        assert "192.168.1.100" in error["detail"]
+        assert "192.168.1.100" not in error["detail"]  # the IP is only logged
 
 
 class TestDiscoveryErrorHandler:
