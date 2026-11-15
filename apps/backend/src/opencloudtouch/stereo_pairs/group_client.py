@@ -105,8 +105,8 @@ class HttpGroupClient:
 
     def __init__(self, ip: str):
         self.ip = ip
-        # NOSONAR - SoundTouch speakers only speak plain HTTP on the LAN
-        self._base = f"http://{ip}:{SOUNDTOUCH_HTTP_PORT}"
+        # SoundTouch speakers only speak plain HTTP on the LAN
+        self._base = f"http://{ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR
 
     async def _request(
         self,

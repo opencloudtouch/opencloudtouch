@@ -352,9 +352,9 @@ class PresetService:
         device = await self.device_repository.get_by_device_id(device_id)
         if not device:
             return
-        client = get_device_client(
-            f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"
-        )  # NOSONAR
+        # SoundTouch speakers only speak plain HTTP on the LAN
+        base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR
+        client = get_device_client(base_url)
         try:
             await client.remove_preset(preset_number)
         finally:
