@@ -12,10 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Stereo pairs for SoundTouch 10 (LEFT/RIGHT) can be created, listed, repaired and dissolved from the multi-room page, without SSH access to the speakers
 - The speaker-facing Marge emulation answers the group calls (create, read, rename, delete, teardown), `provider_settings` and the recents the speaker reports (`POST .../device/{id}/recent`)
+- A stereo pair shows as one device in the device list: the pair name, "2× model", the main speaker's IP, an "L/R Stereo" badge and both speakers in the footer; the second speaker is no longer listed there, and the pair is dissolved from its card (presets stay on the main speaker)
 - Group changes on a speaker (`groupUpdated`) are parsed and forwarded as a `group` event on the device event stream; the pair list refreshes on it
 
 ### Fixed
-- Every action sent to a speaker (rename, volume, mute, source, key, bass, reboot, preset save/delete, preset load) answers HTTP 503 with code `device_unreachable` when the speaker is offline and changes nothing in OCT; saving a preset no longer succeeds in OCT alone
+- Renaming a stereo pair works: the speaker answers `PUT /updateGroup` with 405, so the rename is sent as `POST /updateGroup` with the whole group
+- Every action sent to a speaker (rename, volume, mute, source, key, bass, reboot, preset save/delete, preset load) answers HTTP 503 with code `device_unreachable` and a fixed, readable text (no IP address, no client library text; the details go to the log) when the speaker is offline and changes nothing in OCT; saving a preset no longer succeeds in OCT alone
 - Deleting a preset in OCT now also clears the slot on the speaker (HTTP 503 and nothing deleted when the speaker is unreachable), and "Load from device" mirrors the speaker: slots the speaker does not have are removed from OCT.
 - Renaming a speaker (from the app or `/name`) works again with the OCT Marge emulation: the speaker's rename call `PUT .../device/{id}` is answered and the new name is stored
 - Presets written on the speaker (`PUT/DELETE .../device/{id}/preset/{n}`) are taken over, and `GET .../device/{id}/recents` is answered; the speaker no longer logs 404 for them

@@ -16,6 +16,7 @@ NO_STEREO_INFO: Dict[str, Any] = {
     "stereo_master": False,
     "stereo_partner_name": None,
     "stereo_master_name": None,
+    "stereo_pair_name": None,
 }
 
 
@@ -92,4 +93,5 @@ def stereo_fields(
         "stereo_master": pair is not None and pair.master_device_id == device.device_id,
         "stereo_partner_name": names.get(partner_id) if partner_id else None,
         "stereo_master_name": master_name,
+        "stereo_pair_name": pair.name if pair else None,
     }

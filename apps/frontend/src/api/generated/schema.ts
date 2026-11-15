@@ -384,7 +384,7 @@ export interface paths {
      *     Raises:
      *         DeviceNotFoundError: If device does not exist
      *         HTTPException(422): If name validation fails
-     *         HTTPException(502): If the device does not accept the new name
+     *         DeviceConnectionError: If the device is unreachable (503, nothing changed)
      */
     put: operations["rename_device_api_devices__device_id__name_put"];
     post?: never;
@@ -3213,6 +3213,8 @@ export interface components {
       stereo_partner_name?: string | null;
       /** Stereo Master Name */
       stereo_master_name?: string | null;
+      /** Stereo Pair Name */
+      stereo_pair_name?: string | null;
     };
     /**
      * DiagnosticsRequest
@@ -4698,8 +4700,8 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description The device did not accept the new name */
-      502: {
+      /** @description The device is unreachable or rejected the new name */
+      503: {
         headers: {
           [name: string]: unknown;
         };

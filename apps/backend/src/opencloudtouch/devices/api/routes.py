@@ -101,6 +101,7 @@ class DeviceResponse(BaseModel):
     stereo_master: bool = False
     stereo_partner_name: str | None = None
     stereo_master_name: str | None = None
+    stereo_pair_name: str | None = None
 
 
 class DeviceListResponse(BaseModel):

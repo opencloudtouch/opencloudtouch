@@ -27,6 +27,17 @@ def _pair():
 
 
 class TestStereoFields:
+    def test_pair_name_is_set_for_both_members_and_none_for_single_speakers(self):
+        pair = _pair()
+        pairs = {"L1": pair, "R1": pair}
+
+        left = stereo_fields(_device("L1"), pairs, set())
+        right = stereo_fields(_device("R1"), pairs, set())
+        single = stereo_fields(_device("X1"), pairs, set())
+
+        assert left["stereo_pair_name"] == right["stereo_pair_name"] == "Office"
+        assert single["stereo_pair_name"] is None
+
     def test_eligible_device(self):
         fields = stereo_fields(_device(), {}, set())
 
