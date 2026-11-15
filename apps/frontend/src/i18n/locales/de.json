@@ -694,7 +694,7 @@
       "unknown": "Etwas ist schiefgelaufen.",
       "unknownWithCode": "Etwas ist schiefgelaufen (Code: {{code}}).",
       "device_not_found": "Das Gerät wurde nicht gefunden.",
-      "device_unreachable": "Das Gerät ist nicht erreichbar. Prüfe, ob es eingeschaltet und mit dem Netzwerk verbunden ist.",
+      "device_unreachable": "Das Gerät ist nicht erreichbar. Prüfe, ob es eingeschaltet und mit dem Netzwerk verbunden ist. Die Aktion wurde nicht ausgeführt. Versuche es erneut, sobald es wieder online ist.",
       "not_found": "Die angeforderte Ressource wurde nicht gefunden.",
       "validation_error": "Die Anfrage enthält ungültige Daten. Bitte prüfe deine Eingaben.",
       "internal_error": "Ein interner Fehler ist aufgetreten. Bitte versuche es später erneut."

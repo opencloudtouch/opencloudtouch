@@ -694,7 +694,7 @@
       "unknown": "Coś poszło nie tak.",
       "unknownWithCode": "Coś poszło nie tak (kod: {{code}}).",
       "device_not_found": "Nie znaleziono urządzenia.",
-      "device_unreachable": "Urządzenie jest nieosiągalne. Sprawdź, czy jest włączone i połączone z siecią.",
+      "device_unreachable": "Urządzenie jest nieosiągalne. Sprawdź, czy jest włączone i połączone z siecią. Akcja nie została wykonana. Spróbuj ponownie, gdy urządzenie będzie znów online.",
       "not_found": "Nie znaleziono żądanego zasobu.",
       "validation_error": "Żądanie zawiera nieprawidłowe dane. Sprawdź wprowadzone wartości.",
       "internal_error": "Wystąpił błąd wewnętrzny. Spróbuj ponownie później."

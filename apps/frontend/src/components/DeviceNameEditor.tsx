@@ -7,6 +7,7 @@ import {
   type CSSProperties,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { getDeviceActionError } from "../utils/apiErrors";
 import { useQueryClient } from "@tanstack/react-query";
 import { renameDevice } from "../api/devices";
 import { Icon } from "./Icon";
@@ -89,8 +90,8 @@ export default function DeviceNameEditor({
       setEditing(false);
       onRenamed?.(result.name);
       queryClient.invalidateQueries({ queryKey: ["devices"] });
-    } catch {
-      setError(t("deviceRename.failed"));
+    } catch (err) {
+      setError(getDeviceActionError(t, err, "deviceRename.failed"));
     } finally {
       setSaving(false);
     }

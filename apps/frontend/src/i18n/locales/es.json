@@ -694,7 +694,7 @@
       "unknown": "Algo salió mal.",
       "unknownWithCode": "Algo salió mal (código: {{code}}).",
       "device_not_found": "No se encontró el dispositivo.",
-      "device_unreachable": "No se puede acceder al dispositivo. Comprueba que esté encendido y conectado a la red.",
+      "device_unreachable": "No se puede acceder al dispositivo. Comprueba que esté encendido y conectado a la red. No se realizó la acción. Inténtalo de nuevo cuando vuelva a estar en línea.",
       "not_found": "No se encontró el recurso solicitado.",
       "validation_error": "La solicitud contiene datos no válidos. Revisa los datos introducidos.",
       "internal_error": "Se produjo un error interno. Inténtalo de nuevo más tarde."

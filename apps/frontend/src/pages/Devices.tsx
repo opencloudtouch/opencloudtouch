@@ -37,6 +37,7 @@ import "../components/DeviceCard.css";
 import "../components/StereoPairCard.css";
 import "./Devices.css";
 import { pickDevice, setLastDeviceId } from "../utils/lastDevice";
+import { getDeviceActionError } from "../utils/apiErrors";
 
 interface DevicesProps {
   devices?: Device[];
@@ -335,6 +336,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
         await refreshNowPlaying();
       } catch (err) {
         console.error("Failed to toggle playback:", err);
+        showToast(getDeviceActionError(t, err, "errors.unknown"), "error");
       }
       return;
     }
@@ -392,6 +394,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
       else await togglePlayPause(deviceId);
     } catch (err) {
       console.error(`[Devices] Key ${key} failed:`, err);
+      showToast(getDeviceActionError(t, err, "errors.unknown"), "error");
     } finally {
       setKeyBusy(null);
     }
@@ -461,6 +464,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
                     await refreshNowPlaying();
                   } catch (err) {
                     console.error("[Devices] Power failed:", err);
+                    showToast(getDeviceActionError(t, err, "errors.unknown"), "error");
                   } finally {
                     setPowerLoading(false);
                   }

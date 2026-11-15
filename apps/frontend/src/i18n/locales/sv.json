@@ -694,7 +694,7 @@
       "unknown": "Något gick fel.",
       "unknownWithCode": "Något gick fel (kod: {{code}}).",
       "device_not_found": "Enheten hittades inte.",
-      "device_unreachable": "Enheten kan inte nås. Kontrollera att den är påslagen och ansluten till nätverket.",
+      "device_unreachable": "Enheten kan inte nås. Kontrollera att den är påslagen och ansluten till nätverket. Åtgärden utfördes inte. Försök igen när den är online igen.",
       "not_found": "Den begärda resursen hittades inte.",
       "validation_error": "Begäran innehåller ogiltiga data. Kontrollera dina inmatningar.",
       "internal_error": "Ett internt fel inträffade. Försök igen senare."
