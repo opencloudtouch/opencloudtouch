@@ -99,7 +99,7 @@ class StereoPairRepository(BaseRepository):
     async def _find_active(self, device_id: str) -> Optional[StereoPair]:
         db = self._ensure_initialized()
         cursor = await db.execute(
-            f"SELECT {_COLUMNS} FROM stereo_pairs " # nosec B608 - _COLUMNS is a module constant, all values are bound parameters
+            f"SELECT {_COLUMNS} FROM stereo_pairs "  # nosec B608 - _COLUMNS is a module constant, all values are bound parameters
             "WHERE dissolved_at IS NULL AND (left_device_id = ? OR right_device_id = ?)",
             (device_id, device_id),
         )
@@ -143,7 +143,7 @@ class StereoPairRepository(BaseRepository):
     async def get(self, pair_id: int) -> Optional[StereoPair]:
         db = self._ensure_initialized()
         cursor = await db.execute(
-            f"SELECT {_COLUMNS} FROM stereo_pairs WHERE id = ? AND dissolved_at IS NULL", # nosec B608 - _COLUMNS is a module constant, all values are bound parameters
+            f"SELECT {_COLUMNS} FROM stereo_pairs WHERE id = ? AND dissolved_at IS NULL",  # nosec B608 - _COLUMNS is a module constant, all values are bound parameters
             (pair_id,),
         )
         row = await cursor.fetchone()
@@ -152,7 +152,7 @@ class StereoPairRepository(BaseRepository):
     async def list_active(self) -> List[StereoPair]:
         db = self._ensure_initialized()
         cursor = await db.execute(
-            f"SELECT {_COLUMNS} FROM stereo_pairs WHERE dissolved_at IS NULL ORDER BY id" # nosec B608 - _COLUMNS is a module constant, all values are bound parameters
+            f"SELECT {_COLUMNS} FROM stereo_pairs WHERE dissolved_at IS NULL ORDER BY id"  # nosec B608 - _COLUMNS is a module constant, all values are bound parameters
         )
         return [_row_to_pair(row) for row in await cursor.fetchall()]
 
