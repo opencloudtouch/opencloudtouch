@@ -129,6 +129,15 @@ class TestPresetWrite:
         assert response.status_code == 200
         marge.delete_preset.assert_awaited_once_with("AABBCCDDEEFF", 2)
 
+    def test_delete_does_not_write_a_forged_log_line(self, client, marge, caplog):
+        """A device id with a line break must not start a second log line."""
+        with caplog.at_level("INFO"):
+            client.delete("/streaming/account/123/device/AABB%0AFORGED%20line/preset/2")
+
+        logged_id = caplog.text.split("DELETE device ")[1].split(" slot")[0]
+        assert "\n" not in logged_id
+        assert logged_id == "AABB FORGED line"
+
     def test_delete_out_of_range_is_400(self, client, marge):
         assert client.delete(f"{BASE}/preset/9").status_code == 400
         marge.delete_preset.assert_not_awaited()

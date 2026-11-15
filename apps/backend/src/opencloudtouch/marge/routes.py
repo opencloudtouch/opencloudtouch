@@ -509,7 +509,9 @@ async def delete_device_preset(
     account_id: str, device_id: str, slot: int, marge: MargeServiceDep
 ) -> Response:
     """Speaker removed a preset (also sent before it overwrites a duplicate)."""
-    logger.info("[MARGE/PRESET] DELETE device %s slot %d", device_id, slot)
+    logger.info(
+        "[MARGE/PRESET] DELETE device %s slot %d", clip_for_log(device_id, 64), slot
+    )
     if not 1 <= slot <= 6:
         return Response(status_code=400)
     await marge.delete_preset(device_id, slot)
@@ -582,11 +584,13 @@ async def create_device_group(
     try:
         pair = await stereo.marge_create(parse_group_request(body))
     except DeviceAlreadyPairedError as exc:
-        logger.warning("[MARGE/GROUP] Cannot create group: %s", exc)
+        logger.warning("[MARGE/GROUP] Cannot create group: %s", clip_for_log(str(exc)))
         _log_group_call(request, 400, body)
         return _group_error(MARGE_ERROR_DEVICE_IN_GROUP, str(exc))
     except InvalidGroupError as exc:
-        logger.warning("[MARGE/GROUP] Invalid group request: %s", exc)
+        logger.warning(
+            "[MARGE/GROUP] Invalid group request: %s", clip_for_log(str(exc))
+        )
         _log_group_call(request, 400, body)
         return _group_error(MARGE_ERROR_INVALID_REQUEST, str(exc))
     _log_group_call(request, 201, body)
