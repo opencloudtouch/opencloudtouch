@@ -40,6 +40,56 @@ async def load_stereo_context(
     return pairs, zone_ids
 
 
+def _is_capable(device: Any) -> bool:
+    features = ((device.capabilities or {}).get("features")) or {}
+    # Devices stored before the capability was detected have no "lr_stereo" value (None):
+    # the model decides, and the create preflight checks the speaker live. Only an
+    # explicit False excludes a device.
+    return (
+        SUPPORTED_MODEL in (device.model or "")
+        and features.get("lr_stereo") is not False
+    )
+
+
+def _ineligible_reason(
+    capable: bool, provisioned: bool, in_pair: bool, in_zone: bool
+) -> Optional[str]:
+    if not capable:
+        return "not_capable"
+    if not provisioned:
+        return "not_provisioned"
+    if in_pair:
+        return "in_pair"
+    if in_zone:
+        return "in_zone"
+    return None
+
+
+def _pair_fields(
+    device_id: str, pair: Optional[StereoPair], names: Dict[str, str]
+) -> Dict[str, Any]:
+    """Role, partner and master of the device inside its pair (empty outside a pair)."""
+    if pair is None:
+        return {
+            "stereo_pair_id": None,
+            "stereo_role": None,
+            "stereo_master": False,
+            "stereo_partner_name": None,
+            "stereo_master_name": None,
+            "stereo_pair_name": None,
+        }
+    is_left = pair.left_device_id == device_id
+    partner_id = pair.right_device_id if is_left else pair.left_device_id
+    return {
+        "stereo_pair_id": pair.id,
+        "stereo_role": "LEFT" if is_left else "RIGHT",
+        "stereo_master": pair.master_device_id == device_id,
+        "stereo_partner_name": names.get(partner_id),
+        "stereo_master_name": names.get(pair.master_device_id),
+        "stereo_pair_name": pair.name,
+    }
+
+
 def stereo_fields(
     device: Any,
     pairs: Dict[str, StereoPair],
@@ -51,47 +101,17 @@ def stereo_fields(
     ``offline`` is not part of the reason: reachability is only known live and is
     checked by the create preflight.
     """
-    features = ((device.capabilities or {}).get("features")) or {}
-    # Devices stored before the capability was detected have no "lr_stereo" value (None):
-    # the model decides, and the create preflight checks the speaker live. Only an
-    # explicit False excludes a device.
-    capable = (
-        SUPPORTED_MODEL in (device.model or "")
-        and features.get("lr_stereo") is not False
-    )
+    capable = _is_capable(device)
     provisioned = bool(device.marge_account_uuid)
     pair = pairs.get(device.device_id)
-
-    reason: Optional[str] = None
-    if not capable:
-        reason = "not_capable"
-    elif not provisioned:
-        reason = "not_provisioned"
-    elif pair is not None:
-        reason = "in_pair"
-    elif device.device_id in zone_device_ids:
-        reason = "in_zone"
-
-    names = names or {}
-    partner_id = master_name = None
-    if pair is not None:
-        partner_id = (
-            pair.right_device_id
-            if pair.left_device_id == device.device_id
-            else pair.left_device_id
-        )
-        master_name = names.get(pair.master_device_id)
-    role = None
-    if pair is not None:
-        role = "LEFT" if pair.left_device_id == device.device_id else "RIGHT"
     return {
         "stereo_capable": capable,
         "oct_provisioned": provisioned,
-        "stereo_ineligible_reason": reason,
-        "stereo_pair_id": pair.id if pair else None,
-        "stereo_role": role,
-        "stereo_master": pair is not None and pair.master_device_id == device.device_id,
-        "stereo_partner_name": names.get(partner_id) if partner_id else None,
-        "stereo_master_name": master_name,
-        "stereo_pair_name": pair.name if pair else None,
+        "stereo_ineligible_reason": _ineligible_reason(
+            capable,
+            provisioned,
+            pair is not None,
+            device.device_id in zone_device_ids,
+        ),
+        **_pair_fields(device.device_id, pair, names or {}),
     }

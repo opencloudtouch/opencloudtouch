@@ -305,7 +305,7 @@ def build_streaming_account_xml(
 
     The speaker rejects any other root element ("account expected") and then
     fails its sync, which also breaks group creation (error 5580).
-    Shape follows the Bose cloud / reference servers.
+    Shape as the speaker sends and expects it.
     """
     now = _EPOCH
     account = ET.Element("account", {"id": account_id})

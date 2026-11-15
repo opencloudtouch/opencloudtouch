@@ -113,9 +113,9 @@ class DeviceListResponse(BaseModel):
 
 @router.get("", response_model=DeviceListResponse)
 async def get_devices(
-    device_service: DeviceService = Depends(get_device_service),
-    stereo_repo: StereoPairRepository | None = Depends(get_stereo_pair_repo),
-    zone_repo: ZoneRepository | None = Depends(get_zone_repo),
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+    stereo_repo: Annotated[StereoPairRepository | None, Depends(get_stereo_pair_repo)],
+    zone_repo: Annotated[ZoneRepository | None, Depends(get_zone_repo)],
 ):
     """
     Get all devices from database.

@@ -109,12 +109,12 @@ async def test_add_group_sends_roles_and_returns_id(speaker):
     )
 
     body = seen[-1].content.decode()
-    assert group_id == "7" and seen[-1].method == "POST"
-    assert '<group id="7">' in body and "<name>A &amp; B</name>" in body
-    assert (
-        "<role>RIGHT</role>" in body
-        and "<senderIPAddress>10.0.0.1</senderIPAddress>" in body
-    )
+    assert group_id == "7"
+    assert seen[-1].method == "POST"
+    assert '<group id="7">' in body
+    assert "<name>A &amp; B</name>" in body
+    assert "<role>RIGHT</role>" in body
+    assert "<senderIPAddress>10.0.0.1</senderIPAddress>" in body
 
 
 @pytest.mark.asyncio
@@ -122,10 +122,9 @@ async def test_device_error_becomes_coded_certain_error(speaker):
     routes, _ = speaker
     routes["/addGroup"] = MARGE_ERROR
 
+    client = HttpGroupClient("10.0.0.1")
     with pytest.raises(GroupClientError) as raised:
-        await HttpGroupClient("10.0.0.1").add_group(
-            "n", "L1", {"L1": ("LEFT", "10.0.0.1")}
-        )
+        await client.add_group("n", "L1", {"L1": ("LEFT", "10.0.0.1")})
 
     assert raised.value.code == "GROUP_CREATE_GROUP_ON_MARGE_ERROR"
     assert raised.value.uncertain is False
@@ -147,8 +146,8 @@ async def test_timeout_is_uncertain_and_bad_xml_is_not(speaker):
     assert raised.value.uncertain is False
 
 
-GESELLIX_RENAME_BODY = (
-    '<group id="7"><name>Büro Stereo</name><masterDeviceId>L1</masterDeviceId>'
+RENAME_BODY = (
+    '<group id="7"><name>Café Stereo</name><masterDeviceId>L1</masterDeviceId>'
     "<roles><groupRole><deviceId>L1</deviceId><role>LEFT</role>"
     "<ipAddress>10.0.0.1</ipAddress></groupRole>"
     "<groupRole><deviceId>R1</deviceId><role>RIGHT</role>"
@@ -157,14 +156,14 @@ GESELLIX_RENAME_BODY = (
 
 
 @pytest.mark.asyncio
-async def test_update_group_posts_the_full_group_like_gesellix(speaker):
+async def test_update_group_posts_the_whole_group(speaker):
     """The speaker answers PUT /updateGroup with 405; the working form is a POST of the whole group."""
     routes, seen = speaker
     routes["/updateGroup"] = GROUP
     client = HttpGroupClient("10.0.0.1")
 
     await client.update_group(
-        "Büro Stereo",
+        "Café Stereo",
         "L1",
         {"L1": ("LEFT", "10.0.0.1"), "R1": ("RIGHT", "10.0.0.2")},
         "7",
@@ -173,7 +172,7 @@ async def test_update_group_posts_the_full_group_like_gesellix(speaker):
     request = seen[0]
     assert request.method == "POST"
     assert request.headers["content-type"] == "application/xml; charset=utf-8"
-    assert request.content == GESELLIX_RENAME_BODY.encode("utf-8")
+    assert request.content == RENAME_BODY.encode("utf-8")
 
 
 @pytest.mark.asyncio
@@ -206,7 +205,8 @@ async def test_remove_group_still_raises_for_other_errors(speaker):
     routes, _ = speaker
     routes["/removeGroup"] = MARGE_ERROR
 
+    client = HttpGroupClient("10.0.0.1")
     with pytest.raises(GroupClientError) as caught:
-        await HttpGroupClient("10.0.0.1").remove_group()
+        await client.remove_group()
 
     assert caught.value.code == "GROUP_CREATE_GROUP_ON_MARGE_ERROR"

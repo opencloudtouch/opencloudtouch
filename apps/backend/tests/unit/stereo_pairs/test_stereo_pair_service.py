@@ -118,14 +118,14 @@ class TestStereoPairService:
     async def test_different_composition_with_paired_device_is_rejected(self, service):
         await service.marge_create(_request())
 
+        other_right = _request(master_device_id="L1", right_device_id="R2")
+        other_left = _request(
+            master_device_id="X", left_device_id="X", right_device_id="R1"
+        )
         with pytest.raises(DeviceAlreadyPairedError):
-            await service.marge_create(
-                _request(master_device_id="L1", right_device_id="R2")
-            )
+            await service.marge_create(other_right)
         with pytest.raises(DeviceAlreadyPairedError):
-            await service.marge_create(
-                _request(master_device_id="X", left_device_id="X", right_device_id="R1")
-            )
+            await service.marge_create(other_left)
 
     @pytest.mark.parametrize(
         "overrides",
@@ -137,8 +137,9 @@ class TestStereoPairService:
         ],
     )
     async def test_invalid_requests_are_rejected(self, service, overrides):
+        request = _request(**overrides)
         with pytest.raises(InvalidGroupError):
-            await service.marge_create(_request(**overrides))
+            await service.marge_create(request)
 
     async def test_default_name(self, service):
         pair = await service.marge_create(_request(name=""))
@@ -151,7 +152,8 @@ class TestStereoPairService:
 
         found = await service.get_for_device("R1")
 
-        assert found is not None and found.id == created.id
+        assert found is not None
+        assert found.id == created.id
         assert b'id="%d"' % created.id in build_group_xml(found)
         with pytest.raises(UnknownDeviceError):
             await service.get_for_device("NOPE")

@@ -114,14 +114,14 @@ class HttpGroupClient:
         path: str,
         *,
         content: str | None = None,
-        timeout: float = READ_TIMEOUT,
+        max_seconds: float = READ_TIMEOUT,
         content_type: str = "text/xml",
     ) -> ET.Element:
         logger.debug(
             "[SPEAKER] -> %s %s %s %s", method, self.ip, path, clip_for_log(content)
         )
         try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
+            async with httpx.AsyncClient(timeout=max_seconds) as client:
                 response = await client.request(
                     method,
                     f"{self._base}{path}",
@@ -176,7 +176,8 @@ class HttpGroupClient:
         zone = await self._request("GET", "/getZone")
         ids = [m.text.strip() for m in zone.findall("member") if m.text]
         master = zone.get("master")
-        return ([master] if master else []) + ids if (master or ids) else []
+        members = [master] if master else []
+        return members + ids
 
     async def add_group(
         self,
@@ -205,7 +206,7 @@ class HttpGroupClient:
             f"<roles>{entries}</roles>{sender}</group>"
         )
         response = await self._request(
-            "POST", "/addGroup", content=body, timeout=ADD_GROUP_TIMEOUT
+            "POST", "/addGroup", content=body, max_seconds=ADD_GROUP_TIMEOUT
         )
         return response.get("id")
 
@@ -216,7 +217,7 @@ class HttpGroupClient:
         roles: Dict[str, tuple[str, str]],
         group_id: str,
     ) -> None:
-        """Rename the group: a POST of the whole group, as the Gesellix client does.
+        """Rename the group: a POST of the whole group.
 
         A PUT is answered with 405 and a name-only body with 5540 (checked on a real
         SoundTouch 10, firmware 27.0.6).
@@ -235,13 +236,13 @@ class HttpGroupClient:
             "POST",
             "/updateGroup",
             content=body,
-            timeout=ADD_GROUP_TIMEOUT,
+            max_seconds=ADD_GROUP_TIMEOUT,
             content_type="application/xml; charset=utf-8",
         )
 
     async def remove_group(self) -> None:
         try:
-            await self._request("GET", "/removeGroup", timeout=ADD_GROUP_TIMEOUT)
+            await self._request("GET", "/removeGroup", max_seconds=ADD_GROUP_TIMEOUT)
         except GroupClientError as exc:
             # seen on a real SoundTouch 10 (5550): nothing to remove is the wanted end state
             if exc.code != NO_GROUP_TO_REMOVE:

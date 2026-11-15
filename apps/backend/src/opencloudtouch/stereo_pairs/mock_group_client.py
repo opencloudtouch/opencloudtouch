@@ -69,19 +69,23 @@ class FakeGroupClient:
                 f"{call} on {self._speaker.ip}: timeout", uncertain=True
             )
 
-    async def get_info(self) -> SpeakerInfo:
+    async def get_info(self) -> SpeakerInfo:  # NOSONAR - the protocol is async
         self._check("get_info")
         return self._speaker.info
 
-    async def get_group(self) -> Optional[GroupState]:
+    async def get_group(
+        self,
+    ) -> Optional[GroupState]:  # NOSONAR - the protocol is async
         self._check("get_group")
         return self._speaker.group
 
-    async def get_zone_member_ids(self) -> List[str]:
+    async def get_zone_member_ids(self) -> List[str]:  # NOSONAR - the protocol is async
         self._check("get_zone")
         return list(self._speaker.zone_ids)
 
-    async def add_group(self, name, master_id, roles, *, group_id=None, sender_ip=None):
+    async def add_group(  # NOSONAR - the protocol is async and has sender_ip
+        self, name, master_id, roles, *, group_id=None, sender_ip=None
+    ):
         self._check("add_group")
         speaker = self._speaker
         pending_error = (
@@ -109,7 +113,7 @@ class FakeGroupClient:
             raise pending_error
         return group_id
 
-    async def update_group(
+    async def update_group(  # NOSONAR - the protocol is async
         self,
         name: str,
         master_id: str,
@@ -121,7 +125,7 @@ class FakeGroupClient:
         if self._speaker.group is not None:
             self._speaker.group.name = name
 
-    async def remove_group(self) -> None:
+    async def remove_group(self) -> None:  # NOSONAR - the protocol is async
         self._check("remove_group")
         speaker = self._speaker
         if speaker.remove_group_errors:

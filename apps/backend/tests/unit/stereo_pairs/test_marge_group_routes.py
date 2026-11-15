@@ -53,10 +53,8 @@ class TestCreateGroup:
             in response.headers["content-type"]
         )
         assert '<group id="7">' in response.text
-        assert (
-            "<role>LEFT</role>" in response.text
-            and "<role>RIGHT</role>" in response.text
-        )
+        assert "<role>LEFT</role>" in response.text
+        assert "<role>RIGHT</role>" in response.text
         request = service.marge_create.call_args.args[0]
         assert (request.left_device_id, request.right_device_id) == ("L1", "R1")
 

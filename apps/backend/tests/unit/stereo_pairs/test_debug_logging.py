@@ -78,8 +78,9 @@ async def test_speaker_failure_is_logged_too(monkeypatch, caplog):
     )
     caplog.set_level(logging.DEBUG, logger="opencloudtouch.stereo_pairs.group_client")
 
+    client = HttpGroupClient("10.0.0.1")
     with pytest.raises(group_client.GroupClientError):
-        await HttpGroupClient("10.0.0.1").get_group()
+        await client.get_group()
 
     assert any(
         "[SPEAKER] !! 10.0.0.1 /getGroup" in r.getMessage() for r in caplog.records

@@ -286,6 +286,17 @@ async def _init_services(
     await _init_websocket_pipeline(app, cfg, device_repo, logger)
 
 
+def _find_preset_value(presets, station_name: str, attr: str) -> str | None:
+    """Value of ``attr`` of the first preset with this station name, if it has one."""
+    station_lower = station_name.casefold()
+    for preset in presets:
+        if preset.station_name and preset.station_name.casefold() == station_lower:
+            value = getattr(preset, attr, None)
+            if value:
+                return value  # type: ignore[no-any-return]
+    return None
+
+
 def _make_preset_lookup(
     app: FastAPI, logger: logging.Logger, attr: str
 ) -> Callable[[str, str], Awaitable[str | None]]:
@@ -299,15 +310,10 @@ def _make_preset_lookup(
                 "Preset %s lookup failed for %s", attr, device_id, exc_info=True
             )
             return None
-        station_lower = station_name.casefold()
-        for preset in presets:
-            if preset.station_name and preset.station_name.casefold() == station_lower:
-                value = getattr(preset, attr, None)
-                if value:
-                    if attr == "station_url":
-                        return await resolve_tunein_location(value)
-                    return value  # type: ignore[no-any-return]
-        return None
+        value = _find_preset_value(presets, station_name, attr)
+        if value and attr == "station_url":
+            return await resolve_tunein_location(value)
+        return value
 
     return _lookup
 

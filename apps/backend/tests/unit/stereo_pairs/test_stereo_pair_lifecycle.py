@@ -64,7 +64,8 @@ class TestCreate:
         assert pair.name == "Office left + Office right"
         left, right = network.speakers[L_IP].group, network.speakers[R_IP].group
         assert left.id == right.id == str(pair.id)
-        assert left.master_id == "L1" and left.roles == {"L1": "LEFT", "R1": "RIGHT"}
+        assert left.master_id == "L1"
+        assert left.roles == {"L1": "LEFT", "R1": "RIGHT"}
         assert (await repo.get_by_device("R1")).id == pair.id
 
     async def test_left_is_asked_first_and_right_gets_the_group_id(
@@ -160,10 +161,8 @@ class TestCreate:
             await _create(lifecycle)
 
         assert raised.value.code == codes.STEREO_PAIR_MARGE_FAILED
-        assert (
-            network.speakers[L_IP].group is None
-            and network.speakers[R_IP].group is None
-        )
+        assert network.speakers[L_IP].group is None
+        assert network.speakers[R_IP].group is None
         assert await repo.list_active() == []
 
     async def test_failure_on_slave_rolls_back_the_master(
@@ -175,10 +174,8 @@ class TestCreate:
             await _create(lifecycle)
 
         assert raised.value.code == codes.STEREO_PAIR_MARGE_FAILED
-        assert (
-            network.speakers[L_IP].group is None
-            and network.speakers[R_IP].group is None
-        )
+        assert network.speakers[L_IP].group is None
+        assert network.speakers[R_IP].group is None
         assert await repo.list_active() == []
         assert await repo.get_by_device("L1") is None
 
@@ -254,7 +251,8 @@ class TestCreate:
 
         assert raised.value.code == codes.STEREO_PAIR_DEGRADED
         row = await repo.get_by_device("L1")
-        assert row is not None and row.status == "degraded"
+        assert row is not None
+        assert row.status == "degraded"
 
     async def test_same_device_twice_is_invalid(self, lifecycle):
         with pytest.raises(CodedApiError) as raised:
@@ -270,10 +268,8 @@ class TestDissolveAndRename:
 
         await lifecycle.dissolve(pair.id)
 
-        assert (
-            network.speakers[L_IP].group is None
-            and network.speakers[R_IP].group is None
-        )
+        assert network.speakers[L_IP].group is None
+        assert network.speakers[R_IP].group is None
         assert await repo.get(pair.id) is None
 
     async def test_dissolve_with_offline_member_is_degraded_then_retry_succeeds(

@@ -41,7 +41,8 @@ class TestStereoFields:
     def test_eligible_device(self):
         fields = stereo_fields(_device(), {}, set())
 
-        assert fields["stereo_capable"] and fields["oct_provisioned"]
+        assert fields["stereo_capable"]
+        assert fields["oct_provisioned"]
         assert fields["stereo_ineligible_reason"] is None
         assert (fields["stereo_pair_id"], fields["stereo_role"]) == (None, None)
 

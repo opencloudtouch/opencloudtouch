@@ -1,9 +1,9 @@
 """Stereo pair lifecycle: create with verification and rollback, dissolve, rename.
 
-Order of the create flow follows the community reference implementation: the
-LEFT speaker (master) is asked first and persists the group through Marge; its
-group id is then handed to the RIGHT speaker. Every result is verified with a
-fresh ``getGroup`` read, never trusted from a mutation response.
+Order of the create flow: the LEFT speaker (master) is asked first and persists
+the group through Marge; its group id is then handed to the RIGHT speaker. Every
+result is verified with a fresh ``getGroup`` read, never trusted from a mutation
+response.
 """
 
 import asyncio
@@ -44,7 +44,7 @@ class Operation:
     id: str
     state: str = "running"  # running | succeeded | failed
     steps: Dict[str, str] = field(
-        default_factory=lambda: {k: "waiting" for k in STEP_KEYS}
+        default_factory=lambda: dict.fromkeys(STEP_KEYS, "waiting")
     )
     pair: Optional[StereoPair] = None
     warnings: List[str] = field(default_factory=list)
@@ -122,9 +122,7 @@ class StereoPairLifecycle:
 
     # ---- create ----
 
-    async def _preflight_member(
-        self, device_id: str, other_id: str, role: str
-    ) -> _Member:
+    async def _preflight_member(self, device_id: str, other_id: str) -> _Member:
         device = await self._device_repo.get_by_device_id(device_id)
         if device is None:
             raise stereo_error(
@@ -189,8 +187,8 @@ class StereoPairLifecycle:
             op.steps[key] = state
 
         step("preflight", "running")
-        left = await self._preflight_member(left_id, right_id, "LEFT")
-        right = await self._preflight_member(right_id, left_id, "RIGHT")
+        left = await self._preflight_member(left_id, right_id)
+        right = await self._preflight_member(right_id, left_id)
         if left.info.firmware != right.info.firmware:
             op.warnings.append("firmware_mismatch")
         pair_name = name or f"{left.device.name} + {right.device.name}"

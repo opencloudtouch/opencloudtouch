@@ -104,7 +104,8 @@ def test_offline_error_text_is_fixed_and_has_no_ip_or_library_text(
     response = getattr(TestClient(app), method)(url, **kwargs)
 
     detail = response.json()["detail"]
-    assert "10.0.0.1" not in detail and "offline" not in detail
+    assert "10.0.0.1" not in detail
+    assert "offline" not in detail
     assert detail == (
         "The device did not respond. The action was not carried out; "
         "try again when it is back online."

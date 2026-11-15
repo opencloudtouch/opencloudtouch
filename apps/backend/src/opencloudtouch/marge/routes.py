@@ -415,8 +415,8 @@ async def set_marge_account() -> Response:
 
 
 # ---------------------------------------------------------------------------
-# Stereo pair groups (speaker -> OCT). Shapes follow the community Marge
-# implementations; verify against a capture of a real speaker (see spec).
+# Stereo pair groups (speaker -> OCT). The shapes were checked against captures
+# of real speakers.
 # ---------------------------------------------------------------------------
 
 StereoPairServiceDep = Annotated[StereoPairService, Depends(get_stereo_pair_service)]

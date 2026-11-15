@@ -1,8 +1,8 @@
 # Marge calls observed from SoundTouch speakers (firmware 27.0.6)
 
 What a speaker (SoundTouch 10 and 20) sends to the OpenCloudTouch server when `margeServerUrl`, `bmxRegistryUrl`, `statsServerUrl` and
-`swUpdateUrl` point at it, and how OCT answers. Observed with `tcpdump` and `logread` on real speakers; response shapes follow the
-community reference servers (Gesellix `bose-soundtouch`, soundcork, BASSWIESN). Bodies below are shortened.
+`swUpdateUrl` point at it, and how OCT answers. Observed with `tcpdump` and `logread` on real speakers; response shapes follow what the
+speakers accept. Bodies below are shortened.
 
 ## Boot (every route answered 200)
 
