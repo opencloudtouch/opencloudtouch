@@ -76,7 +76,10 @@ def mock_device_repo():
 
 
 @pytest.fixture
-def service(mock_repo, mock_device_repo):
+def service(mock_repo, mock_device_repo, monkeypatch):
+    # Clearing a slot also clears it on the speaker: the mock client keeps these tests
+    # off the network, whatever the order or the environment of the run.
+    monkeypatch.setenv("OCT_MOCK_MODE", "true")
     return PresetService(repository=mock_repo, device_repository=mock_device_repo)
 
 
