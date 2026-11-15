@@ -4,6 +4,7 @@
  * The device list, now-playing and volume are mocked with cy.intercept, so the result does not depend on
  * the database or on real speakers. The pair is the LEFT (master) speaker; the RIGHT speaker is not shown.
  */
+import { collectLayoutIssues, waitForStableLayout, waitForSettledAnimations } from "./support/layoutAudit";
 import { DEVICES, visitDe } from "./support/wizardMocks";
 
 const PAIR_ID = 7;
@@ -122,4 +123,23 @@ describe("Stereo pair as one device", () => {
     cy.get("dialog.dlg").should("not.exist");
     cy.get(".ds-dot").should("have.length", 2);
   });
+
+  for (const width of [320, 375, 768, 1280]) {
+    it(`has no layout issues and no accessibility violations @ ${width}px`, () => {
+      cy.viewport(width, 800);
+      visitDe(`/?device=${LEFT.device_id}`);
+      cy.get('[data-test="device-stereo-members"]').should("be.visible");
+
+      cy.window().then((win) => waitForStableLayout(win));
+      cy.window().then((win) => {
+        const issues = collectLayoutIssues(win);
+        const text = issues.map((i) => `[${i.kind}] ${i.selector} (${i.detail})`).join(", ");
+        expect(issues, `layout issues: ${text}`).to.have.lengthOf(0);
+      });
+
+      waitForSettledAnimations();
+      cy.injectAxe();
+      cy.checkA11y(undefined, { includedImpacts: ["critical", "serious", "moderate"] });
+    });
+  }
 });
