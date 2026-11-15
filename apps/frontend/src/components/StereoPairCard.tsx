@@ -219,7 +219,7 @@ export default function StereoPairCard({
           <p className="sp-reason">
             {t(
               "stereo.creatingText",
-              "Wird erstellt. Das dauert bis zu 45 Sekunden, im ungünstigen Fall bis zu 2 Minuten."
+              "Wird erstellt. Das kann bis zu 45 Sekunden dauern."
             )}
           </p>
           {onShowProgress && (

@@ -346,7 +346,7 @@ export default function StereoPairCreateDialog({
                   <p className="sp-reason">
                     {t(
                       "stereo.dlg.runningHint",
-                      "Das dauert bis zu 45 Sekunden, im ungünstigen Fall bis zu 2 Minuten. Lass beide Lautsprecher eingeschaltet."
+                      "Das kann bis zu 45 Sekunden dauern. Lass beide Lautsprecher eingeschaltet."
                     )}
                   </p>
                 </div>
