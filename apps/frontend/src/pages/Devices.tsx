@@ -9,11 +9,9 @@ import SourceSwitch, { type DeviceSource } from "../components/SourceSwitch";
 import TransportKeys, { type TransportKey } from "../components/TransportKeys";
 import SetupBadge from "../components/SetupBadge";
 import DeviceOfflineBanner from "../components/DeviceOfflineBanner";
-import DeviceNameEditor from "../components/DeviceNameEditor";
 import RadioSearch, { RadioStation } from "../components/RadioSearch";
 import VolumeSlider from "../components/VolumeSlider";
 import ConfirmDialog from "../components/ConfirmDialog";
-import RemoveDevice from "../components/RemoveDevice";
 import { PresetSkeleton } from "../components/LoadingSkeleton";
 import { Icon } from "../components/Icon";
 import {
@@ -31,8 +29,7 @@ import { useNowPlaying } from "../hooks/useNowPlaying";
 import { useZones } from "../hooks/useZones";
 import { useLastPreset } from "../hooks/useLastPreset";
 import { usePrefetchDevices } from "../hooks/usePrefetchDevices";
-import { StereoPairBadge } from "../components/StereoPairCard";
-import { renameStereoPair } from "../api/stereoPairs";
+import { CardName, CardRemove, StereoRow, ZoneRow } from "./DevicesParts";
 import { visibleDevices } from "../utils/visibleDevices";
 import { useToast } from "../contexts/ToastContext";
 import "../components/DeviceCard.css";
@@ -483,22 +480,7 @@ export default function Devices({
                 {powerLoading ? <span className="ui-spin">{Icon.Loader(22)}</span> : Icon.Power(22)}
               </button>
               <div className="rp-device-info">
-                {currentDevice && stereoPairId !== null ? (
-                  <DeviceNameEditor
-                    deviceId={currentDevice.device_id}
-                    name={pairName}
-                    maxLength={100}
-                    rename={async (name) => ({
-                      name: (await renameStereoPair(stereoPairId, name)).name,
-                    })}
-                  />
-                ) : currentDevice ? (
-                  <DeviceNameEditor deviceId={currentDevice.device_id} name={currentDevice.name} />
-                ) : (
-                  <h2 className="rp-device-name" data-test="device-name">
-                    {t("presets.unknownDevice")}
-                  </h2>
-                )}
+                <CardName device={currentDevice} stereoPairId={stereoPairId} pairName={pairName} />
                 <span className="rp-device-model" data-test="device-model">
                   {stereoPairId !== null
                     ? t("stereo.pairModel", "2× {{model}}", { model: currentDevice?.model })
@@ -519,35 +501,11 @@ export default function Devices({
             </div>
 
             {deviceRole && !deviceOffline && (
-              <div className="dv-zone-row">
-                <span className="lc-zone" data-test="device-zone">
-                  {Icon.Link(16)}
-                  <span>
-                    {deviceRole === "master"
-                      ? t("multiroom.masterBadge")
-                      : t("multiroom.slaveBadge")}
-                  </span>
-                </span>
-                {isZoneMember && (
-                  <p id="dv-slave-hint" className="dv-zone-hint">
-                    {t("device.slaveHint", { master: masterName })}
-                  </p>
-                )}
-              </div>
+              <ZoneRow role={deviceRole} isZoneMember={isZoneMember} masterName={masterName} />
             )}
 
             {stereoPairId !== null && !deviceOffline && (
-              <div className="dv-zone-row sp-devrow">
-                <StereoPairBadge />
-                {partnerName && (
-                  <span className="sp-partner" data-test="device-stereo-members">
-                    {t("stereo.pairMembers", "Links: {{left}} · Rechts: {{right}}", {
-                      left: currentDevice?.name,
-                      right: partnerName,
-                    })}
-                  </span>
-                )}
-              </div>
+              <StereoRow deviceName={currentDevice?.name} partnerName={partnerName} />
             )}
 
             {/* Device Offline Banner */}
@@ -714,23 +672,14 @@ export default function Devices({
             )}
 
             {currentDevice && (
-              <RemoveDevice
-                deviceId={currentDevice.device_id}
-                ip={currentDevice.ip ?? ""}
+              <CardRemove
+                device={currentDevice}
                 offline={deviceOffline}
+                stereoPairId={stereoPairId}
+                pairName={pairName}
+                partnerName={partnerName}
                 onRemoved={handleDeviceRemoved}
-                pair={
-                  stereoPairId === null
-                    ? undefined
-                    : {
-                        id: stereoPairId,
-                        left: currentDevice.name ?? "",
-                        right: partnerName,
-                        // both speakers are single devices again: the list is fetched anew
-                        onDissolved: () => onDevicesChanged?.(),
-                      }
-                }
-                name={stereoPairId === null ? (currentDevice.name ?? "") : pairName}
+                onDissolved={() => onDevicesChanged?.()}
               />
             )}
           </div>

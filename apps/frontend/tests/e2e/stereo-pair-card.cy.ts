@@ -8,7 +8,7 @@ import { collectLayoutIssues, waitForStableLayout, waitForSettledAnimations } fr
 import { DEVICES, visitDe } from "./support/wizardMocks";
 
 const PAIR_ID = 7;
-const PAIR_NAME = "Büro Stereo";
+const PAIR_NAME = "Office Stereo";
 
 const pairFields = (role: "LEFT" | "RIGHT") => ({
   stereo_capable: true,
@@ -17,14 +17,14 @@ const pairFields = (role: "LEFT" | "RIGHT") => ({
   stereo_pair_id: PAIR_ID,
   stereo_role: role,
   stereo_master: role === "LEFT",
-  stereo_partner_name: role === "LEFT" ? "Büro rechts" : "Büro links",
-  stereo_master_name: "Büro links",
+  stereo_partner_name: role === "LEFT" ? "Office right" : "Office left",
+  stereo_master_name: "Office left",
   stereo_pair_name: PAIR_NAME,
 });
 
-const LEFT = { ...DEVICES[1]!, name: "Büro links", model: "SoundTouch 10", ...pairFields("LEFT") };
-const RIGHT = { ...DEVICES[2]!, name: "Büro rechts", model: "SoundTouch 10", ...pairFields("RIGHT") };
-const SINGLE = { ...DEVICES[0]!, name: "Küche" };
+const LEFT = { ...DEVICES[1]!, name: "Office left", model: "SoundTouch 10", ...pairFields("LEFT") };
+const RIGHT = { ...DEVICES[2]!, name: "Office right", model: "SoundTouch 10", ...pairFields("RIGHT") };
+const SINGLE = { ...DEVICES[0]!, name: "Kitchen" };
 
 const asList = (devices: unknown[]) => ({ statusCode: 200, body: { count: devices.length, devices } });
 
@@ -65,14 +65,14 @@ describe("Stereo pair as one device", () => {
     cy.get('[data-test="device-model"]').should("have.text", "2× SoundTouch 10");
     cy.get('[data-test="device-ip"]').should("have.text", LEFT.ip);
     cy.get('[data-test="device-stereo"]').should("have.text", "L/R Stereo");
-    cy.get('[data-test="device-stereo-members"]').should("have.text", "Links: Büro links · Rechts: Büro rechts");
+    cy.get('[data-test="device-stereo-members"]').should("have.text", "Links: Office left · Rechts: Office right");
   });
 
   it("does not offer the right speaker as a device of its own", () => {
     visitDe(`/?device=${LEFT.device_id}`);
 
     cy.get(".ds-dot").should("have.length", 2);
-    cy.get('[data-test="device-name"]').should("not.contain.text", "Büro rechts");
+    cy.get('[data-test="device-name"]').should("not.contain.text", "Office right");
   });
 
   it("keeps the source buttons usable, including AUX", () => {
@@ -84,14 +84,14 @@ describe("Stereo pair as one device", () => {
   it("renames the pair from its card", () => {
     cy.intercept("PATCH", `/api/stereo-pairs/${PAIR_ID}`, {
       statusCode: 200,
-      body: { id: PAIR_ID, name: "Wohnzimmer Stereo", status: "active", source: "oct", members: [], warnings: [] },
+      body: { id: PAIR_ID, name: "Studio Stereo", status: "active", source: "oct", members: [], warnings: [] },
     }).as("renamePair");
     visitDe(`/?device=${LEFT.device_id}`);
 
     cy.get('[data-test="device-name"]').click();
-    cy.get(".rp-device-info input").clear().type("Wohnzimmer Stereo{enter}");
+    cy.get(".rp-device-info input").clear().type("Studio Stereo{enter}");
 
-    cy.wait("@renamePair").its("request.body").should("deep.equal", { name: "Wohnzimmer Stereo" });
+    cy.wait("@renamePair").its("request.body").should("deep.equal", { name: "Studio Stereo" });
   });
 
   it("dissolves the pair after a confirmation and shows both speakers again", () => {
@@ -110,7 +110,7 @@ describe("Stereo pair as one device", () => {
 
     cy.wait("@dissolvePair");
     cy.get(".ds-dot").should("have.length", 3); // both speakers are single devices again
-    cy.get('[data-test="device-name"]').should("contain.text", "Büro links");
+    cy.get('[data-test="device-name"]').should("contain.text", "Office left");
     cy.get('[data-test="device-stereo"]').should("not.exist");
   });
 

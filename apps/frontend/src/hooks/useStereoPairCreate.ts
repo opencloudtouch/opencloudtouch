@@ -11,6 +11,7 @@ import {
   startStereoPairCreate,
   type OperationStep,
   type StereoPair,
+  type StereoPairOperation,
 } from "../api/stereoPairs";
 import { isApiErrorInstance } from "../api/types";
 import { userErrorMessage } from "../utils/errorMessages";
@@ -92,6 +93,47 @@ export function useStereoPairCreate(): StereoPairCreate {
       if (alive()) setState((s) => ({ ...s, phase: "failed", pair, error: { code, message } }));
     };
 
+    // A failed create may have left a degraded pair behind: the repair action needs its id
+    const finishFailed = async (operation: StereoPairOperation) => {
+      const error = operation.error ?? { code: "internal_error", message: "" };
+      let pair: StereoPair | null = null;
+      if (error.code === "stereo_pair_degraded") {
+        const pairs = await getStereoPairs().catch(() => [] as StereoPair[]);
+        pair =
+          pairs.find((p) => p.members.some((m) => m.device_id === request.left_device_id)) ?? null;
+      }
+      if (alive()) {
+        setState((s) => ({ ...s, phase: "failed", steps: operation.steps, pair, error }));
+      }
+    };
+
+    // Sequential poll: the next request only starts after the pause that follows the previous answer
+    const poll = async (operationId: string, deadline: number): Promise<void> => {
+      if (!alive()) return;
+      const operation = await getStereoPairOperation(operationId);
+      if (!alive()) return;
+      if (operation.state === "succeeded") {
+        setState((s) => ({
+          ...s,
+          phase: "succeeded",
+          steps: operation.steps,
+          pair: operation.pair,
+        }));
+        return;
+      }
+      if (operation.state === "failed") {
+        await finishFailed(operation);
+        return;
+      }
+      setState((s) => ({ ...s, steps: operation.steps }));
+      if (Date.now() > deadline) {
+        fail("stereo_pair_timeout", "The server did not finish in time.");
+        return;
+      }
+      await sleep(POLL_INTERVAL_MS);
+      await poll(operationId, deadline);
+    };
+
     void (async () => {
       try {
         const operationId = await startStereoPairCreate({
@@ -99,41 +141,7 @@ export function useStereoPairCreate(): StereoPairCreate {
           right_device_id: request.right_device_id,
           name: request.name,
         });
-        const deadline = Date.now() + POLL_LIMIT_MS;
-        while (alive()) {
-          const operation = await getStereoPairOperation(operationId);
-          if (!alive()) return;
-          if (operation.state === "succeeded") {
-            setState((s) => ({
-              ...s,
-              phase: "succeeded",
-              steps: operation.steps,
-              pair: operation.pair,
-            }));
-            return;
-          }
-          if (operation.state === "failed") {
-            const error = operation.error ?? { code: "internal_error", message: "" };
-            let pair: StereoPair | null = null;
-            if (error.code === "stereo_pair_degraded") {
-              // The failed create left a degraded pair behind: the repair action needs its id
-              const pairs = await getStereoPairs().catch(() => [] as StereoPair[]);
-              pair =
-                pairs.find((p) => p.members.some((m) => m.device_id === request.left_device_id)) ??
-                null;
-            }
-            if (alive()) {
-              setState((s) => ({ ...s, phase: "failed", steps: operation.steps, pair, error }));
-            }
-            return;
-          }
-          setState((s) => ({ ...s, steps: operation.steps }));
-          if (Date.now() > deadline) {
-            fail("stereo_pair_timeout", "The server did not finish in time.");
-            return;
-          }
-          await sleep(POLL_INTERVAL_MS);
-        }
+        await poll(operationId, Date.now() + POLL_LIMIT_MS);
       } catch (e) {
         fail(isApiErrorInstance(e) && e.code ? e.code : "internal_error", userErrorMessage(e));
       }

@@ -107,18 +107,24 @@
   gap: 10px;
 }
 .sp-bar {
+  appearance: none;
+  display: block;
   width: 100%;
   height: 6px;
+  border: 0;
   border-radius: 3px;
   background: var(--bg-tertiary);
   overflow: hidden;
 }
-.sp-bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
+.sp-bar::-webkit-progress-bar {
+  background: var(--bg-tertiary);
+}
+.sp-bar::-webkit-progress-value {
   background: var(--primary-color);
   transition: width 0.6s ease-out;
+}
+.sp-bar::-moz-progress-bar {
+  background: var(--primary-color);
 }
 .sp-degraded .mr-info-title {
   margin: 0 0 4px;
@@ -143,7 +149,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sp-bar-fill {
+  .sp-bar::-webkit-progress-value {
     transition: none;
   }
 }
@@ -159,7 +165,8 @@
   .sp-bar {
     border: 1px solid CanvasText;
   }
-  .sp-bar-fill {
+  .sp-bar::-webkit-progress-value,
+  .sp-bar::-moz-progress-bar {
     background: Highlight;
   }
 }

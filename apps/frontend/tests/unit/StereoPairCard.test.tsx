@@ -96,7 +96,7 @@ describe("StereoPairCard", () => {
       />
     );
 
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
+    expect(screen.getByRole("progressbar")).toHaveAttribute("value", "2");
     expect(screen.queryByRole("button", { name: "Dissolve" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show progress" }));
     expect(onShowProgress).toHaveBeenCalledTimes(1);

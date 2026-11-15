@@ -126,7 +126,7 @@ describe("StereoPairCreateDialog", () => {
     renderDialog(create, speakers(), { onClose });
 
     expect(screen.getAllByRole("listitem")).toHaveLength(4);
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+    expect(screen.getByRole("progressbar")).toHaveAttribute("value", "1");
     fireEvent.click(screen.getAllByRole("button", { name: "Continue in background" }).at(-1)!);
     expect(onClose).toHaveBeenCalled();
   });

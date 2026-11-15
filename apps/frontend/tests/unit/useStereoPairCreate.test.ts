@@ -159,6 +159,6 @@ describe("useStereoPairCreate", () => {
     await tick(POLL_INTERVAL_MS * 3);
 
     expect(result.current.phase).toBe("idle");
-    expect(vi.mocked(api.getStereoPairOperation).mock.calls.length).toBe(calls);
+    expect(vi.mocked(api.getStereoPairOperation).mock.calls).toHaveLength(calls);
   });
 });

@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { StereoPair, StereoRole } from "../api/stereoPairs";
 import { Icon } from "./Icon";
@@ -63,6 +63,11 @@ function EditablePairName({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(name);
   const cancelledRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
 
   const handleSave = () => {
     setEditing(false);
@@ -78,6 +83,7 @@ function EditablePairName({
     return (
       <h3 className="zn-title">
         <input
+          ref={inputRef}
           className="ui-input zn-name-input"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -92,7 +98,6 @@ function EditablePairName({
             }
           }}
           maxLength={40}
-          autoFocus
           aria-label={t("stereo.renameLabel", "Name des Stereopaars")}
         />
       </h3>
@@ -202,19 +207,12 @@ export default function StereoPairCard({
 
       {creating && (
         <div className="sp-creating">
-          <div
+          <progress
             className="sp-bar"
-            role="progressbar"
             aria-label={t("stereo.status.creating", "Wird erstellt")}
-            aria-valuemin={0}
-            aria-valuemax={progress?.total ?? 4}
-            aria-valuenow={progress?.done ?? 0}
-          >
-            <span
-              className="sp-bar-fill"
-              style={{ width: `${((progress?.done ?? 0) / (progress?.total ?? 4)) * 100}%` }}
-            />
-          </div>
+            max={progress?.total ?? 4}
+            value={progress?.done ?? 0}
+          />
           <p className="sp-reason">{t("stereo.creatingText", "Wird erstellt.")}</p>
           {onShowProgress && (
             <button type="button" className="btn btn-secondary" onClick={onShowProgress}>

@@ -61,6 +61,20 @@ export default function RemoveDevice({
     }
   };
 
+  const dissolveLabel = t("stereo.dissolve", "Auflösen");
+  let title = t("presets.removeDeviceTitle");
+  let message = t(offline ? "presets.removeDeviceOffline" : "presets.removeDeviceOnline", { name });
+  let confirmLabel = t("presets.removeDeviceConfirm");
+  if (pair) {
+    title = t("stereo.confirmDissolveTitle", "Stereopaar auflösen?");
+    message = t(
+      "stereo.confirmDissolveMessage",
+      "„{{name}}“ wird aufgelöst. {{left}} und {{right}} spielen danach wieder einzeln.",
+      { name, left: pair.left, right: pair.right }
+    );
+    confirmLabel = dissolveLabel;
+  }
+
   return (
     <>
       <div className="dm-foot">
@@ -70,26 +84,14 @@ export default function RemoveDevice({
           onClick={() => setOpen(true)}
           data-test="device-remove"
         >
-          {Icon.Trash(18)} {pair ? t("stereo.dissolve", "Auflösen") : t("presets.removeDevice")}
+          {Icon.Trash(18)} {pair ? dissolveLabel : t("presets.removeDevice")}
         </button>
       </div>
       <ConfirmDialog
         open={open}
-        title={
-          pair
-            ? t("stereo.confirmDissolveTitle", "Stereopaar auflösen?")
-            : t("presets.removeDeviceTitle")
-        }
-        message={
-          pair
-            ? t(
-                "stereo.confirmDissolveMessage",
-                "„{{name}}“ wird aufgelöst. {{left}} und {{right}} spielen danach wieder einzeln.",
-                { name, left: pair.left, right: pair.right }
-              )
-            : t(offline ? "presets.removeDeviceOffline" : "presets.removeDeviceOnline", { name })
-        }
-        confirmLabel={pair ? t("stereo.dissolve", "Auflösen") : t("presets.removeDeviceConfirm")}
+        title={title}
+        message={message}
+        confirmLabel={confirmLabel}
         cancelLabel={t("common.cancel")}
         destructive
         onConfirm={() => {

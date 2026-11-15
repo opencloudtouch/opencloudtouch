@@ -1448,26 +1448,26 @@ describe("Devices Page", () => {
     describe("stereo pair shown as one device", () => {
       const left = {
         ...mockDevices[1],
-        name: "Büro links",
+        name: "Office left",
         ip: "10.0.0.5",
         stereo_role: "LEFT",
         stereo_master: true,
         stereo_pair_id: 7,
-        stereo_pair_name: "Büro Stereo",
-        stereo_partner_name: "Büro rechts",
-        stereo_master_name: "Büro links",
+        stereo_pair_name: "Office Stereo",
+        stereo_partner_name: "Office right",
+        stereo_master_name: "Office left",
       };
       const right = {
         ...mockDevices[1],
         device_id: "RIGHT00000001",
-        name: "Büro rechts",
+        name: "Office right",
         ip: "10.0.0.6",
         stereo_role: "RIGHT",
         stereo_master: false,
         stereo_pair_id: 7,
-        stereo_pair_name: "Büro Stereo",
-        stereo_partner_name: "Büro links",
-        stereo_master_name: "Büro links",
+        stereo_pair_name: "Office Stereo",
+        stereo_partner_name: "Office left",
+        stereo_master_name: "Office left",
       };
 
       const q = (id: string) => document.querySelector(`[data-test="${id}"]`);
@@ -1482,7 +1482,7 @@ describe("Devices Page", () => {
       it("shows the pair name, the doubled model, the master ip and the pair badge", async () => {
         await renderPair();
 
-        expect(q("device-name")).toHaveTextContent("Büro Stereo");
+        expect(q("device-name")).toHaveTextContent("Office Stereo");
         expect(q("device-model")).toHaveTextContent("2× SoundTouch 10");
         expect(q("device-ip")).toHaveTextContent("10.0.0.5");
         expect(q("device-stereo")).toHaveTextContent("L/R Stereo");
@@ -1492,7 +1492,7 @@ describe("Devices Page", () => {
         await renderPair();
 
         expect(q("device-stereo-members")).toHaveTextContent(
-          "Left: Büro links · Right: Büro rechts"
+          "Left: Office left · Right: Office right"
         );
         expect(screen.queryByText(/Partner:/)).toBeNull();
       });
@@ -1501,7 +1501,7 @@ describe("Devices Page", () => {
         await renderPair();
 
         expect(document.querySelectorAll('[data-test="device-card"]')).toHaveLength(1);
-        expect(q("device-name")).not.toHaveTextContent("Büro rechts");
+        expect(q("device-name")).not.toHaveTextContent("Office right");
       });
 
       it("keeps every control usable, including AUX and the transport keys", async () => {

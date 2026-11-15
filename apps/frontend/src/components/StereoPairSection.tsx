@@ -100,14 +100,10 @@ export default function StereoPairSection({
     if (finished) reload();
   }, [finished, reload]);
 
-  const emptyKind: EmptyKind =
-    capable.length === 0
-      ? "none"
-      : capable.length === 1
-        ? "one"
-        : capable.every((d) => !d.oct_provisioned)
-          ? "setup"
-          : "ready";
+  let emptyKind: EmptyKind = "ready";
+  if (capable.length === 0) emptyKind = "none";
+  else if (capable.length === 1) emptyKind = "one";
+  else if (capable.every((d) => !d.oct_provisioned)) emptyKind = "setup";
   const canCreate = eligible.length >= 2 && !running;
 
   const emptyTitle = {

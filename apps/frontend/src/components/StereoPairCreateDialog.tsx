@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import type { TFunction } from "i18next";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Device } from "./DeviceSwiper";
@@ -38,6 +39,27 @@ const ERROR_DEFAULTS: Record<string, string> = {
     "Die Kopplung konnte nicht bestätigt werden. Es wurde nichts geändert oder der Vorgang wurde zurückgenommen.",
 };
 
+type Selection = string[]; // [left, right]
+
+function toggleSelection(s: Selection, id: string): Selection {
+  if (s.includes(id)) return s.filter((x) => x !== id);
+  return s.length < 2 ? [...s, id] : s;
+}
+
+function swapSelection(s: Selection): Selection {
+  const [first, second] = s;
+  return first !== undefined && second !== undefined ? [second, first] : s;
+}
+
+function pairDefaultName(t: TFunction, left?: Device, right?: Device): string {
+  if (!left || !right) return "";
+  return t("stereo.defaultName", "{{left}} + {{right}}", { left: left.name, right: right.name });
+}
+
+function firmwareMismatch(left?: Device, right?: Device): boolean {
+  return !!left?.firmware && !!right?.firmware && left.firmware !== right.firmware;
+}
+
 interface Props {
   open: boolean;
   /** hides the dialog; a running operation keeps running (the section shows the pair as "creating") */
@@ -46,6 +68,412 @@ interface Props {
   create: StereoPairCreate;
   repairing: boolean;
   onRepair: (pairId: number) => void;
+}
+
+function PickStep({
+  candidates,
+  selected,
+  onToggle,
+  descId,
+  countId,
+}: Readonly<{
+  candidates: Device[];
+  selected: Selection;
+  onToggle: (id: string) => void;
+  descId: string;
+  countId: string;
+}>) {
+  const { t } = useTranslation();
+  return (
+    <fieldset className="sp-pick">
+      <legend className="sp-pick-legend">
+        {t("stereo.dlg.pickLegend", "Wähle zwei Lautsprecher")}
+      </legend>
+      <p className="sp-reason">
+        {t(
+          "stereo.dlg.pickHint",
+          "Nur SoundTouch 10, die mit OCT eingerichtet sind, können ein Paar bilden."
+        )}
+      </p>
+      <div className="sp-pick-list">
+        {candidates.map((d) => {
+          const reason = d.stereo_ineligible_reason;
+          const isSel = selected.includes(d.device_id);
+          const full = selected.length >= 2 && !isSel;
+          const blocked = reason !== null || full;
+          const checkId = `${descId}-pick-${d.device_id}`;
+          const reasonKey = reason && reason !== "not_capable" ? reason : null;
+          return (
+            <div
+              key={d.device_id}
+              className={`mr-dev${isSel ? " mr-dev--selected" : ""}${blocked ? " mr-dev--zone" : ""}`}
+            >
+              <input
+                id={checkId}
+                className="mr-dev-check"
+                type="checkbox"
+                checked={isSel}
+                disabled={blocked}
+                onChange={() => onToggle(d.device_id)}
+                aria-describedby={`${checkId}-info ${countId}`}
+              />
+              <div className="mr-dev-main">
+                <label className="mr-dev-name" htmlFor={checkId}>
+                  {d.name}
+                </label>
+                <span className="mr-dev-model">{d.model}</span>
+                <div className="mr-dev-badges" id={`${checkId}-info`}>
+                  {reasonKey && (
+                    <span className="ui-badge ui-badge--warning ui-badge--small">
+                      <span className="ui-badge-icon" aria-hidden="true">
+                        {reasonKey === "offline" ? Icon.WifiOff(14) : Icon.Alert(14)}
+                      </span>
+                      {t(`stereo.reason.${reasonKey}`, REASON_DEFAULTS[reasonKey])}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {reason === "not_provisioned" && (
+                <Link className="btn btn-ghost mr-star sp-wizard-link" to="/setup">
+                  {t("stereo.openWizard", "Einrichtung starten")}
+                </Link>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <output id={countId} className="sp-count">
+        {t("stereo.dlg.pickCount", "{{count}} von 2 ausgewählt", { count: selected.length })}
+      </output>
+    </fieldset>
+  );
+}
+
+function SidesStep({
+  left,
+  right,
+  name,
+  onNameChange,
+  defaultName,
+  onSwap,
+  nameId,
+}: Readonly<{
+  left: Device;
+  right: Device;
+  name: string;
+  onNameChange: (name: string) => void;
+  defaultName: string;
+  onSwap: () => void;
+  nameId: string;
+}>) {
+  const { t } = useTranslation();
+  const mismatch = firmwareMismatch(left, right);
+  return (
+    <>
+      <div className="sp-sides">
+        <h3 className="ui-h3">{t("stereo.dlg.sidesTitle", "Welcher Lautsprecher steht wo?")}</h3>
+        <p className="sp-reason">
+          {t("stereo.dlg.sidesHint", "Links und rechts, wie du vor den Lautsprechern stehst.")}
+        </p>
+      </div>
+      <div className="sp-slots">
+        {[
+          { role: "LEFT" as const, dev: left },
+          { role: "RIGHT" as const, dev: right },
+        ].map(({ role, dev }, i) => (
+          <div key={role} className={`sp-slot${i === 1 ? " sp-slot--right" : ""}`}>
+            <div className="sp-slot-head">
+              <SideTile role={role} />
+              <span className="sp-slot-label">
+                {role === "LEFT" ? t("stereo.left", "Links") : t("stereo.right", "Rechts")}
+              </span>
+            </div>
+            <span className="sp-slot-name">{dev.name}</span>
+            <span className="mr-dev-model">{dev.model}</span>
+            {role === "LEFT" && (
+              <span className="ui-badge ui-badge--info ui-badge--small">
+                <span className="ui-badge-icon mr-fill" aria-hidden="true">
+                  {Icon.Star(14)}
+                </span>
+                {t("stereo.master", "Hauptlautsprecher")}
+              </span>
+            )}
+          </div>
+        ))}
+        <button type="button" className="btn btn-secondary sp-swap" onClick={onSwap}>
+          <span className="sp-swap-icon" aria-hidden="true">
+            {Icon.ArrowLeftRight(18)}
+          </span>
+          <span>{t("stereo.dlg.swap", "Seiten tauschen")}</span>
+        </button>
+      </div>
+      <div className="wz-status mr-info">
+        <span className="wz-icon" aria-hidden="true">
+          {Icon.Info(22)}
+        </span>
+        <div className="wz-status-body">
+          <p>
+            {t(
+              "stereo.dlg.masterHint",
+              "Der linke Lautsprecher ist immer der Hauptlautsprecher. Wiedergabe, Quelle und Voreinstellungen laufen darüber."
+            )}
+          </p>
+        </div>
+      </div>
+      {mismatch && (
+        <output className="wz-status wz-status--warning">
+          <span className="wz-icon" aria-hidden="true">
+            {Icon.Alert(22)}
+          </span>
+          <div className="wz-status-body">
+            <p>
+              {t(
+                "stereo.dlg.firmwareWarn",
+                "Die Firmware-Versionen unterscheiden sich ({{left}} und {{right}}). Du kannst das Stereopaar trotzdem erstellen.",
+                { left: left.firmware, right: right.firmware }
+              )}
+            </p>
+          </div>
+        </output>
+      )}
+      <div className="ui-field">
+        <label htmlFor={nameId} className="ui-label">
+          {t("stereo.dlg.nameLabel", "Name (optional)")}
+        </label>
+        <input
+          id={nameId}
+          className="ui-input"
+          value={name}
+          onChange={(e) => onNameChange(e.target.value)}
+          placeholder={defaultName}
+          maxLength={40}
+          autoComplete="off"
+        />
+        <p className="ui-field-hint">
+          {t("stereo.dlg.nameHint", "Ohne Eingabe: {{name}}", { name: defaultName })}
+        </p>
+      </div>
+    </>
+  );
+}
+
+function RunningPanel({ create }: Readonly<{ create: StereoPairCreate }>) {
+  const { t } = useTranslation();
+  const doneCount = create.steps.filter((s) => s.state === "done").length;
+  const current = create.steps.find((s) => s.state === "running");
+  return (
+    <>
+      <>
+        <div className="sp-run-head">
+          <h3 className="ui-h3">{t("stereo.dlg.runningTitle", "Stereopaar wird erstellt")}</h3>
+          <p className="sp-reason">
+            {t("stereo.dlg.runningHint", "Lass beide Lautsprecher eingeschaltet.")}
+          </p>
+        </div>
+        <progress
+          className="sp-bar"
+          aria-label={t("stereo.dlg.runningTitle", "Stereopaar wird erstellt")}
+          max={STEP_KEYS.length}
+          value={doneCount}
+        />
+        <output className="visually-hidden">
+          {current
+            ? t("stereo.dlg.stepAnn", "Schritt {{n}} von 4: {{label}}", {
+                n: STEP_KEYS.indexOf(current.key) + 1,
+                label: t(`stereo.step.${current.key}`, STEP_DEFAULTS[current.key]),
+              })
+            : ""}
+        </output>
+      </>
+    </>
+  );
+}
+
+function SucceededPanel({ create }: Readonly<{ create: StereoPairCreate }>) {
+  const { t } = useTranslation();
+  return (
+    <output className="wz-status wz-status--success">
+      <span className="wz-icon" aria-hidden="true">
+        {Icon.CircleCheck(24)}
+      </span>
+      <div className="wz-status-body">
+        <h3 className="wz-status-title">
+          {t("stereo.dlg.successTitle", "Stereopaar „{{name}}“ ist aktiv", {
+            name: create.pair?.name ?? create.request?.defaultName,
+          })}
+        </h3>
+        <p>
+          {t(
+            "stereo.dlg.successText",
+            "{{left}} spielt links, {{right}} rechts. Steuere die Wiedergabe über {{left}}.",
+            { left: create.request?.leftName, right: create.request?.rightName }
+          )}
+        </p>
+      </div>
+    </output>
+  );
+}
+
+function FailedPanel({
+  create,
+  degraded,
+}: Readonly<{ create: StereoPairCreate; degraded: boolean }>) {
+  const { t } = useTranslation();
+  const errorText = create.error
+    ? t(
+        `stereo.err.${create.error.code}`,
+        ERROR_DEFAULTS[create.error.code] ?? create.error.message
+      )
+    : "";
+  return (
+    <div
+      className={`wz-status ${degraded ? "wz-status--warning" : "wz-status--error"}`}
+      role="alert"
+    >
+      <span className="wz-icon" aria-hidden="true">
+        {degraded ? Icon.Alert(24) : Icon.CircleX(24)}
+      </span>
+      <div className="wz-status-body">
+        <h3 className="wz-status-title">
+          {degraded
+            ? t("stereo.degradedTitle", "Nur ein Lautsprecher ist gekoppelt")
+            : t("stereo.dlg.failedTitle", "Das Stereopaar wurde nicht erstellt")}
+        </h3>
+        <p>{errorText}</p>
+        <p>
+          {degraded
+            ? t(
+                "stereo.dlg.degradedText",
+                "Repariere das Paar, damit beide Lautsprecher wieder einzeln nutzbar sind."
+              )
+            : t("stereo.dlg.failedNothing", "Es wurde nichts geändert.")}
+        </p>
+        {create.error && (
+          <p className="sp-code">
+            {t("stereo.dlg.failedCode", "Fehlercode: {{code}}", {
+              code: create.error.code,
+            })}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RunStep({ create, degraded }: Readonly<{ create: StereoPairCreate; degraded: boolean }>) {
+  const { t } = useTranslation();
+  return (
+    <div className="sp-run">
+      {create.phase === "running" && <RunningPanel create={create} />}
+      {create.phase === "succeeded" && <SucceededPanel create={create} />}
+      {create.phase === "failed" && <FailedPanel create={create} degraded={degraded} />}
+
+      <ol className="sp-ops" aria-label={t("stereo.dlg.stepsLabel", "Schritte")}>
+        {create.steps.map((s) => (
+          <li key={s.key} className={`sp-op sp-op--${s.state}`}>
+            <span className="sp-op-icon" aria-hidden="true">
+              {s.state === "running" && <span className="wz-spinner" />}
+              {s.state === "done" && Icon.CircleCheck(22)}
+              {s.state === "failed" && Icon.CircleX(22)}
+              {s.state === "waiting" && <span className="sp-ring" />}
+            </span>
+            <span className="sp-op-label">{t(`stereo.step.${s.key}`, STEP_DEFAULTS[s.key])}</span>
+            <span className="sp-op-state">{t(`stereo.stepState.${s.state}`, s.state)}</span>
+          </li>
+        ))}
+      </ol>
+
+      {create.phase === "running" && (
+        <p className="sp-reason">
+          {t(
+            "stereo.dlg.backgroundHint",
+            "Du kannst das Fenster schließen. Das Paar erscheint dann mit dem Status „Wird erstellt“."
+          )}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function FailedActions({
+  create,
+  degraded,
+  repairing,
+  onRepair,
+  onStart,
+  onBackToSides,
+  onCloseAndRestart,
+}: Readonly<{
+  create: StereoPairCreate;
+  degraded: boolean;
+  repairing: boolean;
+  onRepair: (pairId: number) => void;
+  onStart: () => void;
+  onBackToSides: () => void;
+  onCloseAndRestart: () => void;
+}>) {
+  const { t } = useTranslation();
+  const pair = create.pair;
+  return (
+    <>
+      <button type="button" className="btn btn-secondary" onClick={onCloseAndRestart}>
+        {t("common.close", "Schließen")}
+      </button>
+      {degraded && pair ? (
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={repairing}
+          aria-busy={repairing || undefined}
+          onClick={() => onRepair(pair.id)}
+          data-autofocus
+        >
+          {repairing ? <span className="ui-spin">{Icon.Loader(18)}</span> : Icon.Wrench(18)}
+          <span>
+            {repairing ? t("stereo.repairing", "Wird repariert") : t("stereo.repair", "Reparieren")}
+          </span>
+        </button>
+      ) : (
+        <>
+          <button type="button" className="btn btn-secondary" onClick={onBackToSides}>
+            {t("stereo.dlg.back", "Zurück")}
+          </button>
+          <button type="button" className="btn btn-primary" onClick={onStart} data-autofocus>
+            {Icon.RefreshCw(18)}
+            <span>{t("stereo.dlg.retry", "Erneut versuchen")}</span>
+          </button>
+        </>
+      )}
+    </>
+  );
+}
+
+function StepLine({ step, descId }: Readonly<{ step: 1 | 2 | 3; descId: string }>) {
+  const { t } = useTranslation();
+  const stepLabels = {
+    1: t("stereo.dlg.step1", "Lautsprecher wählen"),
+    2: t("stereo.dlg.step2", "Seiten zuweisen"),
+    3: t("stereo.dlg.step3", "Erstellen"),
+  };
+  return (
+    <div className="sp-stepline">
+      <p id={descId} className="sp-stepline-text">
+        <span className="sp-stepline-num">
+          {t("stereo.dlg.stepOf", "Schritt {{current}} von 3", { current: step })}
+        </span>
+        <span aria-hidden="true"> · </span>
+        <span>{stepLabels[step]}</span>
+      </p>
+      <div className="sp-stepline-bar" aria-hidden="true">
+        {[1, 2, 3].map((n) => (
+          <span
+            key={n}
+            className={n <= step ? "sp-stepline-seg sp-stepline-seg--on" : "sp-stepline-seg"}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function StereoPairCreateDialog({
@@ -62,7 +490,7 @@ export default function StereoPairCreateDialog({
   const nameId = useId();
   const countId = useId();
   const [localStep, setLocalStep] = useState<1 | 2>(1);
-  const [selected, setSelected] = useState<string[]>([]); // [left, right]
+  const [selected, setSelected] = useState<Selection>([]);
   const [name, setName] = useState("");
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -70,11 +498,7 @@ export default function StereoPairCreateDialog({
   const byId = (id: string) => devices.find((d) => d.device_id === id);
   const left = byId(selected[0] ?? "");
   const right = byId(selected[1] ?? "");
-  const defaultName =
-    left && right
-      ? t("stereo.defaultName", "{{left}} + {{right}}", { left: left.name, right: right.name })
-      : "";
-  const mismatch = !!left?.firmware && !!right?.firmware && left.firmware !== right.firmware;
+  const defaultName = pairDefaultName(t, left, right);
 
   const running = create.phase !== "idle";
   const step: 1 | 2 | 3 = running ? 3 : localStep;
@@ -89,15 +513,7 @@ export default function StereoPairCreateDialog({
       ?.focus();
   }, [open, step, create.phase]);
 
-  const toggle = (id: string) =>
-    setSelected((s) =>
-      s.includes(id) ? s.filter((x) => x !== id) : s.length < 2 ? [...s, id] : s
-    );
-  const swap = () =>
-    setSelected((s) => {
-      const [first, second] = s;
-      return first !== undefined && second !== undefined ? [second, first] : s;
-    });
+  const toggle = (id: string) => setSelected((s) => toggleSelection(s, id));
   const start = () => {
     if (!left || !right) return;
     create.start({
@@ -115,21 +531,14 @@ export default function StereoPairCreateDialog({
     setSelected([]);
     setName("");
   };
-  const stepLabel =
-    step === 1
-      ? t("stereo.dlg.step1", "Lautsprecher wählen")
-      : step === 2
-        ? t("stereo.dlg.step2", "Seiten zuweisen")
-        : t("stereo.dlg.step3", "Erstellen");
-
-  const doneCount = create.steps.filter((s) => s.state === "done").length;
-  const current = create.steps.find((s) => s.state === "running");
-  const errorText = create.error
-    ? t(
-        `stereo.err.${create.error.code}`,
-        ERROR_DEFAULTS[create.error.code] ?? create.error.message
-      )
-    : "";
+  const closeAndRestart = () => {
+    onClose();
+    restart();
+  };
+  const backToSides = () => {
+    create.reset();
+    setLocalStep(2);
+  };
   const degraded = create.phase === "failed" && create.pair?.status === "degraded";
 
   return (
@@ -159,301 +568,30 @@ export default function StereoPairCreateDialog({
         </button>
       </div>
 
-      <div className="sp-stepline">
-        <p id={descId} className="sp-stepline-text">
-          <span className="sp-stepline-num">
-            {t("stereo.dlg.stepOf", "Schritt {{current}} von 3", { current: step })}
-          </span>
-          <span aria-hidden="true"> · </span>
-          <span>{stepLabel}</span>
-        </p>
-        <div className="sp-stepline-bar" aria-hidden="true">
-          {[1, 2, 3].map((n) => (
-            <span
-              key={n}
-              className={n <= step ? "sp-stepline-seg sp-stepline-seg--on" : "sp-stepline-seg"}
-            />
-          ))}
-        </div>
-      </div>
+      <StepLine step={step} descId={descId} />
 
       <div className="dlg-body sp-body" ref={bodyRef}>
         {step === 1 && (
-          <fieldset className="sp-pick">
-            <legend className="sp-pick-legend">
-              {t("stereo.dlg.pickLegend", "Wähle zwei Lautsprecher")}
-            </legend>
-            <p className="sp-reason">
-              {t(
-                "stereo.dlg.pickHint",
-                "Nur SoundTouch 10, die mit OCT eingerichtet sind, können ein Paar bilden."
-              )}
-            </p>
-            <div className="sp-pick-list">
-              {candidates.map((d) => {
-                const reason = d.stereo_ineligible_reason;
-                const isSel = selected.includes(d.device_id);
-                const full = selected.length >= 2 && !isSel;
-                const blocked = reason !== null || full;
-                const checkId = `${descId}-pick-${d.device_id}`;
-                const reasonKey = reason && reason !== "not_capable" ? reason : null;
-                return (
-                  <div
-                    key={d.device_id}
-                    className={`mr-dev${isSel ? " mr-dev--selected" : ""}${blocked ? " mr-dev--zone" : ""}`}
-                  >
-                    <input
-                      id={checkId}
-                      className="mr-dev-check"
-                      type="checkbox"
-                      checked={isSel}
-                      disabled={blocked}
-                      onChange={() => toggle(d.device_id)}
-                      aria-describedby={`${checkId}-info ${countId}`}
-                    />
-                    <div className="mr-dev-main">
-                      <label className="mr-dev-name" htmlFor={checkId}>
-                        {d.name}
-                      </label>
-                      <span className="mr-dev-model">{d.model}</span>
-                      <div className="mr-dev-badges" id={`${checkId}-info`}>
-                        {reasonKey && (
-                          <span className="ui-badge ui-badge--warning ui-badge--small">
-                            <span className="ui-badge-icon" aria-hidden="true">
-                              {reasonKey === "offline" ? Icon.WifiOff(14) : Icon.Alert(14)}
-                            </span>
-                            {t(`stereo.reason.${reasonKey}`, REASON_DEFAULTS[reasonKey])}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {reason === "not_provisioned" && (
-                      <Link className="btn btn-ghost mr-star sp-wizard-link" to="/setup">
-                        {t("stereo.openWizard", "Einrichtung starten")}
-                      </Link>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <output id={countId} className="sp-count">
-              {t("stereo.dlg.pickCount", "{{count}} von 2 ausgewählt", { count: selected.length })}
-            </output>
-          </fieldset>
+          <PickStep
+            candidates={candidates}
+            selected={selected}
+            onToggle={toggle}
+            descId={descId}
+            countId={countId}
+          />
         )}
-
         {step === 2 && left && right && (
-          <>
-            <div className="sp-sides">
-              <h3 className="ui-h3">
-                {t("stereo.dlg.sidesTitle", "Welcher Lautsprecher steht wo?")}
-              </h3>
-              <p className="sp-reason">
-                {t(
-                  "stereo.dlg.sidesHint",
-                  "Links und rechts, wie du vor den Lautsprechern stehst."
-                )}
-              </p>
-            </div>
-            <div className="sp-slots">
-              {[
-                { role: "LEFT" as const, dev: left },
-                { role: "RIGHT" as const, dev: right },
-              ].map(({ role, dev }, i) => (
-                <div key={role} className={`sp-slot${i === 1 ? " sp-slot--right" : ""}`}>
-                  <div className="sp-slot-head">
-                    <SideTile role={role} />
-                    <span className="sp-slot-label">
-                      {role === "LEFT" ? t("stereo.left", "Links") : t("stereo.right", "Rechts")}
-                    </span>
-                  </div>
-                  <span className="sp-slot-name">{dev.name}</span>
-                  <span className="mr-dev-model">{dev.model}</span>
-                  {role === "LEFT" && (
-                    <span className="ui-badge ui-badge--info ui-badge--small">
-                      <span className="ui-badge-icon mr-fill" aria-hidden="true">
-                        {Icon.Star(14)}
-                      </span>
-                      {t("stereo.master", "Hauptlautsprecher")}
-                    </span>
-                  )}
-                </div>
-              ))}
-              <button type="button" className="btn btn-secondary sp-swap" onClick={swap}>
-                <span className="sp-swap-icon" aria-hidden="true">
-                  {Icon.ArrowLeftRight(18)}
-                </span>
-                <span>{t("stereo.dlg.swap", "Seiten tauschen")}</span>
-              </button>
-            </div>
-            <div className="wz-status mr-info">
-              <span className="wz-icon" aria-hidden="true">
-                {Icon.Info(22)}
-              </span>
-              <div className="wz-status-body">
-                <p>
-                  {t(
-                    "stereo.dlg.masterHint",
-                    "Der linke Lautsprecher ist immer der Hauptlautsprecher. Wiedergabe, Quelle und Voreinstellungen laufen darüber."
-                  )}
-                </p>
-              </div>
-            </div>
-            {mismatch && (
-              <div className="wz-status wz-status--warning" role="status">
-                <span className="wz-icon" aria-hidden="true">
-                  {Icon.Alert(22)}
-                </span>
-                <div className="wz-status-body">
-                  <p>
-                    {t(
-                      "stereo.dlg.firmwareWarn",
-                      "Die Firmware-Versionen unterscheiden sich ({{left}} und {{right}}). Du kannst das Stereopaar trotzdem erstellen.",
-                      { left: left.firmware, right: right.firmware }
-                    )}
-                  </p>
-                </div>
-              </div>
-            )}
-            <div className="ui-field">
-              <label htmlFor={nameId} className="ui-label">
-                {t("stereo.dlg.nameLabel", "Name (optional)")}
-              </label>
-              <input
-                id={nameId}
-                className="ui-input"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={defaultName}
-                maxLength={40}
-                autoComplete="off"
-              />
-              <p className="ui-field-hint">
-                {t("stereo.dlg.nameHint", "Ohne Eingabe: {{name}}", { name: defaultName })}
-              </p>
-            </div>
-          </>
+          <SidesStep
+            left={left}
+            right={right}
+            name={name}
+            onNameChange={setName}
+            defaultName={defaultName}
+            onSwap={() => setSelected(swapSelection)}
+            nameId={nameId}
+          />
         )}
-
-        {step === 3 && (
-          <div className="sp-run">
-            {create.phase === "running" && (
-              <>
-                <div className="sp-run-head">
-                  <h3 className="ui-h3">
-                    {t("stereo.dlg.runningTitle", "Stereopaar wird erstellt")}
-                  </h3>
-                  <p className="sp-reason">
-                    {t("stereo.dlg.runningHint", "Lass beide Lautsprecher eingeschaltet.")}
-                  </p>
-                </div>
-                <div
-                  className="sp-bar"
-                  role="progressbar"
-                  aria-label={t("stereo.dlg.runningTitle", "Stereopaar wird erstellt")}
-                  aria-valuemin={0}
-                  aria-valuemax={STEP_KEYS.length}
-                  aria-valuenow={doneCount}
-                >
-                  <span
-                    className="sp-bar-fill"
-                    style={{ width: `${(doneCount / STEP_KEYS.length) * 100}%` }}
-                  />
-                </div>
-                <p className="visually-hidden" role="status">
-                  {current
-                    ? t("stereo.dlg.stepAnn", "Schritt {{n}} von 4: {{label}}", {
-                        n: STEP_KEYS.indexOf(current.key) + 1,
-                        label: t(`stereo.step.${current.key}`, STEP_DEFAULTS[current.key]),
-                      })
-                    : ""}
-                </p>
-              </>
-            )}
-
-            {create.phase === "succeeded" && (
-              <div className="wz-status wz-status--success" role="status">
-                <span className="wz-icon" aria-hidden="true">
-                  {Icon.CircleCheck(24)}
-                </span>
-                <div className="wz-status-body">
-                  <h3 className="wz-status-title">
-                    {t("stereo.dlg.successTitle", "Stereopaar „{{name}}“ ist aktiv", {
-                      name: create.pair?.name ?? create.request?.defaultName,
-                    })}
-                  </h3>
-                  <p>
-                    {t(
-                      "stereo.dlg.successText",
-                      "{{left}} spielt links, {{right}} rechts. Steuere die Wiedergabe über {{left}}.",
-                      { left: create.request?.leftName, right: create.request?.rightName }
-                    )}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {create.phase === "failed" && (
-              <div
-                className={`wz-status ${degraded ? "wz-status--warning" : "wz-status--error"}`}
-                role="alert"
-              >
-                <span className="wz-icon" aria-hidden="true">
-                  {degraded ? Icon.Alert(24) : Icon.CircleX(24)}
-                </span>
-                <div className="wz-status-body">
-                  <h3 className="wz-status-title">
-                    {degraded
-                      ? t("stereo.degradedTitle", "Nur ein Lautsprecher ist gekoppelt")
-                      : t("stereo.dlg.failedTitle", "Das Stereopaar wurde nicht erstellt")}
-                  </h3>
-                  <p>{errorText}</p>
-                  <p>
-                    {degraded
-                      ? t(
-                          "stereo.dlg.degradedText",
-                          "Repariere das Paar, damit beide Lautsprecher wieder einzeln nutzbar sind."
-                        )
-                      : t("stereo.dlg.failedNothing", "Es wurde nichts geändert.")}
-                  </p>
-                  {create.error && (
-                    <p className="sp-code">
-                      {t("stereo.dlg.failedCode", "Fehlercode: {{code}}", {
-                        code: create.error.code,
-                      })}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <ol className="sp-ops" aria-label={t("stereo.dlg.stepsLabel", "Schritte")}>
-              {create.steps.map((s) => (
-                <li key={s.key} className={`sp-op sp-op--${s.state}`}>
-                  <span className="sp-op-icon" aria-hidden="true">
-                    {s.state === "running" && <span className="wz-spinner" />}
-                    {s.state === "done" && Icon.CircleCheck(22)}
-                    {s.state === "failed" && Icon.CircleX(22)}
-                    {s.state === "waiting" && <span className="sp-ring" />}
-                  </span>
-                  <span className="sp-op-label">
-                    {t(`stereo.step.${s.key}`, STEP_DEFAULTS[s.key])}
-                  </span>
-                  <span className="sp-op-state">{t(`stereo.stepState.${s.state}`, s.state)}</span>
-                </li>
-              ))}
-            </ol>
-
-            {create.phase === "running" && (
-              <p className="sp-reason">
-                {t(
-                  "stereo.dlg.backgroundHint",
-                  "Du kannst das Fenster schließen. Das Paar erscheint dann mit dem Status „Wird erstellt“."
-                )}
-              </p>
-            )}
-          </div>
-        )}
+        {step === 3 && <RunStep create={create} degraded={degraded} />}
       </div>
 
       <div className="dlg-actions">
@@ -492,62 +630,22 @@ export default function StereoPairCreateDialog({
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => {
-              onClose();
-              restart();
-            }}
+            onClick={closeAndRestart}
             data-autofocus
           >
             {t("stereo.dlg.done", "Fertig")}
           </button>
         )}
         {step === 3 && create.phase === "failed" && (
-          <>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => {
-                onClose();
-                restart();
-              }}
-            >
-              {t("common.close", "Schließen")}
-            </button>
-            {degraded && create.pair ? (
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={repairing}
-                aria-busy={repairing || undefined}
-                onClick={() => create.pair && onRepair(create.pair.id)}
-                data-autofocus
-              >
-                {repairing ? <span className="ui-spin">{Icon.Loader(18)}</span> : Icon.Wrench(18)}
-                <span>
-                  {repairing
-                    ? t("stereo.repairing", "Wird repariert")
-                    : t("stereo.repair", "Reparieren")}
-                </span>
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    create.reset();
-                    setLocalStep(2);
-                  }}
-                >
-                  {t("stereo.dlg.back", "Zurück")}
-                </button>
-                <button type="button" className="btn btn-primary" onClick={start} data-autofocus>
-                  {Icon.RefreshCw(18)}
-                  <span>{t("stereo.dlg.retry", "Erneut versuchen")}</span>
-                </button>
-              </>
-            )}
-          </>
+          <FailedActions
+            create={create}
+            degraded={degraded}
+            repairing={repairing}
+            onRepair={onRepair}
+            onStart={start}
+            onBackToSides={backToSides}
+            onCloseAndRestart={closeAndRestart}
+          />
         )}
       </div>
     </Modal>
