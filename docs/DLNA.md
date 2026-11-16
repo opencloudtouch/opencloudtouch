@@ -63,9 +63,9 @@ Enabled servers are stored in the table `media_server_sources`; downgrading Open
 
 ## Native folder presets
 
-When the media server is `ready` on the speaker (see above), `POST /api/presets/dlna` for a **folder or playlist** writes a native `STORED_MUSIC` item to the speaker: pressing the button plays the whole folder with a queue (next, previous, pause, play; shuffle is a speaker feature), **also while OpenCloudTouch is switched off**. The response has `dlna_playback: "native"`. In every other case (`not_enabled`, `unavailable`) the preset is written as before and the response has `dlna_playback: "reference"`; `dlna` keeps its shape, and presets that are not DLNA presets have `dlna_playback: null`.
+When the media server is `ready` on the speaker (see above), `POST /api/presets/dlna` for a **folder, playlist or single track** writes a native `STORED_MUSIC` item to the speaker: pressing the button plays the whole folder with a queue (next, previous, pause, play; shuffle is a speaker feature), a single track plays that track (next and previous do nothing for one item), **also while OpenCloudTouch is switched off**. The response has `dlna_playback: "native"`. In every other case (`not_enabled`, `unavailable`) the preset is written as before and the response has `dlna_playback: "reference"`; `dlna` keeps its shape, and presets that are not DLNA presets have `dlna_playback: null`.
 
-- **Single tracks always use the reference path** for now (first track, OpenCloudTouch must run): playing a track natively is not verified on a speaker yet (hardware item H1).
+- A single track is stored with `type="track"` and the object id followed by ` TRACK` as location (as the speaker's browse answer returns it); a folder uses `type="dir"` and the plain object id. Verified on a SoundTouch 20.
 - The check reads the speaker's live source list on every save; if the speaker cannot be read the save fails like any other speaker write and nothing is stored.
 - Only MP3 and AAC are known to play natively; other formats, folders with more than 100 tracks, folders with only sub-folders and several media servers at once are unverified.
 - Overwriting a native slot with another preset resets it; clearing a preset removes it on the speaker first and leaves the enabled server untouched. A sync from the speaker keeps native slots unchanged.

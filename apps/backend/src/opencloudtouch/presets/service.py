@@ -14,7 +14,6 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
 
-from opencloudtouch.core import dlna_reference
 from opencloudtouch.core.dlna_reference import (
     DLNA_NAME_MAX,
     DlnaReference,
@@ -267,7 +266,7 @@ class PresetService:
     ) -> Preset:
         """Store a DLNA object as a preset.
 
-        A folder (a track only once ``NATIVE_TRACK_PRESETS_VERIFIED``) whose server is
+        A folder or a track whose server is
         READY on the speaker becomes a native STORED_MUSIC item; every other case stores
         the reference that is resolved at press time (v1). Title and cover come from the
         media server, never from the caller. Same order and error behaviour as
@@ -294,7 +293,6 @@ class PresetService:
         item_type = "dir" if resolved.is_container else "track"
         native = (
             self.native_service is not None
-            and (resolved.is_container or dlna_reference.NATIVE_TRACK_PRESETS_VERIFIED)
             and await self.native_service.native_ready(device_id, server_id)
         )
         native_item: NativeContentItem | None = None

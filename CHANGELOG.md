@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Native playback of a media server on a speaker: `GET /api/dlna/native`, `GET /api/dlna/native/{device_id}/servers/{server_id}/presets`, `PUT` and `DELETE /api/dlna/native/{device_id}/servers/{server_id}` enable or disable the media server as a speaker source (`STORED_MUSIC`) and report its state from the speaker's live source list. OpenCloudTouch lists the server itself; a speaker that does not list it yet is paired again once (`setMargeAccount`), never restarted; new error codes `dlna_native_in_use`, `dlna_native_setup_failed` and `dlna_native_remove_failed`
 
-- `POST /api/presets/dlna` writes a DLNA folder as a native `STORED_MUSIC` preset (whole folder with queue, plays without OpenCloudTouch) when the media server is `ready` on the speaker; otherwise, and for single tracks, it keeps the first-track reference preset. Preset responses gain `dlna_playback` (`native`, `reference` or `null`) (see ADR 011)
+- `POST /api/presets/dlna` writes a DLNA folder or a single track as a native `STORED_MUSIC` preset (a folder plays with queue, both play without OpenCloudTouch) when the media server is `ready` on the speaker; otherwise it keeps the first-track reference preset. Preset responses gain `dlna_playback` (`native`, `reference` or `null`) (see ADR 011)
 
 ### Changed
 - `STORED_MUSIC` is announced with the real provider id 7 instead of 50 in `/streaming/sourceproviders` and `/full` (50 is still accepted from speakers that cached the old list)

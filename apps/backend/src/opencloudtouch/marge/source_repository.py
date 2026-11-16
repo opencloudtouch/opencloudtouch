@@ -12,7 +12,7 @@ from opencloudtouch.core.repository import BaseRepository
 
 logger = logging.getLogger(__name__)
 
-FIRST_SOURCE_ID = 20000000  # 8 digits like real Bose ids (unverified, hardware item H5)
+FIRST_SOURCE_ID = 20000000  # 8 digits like real Bose ids
 
 _COLUMNS = "source_id, device_id, server_id, display_name, created_at, updated_at"
 

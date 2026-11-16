@@ -15,9 +15,6 @@ from urllib.parse import quote, unquote
 DLNA_LOCATION_MAX_LENGTH = 1024  # safe default, hardware item H1 may only raise it
 DLNA_OBJECT_ID_MAX = 512
 DLNA_NAME_MAX = 200
-# Hardware item H1: until a speaker has played a native track preset, tracks use the
-# v1 reference path. A maintainer flips this one constant after the verification.
-NATIVE_TRACK_PRESETS_VERIFIED = False
 _TRACK_SUFFIX = " TRACK"
 _SCHEME = "dlna://"
 ORION_PATH = "/core02/svc-bmx-adapter-orion/prod/orion/station"
@@ -36,19 +33,15 @@ def server_id_from_account(account: str) -> str | None:
 
 
 def native_location(object_id: str, item_type: str) -> str:
-    """Speaker ``location`` of a native item: tracks carry the `` TRACK`` suffix (H1)."""
-    if NATIVE_TRACK_PRESETS_VERIFIED and item_type == "track":
+    """Speaker ``location`` of a native item: tracks carry the `` TRACK`` suffix (verified, H1)."""
+    if item_type == "track":
         return object_id + _TRACK_SUFFIX
     return object_id
 
 
 def strip_native_location(location: str, item_type: str) -> str:
     """Inverse of ``native_location`` for what the speaker reports back."""
-    if (
-        NATIVE_TRACK_PRESETS_VERIFIED
-        and item_type == "track"
-        and location.endswith(_TRACK_SUFFIX)
-    ):
+    if item_type == "track" and location.endswith(_TRACK_SUFFIX):
         return location[: -len(_TRACK_SUFFIX)]
     return location
 

@@ -5,9 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from opencloudtouch.core import dlna_reference
 from opencloudtouch.core.dlna_reference import (
-    DlnaReference,
     native_location,
     strip_native_location,
 )
@@ -67,21 +65,7 @@ async def test_native_write_skips_the_orion_length_cap(parts):
     assert preset.native_type == "dir"
 
 
-async def test_track_stays_v1_while_unverified(parts):
-    service, _, dlna, native, client = parts
-    dlna.resolve_playable.return_value = ResolvedDlnaItem("T", "http://nas/a.mp3", None)
-    preset = await service.set_dlna_preset("D", 1, SERVER, "t1", dlna)
-
-    native.native_ready.assert_not_awaited()
-    assert client.store_preset.await_args.kwargs["dlna_reference"] == DlnaReference(
-        SERVER, "t1"
-    )
-    assert preset.native_type is None
-    assert preset.to_dict()["dlna_playback"] == "reference"
-
-
-async def test_track_is_native_when_the_constant_is_flipped(parts, monkeypatch):
-    monkeypatch.setattr(dlna_reference, "NATIVE_TRACK_PRESETS_VERIFIED", True)
+async def test_track_is_native_with_the_track_suffix(parts):
     service, _, dlna, _, client = parts
     dlna.resolve_playable.return_value = ResolvedDlnaItem("T", "http://nas/a.mp3", None)
     preset = await service.set_dlna_preset("D", 1, SERVER, "t1", dlna)
@@ -179,13 +163,7 @@ def test_native_payload_without_art_has_no_container_art():
 # --- suffix helpers ---------------------------------------------------------
 
 
-def test_suffix_helpers_do_nothing_while_unverified():
-    assert native_location("o", "track") == "o"
-    assert strip_native_location("o TRACK", "track") == "o TRACK"
-
-
-def test_suffix_helpers_behind_the_constant(monkeypatch):
-    monkeypatch.setattr(dlna_reference, "NATIVE_TRACK_PRESETS_VERIFIED", True)
+def test_suffix_helpers_add_and_strip_the_track_suffix():
     assert native_location("o", "track") == "o TRACK"
     assert native_location("o", "dir") == "o"
     assert strip_native_location("o TRACK", "track") == "o"
@@ -193,8 +171,7 @@ def test_suffix_helpers_behind_the_constant(monkeypatch):
     assert strip_native_location("o", "track") == "o"
 
 
-def test_parser_strips_the_suffix_on_read(monkeypatch):
-    monkeypatch.setattr(dlna_reference, "NATIVE_TRACK_PRESETS_VERIFIED", True)
+def test_parser_strips_the_suffix_on_read():
     xml = (
         '<presets><preset id="1"><ContentItem source="STORED_MUSIC" type="track" '
         f'location="obj-1 TRACK" sourceAccount="{ACCOUNT}"><itemName>T</itemName>'
@@ -205,7 +182,7 @@ def test_parser_strips_the_suffix_on_read(monkeypatch):
     assert preset.native_type == "track"
 
 
-def test_marge_xml_adds_the_suffix_for_a_native_track(monkeypatch):
+def test_marge_xml_adds_the_suffix_for_a_native_track():
     from datetime import UTC, datetime
 
     from opencloudtouch.marge.source_repository import MediaServerSource
@@ -223,21 +200,17 @@ def test_marge_xml_adds_the_suffix_for_a_native_track(monkeypatch):
         native_type="track",
     )
 
-    plain = build_preset_response_xml(track, [row])
-    assert plain.findtext("location") == "obj-1"
-    monkeypatch.setattr(dlna_reference, "NATIVE_TRACK_PRESETS_VERIFIED", True)
     entry = build_preset_response_xml(track, [row])
     assert entry.findtext("location") == "obj-1 TRACK"
     assert entry.findtext("contentItemType") == "track"
 
 
-async def test_marge_store_strips_the_suffix_on_read(monkeypatch):
+async def test_marge_store_strips_the_suffix_on_read():
     from datetime import UTC, datetime
 
     from opencloudtouch.marge.service import MargeService
     from opencloudtouch.marge.source_repository import MediaServerSource
 
-    monkeypatch.setattr(dlna_reference, "NATIVE_TRACK_PRESETS_VERIFIED", True)
     now = datetime.now(UTC)
     row = MediaServerSource(20000001, "D", SERVER, "Server", now, now)
     sources = AsyncMock()
