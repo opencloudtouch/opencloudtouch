@@ -96,6 +96,7 @@ Cross-module dependencies are minimal:
 | Host networking | Required for SSDP multicast discovery on local network |
 | No authentication | Trusted local network only (documented in SECURITY.md) |
 | DLNA preset = reference, resolved on press | See [ADR 009](adr/009-dlna-preset-reference-resolved-at-press-time.md) and the flow below |
+| DLNA folder preset = native `STORED_MUSIC` when the server is `READY` on the speaker | See [ADR 011](adr/011-native-stored-music-presets.md); otherwise the reference above |
 | `setup/wizard/step8_finalize_verify.py` stays unsplit | Holds both `finalize_device`/`verify_setup` flows (largest file in the package) because they share `_verify_sys_config` and are both driven by the same frontend component (`Step8Verification.tsx`); see #466 item 1. Renumbered from `step7_finalize_verify.py`/`Step7Verification.tsx` when #469 inserted the NTP step ahead of it. |
 
 ## DLNA reference flow
@@ -105,6 +106,8 @@ A DLNA preset never stores a playback URL. `core/dlna_reference.py` is the only 
 1. **Save** (`POST /api/presets/dlna` → `PresetService.set_dlna_preset`): `DlnaService.resolve_playable` checks the object on the media server, the speaker is programmed with a reference-only Orion location, then the row is written (`source='DLNA'`).
 2. **Press**: the speaker calls the Orion endpoint (`bmx/routes.py`), which resolves the reference again, cache-only and within 3 s, and answers with the current resource URL and cover.
 3. **Sync / Marge**: parser, Marge XML builder and Marge store call keep the reference instead of treating it as a stream URL. Routes that need a stream URL (M3U/PLS, stream proxy, descriptor redirect) answer 409 `dlna_preset_not_streamable`.
+
+**Native variant** (ADR 011): `set_dlna_preset` asks `DlnaNativeService.native_ready` for the speaker's live state. A container whose server is `ready` is programmed as `<ContentItem source="STORED_MUSIC" sourceAccount="<uuid>/0" location="<object id>" type="dir">` (no Orion URL) and stored with the same identity plus `native_type='dir'`; every other case follows the reference flow above. Tracks stay on the reference flow until `NATIVE_TRACK_PRESETS_VERIFIED` is set. The Marge builders, the preset parser and the Marge store call map the native item and the speaker's numeric source id back to the same row; consumers that need a stream URL ignore it like any DLNA preset.
 
 See [DLNA.md](DLNA.md) for behaviour and limits.
 

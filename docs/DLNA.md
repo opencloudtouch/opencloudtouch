@@ -30,7 +30,7 @@ OpenCloudTouch discovers UPnP/DLNA media servers (SSDP) and browses their Conten
 `POST /api/presets/dlna` with `{"device_id", "preset_number", "server_id", "object_id"}` (no other fields are accepted) assigns an item to a preset button. The response is a normal preset with `source: "DLNA"` and `dlna: {server_id, object_id}`; the title (`station_name`) and the cover (`station_favicon`, only when it is on the media server's own host) come from the media server.
 
 - **What is stored is a reference, not a URL.** On every press OpenCloudTouch asks the media server for the object and returns its current resource URL to the speaker, so a new server IP address does not break the preset. Resource and cover URLs must be `http(s)` on the same host as the server's control URL.
-- **A track plays that track. A folder or playlist plays its first audio item** (up to 250 entries are searched, no sub-folders, no queue and no next track).
+- **A track plays that track. A folder or playlist plays its first audio item** (up to 250 entries are searched, no sub-folders, no queue and no next track) unless the media server is enabled on the speaker, see [Native folder presets](#native-folder-presets).
 - **The press only uses already discovered servers** (it never starts a network scan) and has a budget of 3 s. If the server is not known, the press fails (`dlna_server_not_found`, HTTP 503) and one background discovery starts; OpenCloudTouch also discovers once at startup. The first press after a restart or an IP change may therefore fail once.
 - **Servers that renumber object ids after a library rescan** make saved presets fail with `dlna_object_not_found`. Assign the preset again.
 - The speaker plays the formats it supports (for example MP3 and FLAC) and fetches the file itself; OpenCloudTouch does not transcode or proxy audio.
@@ -63,6 +63,17 @@ A speaker can play a media server by itself (source `STORED_MUSIC`). OpenCloudTo
 The state comes from the speaker's live source list. Registration is `PUT /api/dlna/native/{device_id}/servers/{server_id}` (`202` after registering, `200` with the current state when nothing had to be done; it waits up to 30 s for `ready`). A second server on the same speaker normally becomes `ready` within seconds and needs no restart. `DELETE` removes the registration; when native presets use it the call answers `409 dlna_native_in_use` unless `?force=true`, which first switches those slots back to first-track playback. `GET /api/dlna/native?device_id=` lists every discovered server and every registration; a registration whose server is no longer discovered shows `server_known=false` and can be deleted. The speaker answering `1047` on removal (account unknown) counts as removed.
 
 Registrations are stored in the table `media_server_sources`; downgrading OpenCloudTouch is not supported. Requests for the same speaker and server are serialised by a lock inside the single backend process.
+
+## Native folder presets
+
+When the media server is `ready` on the speaker (see above), `POST /api/presets/dlna` for a **folder or playlist** writes a native `STORED_MUSIC` item to the speaker: pressing the button plays the whole folder with a queue (next, previous, pause, play; shuffle is a speaker feature), **also while OpenCloudTouch is switched off**. The response has `dlna_playback: "native"`. In every other case (`not_registered`, `unmanaged`, `restart_required`, `unavailable`, `removal_pending`, no registration row) the preset is written as before and the response has `dlna_playback: "reference"`; `dlna` keeps its shape, and presets that are not DLNA presets have `dlna_playback: null`.
+
+- **Single tracks always use the reference path** for now (first track, OpenCloudTouch must run): playing a track natively is not verified on a speaker yet (hardware item H1).
+- The check reads the speaker's live source list on every save; if the speaker cannot be read the save fails like any other speaker write and nothing is stored.
+- Only MP3 and AAC are known to play natively; other formats, folders with more than 100 tracks, folders with only sub-folders and several media servers at once are unverified.
+- Overwriting a native slot with another preset resets it; clearing a preset removes it on the speaker first and leaves the registration untouched. A sync from the speaker keeps native slots unchanged.
+- If the registration is removed or the server gets a new UUID, the native slot stops working; OpenCloudTouch shows the reference again while the row is gone. Assign the preset again.
+- Mock mode: the fake "Mock Media Server (UUID)" can be enabled on the mock speaker and then used for native folder presets without any hardware.
 
 ## Timeouts
 
