@@ -177,8 +177,7 @@
       "saveRetry": "Réessayer",
       "saveFailed": "Le préréglage n’a pas pu être enregistré. Réessayez.",
       "badge": "DLNA",
-      "badgeLabel": "D’un serveur multimédia DLNA",
-      "presetsList": "Préréglages"
+      "badgeLabel": "D’un serveur multimédia DLNA"
     }
   },
   "settings": {

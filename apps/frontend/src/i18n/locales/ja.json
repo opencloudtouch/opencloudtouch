@@ -177,8 +177,7 @@
       "saveRetry": "もう一度試す",
       "saveFailed": "プリセットを保存できませんでした。もう一度お試しください。",
       "badge": "DLNA",
-      "badgeLabel": "DLNAメディアサーバーから",
-      "presetsList": "プリセット"
+      "badgeLabel": "DLNAメディアサーバーから"
     }
   },
   "settings": {

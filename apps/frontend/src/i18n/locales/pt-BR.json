@@ -177,8 +177,7 @@
       "saveRetry": "Tentar novamente",
       "saveFailed": "Não foi possível salvar o preset. Tente novamente.",
       "badge": "DLNA",
-      "badgeLabel": "De um servidor de mídia DLNA",
-      "presetsList": "Presets"
+      "badgeLabel": "De um servidor de mídia DLNA"
     }
   },
   "settings": {

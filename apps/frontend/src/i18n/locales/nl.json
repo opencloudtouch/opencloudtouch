@@ -177,8 +177,7 @@
       "saveRetry": "Opnieuw proberen",
       "saveFailed": "De preset kon niet worden opgeslagen. Probeer het opnieuw.",
       "badge": "DLNA",
-      "badgeLabel": "Van een DLNA-mediaserver",
-      "presetsList": "Presets"
+      "badgeLabel": "Van een DLNA-mediaserver"
     }
   },
   "settings": {

@@ -177,8 +177,7 @@
       "saveRetry": "Försök igen",
       "saveFailed": "Förinställningen kunde inte sparas. Försök igen.",
       "badge": "DLNA",
-      "badgeLabel": "Från en DLNA-mediaserver",
-      "presetsList": "Förinställningar"
+      "badgeLabel": "Från en DLNA-mediaserver"
     }
   },
   "settings": {
