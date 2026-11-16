@@ -747,39 +747,24 @@ class BoseDeviceClientAdapter(DeviceClient):
             for item in root.iter("sourceItem")
         ]
 
-    async def _account_command(
-        self, path: str, source: str, display_name: str, user: str, timeout: float
-    ) -> None:
+    async def pair_with_account(self, account_id: str) -> None:
+        """``POST /setMargeAccount``; answers 200 with an ``<info>`` body on success."""
         body = (
-            f'<credentials source="{xml_escape(source, {chr(34): "&quot;"})}" '
-            f'displayName="{xml_escape(display_name, {chr(34): "&quot;"})}">'
-            f"<user>{xml_escape(user)}</user><pass/></credentials>"
+            "<PairDeviceWithAccount>"
+            f"<accountId>{xml_escape(account_id)}</accountId>"
+            "<userAuthToken>local</userAuthToken></PairDeviceWithAccount>"
         )
         try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
+            async with httpx.AsyncClient(timeout=max(self.timeout, 15)) as client:
                 response = await client.post(
-                    f"{self.base_url}{path}",
+                    f"{self.base_url}/setMargeAccount",
                     content=body.encode("utf-8"),
                     headers={"Content-Type": "application/xml"},
                 )
         except Exception as e:
-            logger.warning("Account command %s failed on %s", path, self.ip)
+            logger.warning("Pairing request failed on %s", self.ip)
             raise DeviceConnectionError(self.ip, str(e)) from e
         if response.status_code >= 400:
             raise SpeakerCommandError(self._speaker_error_code(response.text))
-
-    async def set_music_service_account(
-        self, source: str, display_name: str, user: str
-    ) -> None:
-        """``POST /setMusicServiceAccount``; the speaker calls Marge while it runs."""
-        await self._account_command(
-            "/setMusicServiceAccount", source, display_name, user, max(self.timeout, 15)
-        )
-
-    async def remove_music_service_account(
-        self, source: str, display_name: str, user: str
-    ) -> None:
-        """``POST /removeMusicServiceAccount``."""
-        await self._account_command(
-            "/removeMusicServiceAccount", source, display_name, user, self.timeout
-        )
+        if "<info" not in response.text:
+            raise SpeakerCommandError(None)

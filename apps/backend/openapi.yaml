@@ -202,7 +202,7 @@ paths:
       tags:
       - dlna
       summary: List Native Servers
-      description: Every discovered media server and every registration, with its
+      description: Every discovered media server and every enabled server, with its
         state on this speaker.
       operationId: list_native_servers_api_dlna_native_get
       parameters:
@@ -276,8 +276,14 @@ paths:
       tags:
       - dlna
       summary: Enable Native Server
-      description: Register the media server on the speaker (202), or report the current
-        state (200).
+      description: 'Enable the media server for the speaker and report the resulting
+        state.
+
+
+        Takes a few seconds when the speaker has to be re-paired; ``unavailable``
+        means the
+
+        speaker did not list the server within 15 s (usually it cannot see the server).'
       operationId: enable_native_server_api_dlna_native__device_id__servers__server_id__put
       parameters:
       - name: device_id
@@ -293,14 +299,8 @@ paths:
           type: string
           title: Server Id
       responses:
-        '202':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NativeEnableResponse'
         '200':
-          description: Already registered
+          description: Successful Response
           content:
             application/json:
               schema:
@@ -317,14 +317,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorDetail'
-        '409':
-          description: Registered but not usable, or removal pending
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorDetail'
         '502':
-          description: The speaker did not register the server
+          description: The speaker did not accept the pairing
           content:
             application/json:
               schema:
@@ -339,7 +333,7 @@ paths:
       tags:
       - dlna
       summary: Disable Native Server
-      description: Remove the registration; ``force`` first switches native presets
+      description: Stop listing the server; ``force`` first switches native presets
         back to first-track.
       operationId: disable_native_server_api_dlna_native__device_id__servers__server_id__delete
       parameters:
@@ -382,13 +376,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorDetail'
         '409':
-          description: Native presets use the registration
+          description: Native presets use the media server
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorDetail'
         '502':
-          description: The speaker did not remove the server
+          description: A preset slot could not be switched back
           content:
             application/json:
               schema:
@@ -5167,12 +5161,9 @@ components:
     NativeState:
       type: string
       enum:
-      - not_registered
-      - unmanaged
-      - restart_required
+      - not_enabled
       - ready
       - unavailable
-      - removal_pending
       title: NativeState
     NtpPatchRequest:
       properties:

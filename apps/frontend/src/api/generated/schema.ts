@@ -183,7 +183,7 @@ export interface paths {
     };
     /**
      * List Native Servers
-     * @description Every discovered media server and every registration, with its state on this speaker.
+     * @description Every discovered media server and every enabled server, with its state on this speaker.
      */
     get: operations["list_native_servers_api_dlna_native_get"];
     put?: never;
@@ -224,13 +224,16 @@ export interface paths {
     get?: never;
     /**
      * Enable Native Server
-     * @description Register the media server on the speaker (202), or report the current state (200).
+     * @description Enable the media server for the speaker and report the resulting state.
+     *
+     *     Takes a few seconds when the speaker has to be re-paired; ``unavailable`` means the
+     *     speaker did not list the server within 15 s (usually it cannot see the server).
      */
     put: operations["enable_native_server_api_dlna_native__device_id__servers__server_id__put"];
     post?: never;
     /**
      * Disable Native Server
-     * @description Remove the registration; ``force`` first switches native presets back to first-track.
+     * @description Stop listing the server; ``force`` first switches native presets back to first-track.
      */
     delete: operations["disable_native_server_api_dlna_native__device_id__servers__server_id__delete"];
     options?: never;
@@ -3810,13 +3813,7 @@ export interface components {
      * NativeState
      * @enum {string}
      */
-    NativeState:
-      | "not_registered"
-      | "unmanaged"
-      | "restart_required"
-      | "ready"
-      | "unavailable"
-      | "removal_pending";
+    NativeState: "not_enabled" | "ready" | "unavailable";
     /**
      * NtpPatchRequest
      * @description Request to patch the NTP server on device.
@@ -4809,17 +4806,8 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Already registered */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["NativeEnableResponse"];
-        };
-      };
       /** @description Successful Response */
-      202: {
+      200: {
         headers: {
           [name: string]: unknown;
         };
@@ -4836,15 +4824,6 @@ export interface operations {
           "application/json": components["schemas"]["ErrorDetail"];
         };
       };
-      /** @description Registered but not usable, or removal pending */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorDetail"];
-        };
-      };
       /** @description Validation Error */
       422: {
         headers: {
@@ -4854,7 +4833,7 @@ export interface operations {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
-      /** @description The speaker did not register the server */
+      /** @description The speaker did not accept the pairing */
       502: {
         headers: {
           [name: string]: unknown;
@@ -4906,7 +4885,7 @@ export interface operations {
           "application/json": components["schemas"]["ErrorDetail"];
         };
       };
-      /** @description Native presets use the registration */
+      /** @description Native presets use the media server */
       409: {
         headers: {
           [name: string]: unknown;
@@ -4924,7 +4903,7 @@ export interface operations {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
-      /** @description The speaker did not remove the server */
+      /** @description A preset slot could not be switched back */
       502: {
         headers: {
           [name: string]: unknown;

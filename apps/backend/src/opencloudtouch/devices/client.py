@@ -264,23 +264,12 @@ class DeviceClient(ABC):
         pass
 
     @abstractmethod
-    async def set_music_service_account(
-        self, source: str, display_name: str, user: str
-    ) -> None:
-        """Register an account (``POST /setMusicServiceAccount``).
+    async def pair_with_account(self, account_id: str) -> None:
+        """Pair the speaker with its Marge account again (``POST /setMargeAccount``).
+
+        The speaker then runs the whole post-pairing handshake against its Marge server.
 
         Raises:
-            SpeakerCommandError: the speaker refused (for example 1022)
-        """
-        pass
-
-    @abstractmethod
-    async def remove_music_service_account(
-        self, source: str, display_name: str, user: str
-    ) -> None:
-        """Remove an account (``POST /removeMusicServiceAccount``).
-
-        Raises:
-            SpeakerCommandError: the speaker refused (1047 = account unknown)
+            SpeakerCommandError: the speaker refused (1038 = pairing failed)
         """
         pass

@@ -1,8 +1,10 @@
-"""Registration of DLNA media servers as native STORED_MUSIC sources on a speaker.
+"""Enabling DLNA media servers as native STORED_MUSIC sources of a speaker.
 
-The state of a (speaker, server) pair is derived from OpenCloudTouch's row (written by
-the speaker's own Marge callback) and the speaker's live ``/sources`` list. The service
-never restarts a speaker and never re-registers an account the speaker lists.
+OpenCloudTouch itself lists the enabled servers in the Marge account document
+(``/streaming/account/{id}/full``); the speaker takes them from there. The state of a
+(speaker, server) pair is derived from OpenCloudTouch's row and the speaker's live
+``/sources`` list. A speaker that still caches an old provider list is re-paired once
+(``setMargeAccount``) so that it reads the account document again; it is never restarted.
 """
 
 import asyncio
@@ -36,23 +38,18 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 SOURCE = "STORED_MUSIC"
-STALE_PROVIDER_ID = 50  # the speaker cached OpenCloudTouch's old provider list
-UNKNOWN_ACCOUNT = 1047  # removeMusicServiceAccount of an account the speaker lacks
 DISPLAY_NAME_MAX = 64
 SPEAKER_PORT = 8090
 
 
 class NativeState(str, Enum):
-    NOT_REGISTERED = "not_registered"
-    UNMANAGED = "unmanaged"
-    RESTART_REQUIRED = "restart_required"
+    NOT_ENABLED = "not_enabled"
     READY = "ready"
     UNAVAILABLE = "unavailable"
-    REMOVAL_PENDING = "removal_pending"
 
 
 class NativeSourceRow(Protocol):
-    """A registration row (implemented by ``marge.MargeSourceRepository``)."""
+    """A row of an enabled server (implemented by ``marge.MargeSourceRepository``)."""
 
     @property
     def source_id(self) -> int: ...
@@ -60,26 +57,17 @@ class NativeSourceRow(Protocol):
     def server_id(self) -> str: ...
     @property
     def display_name(self) -> str: ...
-    @property
-    def removal_pending(self) -> bool: ...
-    @property
-    def received_provider_id(self) -> int: ...
 
 
 class NativeSourceStore(Protocol):
     async def get_by_server(
         self, device_id: str, server_id: str
     ) -> NativeSourceRow | None: ...
-    async def list_for_device(self, device_id: str) -> Sequence[NativeSourceRow]: ...
+    async def list_active(self, device_id: str) -> Sequence[NativeSourceRow]: ...
     async def upsert(
-        self,
-        device_id: str,
-        server_id: str,
-        display_name: str,
-        received_provider_id: int,
+        self, device_id: str, server_id: str, display_name: str
     ) -> NativeSourceRow: ...
     async def delete(self, device_id: str, server_id: str) -> None: ...
-    async def mark_removal_pending(self, device_id: str, source_id: int) -> None: ...
 
 
 class PresetStore(Protocol):
@@ -94,12 +82,6 @@ class NativeServerState:
     state: NativeState
     server_known: bool
     source_id: int | None
-
-
-@dataclass(frozen=True)
-class EnableResult:
-    state: NativeState
-    created: bool  # True: a registration was made now (HTTP 202), else 200
 
 
 def _default_client(device: Any) -> DeviceClient:
@@ -118,22 +100,19 @@ def _listed(sources: Sequence[SpeakerSource], server_id: str) -> SpeakerSource |
     return None
 
 
+def _is_ready(sources: Sequence[SpeakerSource], server_id: str) -> bool:
+    listed = _listed(sources, server_id)
+    return listed is not None and listed.status.upper() == "READY"
+
+
 def derive_state(
     row: NativeSourceRow | None, listed: SpeakerSource | None
 ) -> NativeState:
-    """State table of the spec (Decision 7) with Amendment 1."""
+    """No row: not enabled (a listing without a row goes away with the next sync)."""
     if row is None:
-        return NativeState.UNMANAGED if listed else NativeState.NOT_REGISTERED
-    if row.removal_pending:
-        return NativeState.REMOVAL_PENDING if listed else NativeState.NOT_REGISTERED
-    if listed:
-        return (
-            NativeState.READY
-            if listed.status.upper() == "READY"
-            else NativeState.UNAVAILABLE
-        )
-    if row.received_provider_id == STALE_PROVIDER_ID:
-        return NativeState.RESTART_REQUIRED
+        return NativeState.NOT_ENABLED
+    if listed is not None and listed.status.upper() == "READY":
+        return NativeState.READY
     return NativeState.UNAVAILABLE
 
 
@@ -147,16 +126,14 @@ class DlnaNativeService:
         dlna_service: Any,
         preset_store: PresetStore,
         client_factory: Callable[[Any], DeviceClient] = _default_client,
-        row_polls: int = 10,
         poll_interval: float = 0.5,
-        ready_timeout: float = 30.0,
+        ready_timeout: float = 15.0,
     ):
         self._store = store
         self._devices = device_repository
         self._dlna = dlna_service
         self._presets = preset_store
         self._client_factory = client_factory
-        self._row_polls = row_polls
         self._poll_interval = poll_interval
         self._ready_timeout = ready_timeout
         # shortcut: one process only (single backend), a distributed lock is not needed
@@ -171,9 +148,6 @@ class DlnaNativeService:
             raise DeviceNotFoundError(device_id)
         return device
 
-    async def _sources(self, client: DeviceClient) -> list[SpeakerSource]:
-        return await client.get_source_list()  # DeviceConnectionError -> 503
-
     async def _find_server(self, server_id: str) -> DlnaServer | None:
         for server in await self._dlna.list_servers():
             if server.id.lower() == server_id.lower():
@@ -183,26 +157,18 @@ class DlnaNativeService:
     # ---- read -----------------------------------------------------------------------
 
     async def state(self, device_id: str) -> list[NativeServerState]:
-        """Every discovered server and every registration row, with its state."""
+        """Every discovered server and every enabled row, with its state."""
         device = await self._device(device_id)
         client = self._client_factory(device)
         try:
-            sources = await self._sources(client)
+            sources = await client.get_source_list()  # DeviceConnectionError -> 503
         finally:
             await client.close()
-        rows = {r.server_id: r for r in await self._store.list_for_device(device_id)}
+        rows = {r.server_id: r for r in await self._store.list_active(device_id)}
         known = {s.id.lower(): s for s in await self._dlna.list_servers()}
         result = []
         for server_id in [*known, *(r for r in rows if r not in known)]:
             row = rows.get(server_id)
-            state = derive_state(row, _listed(sources, server_id))
-            if (
-                row is not None
-                and row.removal_pending
-                and state is NativeState.NOT_REGISTERED
-            ):
-                await self._store.delete(device_id, server_id)  # removal took effect
-                row = None
             server = known.get(server_id)
             result.append(
                 NativeServerState(
@@ -212,7 +178,7 @@ class DlnaNativeService:
                         if server
                         else (row.display_name if row else server_id)
                     ),
-                    state=state,
+                    state=derive_state(row, _listed(sources, server_id)),
                     server_known=server is not None,
                     source_id=row.source_id if row else None,
                 )
@@ -235,7 +201,7 @@ class DlnaNativeService:
 
     # ---- enable ---------------------------------------------------------------------
 
-    async def enable(self, device_id: str, server_id: str) -> EnableResult:
+    async def enable(self, device_id: str, server_id: str) -> NativeState:
         device = await self._device(device_id)
         server = await self._find_server(server_id)
         if server is None:
@@ -245,108 +211,65 @@ class DlnaNativeService:
             raise_coded(
                 422,
                 error_codes.VALIDATION_ERROR,
-                "The media server id is not a UUID and cannot be registered",
+                "The media server id is not a UUID and cannot be used as a source",
                 field="server_id",
             )
         async with self._lock(device_id, sid):
             client = self._client_factory(device)
             try:
-                return await self._enable_locked(client, device_id, sid, server)
+                return await self._enable_locked(client, device, sid, server)
             finally:
                 await client.close()
 
     async def _enable_locked(
-        self, client: DeviceClient, device_id: str, sid: str, server: DlnaServer
-    ) -> EnableResult:
-        sources = await self._sources(client)
-        row = await self._store.get_by_server(device_id, sid)
-        state = derive_state(row, _listed(sources, sid))
-        if state is NativeState.UNMANAGED:
-            # Adopt: the speaker keeps its account, so it must not be registered again.
-            adopted = await self._store.upsert(
-                device_id, sid, server.name[:DISPLAY_NAME_MAX] or sid, 7
-            )
-            return EnableResult(derive_state(adopted, _listed(sources, sid)), False)
-        if state in (NativeState.READY, NativeState.RESTART_REQUIRED):
-            return EnableResult(state, False)
-        if state is NativeState.UNAVAILABLE:
-            raise_coded(
-                409,
-                error_codes.DLNA_NATIVE_ALREADY_REGISTERED,
-                "The media server is registered but not usable; remove it and register again",
-            )
-        if state is NativeState.REMOVAL_PENDING:
-            raise_coded(
-                409,
-                error_codes.DLNA_NATIVE_REMOVAL_PENDING,
-                "The removal finishes with a speaker restart",
-            )
-        if row is not None:  # pending row of a finished removal: the read below deletes
-            await self._store.delete(device_id, sid)
-        return await self._register(client, device_id, sid, server)
-
-    def _registration_failed(self) -> None:
-        raise_coded(
-            502,
-            error_codes.DLNA_NATIVE_REGISTRATION_FAILED,
-            "The speaker did not register the media server",
-        )
-
-    async def _register(
-        self, client: DeviceClient, device_id: str, sid: str, server: DlnaServer
-    ) -> EnableResult:
-        name = (server.name.strip() or sid)[:DISPLAY_NAME_MAX]
-        failed = False
-        try:
-            await client.set_music_service_account(SOURCE, name, f"{sid}/0")
-        except SpeakerCommandError:
-            failed = True
-        except DeviceConnectionError:
-            await self._store.delete(device_id, sid)  # created by this request
-            raise
-        row = None
-        for attempt in range(self._row_polls):
-            if failed:
-                break
-            row = await self._store.get_by_server(device_id, sid)
-            if row is not None:
-                break
-            if attempt < self._row_polls - 1:
-                await asyncio.sleep(self._poll_interval)
-        if failed or row is None:
-            await self._store.delete(device_id, sid)  # only a row this request created
-            self._registration_failed()
-        assert row is not None
-        state = await self._await_listing(client, row, sid)
-        return EnableResult(state, True)
-
-    async def _await_listing(
-        self, client: DeviceClient, row: NativeSourceRow, sid: str
+        self, client: DeviceClient, device: Any, sid: str, server: DlnaServer
     ) -> NativeState:
-        """Poll the live source list until the account is READY (or the budget is used)."""
-        if row.received_provider_id == STALE_PROVIDER_ID:
-            return (
-                NativeState.RESTART_REQUIRED
-            )  # needs the one-time restart, no polling
+        device_id = device.device_id
+        existed = await self._store.get_by_server(device_id, sid) is not None
+        await self._store.upsert(
+            device_id, sid, (server.name.strip() or sid)[:DISPLAY_NAME_MAX]
+        )
+        try:
+            if _is_ready(await client.get_source_list(), sid):
+                return NativeState.READY
+            # Not listed yet: one re-pairing makes the speaker read the account document.
+            account_id = getattr(device, "marge_account_uuid", None) or device_id
+            await client.pair_with_account(account_id)
+        except (SpeakerCommandError, DeviceConnectionError) as exc:
+            if not existed:  # only a row this request created
+                await self._store.delete(device_id, sid)
+            if isinstance(exc, DeviceConnectionError):
+                raise
+            raise_coded(
+                502,
+                error_codes.DLNA_NATIVE_SETUP_FAILED,
+                "The speaker did not accept the pairing",
+            )
+        return await self._await_ready(client, sid)
+
+    async def _await_ready(self, client: DeviceClient, sid: str) -> NativeState:
+        """Poll the live source list until the account is READY or the budget is used."""
         loop = asyncio.get_running_loop()
         deadline = loop.time() + self._ready_timeout
-        listed = None
         while True:
             try:
-                listed = _listed(await client.get_source_list(), sid)
+                if _is_ready(await client.get_source_list(), sid):
+                    return NativeState.READY
             except DeviceConnectionError:
                 logger.debug("Source list not readable while waiting for %s", sid)
-            if (listed and listed.status.upper() == "READY") or loop.time() >= deadline:
-                break
+            if loop.time() >= deadline:
+                return NativeState.UNAVAILABLE
             await asyncio.sleep(self._poll_interval)
-        return derive_state(row, listed)
 
     # ---- disable --------------------------------------------------------------------
 
     async def disable(
         self, device_id: str, server_id: str, force: bool = False
     ) -> list[int]:
-        """Remove the registration; returns the slots that were switched back to v1."""
+        """Stop listing the server; returns the slots that were switched back to v1.
+
+        The speaker drops the source with its next account sync.
+        """
         device = await self._device(device_id)
         sid = server_id.lower()
         async with self._lock(device_id, sid):
@@ -355,48 +278,21 @@ class DlnaNativeService:
                 raise_coded(
                     409,
                     error_codes.DLNA_NATIVE_IN_USE,
-                    "Native presets use this registration",
+                    "Native presets use this media server",
                     params={"slots": ",".join(str(p.preset_number) for p in slots)},
                 )
-            client = self._client_factory(device)
-            try:
-                return await self._disable_locked(client, device_id, sid, slots)
-            finally:
-                await client.close()
-
-    async def _disable_locked(
-        self,
-        client: DeviceClient,
-        device_id: str,
-        sid: str,
-        slots: "list[Preset]",
-    ) -> list[int]:
-        row = await self._store.get_by_server(device_id, sid)
-        if row is None and _listed(await self._sources(client), sid) is None:
-            return []
-        await self._rewrite_to_v1(client, device_id, slots)
-        name = row.display_name if row else sid
-        try:
-            await client.remove_music_service_account(SOURCE, name, f"{sid}/0")
-        except SpeakerCommandError as exc:
-            if exc.error_code != UNKNOWN_ACCOUNT:
-                raise_coded(
-                    502,
-                    error_codes.DLNA_NATIVE_REMOVE_FAILED,
-                    "The speaker did not remove the media server",
-                )
-        if row is not None:
-            if _listed(await self._sources(client), sid):
-                await self._store.mark_removal_pending(device_id, row.source_id)
-            else:
-                await self._store.delete(device_id, sid)
-        return [p.preset_number for p in slots]
+            if slots:
+                client = self._client_factory(device)
+                try:
+                    await self._rewrite_to_v1(client, device_id, slots)
+                finally:
+                    await client.close()
+            await self._store.delete(device_id, sid)
+            return [p.preset_number for p in slots]
 
     async def _rewrite_to_v1(
         self, client: DeviceClient, device_id: str, slots: "list[Preset]"
     ) -> None:
-        if not slots:
-            return
         from opencloudtouch.core.config import get_config
 
         for preset in slots:

@@ -159,15 +159,7 @@ The preset button asks OpenCloudTouch for the current URL of the stored media se
 
 See [DLNA.md](DLNA.md).
 
-## Native DLNA registration needs a restart or fails
+## Native DLNA playback does not become ready
 
-- **State `restart_required`.** The speaker cached the old provider list (OpenCloudTouch used to announce `STORED_MUSIC` with id 50, now 7) and has not picked up the registration. Restart that speaker once after the OpenCloudTouch update (`POST /api/devices/{id}/reboot`, or switch it off and on at the power supply, about 1-2 minutes). Further servers on that speaker then need no restart.
-- **`dlna_native_registration_failed` (502).** The speaker refused the registration (for example error 1022) or never called OpenCloudTouch back. Check that the speaker uses OpenCloudTouch as its Marge server and can reach it, then try again.
-- **State `unavailable`.** Remove the registration and register again.
-- **State `removal_pending`.** Restart the speaker; the state is read again afterwards.
-
-See [DLNA.md](DLNA.md).
-
-## Still stuck?
-
-Open a [bug report](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml) or check [GitHub Discussions](https://github.com/opencloudtouch/opencloudtouch/discussions).
+- **State `unavailable`.** The speaker did not list the media server within 15 s after OpenCloudTouch paired it again. Usually the speaker cannot see the media server: check that both are in the same network and that the server is running, then enable it again.
+- **`dlna_native_setup_failed` (502).** The speaker refused the pairing (error 1038). Check that the speaker uses OpenCloudTouch as its Marge server and can reach it, then try again. No restart of the speaker is needed.

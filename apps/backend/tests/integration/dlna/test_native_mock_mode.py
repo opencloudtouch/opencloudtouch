@@ -1,4 +1,4 @@
-"""Mock mode: native registration lifecycle through the HTTP API (AC-B1..B3, B5, B11)."""
+"""Mock mode: native enable lifecycle through the HTTP API (AC-B1..B3, B5, B11)."""
 
 from types import SimpleNamespace
 
@@ -47,10 +47,10 @@ async def env(tmp_path):
     await repo.initialize()
     MockDeviceClient.reset_sources()
 
-    async def on_register(device_id, server_id, name, provider_id):
-        await repo.upsert(device_id, server_id, name, provider_id)
+    async def listed(device_id):
+        return [row.account for row in await repo.list_active(device_id)]
 
-    MockDeviceClient.on_register = on_register
+    MockDeviceClient.listed_accounts = listed
     presets = Presets()
     service = DlnaNativeService(
         repo,
@@ -68,7 +68,6 @@ async def env(tmp_path):
         transport=ASGITransport(app=app), base_url="http://t"
     ) as http:
         yield http, presets, repo
-    MockDeviceClient.on_register = None
     MockDeviceClient.reset_sources()
     await repo.close()
 
@@ -82,13 +81,14 @@ async def test_lifecycle_without_network(env):
     client, _, _ = env
     first = await _state(client)
     assert (first["state"], first["server_known"], first["source_id"]) == (
-        "not_registered",
+        "not_enabled",
         True,
         None,
     )
 
     put = await client.put(BASE)
-    assert (put.status_code, put.json()) == (202, {"server_id": SID, "state": "ready"})
+    assert (put.status_code, put.json()) == (200, {"server_id": SID, "state": "ready"})
+    assert MockDeviceClient.pair_calls == []  # up to date: no re-pairing
     assert (await _state(client))["source_id"] >= 20000000
 
     again = await client.put(BASE)
@@ -96,17 +96,15 @@ async def test_lifecycle_without_network(env):
 
     assert (await client.get(f"{BASE}/presets")).json() == {"slots": []}
     assert (await client.delete(BASE)).json() == {"affected_slots": []}
-    assert (await _state(client))["state"] == "not_registered"
+    assert (await _state(client))["state"] == "not_enabled"
 
 
-async def test_stale_provider_needs_one_reboot(env):
+async def test_stale_speaker_is_re_paired_once(env):
     client, _, _ = env
-    MockDeviceClient.provider_id = 50
+    MockDeviceClient.stale_devices.add(DEV)
     put = await client.put(BASE)
-    assert (put.status_code, put.json()["state"]) == (202, "restart_required")
-    assert (await _state(client))["state"] == "restart_required"
-    await MockDeviceClient(DEV).reboot()
-    assert (await _state(client))["state"] == "ready"
+    assert (put.status_code, put.json()["state"]) == (200, "ready")
+    assert MockDeviceClient.pair_calls == [DEV]  # no marge account: device id
 
 
 async def test_in_use_conflict_and_force(env):
