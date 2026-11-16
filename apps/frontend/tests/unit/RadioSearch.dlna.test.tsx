@@ -176,9 +176,11 @@ describe("RadioSearch: DLNA mode", () => {
       expect(alert).toHaveTextContent(text);
       expect(alert).not.toHaveTextContent("raw backend detail");
       expect(onClose).not.toHaveBeenCalled();
-      expect(screen.getByRole("button", { name: "Try again" })).toHaveFocus();
+      await waitFor(() => expect(screen.getByRole("button", { name: "Try again" })).toHaveFocus());
       // the list stays usable
-      expect(screen.getByRole("button", { name: "Use for preset 3: Best Of" })).toBeEnabled();
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "Use for preset 3: Best Of" })).toBeEnabled()
+      );
 
       fireEvent.click(screen.getByRole("button", { name: "Try again" }));
       await waitFor(() => expect(onClose).toHaveBeenCalled());

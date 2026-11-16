@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `POST /api/presets/dlna` assigns a DLNA track (or the first track of a folder) to a preset button; OpenCloudTouch stores a reference to the media server object, not a playback URL, and resolves the current URL when the button is pressed, so a new server IP does not break the preset. Preset responses gain a `dlna` field (`{server_id, object_id}` or `null`); new error codes `dlna_not_playable`, `dlna_reference_too_long` and `dlna_preset_not_streamable`
 - OpenCloudTouch looks for DLNA media servers once at startup so the first button press can find them
+- The preset dialog has a DLNA mode next to TuneIn and RadioBrowser: pick a media server, browse its folders (breadcrumb, paged "Load more", filter over the loaded entries) and put a track or a folder on the preset button; the last folder is remembered for the browser session, and DLNA presets are marked with a DLNA label in the preset list
 
 ### Changed
 - DLNA browse returns 50 entries per request by default instead of the whole folder; DLNA errors carry the codes `dlna_server_not_found`, `dlna_object_not_found`, `dlna_upstream_error` and `dlna_server_timeout` (a slow server now answers 504 instead of 502)
