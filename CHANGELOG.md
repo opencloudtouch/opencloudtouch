@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Group changes on a speaker (`groupUpdated`) are parsed and forwarded as a `group` event on the device event stream; the pair list refreshes on it
 
 ### Fixed
+- SSDP discovery (speakers and DLNA media servers) no longer misses servers that run on the same host as OpenCloudTouch (for example a Gerbera container): the search now sends from a private source port instead of the shared port 1900, where the kernel handed unicast replies to an arbitrary socket
 - Renaming a stereo pair works: the speaker answers `PUT /updateGroup` with 405, so the rename is sent as `POST /updateGroup` with the whole group
 - Every action sent to a speaker (rename, volume, mute, source, key, bass, reboot, preset save/delete, preset load) answers HTTP 503 with code `device_unreachable` and a fixed, readable text (no IP address, no client library text; the details go to the log) when the speaker is offline and changes nothing in OCT; saving a preset no longer succeeds in OCT alone
 - Deleting a preset in OCT now also clears the slot on the speaker (HTTP 503 and nothing deleted when the speaker is unreachable), and "Load from device" mirrors the speaker: slots the speaker does not have are removed from OCT.
