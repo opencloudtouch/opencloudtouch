@@ -26,7 +26,7 @@ class SecretClient(MockDlnaClient):
         return dataclasses.replace(
             item,
             title=SECRET_TITLE,
-            album_art_url=f"http://mock-media.invalid/c.jpg?token=SECRETTOKEN",
+            album_art_url="http://mock-media.invalid/c.jpg?token=SECRETTOKEN",
         )
 
 

@@ -148,6 +148,17 @@ An app is also a clean place for the hook: it shows up under Apps, where you can
 
 Browsing a media server answers `504` with code `dlna_server_timeout` when the server does not answer within `OCT_DLNA_TIMEOUT` (default 15 s). A large library on a slow NAS may need a higher value (maximum 60 s); folders load page by page, so it rarely needs more. `502` with `dlna_upstream_error` means the server refused the connection or sent an invalid answer. See [DLNA.md](DLNA.md).
 
+## DLNA preset does not play
+
+The preset button asks OpenCloudTouch for the current URL of the stored media server object, so the server must be reachable and known to OpenCloudTouch when you press it.
+
+- **The first press after restarting OpenCloudTouch or after the server got a new IP address fails once.** The press only uses servers that were already discovered (it never waits for a network scan) and starts one background discovery; press again after a few seconds.
+- **The press fails with `dlna_object_not_found`.** Many media servers renumber their object ids after a library rescan. Assign the preset again.
+- **`dlna_not_playable`.** The object is not audio, a folder has no audio item in its first 250 entries, or the media file is served from another host than the media server (not allowed).
+- **Nothing plays after saving.** The speaker only plays formats it supports (for example MP3 and FLAC) and fetches the file itself.
+
+See [DLNA.md](DLNA.md).
+
 ## Still stuck?
 
 Open a [bug report](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml) or check [GitHub Discussions](https://github.com/opencloudtouch/opencloudtouch/discussions).

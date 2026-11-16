@@ -11,7 +11,13 @@ from urllib.parse import urlsplit
 
 from opencloudtouch.dlna.client import DlnaBrowseError, DlnaClient, DlnaTimeoutError
 from opencloudtouch.dlna.discovery import DlnaDiscovery
-from opencloudtouch.dlna.models import BrowsePage, DlnaItem, DlnaServer, is_audio_item, page_cursor
+from opencloudtouch.dlna.models import (
+    BrowsePage,
+    DlnaItem,
+    DlnaServer,
+    is_audio_item,
+    page_cursor,
+)
 
 T = TypeVar("T")
 
@@ -52,8 +58,10 @@ def _host_key(url: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address | str |
 
 def _is_same_host_http(url: str | None, control_url: str) -> bool:
     """http(s) URL on the host of the server's control URL (Decision 7)."""
+    if not url:
+        return False
     try:
-        scheme = urlsplit(url).scheme if url else ""
+        scheme = urlsplit(url).scheme
     except ValueError:  # malformed URL, e.g. broken IPv6 literal
         return False
     if scheme not in {"http", "https"}:

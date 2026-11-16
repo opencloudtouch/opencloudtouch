@@ -88,6 +88,7 @@ docs/*
 !docs/DEFINITION_OF_DONE.md
 !docs/UI_QUALITY_CHECKLIST.md
 !docs/MARGE-SPEAKER-CALLS.md
+!docs/DLNA.md
 .specify/
 specs/
 

@@ -17,8 +17,10 @@ import httpx
 from opencloudtouch.core.dlna_reference import (
     DLNA_NAME_MAX,
     DlnaReference,
-    station_uuid as dlna_station_uuid,
     to_station_url,
+)
+from opencloudtouch.core.dlna_reference import (
+    station_uuid as dlna_station_uuid,
 )
 from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
 from opencloudtouch.devices.repository import DeviceRepository

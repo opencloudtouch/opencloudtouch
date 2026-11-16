@@ -16,8 +16,10 @@ from xml.etree import ElementTree as ET
 
 from opencloudtouch.core.dlna_reference import (
     parse_orion_data,
-    station_uuid as dlna_station_uuid,
     to_station_url,
+)
+from opencloudtouch.core.dlna_reference import (
+    station_uuid as dlna_station_uuid,
 )
 from opencloudtouch.presets.models import Preset
 

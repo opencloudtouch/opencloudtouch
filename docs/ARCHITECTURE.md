@@ -95,7 +95,18 @@ Cross-module dependencies are minimal:
 | Pre-built frontend | Eliminates Node.js from Docker image, solves ARM32 Rolldown issue |
 | Host networking | Required for SSDP multicast discovery on local network |
 | No authentication | Trusted local network only (documented in SECURITY.md) |
+| DLNA preset = reference, resolved on press | See [ADR 009](adr/009-dlna-preset-reference-resolved-at-press-time.md) and the flow below |
 | `setup/wizard/step8_finalize_verify.py` stays unsplit | Holds both `finalize_device`/`verify_setup` flows (largest file in the package) because they share `_verify_sys_config` and are both driven by the same frontend component (`Step8Verification.tsx`); see #466 item 1. Renumbered from `step7_finalize_verify.py`/`Step7Verification.tsx` when #469 inserted the NTP step ahead of it. |
+
+## DLNA reference flow
+
+A DLNA preset never stores a playback URL. `core/dlna_reference.py` is the only place that encodes the reference (`dlna://<server_id>/<object_id>` in the `presets` table, `{"dlna": {...}, "name": ...}` in the Orion `data` parameter).
+
+1. **Save** (`POST /api/presets/dlna` → `PresetService.set_dlna_preset`): `DlnaService.resolve_playable` checks the object on the media server, the speaker is programmed with a reference-only Orion location, then the row is written (`source='DLNA'`).
+2. **Press**: the speaker calls the Orion endpoint (`bmx/routes.py`), which resolves the reference again, cache-only and within 3 s, and answers with the current resource URL and cover.
+3. **Sync / Marge**: parser, Marge XML builder and Marge store call keep the reference instead of treating it as a stream URL. Routes that need a stream URL (M3U/PLS, stream proxy, descriptor redirect) answer 409 `dlna_preset_not_streamable`.
+
+See [DLNA.md](DLNA.md) for behaviour and limits.
 
 ## Real-Time Architecture
 

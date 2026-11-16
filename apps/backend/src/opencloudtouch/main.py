@@ -205,6 +205,8 @@ async def _init_services(
         )
     else:
         app.state.dlna_service = DlnaService(timeout=cfg.dlna_timeout)
+    # Warm the discovery cache so the first preset press can resolve (cache-only).
+    app.state.dlna_service.schedule_refresh()
     logger.info("DlnaService initialized")
 
     # Zone service (with injected client factory to avoid circular deps)

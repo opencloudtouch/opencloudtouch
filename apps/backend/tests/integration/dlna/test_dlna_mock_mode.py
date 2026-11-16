@@ -51,3 +51,11 @@ def test_app_in_mock_mode_serves_the_fake_server():
 
     with TestClient(app) as http:
         assert http.get(BASE).status_code == 200
+
+
+def test_startup_schedules_one_background_discovery():
+    from opencloudtouch.main import app
+
+    with TestClient(app):
+        task = app.state.dlna_service._refresh_task
+        assert task is not None  # scheduled, not awaited: startup is not delayed
