@@ -197,7 +197,14 @@ async def _init_services(
     app.state.device_service = device_service
     logger.info("DeviceService initialized")
 
-    app.state.dlna_service = DlnaService()
+    if cfg.mock_mode:
+        from opencloudtouch.dlna.mock import MockDlnaClient, MockDlnaDiscovery
+
+        app.state.dlna_service = DlnaService(
+            MockDlnaDiscovery(), MockDlnaClient(), timeout=cfg.dlna_timeout
+        )
+    else:
+        app.state.dlna_service = DlnaService(timeout=cfg.dlna_timeout)
     logger.info("DlnaService initialized")
 
     # Zone service (with injected client factory to avoid circular deps)

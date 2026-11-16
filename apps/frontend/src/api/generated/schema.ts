@@ -161,7 +161,7 @@ export interface paths {
     };
     /**
      * Browse Dlna Server
-     * @description Browse a DLNA MediaServer ContentDirectory.
+     * @description Browse one page of a DLNA MediaServer ContentDirectory.
      */
     get: operations["browse_dlna_server_api_dlna_servers__server_id__browse_get"];
     put?: never;
@@ -3250,6 +3250,68 @@ export interface components {
       click_timestamp: number;
     };
     /**
+     * DlnaBrowseResponse
+     * @description One page of a DLNA folder; consumers must use ``has_more``, not the page length.
+     */
+    DlnaBrowseResponse: {
+      /** Server Id */
+      server_id: string;
+      /** Object Id */
+      object_id: string;
+      /** Items */
+      items: components["schemas"]["DlnaItem"][];
+      /** Starting Index */
+      starting_index: number;
+      /** Number Returned */
+      number_returned: number;
+      /** Total Matches */
+      total_matches: number | null;
+      /** Next Index */
+      next_index: number;
+      /** Has More */
+      has_more: boolean;
+    };
+    /**
+     * DlnaItem
+     * @description A DLNA ContentDirectory item or container.
+     */
+    DlnaItem: {
+      /** Id */
+      id: string;
+      /** Parent Id */
+      parent_id: string;
+      /** Title */
+      title: string;
+      /** Is Container */
+      is_container: boolean;
+      /** Resource Url */
+      resource_url?: string | null;
+      /** Media Class */
+      media_class?: string | null;
+      /** Artist */
+      artist?: string | null;
+      /** Album */
+      album?: string | null;
+      /** Genre */
+      genre?: string | null;
+      /** Creator */
+      creator?: string | null;
+      /** Album Art Url */
+      album_art_url?: string | null;
+      /** Duration */
+      duration?: string | null;
+      /** Size */
+      size?: number | null;
+      /** Bitrate */
+      bitrate?: number | null;
+      /** Sample Frequency */
+      sample_frequency?: number | null;
+      /** Audio Channels */
+      audio_channels?: number | null;
+      /** Protocol Info */
+      protocol_info?: string | null;
+    };
+    /**
      * EnablePermanentSSHRequest
      * @description Request to enable permanent SSH access on device.
      */
@@ -3270,6 +3332,104 @@ export interface components {
        * @default true
        */
       make_permanent: boolean;
+    };
+    /**
+     * ErrorDetail
+     * @description Standardized error response format (RFC 7807-inspired).
+     *
+     *     Provides consistent error structure across all API endpoints.
+     *
+     *     Attributes:
+     *         type: Error category (validation_error, not_found, server_error, etc.)
+     *         title: Human-readable error title
+     *         status: HTTP status code
+     *         detail: Detailed error message
+     *         instance: Request path that triggered error (optional)
+     *         errors: Field-level validation errors (optional, for 422 responses)
+     *         code: Stable machine-readable error identifier (see ``error_codes``)
+     *         params: Flat string map for message interpolation on the client
+     *         extra: Structured data for the client (not for translation)
+     *
+     *     Example:
+     *         {
+     *             "type": "not_found",
+     *             "title": "Device Not Found",
+     *             "status": 404,
+     *             "detail": "Device not found: abc123",
+     *             "instance": "/api/devices/abc123",
+     *             "errors": null,
+     *             "code": "device_not_found",
+     *             "params": null,
+     *             "extra": null
+     *         }
+     */
+    ErrorDetail: {
+      /** Type */
+      type: string;
+      /** Title */
+      title: string;
+      /** Status */
+      status: number;
+      /** Detail */
+      detail: string;
+      /**
+       * Instance
+       * @default null
+       */
+      instance: string | null;
+      /**
+       * Errors
+       * @default null
+       */
+      errors: components["schemas"]["ErrorItem"][] | null;
+      /**
+       * Code
+       * @default null
+       */
+      code: string | null;
+      /**
+       * Params
+       * @default null
+       */
+      params: {
+        [key: string]: string;
+      } | null;
+      /**
+       * Extra
+       * @default null
+       */
+      extra: {
+        [key: string]: unknown;
+      } | null;
+    };
+    /**
+     * ErrorItem
+     * @description One field-level error inside ``ErrorDetail.errors``.
+     *
+     *     ``field`` keeps the legacy dotted location (``body.port``); ``path`` is the
+     *     same location without the leading ``body``/``query``/``path``/``header``
+     *     segment (``port``) and is what clients map to input names.
+     */
+    ErrorItem: {
+      /** Field */
+      field: string;
+      /**
+       * Path
+       * @default null
+       */
+      path: string | null;
+      /** Message */
+      message: string;
+      /**
+       * Type
+       * @default null
+       */
+      type: string | null;
+      /**
+       * Code
+       * @default null
+       */
+      code: string | null;
     };
     /**
      * FinalizeRequest
@@ -4170,104 +4330,6 @@ export interface components {
       /** Ip */
       ip: string;
     };
-    /**
-     * ErrorItem
-     * @description One field-level error inside ``ErrorDetail.errors``.
-     *
-     *     ``field`` keeps the legacy dotted location (``body.port``); ``path`` is the
-     *     same location without the leading ``body``/``query``/``path``/``header``
-     *     segment (``port``) and is what clients map to input names.
-     */
-    ErrorItem: {
-      /** Field */
-      field: string;
-      /**
-       * Path
-       * @default null
-       */
-      path: string | null;
-      /** Message */
-      message: string;
-      /**
-       * Type
-       * @default null
-       */
-      type: string | null;
-      /**
-       * Code
-       * @default null
-       */
-      code: string | null;
-    };
-    /**
-     * ErrorDetail
-     * @description Standardized error response format (RFC 7807-inspired).
-     *
-     *     Provides consistent error structure across all API endpoints.
-     *
-     *     Attributes:
-     *         type: Error category (validation_error, not_found, server_error, etc.)
-     *         title: Human-readable error title
-     *         status: HTTP status code
-     *         detail: Detailed error message
-     *         instance: Request path that triggered error (optional)
-     *         errors: Field-level validation errors (optional, for 422 responses)
-     *         code: Stable machine-readable error identifier (see ``error_codes``)
-     *         params: Flat string map for message interpolation on the client
-     *         extra: Structured data for the client (not for translation)
-     *
-     *     Example:
-     *         {
-     *             "type": "not_found",
-     *             "title": "Device Not Found",
-     *             "status": 404,
-     *             "detail": "Device not found: abc123",
-     *             "instance": "/api/devices/abc123",
-     *             "errors": null,
-     *             "code": "device_not_found",
-     *             "params": null,
-     *             "extra": null
-     *         }
-     */
-    ErrorDetail: {
-      /** Type */
-      type: string;
-      /** Title */
-      title: string;
-      /** Status */
-      status: number;
-      /** Detail */
-      detail: string;
-      /**
-       * Instance
-       * @default null
-       */
-      instance: string | null;
-      /**
-       * Errors
-       * @default null
-       */
-      errors: components["schemas"]["ErrorItem"][] | null;
-      /**
-       * Code
-       * @default null
-       */
-      code: string | null;
-      /**
-       * Params
-       * @default null
-       */
-      params: {
-        [key: string]: string;
-      } | null;
-      /**
-       * Extra
-       * @default null
-       */
-      extra: {
-        [key: string]: unknown;
-      } | null;
-    };
   };
   responses: never;
   parameters: never;
@@ -4405,6 +4467,8 @@ export interface operations {
     parameters: {
       query?: {
         object_id?: string;
+        starting_index?: number;
+        requested_count?: number;
       };
       header?: never;
       path: {
@@ -4420,9 +4484,16 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": {
-            [key: string]: unknown;
-          };
+          "application/json": components["schemas"]["DlnaBrowseResponse"];
+        };
+      };
+      /** @description Server or object not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
         };
       };
       /** @description Validation Error */
@@ -4432,6 +4503,24 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description DLNA server failed */
+      502: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+      /** @description DLNA server timed out */
+      504: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
         };
       };
     };

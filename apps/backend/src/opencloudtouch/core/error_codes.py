@@ -39,3 +39,9 @@ STEREO_PAIR_DEGRADED = "stereo_pair_degraded"
 STEREO_PAIR_NOT_FOUND = "stereo_pair_not_found"
 STEREO_PAIR_INVALID_REQUEST = "stereo_pair_invalid_request"
 STEREO_PAIR_OPERATION_NOT_FOUND = "stereo_pair_operation_not_found"
+
+# DLNA
+DLNA_SERVER_NOT_FOUND = "dlna_server_not_found"
+DLNA_OBJECT_NOT_FOUND = "dlna_object_not_found"
+DLNA_UPSTREAM_ERROR = "dlna_upstream_error"
+DLNA_SERVER_TIMEOUT = "dlna_server_timeout"

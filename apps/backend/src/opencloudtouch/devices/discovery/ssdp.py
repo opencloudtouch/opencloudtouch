@@ -99,17 +99,12 @@ class SSDPDiscovery:
         """
         # Create UDP socket for multicast
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        # Join multicast group (CRITICAL for receiving responses!)
-        # Binding to 0.0.0.0 required for SSDP multicast membership
-        mreq = socket.inet_aton(self.SSDP_MULTICAST_ADDR) + socket.inet_aton(
-            "0.0.0.0"
-        )  # nosec B104
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-
-        # Bind to SSDP port to receive responses
-        sock.bind(("", self.SSDP_PORT))
+        # Search from a private ephemeral port: servers answer M-SEARCH by unicast to
+        # the source port. On shared port 1900 the kernel hands such replies to an
+        # arbitrary socket there (e.g. a DLNA server on the same host), so servers
+        # went missing. No multicast membership is needed to receive unicast replies.
+        sock.bind(("", 0))
 
         # Wall-clock deadline: ensures loop exits after exactly self.timeout seconds
         # regardless of continuous data flow from many UPnP devices.

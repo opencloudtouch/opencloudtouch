@@ -144,6 +144,10 @@ An app is also a clean place for the hook: it shows up under Apps, where you can
 3. Try the fix from step 2 (Docker update or the profile) and restart the container.
 4. Still failing? Open a [bug report](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml) and attach: the output of step 1, the full container log (`docker logs <container>`), your `docker run` or Compose settings without secrets, and the device model. Do not include tokens, passwords or personal data.
 
+## DLNA server is slow or times out
+
+Browsing a media server answers `504` with code `dlna_server_timeout` when the server does not answer within `OCT_DLNA_TIMEOUT` (default 15 s). A large library on a slow NAS may need a higher value (maximum 60 s); folders load page by page, so it rarely needs more. `502` with `dlna_upstream_error` means the server refused the connection or sent an invalid answer. See [DLNA.md](DLNA.md).
+
 ## Still stuck?
 
 Open a [bug report](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml) or check [GitHub Discussions](https://github.com/opencloudtouch/opencloudtouch/discussions).

@@ -743,3 +743,22 @@ def test_ssdp_msearch_serializes_concurrent_searches(monkeypatch):
     assert len(results) == 2
     assert max_active == 1
     assert active == 0
+
+
+def test_ssdp_msearch_uses_private_source_port():
+    """Regression: binding to the shared SSDP port 1900 made the kernel hand unicast
+    replies to an arbitrary socket on that port (e.g. a DLNA server on the same host),
+    so some servers were never found. Search from an ephemeral port instead."""
+    import socket as socket_module
+
+    discovery = SSDPDiscovery(timeout=0)
+
+    with patch("socket.socket") as mock_socket_class:
+        mock_sock = MagicMock()
+        mock_socket_class.return_value = mock_sock
+
+        discovery._ssdp_msearch()
+
+    mock_sock.bind.assert_called_once_with(("", 0))
+    options = [call.args[1] for call in mock_sock.setsockopt.call_args_list]
+    assert socket_module.IP_ADD_MEMBERSHIP not in options
