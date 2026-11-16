@@ -1,13 +1,48 @@
 """DLNA API routes."""
 
+import logging
 from dataclasses import asdict
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
+from pydantic import BaseModel
 
-from opencloudtouch.dlna.client import DlnaBrowseError
+from opencloudtouch.core import error_codes
 from opencloudtouch.core.dependencies import DlnaServiceDep
+from opencloudtouch.core.exceptions import ErrorDetail, raise_coded
+from opencloudtouch.dlna.client import DlnaBrowseError, DlnaTimeoutError
+from opencloudtouch.dlna.models import DlnaItem, page_cursor
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/dlna", tags=["dlna"])
+
+
+class DlnaBrowseResponse(BaseModel):
+    """One page of a DLNA folder; consumers must use ``has_more``, not the page length."""
+
+    server_id: str
+    object_id: str
+    items: list[DlnaItem]
+    starting_index: int
+    number_returned: int
+    total_matches: int | None
+    next_index: int
+    has_more: bool
+
+
+def _classify(exc: LookupError | DlnaBrowseError) -> tuple[int, str, str]:
+    """Map a service error to (status, code, fixed detail)."""
+    if isinstance(exc, LookupError):
+        return 404, error_codes.DLNA_SERVER_NOT_FOUND, "DLNA server not found"
+    if isinstance(exc, DlnaTimeoutError):
+        return (
+            504,
+            error_codes.DLNA_SERVER_TIMEOUT,
+            "DLNA server did not answer in time",
+        )
+    if isinstance(exc, DlnaBrowseError) and exc.error_code == "701":
+        return 404, error_codes.DLNA_OBJECT_NOT_FOUND, "DLNA object not found"
+    return 502, error_codes.DLNA_UPSTREAM_ERROR, "DLNA server request failed"
 
 
 @router.get("/servers")
@@ -17,31 +52,45 @@ async def get_dlna_servers(service: DlnaServiceDep) -> list[dict]:
     return [asdict(server) for server in servers]
 
 
-@router.get("/servers/{server_id}/browse")
+@router.get(
+    "/servers/{server_id}/browse",
+    response_model=DlnaBrowseResponse,
+    responses={
+        404: {"model": ErrorDetail, "description": "Server or object not found"},
+        502: {"model": ErrorDetail, "description": "DLNA server failed"},
+        504: {"model": ErrorDetail, "description": "DLNA server timed out"},
+    },
+)
 async def browse_dlna_server(
     server_id: str,
     service: DlnaServiceDep,
     object_id: str = Query(default="0"),
-) -> dict:
-    """Browse a DLNA MediaServer ContentDirectory."""
+    starting_index: int = Query(default=0, ge=0),
+    requested_count: int = Query(default=50, ge=1, le=200),
+) -> DlnaBrowseResponse:
+    """Browse one page of a DLNA MediaServer ContentDirectory."""
+    object_id = object_id or "0"
+    failure: tuple[int, str, str] | None = None
     try:
-        items = await service.browse(server_id, object_id)
-    except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except DlnaBrowseError as exc:
-        if exc.error_code == "701":
-            raise HTTPException(
-                status_code=404,
-                detail=f"DLNA object not found: {object_id}",
-            ) from exc
+        page = await service.browse(
+            server_id, object_id, starting_index, requested_count
+        )
+    except (LookupError, DlnaBrowseError) as exc:
+        failure = _classify(exc)
+    if failure:
+        # Raised outside the except block: the cause chain (with server URLs in its
+        # message) must not reach the error logger.
+        logger.warning("DLNA browse on %s failed: %s", server_id, failure[1])
+        raise_coded(*failure)
 
-        raise HTTPException(
-            status_code=502,
-            detail=str(exc),
-        ) from exc
-
-    return {
-        "server_id": server_id,
-        "object_id": object_id,
-        "items": [asdict(item) for item in items],
-    }
+    next_index, has_more = page_cursor(page, starting_index, requested_count)
+    return DlnaBrowseResponse(
+        server_id=server_id,
+        object_id=object_id,
+        items=page.items,
+        starting_index=starting_index,
+        number_returned=page.number_returned,
+        total_matches=page.total_matches,
+        next_index=next_index,
+        has_more=has_more,
+    )

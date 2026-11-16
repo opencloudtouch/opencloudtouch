@@ -3,3 +3,7 @@ device_unreachable
 internal_error
 not_found
 validation_error
+dlna_server_not_found
+dlna_object_not_found
+dlna_upstream_error
+dlna_server_timeout

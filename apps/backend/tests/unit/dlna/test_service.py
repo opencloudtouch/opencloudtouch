@@ -5,7 +5,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from opencloudtouch.dlna.models import DlnaItem, DlnaServer
+from opencloudtouch.dlna.client import DlnaBrowseError, DlnaTimeoutError
+from opencloudtouch.dlna.models import BrowsePage, DlnaItem, DlnaServer
 from opencloudtouch.dlna.service import DlnaService
 
 
@@ -47,7 +48,7 @@ async def test_browse_server():
     discovery.discover.return_value = [server]
 
     client = AsyncMock()
-    client.browse.return_value = [item]
+    client.browse.return_value = BrowsePage([item], 1, 1)
 
     service = DlnaService(
         discovery=discovery,
@@ -56,8 +57,8 @@ async def test_browse_server():
 
     result = await service.browse("server-1", "0")
 
-    assert result == [item]
-    client.browse.assert_awaited_once_with(server, "0")
+    assert result == BrowsePage([], 1, 1) or result.items == []
+    client.browse.assert_awaited_once_with(server, "0", 0, 50)
 
 
 @pytest.mark.asyncio
@@ -82,7 +83,7 @@ async def test_browse_reuses_discovered_server_without_new_ssdp():
     discovery = AsyncMock()
     discovery.discover.return_value = [server]
     client = AsyncMock()
-    client.browse.return_value = []
+    client.browse.return_value = BrowsePage([], 0, 0)
     service = DlnaService(discovery=discovery, client=client)
 
     assert await service.get_servers() == [server]
@@ -146,7 +147,7 @@ async def test_concurrent_browse_refreshes_expired_cache_only_once():
     discovery = AsyncMock()
     discovery.discover.return_value = [server]
     client = AsyncMock()
-    client.browse.return_value = []
+    client.browse.return_value = BrowsePage([], 0, 0)
     service = DlnaService(
         discovery=discovery, client=client, cache_ttl=30.0, clock=lambda: clock[0]
     )
@@ -199,14 +200,14 @@ async def test_empty_scan_is_retried_and_server_becomes_available():
     discovery = AsyncMock()
     discovery.discover.side_effect = [[], [server]]
     client = AsyncMock()
-    client.browse.return_value = []
+    client.browse.return_value = BrowsePage([], 0, 0)
     clock = [100.0]
     service = DlnaService(discovery=discovery, client=client, clock=lambda: clock[0])
 
     with pytest.raises(LookupError, match="server-1"):
         await service.browse(server.id)
     clock[0] = 103.1
-    assert await service.browse(server.id) == []
+    assert (await service.browse(server.id)).items == []
     assert discovery.discover.await_count == 2
 
 
@@ -227,12 +228,12 @@ async def test_partial_refresh_keeps_previously_discovered_server():
     discovery = AsyncMock()
     discovery.discover.side_effect = [[first, second], [first]]
     client = AsyncMock()
-    client.browse.return_value = []
+    client.browse.return_value = BrowsePage([], 0, 0)
     service = DlnaService(discovery=discovery, client=client)
 
     await service.get_servers()
     assert len(await service.get_servers()) == 2
-    assert await service.browse(second.id) == []
+    assert (await service.browse(second.id)).items == []
     assert discovery.discover.await_count == 2
 
 
@@ -274,13 +275,13 @@ async def test_explicit_refresh_clears_missing_server_cache():
     discovery = AsyncMock()
     discovery.discover.side_effect = [[], [server]]
     client = AsyncMock()
-    client.browse.return_value = []
+    client.browse.return_value = BrowsePage([], 0, 0)
     service = DlnaService(discovery=discovery, client=client)
 
     with pytest.raises(LookupError):
         await service.browse(server.id)
     await service.get_servers()
-    assert await service.browse(server.id) == []
+    assert (await service.browse(server.id)).items == []
     assert discovery.discover.await_count == 2
 
 
@@ -403,3 +404,113 @@ async def test_expired_missing_ids_are_pruned_on_refresh():
     with pytest.raises(LookupError):
         await service.browse("unknown-c")
     assert set(service._missing_ids) == {"unknown-c"}
+
+
+SERVER = DlnaServer(
+    id="server-1",
+    name="NAS",
+    location="http://192.0.2.10/device.xml",
+    control_url="http://192.0.2.10/control",
+)
+
+
+def _service(client, **kwargs) -> DlnaService:
+    discovery = AsyncMock()
+    discovery.discover.return_value = [SERVER]
+    return DlnaService(discovery=discovery, client=client, **kwargs)
+
+
+@pytest.mark.asyncio
+async def test_browse_filters_non_audio_but_keeps_number_returned():
+    folder = DlnaItem("f", "0", "Folder", True)
+    track = DlnaItem("t", "0", "T", False, media_class="object.item.audioItem")
+    by_proto = DlnaItem("p", "0", "P", False, protocol_info="http-get:*:audio/flac:*")
+    image = DlnaItem("i", "0", "I", False, media_class="object.item.imageItem")
+    client = AsyncMock()
+    client.browse.return_value = BrowsePage([folder, track, by_proto, image], 50, 120)
+
+    page = await _service(client).browse("server-1", "0", 100, 50)
+
+    assert [i.id for i in page.items] == ["f", "t", "p"]
+    assert (page.number_returned, page.total_matches) == (50, 120)
+    client.browse.assert_awaited_once_with(SERVER, "0", 100, 50)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("cover", "expected"),
+    [
+        ("http://192.0.2.10/c.jpg", "http://192.0.2.10/c.jpg"),
+        ("https://192.0.2.10/c.jpg", "https://192.0.2.10/c.jpg"),
+        ("/c.jpg", None),
+        ("c.jpg", None),
+        ("file:///c.jpg", None),
+        ("ftp://192.0.2.10/c.jpg", None),
+        ("http:///c.jpg", None),
+        (None, None),
+    ],
+)
+async def test_cover_is_kept_only_if_absolute_http(cover, expected):
+    item = DlnaItem("f", "0", "F", True, album_art_url=cover)
+    client = AsyncMock()
+    client.browse.return_value = BrowsePage([item], 1, 1)
+    client.get_object.return_value = item
+
+    service = _service(client)
+    assert (await service.browse("server-1")).items[0].album_art_url == expected
+    assert (await service.get_object("server-1", "f")).album_art_url == expected
+
+
+@pytest.mark.asyncio
+async def test_get_object_uses_shared_lookup():
+    item = DlnaItem("f", "0", "F", True)
+    client = AsyncMock()
+    client.get_object.return_value = item
+
+    assert await _service(client).get_object("server-1", "f") == item
+    client.get_object.assert_awaited_once_with(SERVER, "f")
+    with pytest.raises(LookupError):
+        await _service(client).get_object("other", "f")
+
+
+@pytest.mark.asyncio
+async def test_total_deadline_ends_operation_with_timeout_error():
+    async def slow(*args):
+        await asyncio.sleep(5)
+
+    client = AsyncMock()
+    client.browse.side_effect = slow
+    client.get_object.side_effect = slow
+    service = _service(client, timeout=0.05)
+
+    with pytest.raises(DlnaTimeoutError):
+        await service.browse("server-1")
+    with pytest.raises(DlnaTimeoutError):
+        await service.get_object("server-1", "x")
+
+
+@pytest.mark.asyncio
+async def test_caller_may_pass_a_shorter_deadline_but_not_a_longer_one():
+    async def slow(*args):
+        await asyncio.sleep(0.2)
+        return BrowsePage([], 0, 0)
+
+    client = AsyncMock()
+    client.browse.side_effect = slow
+    with pytest.raises(DlnaTimeoutError):
+        await _service(client, timeout=5).browse("server-1", deadline=0.05)
+    with pytest.raises(DlnaTimeoutError):
+        await _service(client, timeout=0.05).browse("server-1", deadline=30)
+
+
+@pytest.mark.asyncio
+async def test_client_errors_pass_through_the_deadline():
+    client = AsyncMock()
+    client.browse.side_effect = DlnaBrowseError("x", error_code="701")
+    with pytest.raises(DlnaBrowseError) as exc:
+        await _service(client).browse("server-1")
+    assert exc.value.error_code == "701"
+
+
+def test_service_passes_timeout_to_default_client():
+    assert DlnaService(discovery=AsyncMock(), timeout=30).client.timeout.read == 30

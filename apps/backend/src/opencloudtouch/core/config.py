@@ -138,6 +138,14 @@ class AppConfig(BaseSettings):
         description="Max age (seconds) for WebSocket-fed state cache before HTTP fallback",
     )
 
+    # DLNA
+    dlna_timeout: float = Field(
+        default=15.0,
+        ge=1,
+        le=60,
+        description="DLNA read timeout and total deadline per operation (seconds)",
+    )
+
     # Station Descriptor
     station_descriptor_base_url: str = Field(
         default=f"http://localhost:{DEFAULT_PORT}",

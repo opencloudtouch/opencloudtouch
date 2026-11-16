@@ -239,3 +239,16 @@ class TestLocalhostAutoDetection:
         monkeypatch.delenv("OCT_STATION_DESCRIPTOR_BASE_URL", raising=False)
         config = AppConfig(_env_file=None)
         assert config.station_descriptor_base_url == "http://content.api.bose.io:7777"
+
+
+def test_dlna_timeout_default_and_bounds(monkeypatch):
+    from pydantic import ValidationError
+
+    monkeypatch.delenv("OCT_DLNA_TIMEOUT", raising=False)
+    assert AppConfig().dlna_timeout == 15.0
+    monkeypatch.setenv("OCT_DLNA_TIMEOUT", "30")
+    assert AppConfig().dlna_timeout == 30.0
+    for bad in ("0", "61"):
+        monkeypatch.setenv("OCT_DLNA_TIMEOUT", bad)
+        with pytest.raises(ValidationError):
+            AppConfig()
