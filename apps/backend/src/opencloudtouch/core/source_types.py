@@ -39,7 +39,7 @@ BASE_SOURCES: list[SourceType] = [
     ),
     SourceType("53", "QPLAY", "QPLAY", "", "", _TS_2014),
     SourceType("30", "SPOTIFY", "SPOTIFY", "", "", "2014-06-01T00:00:00.000+00:00"),
-    SourceType("50", "STORED_MUSIC", "STORED_MUSIC", "", "", _TS_2014),
+    SourceType("7", "STORED_MUSIC", "STORED_MUSIC", "", "", _TS_2014),
     SourceType(
         "51",
         "STORED_MUSIC_MEDIA_RENDERER",
@@ -51,3 +51,15 @@ BASE_SOURCES: list[SourceType] = [
     SourceType("25", "TUNEIN", "TUNEIN", "", "token", _TS_2012),
     SourceType("52", "UPNP", "UPNP", "", "", _TS_2014),
 ]
+
+# Provider id OCT listed for STORED_MUSIC before the real id 7 was known. A speaker
+# that cached that list still sends it: accepted as input, never emitted.
+LEGACY_STREAMING_IDS = {"50": "STORED_MUSIC"}
+
+
+def source_type_for_streaming_id(streaming_id: str) -> str | None:
+    """Source type for a Marge provider/source id a speaker sends (alias included)."""
+    for src in BASE_SOURCES:
+        if src.streaming_id == streaming_id:
+            return src.source_type
+    return LEGACY_STREAMING_IDS.get(streaming_id)

@@ -20,7 +20,7 @@ class PresetRepository(BaseRepository):
         Column order must match the SELECT column list used throughout this
         repository:  id, device_id, preset_number, station_uuid, station_name,
         station_url, station_homepage, station_favicon, source,
-        created_at, updated_at.
+        created_at, updated_at, native_type.
         """
         return Preset(
             id=row[0],
@@ -34,6 +34,7 @@ class PresetRepository(BaseRepository):
             source=row[8],
             created_at=datetime.fromisoformat(row[9]) if row[9] else None,
             updated_at=datetime.fromisoformat(row[10]) if row[10] else None,
+            native_type=row[11],
         )
 
     async def _create_schema(self) -> None:
@@ -60,6 +61,11 @@ class PresetRepository(BaseRepository):
             version=1,
             description="Add source column to presets",
             sql="ALTER TABLE presets ADD COLUMN source TEXT",
+        )
+        await self._apply_migration(
+            version=2,
+            description="Add native_type column to presets",
+            sql="ALTER TABLE presets ADD COLUMN native_type TEXT",
         )
 
         # Indexes
@@ -92,9 +98,10 @@ class PresetRepository(BaseRepository):
             """
             INSERT INTO presets (
                 device_id, preset_number, station_uuid, station_name, station_url,
-                station_homepage, station_favicon, source, created_at, updated_at
+                station_homepage, station_favicon, source, created_at, updated_at,
+                native_type
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(device_id, preset_number) DO UPDATE SET
                 station_uuid = excluded.station_uuid,
                 station_name = excluded.station_name,
@@ -102,6 +109,7 @@ class PresetRepository(BaseRepository):
                 station_homepage = excluded.station_homepage,
                 station_favicon = excluded.station_favicon,
                 source = excluded.source,
+                native_type = excluded.native_type,
                 updated_at = excluded.updated_at
             RETURNING id
         """,
@@ -116,6 +124,7 @@ class PresetRepository(BaseRepository):
                 preset.source,
                 preset.created_at,
                 preset.updated_at,
+                preset.native_type,
             ),
         )
 
@@ -152,7 +161,7 @@ class PresetRepository(BaseRepository):
             """
             SELECT id, device_id, preset_number, station_uuid, station_name,
                    station_url, station_homepage, station_favicon, source,
-                   created_at, updated_at
+                   created_at, updated_at, native_type
             FROM presets
             WHERE device_id = ? AND preset_number = ?
         """,
@@ -185,7 +194,7 @@ class PresetRepository(BaseRepository):
             """
             SELECT id, device_id, preset_number, station_uuid, station_name,
                    station_url, station_homepage, station_favicon, source,
-                   created_at, updated_at
+                   created_at, updated_at, native_type
             FROM presets
             WHERE device_id = ?
             ORDER BY preset_number ASC

@@ -30,6 +30,7 @@ class Preset:
         created_at: Optional[datetime] = None,
         updated_at: Optional[datetime] = None,
         id: Optional[int] = None,
+        native_type: Optional[str] = None,
     ):
         """
         Initialize a Preset.
@@ -46,6 +47,8 @@ class Preset:
             created_at: Creation timestamp
             updated_at: Last update timestamp
             id: Database primary key (optional)
+            native_type: ``dir``/``track`` for a native STORED_MUSIC preset; only
+                kept together with ``source='DLNA'``
 
         Raises:
             ValueError: If preset_number not in range 1-6
@@ -62,6 +65,7 @@ class Preset:
         self.station_homepage = station_homepage
         self.station_favicon = station_favicon
         self.source = source
+        self.native_type = native_type if source == "DLNA" else None
         self.created_at = created_at or datetime.now(UTC)
         self.updated_at = updated_at or datetime.now(UTC)
 
@@ -87,6 +91,7 @@ class Preset:
             "station_homepage": self.station_homepage,
             "station_favicon": self.station_favicon,
             "source": self.source,
+            "native_type": self.native_type,
             "dlna": (
                 {"server_id": ref.server_id, "object_id": ref.object_id}
                 if (ref := self.dlna_reference)
