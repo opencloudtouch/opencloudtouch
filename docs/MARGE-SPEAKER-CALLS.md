@@ -47,5 +47,26 @@ The speaker applies a rename or a preset write only after OCT answered 2xx; on a
 In `/full` every preset must carry a `<source>` the speaker knows; a preset without it is silently dropped from the speaker's `/presets`.
 OCT therefore announces presets of an unknown source (for example `INTERNET_RADIO` imported earlier) as `LOCAL_INTERNET_RADIO`, which is how they play anyway.
 
+## Media servers as STORED_MUSIC sources
+
+A speaker lists a DLNA media server as a native `STORED_MUSIC` source once OCT announces provider id **7** and the server as an account source (spike on a SoundTouch 20, firmware 27.0.6).
+OCT used the invented id 50 before; 50 is still accepted as **input** (source route, recents, preset writes) and mapped to `STORED_MUSIC`, but OCT never emits it.
+
+| Speaker request | OCT |
+|---|---|
+| `POST /streaming/account/{account}/source` body `<source><credential/><username><server-uuid>/0</username><sourceproviderid>7</sourceproviderid><sourcename>..</sourcename></source>` (answer of `setMusicServiceAccount`) | stores one row per device and server, 201 `<source><sourceID/><sourceProviderID>7</sourceProviderID><createdOn/><updatedOn/></source>` |
+| `DELETE /streaming/account/{account}/source/{sourceId}` | flags the row of that account's device as removal pending (200, empty); an unknown id is a no-op |
+
+The source route accepts only provider 7 (or the alias 50), a `username` of the form `<uuid>/0`, a non-empty `sourcename` (at most 64 characters) and bodies up to 4 KiB (413 is answered before the body is read); invalid input is 400, an unknown account 404, the 21st registration of a device or a row pending removal 409.
+The new routes log only the status and the body size.
+Source ids come from the database, start at 20000000 and are never reused.
+
+`/streaming/account/{account}/full` lists every active registration as
+`<source id="N" type="Audio"><credential type="token"/><name><uuid>/0</name><sourceproviderid>7</sourceproviderid><sourcename>Mediaserver</sourcename><sourceSettings/><username><uuid>/0</username></source>`
+and drops the generic `STORED_MUSIC` entry only while at least one active registration exists.
+A preset OCT holds for such a server (`native_type` set) is announced as `STORED_MUSIC` with the object id as location, `<contentItemType>` dir/track and a `<sourceid>`; without a registration it keeps the Orion location.
+A numeric `<sourceid>` in a preset write is mapped to the registered server only if the account in the path resolves to the device in the path (otherwise 404).
+Whether the speaker needs the added `<sourceid>` in `/presets` and what it echoes in recents is not verified yet.
+
 Other routes the firmware knows but that were not triggered: `/streaming/support/customersupport`, `/streaming/software/update/account/...`,
 `/streaming/music/account/...`, `/streaming/efe/environments`, `/requestToken`, `/navigate`.
