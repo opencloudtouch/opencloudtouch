@@ -24,6 +24,8 @@ from opencloudtouch.core.dlna_reference import (
 )
 from opencloudtouch.core.exceptions import DeviceConnectionError
 from opencloudtouch.devices.client import (
+    SpeakerCommandError,
+    SpeakerSource,
     BassCapabilities,
     BassInfo,
     DeviceClient,
@@ -714,3 +716,70 @@ class BoseDeviceClientAdapter(DeviceClient):
         except Exception as e:
             logger.exception("Failed to reboot device at %s", self.ip)
             raise DeviceConnectionError(self.ip, str(e)) from e
+
+    # ---- Music service accounts (media server registration) ----
+
+    @staticmethod
+    def _speaker_error_code(text: str) -> int | None:
+        """Number of the first ``<error value="..">`` of a speaker error answer."""
+        try:
+            node = ElementTree.fromstring(text).find(".//error")
+            return int(node.get("value", "")) if node is not None else None
+        except (ElementTree.ParseError, ValueError):
+            return None
+
+    async def get_source_list(self) -> list[SpeakerSource]:
+        """Read ``GET /sources``."""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{self.base_url}/sources")
+                response.raise_for_status()
+            root = ElementTree.fromstring(response.text)
+        except Exception as e:
+            logger.warning("Could not read the source list of %s", self.ip)
+            raise DeviceConnectionError(self.ip, str(e)) from e
+        return [
+            SpeakerSource(
+                item.get("source", ""),
+                item.get("sourceAccount", ""),
+                item.get("status", ""),
+            )
+            for item in root.iter("sourceItem")
+        ]
+
+    async def _account_command(
+        self, path: str, source: str, display_name: str, user: str, timeout: float
+    ) -> None:
+        body = (
+            f'<credentials source="{xml_escape(source, {chr(34): "&quot;"})}" '
+            f'displayName="{xml_escape(display_name, {chr(34): "&quot;"})}">'
+            f"<user>{xml_escape(user)}</user><pass/></credentials>"
+        )
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}{path}",
+                    content=body.encode("utf-8"),
+                    headers={"Content-Type": "application/xml"},
+                )
+        except Exception as e:
+            logger.warning("Account command %s failed on %s", path, self.ip)
+            raise DeviceConnectionError(self.ip, str(e)) from e
+        if response.status_code >= 400:
+            raise SpeakerCommandError(self._speaker_error_code(response.text))
+
+    async def set_music_service_account(
+        self, source: str, display_name: str, user: str
+    ) -> None:
+        """``POST /setMusicServiceAccount``; the speaker calls Marge while it runs."""
+        await self._account_command(
+            "/setMusicServiceAccount", source, display_name, user, max(self.timeout, 15)
+        )
+
+    async def remove_music_service_account(
+        self, source: str, display_name: str, user: str
+    ) -> None:
+        """``POST /removeMusicServiceAccount``."""
+        await self._account_command(
+            "/removeMusicServiceAccount", source, display_name, user, self.timeout
+        )

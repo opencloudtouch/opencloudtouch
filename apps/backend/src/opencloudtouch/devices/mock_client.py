@@ -5,7 +5,8 @@ Provides deterministic responses that simulate device HTTP API.
 """
 
 import logging
-from typing import Optional
+from collections.abc import Awaitable, Callable
+from typing import ClassVar, Optional
 
 from opencloudtouch.core.dlna_reference import DlnaReference, build_orion_location
 from opencloudtouch.devices.client import (
@@ -14,6 +15,8 @@ from opencloudtouch.devices.client import (
     DeviceClient,
     DeviceInfo,
     NowPlayingInfo,
+    SpeakerCommandError,
+    SpeakerSource,
     VolumeInfo,
 )
 from opencloudtouch.devices.models import SELECTABLE_SOURCES
@@ -101,6 +104,21 @@ class MockDeviceClient(DeviceClient):
             ),
         },
     }
+
+    # In-memory speaker state shared by all instances (clients are created per call):
+    # device id -> {account: status}. A registration made while the speaker caches the
+    # old provider list (``provider_id`` 50) shows up only after ``reboot()``.
+    _sources: ClassVar[dict[str, dict[str, str]]] = {}
+    provider_id: ClassVar[int] = 7
+    # Stands in for the speaker's call to Marge ``POST .../source`` (set by main.py).
+    on_register: ClassVar[
+        Callable[[str, str, str, int], Awaitable[None]] | None
+    ] = None
+
+    @classmethod
+    def reset_sources(cls) -> None:
+        cls._sources = {}
+        cls.provider_id = 7
 
     def __init__(self, device_id: str, ip_address: Optional[str] = None):
         """
@@ -339,3 +357,40 @@ class MockDeviceClient(DeviceClient):
     async def reboot(self) -> None:
         """Mock reboot (no-op)."""
         logger.info("[MOCK] reboot() for device %s", self.device_id)
+        accounts = self._sources.get(self.device_id, {})
+        for account in accounts:
+            accounts[account] = "READY"
+
+    # ---- Music service accounts ----
+
+    async def get_source_list(self) -> list[SpeakerSource]:
+        """STORED_MUSIC accounts registered on this mock speaker."""
+        return [
+            SpeakerSource("STORED_MUSIC", account, status)
+            for account, status in self._sources.get(self.device_id, {}).items()
+            if status != "PENDING"
+        ]
+
+    async def set_music_service_account(
+        self, source: str, display_name: str, user: str
+    ) -> None:
+        """Register at once (READY), or pending until reboot for provider 50."""
+        accounts = self._sources.setdefault(self.device_id, {})
+        if user.lower() in {a.lower() for a in accounts}:
+            raise SpeakerCommandError(1022)
+        hook = type(self).on_register  # via the class: no method binding
+        if hook is not None:
+            await hook(
+                self.device_id, user.split("/")[0], display_name, self.provider_id
+            )
+        accounts[user] = "READY" if self.provider_id == 7 else "PENDING"
+
+    async def remove_music_service_account(
+        self, source: str, display_name: str, user: str
+    ) -> None:
+        """Remove at once; an unknown account answers 1047 like the speaker."""
+        accounts = self._sources.get(self.device_id, {})
+        key = next((a for a in accounts if a.lower() == user.lower()), None)
+        if key is None:
+            raise SpeakerCommandError(1047)
+        del accounts[key]

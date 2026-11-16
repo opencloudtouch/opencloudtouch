@@ -10,6 +10,13 @@ MOCK_SERVER = DlnaServer(
     location="http://mock-media.invalid/root.xml",
     control_url="http://mock-media.invalid/control",
 )
+# UUID-shaped id (fictional) so the native registration (``<uuid>/0``) can be tried.
+MOCK_UUID_SERVER = DlnaServer(
+    id="5f9ec1b3-ed59-4f22-9c2e-1d3a7b8c4e01",
+    name="Mock Media Server (UUID)",
+    location="http://mock-media.invalid/uuid.xml",
+    control_url="http://mock-media.invalid/uuid-control",
+)
 _BASE = "http://mock-media.invalid"
 _AUDIO = "object.item.audioItem.musicTrack"
 
@@ -84,7 +91,7 @@ class MockDlnaDiscovery(DlnaDiscovery):
         pass
 
     async def discover(self) -> list[DlnaServer]:
-        return [MOCK_SERVER]
+        return [MOCK_SERVER, MOCK_UUID_SERVER]
 
 
 class MockDlnaClient(DlnaClient):
