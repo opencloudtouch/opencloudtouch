@@ -95,9 +95,7 @@ class Preset:
             "dlna_playback": (
                 None
                 if self.source != "DLNA"
-                else "native"
-                if self.native_type
-                else "reference"
+                else "native" if self.native_type else "reference"
             ),
             "dlna": (
                 {"server_id": ref.server_id, "object_id": ref.object_id}

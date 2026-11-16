@@ -253,9 +253,7 @@ class MargeService:
                 station_uuid=(
                     dlna_station_uuid(dlna_ref)
                     if dlna_ref
-                    else existing.station_uuid
-                    if existing
-                    else f"marge_{slot}"
+                    else existing.station_uuid if existing else f"marge_{slot}"
                 ),
                 station_name=name,
                 station_url=station_url,
