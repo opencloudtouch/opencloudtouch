@@ -207,6 +207,14 @@ export const Icon = {
         <path d="m9 12 2 2 4-4" />
       </>
     ),
+  CircleMinus: (s = 22) =>
+    svg(
+      s,
+      <>
+        <circle cx="12" cy="12" r="10" />
+        <path d="M8 12h8" />
+      </>
+    ),
   CircleX: (s = 22) =>
     svg(
       s,
