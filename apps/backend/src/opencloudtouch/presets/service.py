@@ -9,17 +9,26 @@ import asyncio
 import ipaddress
 import logging
 import socket
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
 
+from opencloudtouch.core.dlna_reference import (
+    DLNA_NAME_MAX,
+    DlnaReference,
+    station_uuid as dlna_station_uuid,
+    to_station_url,
+)
 from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.parser import DevicePresetParser
 from opencloudtouch.presets.repository import PresetRepository
+
+if TYPE_CHECKING:
+    from opencloudtouch.dlna.service import DlnaService
 
 logger = logging.getLogger(__name__)
 
@@ -172,29 +181,13 @@ class PresetService:
 
         # 1. Program the speaker first: if it is unreachable this raises
         # DeviceConnectionError and nothing is saved, so OCT and speaker stay in sync.
-        device = await self.device_repository.get_by_device_id(device_id)
-        if not device:
-            raise DeviceNotFoundError(device_id)
-
-        from opencloudtouch.core.config import get_config
-        from opencloudtouch.devices.adapter import get_device_client
-
-        base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
-        client = get_device_client(base_url)
-        try:
-            await client.store_preset(
-                device_id=device_id,
-                preset_number=preset_number,
-                station_url=station_url,
-                station_name=station_name,
-                oct_backend_url=get_config().station_descriptor_base_url,
-                station_image_url=station_favicon or "",
-                station_uuid=station_uuid,
-            )
-        finally:
-            await client.close()
-        logger.info(
-            "Bose device programmed: Preset %d = %s", preset_number, station_name
+        await self._program_speaker(
+            device_id,
+            preset_number,
+            station_uuid,
+            station_name,
+            station_url,
+            station_favicon,
         )
 
         # 2. Save to the OpenCloudTouch database
@@ -217,6 +210,97 @@ class PresetService:
         )
 
         return saved_preset
+
+    async def _program_speaker(
+        self,
+        device_id: str,
+        preset_number: int,
+        station_uuid: str,
+        station_name: str,
+        station_url: str,
+        station_favicon: Optional[str],
+        dlna_reference: DlnaReference | None = None,
+    ) -> None:
+        """Program a slot on the speaker (raises DeviceConnectionError if unreachable)."""
+        device = await self.device_repository.get_by_device_id(device_id)
+        if not device:
+            raise DeviceNotFoundError(device_id)
+
+        from opencloudtouch.core.config import get_config
+        from opencloudtouch.devices.adapter import get_device_client
+
+        base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
+        client = get_device_client(base_url)
+        try:
+            await client.store_preset(
+                device_id=device_id,
+                preset_number=preset_number,
+                station_url=station_url,
+                station_name=station_name,
+                oct_backend_url=get_config().station_descriptor_base_url,
+                station_image_url=station_favicon or "",
+                station_uuid=station_uuid,
+                dlna_reference=dlna_reference,
+            )
+        finally:
+            await client.close()
+        logger.info(
+            "Bose device programmed: Preset %d = %s", preset_number, station_name
+        )
+
+    async def set_dlna_preset(
+        self,
+        device_id: str,
+        preset_number: int,
+        server_id: str,
+        object_id: str,
+        dlna_service: "DlnaService",
+    ) -> Preset:
+        """Store a DLNA object as a preset (reference only, resolved at press time).
+
+        Title and cover come from the media server, never from the caller. Same order
+        and error behaviour as ``set_preset``: speaker first, then the database.
+
+        Raises:
+            DeviceNotFoundError: unknown device
+            LookupError / DlnaBrowseError / DlnaNotPlayableError: server or object problems
+            DlnaReferenceTooLongError: the Orion location would exceed the length cap
+            DeviceConnectionError: speaker unreachable (nothing is saved)
+        """
+        from opencloudtouch.core.config import get_config
+
+        if not await self.device_repository.get_by_device_id(device_id):
+            raise DeviceNotFoundError(device_id)
+
+        resolved = await dlna_service.resolve_playable(
+            server_id,
+            object_id,
+            cache_only=False,
+            deadline=get_config().dlna_timeout,
+        )
+        ref = DlnaReference(server_id, object_id)
+        name = resolved.title[:DLNA_NAME_MAX]
+        uuid, url = dlna_station_uuid(ref), to_station_url(ref)
+        await self._program_speaker(
+            device_id,
+            preset_number,
+            uuid,
+            name,
+            url,
+            resolved.album_art_url,
+            dlna_reference=ref,
+        )
+        return await self.repository.set_preset(
+            Preset(
+                device_id=device_id,
+                preset_number=preset_number,
+                station_uuid=uuid,
+                station_name=name,
+                station_url=url,
+                station_favicon=resolved.album_art_url,
+                source="DLNA",
+            )
+        )
 
     async def get_preset(self, device_id: str, preset_number: int) -> Optional[Preset]:
         """Get a specific preset for a device.

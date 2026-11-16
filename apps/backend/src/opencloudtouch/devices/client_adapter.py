@@ -17,6 +17,11 @@ from bosesoundtouchapi import SoundTouchClient as BoseClient
 from bosesoundtouchapi import SoundTouchDevice
 from defusedxml import ElementTree
 
+from opencloudtouch.core.dlna_reference import (
+    ORION_PATH,
+    DlnaReference,
+    build_orion_location,
+)
 from opencloudtouch.core.exceptions import DeviceConnectionError
 from opencloudtouch.devices.client import (
     BassCapabilities,
@@ -238,6 +243,7 @@ class BoseDeviceClientAdapter(DeviceClient):
         oct_backend_url: str,
         station_image_url: str,
         station_uuid: str,
+        dlna_reference: DlnaReference | None = None,
     ) -> str:
         """Build XML payload for the /storePreset endpoint.
 
@@ -247,22 +253,25 @@ class BoseDeviceClientAdapter(DeviceClient):
         Returns:
             XML string for POST /storePreset.
         """
-        stream_data = {
-            "streamUrl": station_url,
-            "name": station_name,
-            "imageUrl": station_image_url,
-        }
-        if not station_url and station_uuid:
-            stream_data["tuneinId"] = station_uuid
+        # Per-source branch: a DLNA reference never carries a URL or a TuneIn id.
+        if dlna_reference is not None:
+            orion_url = build_orion_location(
+                oct_backend_url, dlna_reference, station_name, enforce_limit=True
+            )
+        else:
+            stream_data = {
+                "streamUrl": station_url,
+                "name": station_name,
+                "imageUrl": station_image_url,
+            }
+            if not station_url and station_uuid:
+                stream_data["tuneinId"] = station_uuid
 
-        base64_data = base64.urlsafe_b64encode(
-            json.dumps(stream_data).encode()
-        ).decode()
+            base64_data = base64.urlsafe_b64encode(
+                json.dumps(stream_data).encode()
+            ).decode()
 
-        orion_url = (
-            f"{oct_backend_url}/core02/svc-bmx-adapter-orion/prod/orion/station"
-            f"?data={base64_data}"
-        )
+            orion_url = f"{oct_backend_url}{ORION_PATH}?data={base64_data}"
 
         safe_name = xml_escape(station_name)
         art_xml = (
@@ -288,6 +297,7 @@ class BoseDeviceClientAdapter(DeviceClient):
         oct_backend_url: str,
         station_image_url: str = "",
         station_uuid: str = "",
+        dlna_reference: DlnaReference | None = None,
     ) -> None:
         """
         Store a preset on the Bose device using LOCAL_INTERNET_RADIO + Orion adapter.
@@ -303,23 +313,27 @@ class BoseDeviceClientAdapter(DeviceClient):
             oct_backend_url: OCT backend base URL (e.g., "http://192.168.1.108:7777")
             station_image_url: Optional station logo URL
             station_uuid: Optional station UUID for TuneIn fallback
+            dlna_reference: DLNA object to store as a reference (no stream URL)
 
         Raises:
             DeviceConnectionError: If device is unreachable
+            DlnaReferenceTooLongError: If the DLNA location exceeds the length cap
             ValueError: If preset_number not in 1-6
         """
         if not 1 <= preset_number <= 6:
             raise ValueError(f"Preset number must be 1-6, got {preset_number}")
 
+        # Built outside the try block: a too long reference is not a device error.
+        xml_payload = self._build_preset_payload(
+            preset_number,
+            station_url,
+            station_name,
+            oct_backend_url,
+            station_image_url,
+            station_uuid,
+            dlna_reference,
+        )
         try:
-            xml_payload = self._build_preset_payload(
-                preset_number,
-                station_url,
-                station_name,
-                oct_backend_url,
-                station_image_url,
-                station_uuid,
-            )
 
             logger.info(
                 "Storing preset %d on %s",

@@ -1,7 +1,12 @@
 """Domain models for preset management."""
 
+import logging
 from datetime import UTC, datetime
 from typing import Any, Optional
+
+from opencloudtouch.core.dlna_reference import DlnaReference, from_station_url
+
+logger = logging.getLogger(__name__)
 
 
 class Preset:
@@ -60,6 +65,16 @@ class Preset:
         self.created_at = created_at or datetime.now(UTC)
         self.updated_at = updated_at or datetime.now(UTC)
 
+    @property
+    def dlna_reference(self) -> DlnaReference | None:
+        """The DLNA object of a ``source='DLNA'`` preset; ``None`` otherwise."""
+        if self.source != "DLNA":
+            return None
+        ref = from_station_url(self.station_url)
+        if ref is None:
+            logger.warning("DLNA preset %s has an unparsable reference", self.id)
+        return ref
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for API responses."""
         return {
@@ -72,6 +87,11 @@ class Preset:
             "station_homepage": self.station_homepage,
             "station_favicon": self.station_favicon,
             "source": self.source,
+            "dlna": (
+                {"server_id": ref.server_id, "object_id": ref.object_id}
+                if (ref := self.dlna_reference)
+                else None
+            ),
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
