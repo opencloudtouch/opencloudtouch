@@ -111,7 +111,8 @@ class MargeSourceRepository(BaseRepository):
         )
         row = await cursor.fetchone()
         await db.commit()
-        assert row is not None
+        if row is None:
+            raise RuntimeError("upsert returned no row")
         return _to_source(row)
 
     async def _one(self, where: str, params: tuple) -> Optional[MediaServerSource]:
@@ -129,7 +130,9 @@ class MargeSourceRepository(BaseRepository):
     async def get_by_server(
         self, device_id: str, server_id: str
     ) -> Optional[MediaServerSource]:
-        return await self._one("device_id = ? AND server_id = ?", (device_id, server_id))
+        return await self._one(
+            "device_id = ? AND server_id = ?", (device_id, server_id)
+        )
 
     async def list_active(self, device_id: str) -> list[MediaServerSource]:
         """Rows of a device that are not pending removal, oldest first."""

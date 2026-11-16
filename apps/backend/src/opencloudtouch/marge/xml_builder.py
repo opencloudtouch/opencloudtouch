@@ -4,12 +4,17 @@ import base64
 import json
 import logging
 from datetime import UTC
-from typing import Any
+from typing import Any, Sequence
 from xml.etree import ElementTree as ET
 
 from opencloudtouch.core.config import get_config
-from opencloudtouch.core.dlna_reference import build_orion_location, from_station_url
-from opencloudtouch.core.source_types import BASE_SOURCES
+from opencloudtouch.core.dlna_reference import (
+    build_orion_location,
+    from_station_url,
+    server_id_from_account,
+)
+from opencloudtouch.core.source_types import BASE_SOURCES, source_type_for_streaming_id
+from opencloudtouch.marge.source_repository import MediaServerSource
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +36,9 @@ def _build_orion_location(station_url: str, station_name: str, image_url: str) -
     return f"{oct_base}/core02/svc-bmx-adapter-orion/prod/orion/station?data={b64}"
 
 
-def build_preset_xml(preset: Any) -> ET.Element:
+def build_preset_xml(
+    preset: Any, sources: Sequence[MediaServerSource] = ()
+) -> ET.Element:
     """Build XML element for a single preset.
 
     Supports two preset types:
@@ -41,9 +48,14 @@ def build_preset_xml(preset: Any) -> ET.Element:
     Args:
         preset: Preset model (either SoundTouch or RadioBrowser format)
 
+    A native DLNA preset (``native_type`` set) whose server has an active row in
+    ``sources`` is written as a STORED_MUSIC item; without the row it keeps the
+    v1 Orion location.
+
     Returns:
         XML Element for <preset>
     """
+    item_type, account = "stationurl", ""
     # Determine preset type and extract attributes
     if hasattr(preset, "slot"):
         # SoundTouch preset (mock/test format)
@@ -57,6 +69,11 @@ def build_preset_xml(preset: Any) -> ET.Element:
         preset_id = str(preset.preset_number)
         source = getattr(preset, "source", None) or "LOCAL_INTERNET_RADIO"
         dlna_ref = from_station_url(preset.station_url) if source == "DLNA" else None
+        native_row = (
+            next((r for r in sources if r.server_id == dlna_ref.server_id), None)
+            if dlna_ref is not None and getattr(preset, "native_type", None)
+            else None
+        )
         if source not in _sources_by_name():
             # e.g. INTERNET_RADIO imported from a speaker: without a known <source>
             # the speaker drops the preset; the Orion location plays it anyway.
@@ -73,6 +90,9 @@ def build_preset_xml(preset: Any) -> ET.Element:
                     preset_id,
                     location[:80],
                 )
+        elif dlna_ref is not None and native_row is not None:
+            source, location = "STORED_MUSIC", dlna_ref.object_id
+            item_type, account = preset.native_type, native_row.account
         elif dlna_ref is not None:
             # A reference, never ``streamUrl=dlna://...``: OCT resolves it on press.
             location = build_orion_location(
@@ -89,9 +109,9 @@ def build_preset_xml(preset: Any) -> ET.Element:
     # ContentItem child element
     content_item = ET.SubElement(preset_elem, "ContentItem")
     content_item.set("source", source)
-    content_item.set("type", "stationurl")
+    content_item.set("type", item_type)
     content_item.set("location", location)
-    content_item.set("sourceAccount", "")
+    content_item.set("sourceAccount", account)
     content_item.set("isPresetable", "true")
 
     # itemName
@@ -230,7 +250,35 @@ def _source_element(parent: ET.Element, src: Any) -> ET.Element:
     return source
 
 
+def _row_source_element(parent: ET.Element, row: MediaServerSource) -> None:
+    """Per-server source in the shape the speaker accepted in the spike."""
+    source = ET.SubElement(
+        parent, "source", {"id": str(row.source_id), "type": "Audio"}
+    )
+    ET.SubElement(source, "credential", {"type": "token"})
+    ET.SubElement(source, "name").text = row.account
+    ET.SubElement(source, "sourceproviderid").text = _STORED_MUSIC_ID
+    ET.SubElement(source, "sourcename").text = "Mediaserver"
+    ET.SubElement(source, "sourceSettings")
+    ET.SubElement(source, "username").text = row.account
+
+
+def build_source_response_xml(row: MediaServerSource) -> ET.Element:
+    """Answer of ``POST /streaming/account/{id}/source`` (always provider id 7)."""
+    element = ET.Element("source")
+    ET.SubElement(element, "sourceID").text = str(row.source_id)
+    ET.SubElement(element, "sourceProviderID").text = _STORED_MUSIC_ID
+    ET.SubElement(element, "createdOn").text = _format_time(row.created_at)
+    ET.SubElement(element, "updatedOn").text = _format_time(row.updated_at)
+    return element
+
+
 _EPOCH = "2018-01-01T00:00:00.000+00:00"
+
+
+_STORED_MUSIC_ID = next(
+    src.streaming_id for src in BASE_SOURCES if src.source_type == "STORED_MUSIC"
+)
 
 
 def _sources_by_name() -> dict[str, Any]:
@@ -239,17 +287,16 @@ def _sources_by_name() -> dict[str, Any]:
 
 def source_name_for_id(streaming_id: str) -> str | None:
     """Source type for the Marge source id a speaker reports (e.g. "25" -> TUNEIN)."""
-    for src in BASE_SOURCES:
-        if src.streaming_id == streaming_id:
-            return src.source_type
-    return None
+    return source_type_for_streaming_id(streaming_id)
 
 
 def _format_time(moment: Any) -> str:
     return moment.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%S.000+00:00")
 
 
-def build_recent_response_xml(recent: Any) -> ET.Element:
+def build_recent_response_xml(
+    recent: Any, sources: Sequence[MediaServerSource] = ()
+) -> ET.Element:
     """Answer of ``POST .../device/{id}/recent``: the stored recent as a flat ``<recent>``."""
     now = _format_time(recent.played_at)
     element = ET.Element("recent", {"id": str(recent.id or 0)})
@@ -258,47 +305,88 @@ def build_recent_response_xml(recent: Any) -> ET.Element:
     ET.SubElement(element, "lastplayedat").text = now
     ET.SubElement(element, "location").text = recent.location
     ET.SubElement(element, "name").text = recent.name
+    sources = list(sources)
     src = _sources_by_name().get(recent.source)
-    if src is not None:
+    row = next((r for r in sources if str(r.source_id) == recent.source), None)
+    if row is not None:
+        _row_source_element(element, row)
+    elif src is not None and not (src.source_type == "STORED_MUSIC" and sources):
         _source_element(element, src)
-    ET.SubElement(element, "sourceid").text = src.streaming_id if src else ""
+    sourceid = str(row.source_id) if row else (src.streaming_id if src else "")
+    ET.SubElement(element, "sourceid").text = sourceid
     ET.SubElement(element, "updatedOn").text = now
     return element
 
 
-def _item_children(parent: ET.Element, item: ET.Element, now: str) -> None:
-    """Fill the shared preset/recent children from a ``<ContentItem>`` element."""
+def _item_children(
+    parent: ET.Element, item: ET.Element, now: str, sources: Sequence[MediaServerSource]
+) -> str | None:
+    """Fill the shared preset/recent children from a ``<ContentItem>`` element.
+
+    Returns the id of the registered media server source the item uses, if any.
+    """
     content = item.find("ContentItem")
     assert content is not None
+    source_name = content.get("source", "")
+    server_id = (
+        server_id_from_account(content.get("sourceAccount", ""))
+        if source_name == "STORED_MUSIC"
+        else None
+    )
+    row = next(
+        (
+            r
+            for r in sources
+            if (server_id is not None and r.server_id == server_id)
+            or str(r.source_id) == source_name
+        ),
+        None,
+    )
+    native = row is not None and server_id is not None
     ET.SubElement(parent, "containerArt").text = content.findtext("containerArt") or ""
-    ET.SubElement(parent, "contentItemType").text = "stationurl"
+    ET.SubElement(parent, "contentItemType").text = (
+        content.get("type", "") if native else "stationurl"
+    )
     ET.SubElement(parent, "createdOn").text = now
     ET.SubElement(parent, "location").text = content.get("location", "")
     ET.SubElement(parent, "name").text = content.findtext("itemName") or ""
-    src = _sources_by_name().get(content.get("source", ""))
-    if src is not None:
+    src = _sources_by_name().get(source_name)
+    if row is not None:
+        _row_source_element(parent, row)
+    elif src is not None and not (src.source_type == "STORED_MUSIC" and sources):
         _source_element(parent, src)
     ET.SubElement(parent, "updatedOn").text = now
     ET.SubElement(parent, "username")
+    return str(row.source_id) if row else None
 
 
-def build_preset_response_xml(preset: Any) -> ET.Element:
+def build_preset_response_xml(
+    preset: Any, sources: Sequence[MediaServerSource] = ()
+) -> ET.Element:
     """One ``<preset buttonNumber>`` entry as the speaker's Marge calls expect it."""
-    element = build_preset_xml(preset)
+    sources = list(sources)
+    element = build_preset_xml(preset, sources)
     entry = ET.Element("preset", {"buttonNumber": element.get("id", "")})
-    _item_children(entry, element, _EPOCH)
+    sourceid = _item_children(entry, element, _EPOCH, sources)
+    if sourceid:
+        ET.SubElement(entry, "sourceid").text = sourceid
     return entry
 
 
-def build_recents_response_xml(recents: list[Any] | None) -> ET.Element:
+def build_recents_response_xml(
+    recents: list[Any] | None, sources: Sequence[MediaServerSource] = ()
+) -> ET.Element:
     """``<recents>`` as listed in ``/full`` and answered to ``GET .../recents``."""
+    sources = list(sources)
     recent_list = ET.Element("recents")
     for stored, recent in zip(recents or [], build_recents_xml(recents)):
         entry = ET.SubElement(recent_list, "recent", {"id": str(stored.id or 0)})
-        _item_children(entry, recent, _EPOCH)
+        row_id = _item_children(entry, recent, _EPOCH, sources)
         ET.SubElement(entry, "lastplayedat").text = _format_time(stored.played_at)
         src = _sources_by_name().get(stored.source)
-        ET.SubElement(entry, "sourceid").text = src.streaming_id if src else ""
+        ET.SubElement(entry, "sourceid").text = row_id or (
+            src.streaming_id if src else ""
+        )
     return recent_list
 
 
@@ -307,6 +395,7 @@ def build_streaming_account_xml(
     device_id: str | None = None,
     presets: list[Any] | None = None,
     recents: list[Any] | None = None,
+    sources: Sequence[MediaServerSource] = (),
 ) -> ET.Element:
     """Build the ``<account>`` document the speaker's own Marge sync expects.
 
@@ -315,6 +404,7 @@ def build_streaming_account_xml(
     Shape as the speaker sends and expects it.
     """
     now = _EPOCH
+    sources = list(sources) if device_id else []
     account = ET.Element("account", {"id": account_id})
     ET.SubElement(account, "accountStatus").text = "OK"
     devices = ET.SubElement(account, "devices")
@@ -323,13 +413,17 @@ def build_streaming_account_xml(
         ET.SubElement(device, "createdOn").text = now
         preset_list = ET.SubElement(device, "presets")
         for preset in presets or []:
-            preset_list.append(build_preset_response_xml(preset))
-        device.append(build_recents_response_xml(recents))
+            preset_list.append(build_preset_response_xml(preset, sources))
+        device.append(build_recents_response_xml(recents, sources))
         ET.SubElement(device, "updatedOn").text = now
     ET.SubElement(account, "mode").text = "global"
     ET.SubElement(account, "preferredLanguage").text = "en"
     ET.SubElement(account, "providerSettings")
-    sources = ET.SubElement(account, "sources")
+    source_list = ET.SubElement(account, "sources")
     for src in BASE_SOURCES:
-        _source_element(sources, src)
+        if src.source_type == "STORED_MUSIC" and sources:
+            for row in sources:  # per-server entries replace the generic one
+                _row_source_element(source_list, row)
+        else:
+            _source_element(source_list, src)
     return account

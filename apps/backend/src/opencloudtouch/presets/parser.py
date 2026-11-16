@@ -15,7 +15,9 @@ from urllib.parse import parse_qs, urlparse
 from xml.etree import ElementTree as ET
 
 from opencloudtouch.core.dlna_reference import (
+    DlnaReference,
     parse_orion_data,
+    server_id_from_account,
     to_station_url,
 )
 from opencloudtouch.core.dlna_reference import (
@@ -89,6 +91,25 @@ class DevicePresetParser:
             if item_name_elem is not None
             else "Unknown"
         )
+
+        server_id = (
+            server_id_from_account(content_item.get("sourceAccount", ""))
+            if source == "STORED_MUSIC"
+            else None
+        )
+        if server_id and location:
+            # Native media server item: never skipped, sync would delete the slot.
+            ref = DlnaReference(server_id, location)
+            native_type = content_item.get("type", "")
+            return Preset(
+                device_id=device_id,
+                preset_number=preset_number,
+                station_uuid=dlna_station_uuid(ref),
+                station_name=station_name or "Unknown",
+                station_url=to_station_url(ref),
+                source="DLNA",
+                native_type=native_type if native_type in ("dir", "track") else "dir",
+            )
 
         resolved = self._resolve_source(source, location, preset_number, station_name)
         if resolved is None:
