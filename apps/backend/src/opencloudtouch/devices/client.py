@@ -69,6 +69,23 @@ class BassCapabilities:
     default: int
 
 
+@dataclass(frozen=True)
+class SpeakerSource:
+    """One entry of the speaker's live ``/sources`` list."""
+
+    source: str
+    account: str
+    status: str
+
+
+class SpeakerCommandError(Exception):
+    """The speaker answered a command with an error (``error_code`` is its own number)."""
+
+    def __init__(self, error_code: int | None):
+        self.error_code = error_code
+        super().__init__(f"Speaker error {error_code}")
+
+
 class DeviceClient(ABC):
     """Abstract client for device HTTP API."""
 
@@ -239,4 +256,20 @@ class DeviceClient(ABC):
     @abstractmethod
     async def reboot(self) -> None:
         """Reboot the device via TCP telnet interface (port 17000)."""
+        pass
+
+    @abstractmethod
+    async def get_source_list(self) -> list[SpeakerSource]:
+        """Read the speaker's live ``/sources`` list."""
+        pass
+
+    @abstractmethod
+    async def pair_with_account(self, account_id: str) -> None:
+        """Pair the speaker with its Marge account again (``POST /setMargeAccount``).
+
+        The speaker then runs the whole post-pairing handshake against its Marge server.
+
+        Raises:
+            SpeakerCommandError: the speaker refused (1038 = pairing failed)
+        """
         pass

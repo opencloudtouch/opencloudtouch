@@ -129,6 +129,14 @@ class MargeSourceRepository(BaseRepository):
         )
         return [_to_source(row) for row in await cursor.fetchall()]
 
+    async def delete(self, device_id: str, server_id: str) -> None:
+        db = self._ensure_initialized()
+        await db.execute(
+            "DELETE FROM media_server_sources WHERE device_id = ? AND server_id = ?",
+            (device_id, server_id),
+        )
+        await db.commit()
+
     async def count_for_device(self, device_id: str) -> int:
         db = self._ensure_initialized()
         cursor = await db.execute(
@@ -137,14 +145,6 @@ class MargeSourceRepository(BaseRepository):
         )
         row = await cursor.fetchone()
         return int(row[0]) if row else 0
-
-    async def delete(self, device_id: str, server_id: str) -> None:
-        db = self._ensure_initialized()
-        await db.execute(
-            "DELETE FROM media_server_sources WHERE device_id = ? AND server_id = ?",
-            (device_id, server_id),
-        )
-        await db.commit()
 
     async def delete_for_device(self, device_id: str) -> None:
         db = self._ensure_initialized()

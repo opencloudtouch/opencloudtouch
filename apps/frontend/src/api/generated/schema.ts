@@ -174,6 +174,73 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/dlna/native": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Native Servers
+     * @description Every discovered media server and every enabled server, with its state on this speaker.
+     */
+    get: operations["list_native_servers_api_dlna_native_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/dlna/native/{device_id}/servers/{server_id}/presets": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Native Slots
+     * @description Native presets of the speaker that use this media server.
+     */
+    get: operations["list_native_slots_api_dlna_native__device_id__servers__server_id__presets_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/dlna/native/{device_id}/servers/{server_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Enable Native Server
+     * @description Enable the media server for the speaker and report the resulting state.
+     *
+     *     Takes a few seconds when the speaker has to be re-paired; ``unavailable`` means the
+     *     speaker did not list the server within 15 s (usually it cannot see the server).
+     */
+    put: operations["enable_native_server_api_dlna_native__device_id__servers__server_id__put"];
+    post?: never;
+    /**
+     * Disable Native Server
+     * @description Stop listing the server; ``force`` first switches native presets back to first-track.
+     */
+    delete: operations["disable_native_server_api_dlna_native__device_id__servers__server_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/devices": {
     parameters: {
       query?: never;
@@ -3700,6 +3767,53 @@ export interface components {
       /** Device Ids */
       device_ids: string[];
     };
+    /** NativeDisableResponse */
+    NativeDisableResponse: {
+      /** Affected Slots */
+      affected_slots: number[];
+    };
+    /** NativeEnableResponse */
+    NativeEnableResponse: {
+      /** Server Id */
+      server_id: string;
+      state: components["schemas"]["NativeState"];
+    };
+    /** NativeServer */
+    NativeServer: {
+      /** Server Id */
+      server_id: string;
+      /** Name */
+      name: string;
+      state: components["schemas"]["NativeState"];
+      /** Server Known */
+      server_known: boolean;
+      /** Source Id */
+      source_id: number | null;
+    };
+    /** NativeServerList */
+    NativeServerList: {
+      /** Device Id */
+      device_id: string;
+      /** Servers */
+      servers: components["schemas"]["NativeServer"][];
+    };
+    /** NativeSlot */
+    NativeSlot: {
+      /** Preset Number */
+      preset_number: number;
+      /** Name */
+      name: string;
+    };
+    /** NativeSlotList */
+    NativeSlotList: {
+      /** Slots */
+      slots: components["schemas"]["NativeSlot"][];
+    };
+    /**
+     * NativeState
+     * @enum {string}
+     */
+    NativeState: "not_enabled" | "ready" | "unavailable";
     /**
      * NtpPatchRequest
      * @description Request to patch the NTP server on device.
@@ -4590,6 +4704,216 @@ export interface operations {
       };
       /** @description DLNA server timed out */
       504: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+    };
+  };
+  list_native_servers_api_dlna_native_get: {
+    parameters: {
+      query: {
+        device_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NativeServerList"];
+        };
+      };
+      /** @description Device or media server not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description Speaker unreachable */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+    };
+  };
+  list_native_slots_api_dlna_native__device_id__servers__server_id__presets_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+        server_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NativeSlotList"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  enable_native_server_api_dlna_native__device_id__servers__server_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+        server_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NativeEnableResponse"];
+        };
+      };
+      /** @description Device or media server not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description The speaker did not accept the pairing */
+      502: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+      /** @description Speaker unreachable */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+    };
+  };
+  disable_native_server_api_dlna_native__device_id__servers__server_id__delete: {
+    parameters: {
+      query?: {
+        force?: boolean;
+      };
+      header?: never;
+      path: {
+        device_id: string;
+        server_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NativeDisableResponse"];
+        };
+      };
+      /** @description Device or media server not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+      /** @description Native presets use the media server */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description A preset slot could not be switched back */
+      502: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+      /** @description Speaker unreachable */
+      503: {
         headers: {
           [name: string]: unknown;
         };

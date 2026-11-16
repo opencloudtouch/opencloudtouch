@@ -47,10 +47,24 @@ OpenCloudTouch discovers UPnP/DLNA media servers (SSDP) and browses their Conten
 
 Titles and URLs are not written to logs or error messages.
 
+## Native media server on a speaker
+
+A speaker can play a media server by itself (source `STORED_MUSIC`). OpenCloudTouch lists the media servers you enabled for a speaker in its Marge account document (`/full`, account `<server UUID>/0`); the speaker takes them from there, no call to the speaker is needed for that. Enabling is per speaker and per media server and never happens automatically. Only media servers whose id is a UUID can be enabled.
+
+| State | Meaning |
+|---|---|
+| `not_enabled` | Not enabled for this speaker. |
+| `ready` | Enabled, and the speaker lists the account as `READY`. |
+| `unavailable` | Enabled, but the speaker does not list it as `READY` (usually it cannot see the media server). Check that the speaker and the server are in the same network and enable it again. |
+
+The state comes from the speaker's live source list. Enabling is `PUT /api/dlna/native/{device_id}/servers/{server_id}` (always `200` with the resulting state). OpenCloudTouch stores the server, reads the speaker's source list and, when the server is not listed as `READY` yet, pairs the speaker with its own Marge account once again (`setMargeAccount`); the speaker then reads the account document again. This takes a few seconds, the request waits up to 15 s for `ready` and then answers `unavailable`. The speaker is never restarted, and the re-pairing is skipped when the server is already `READY`. `DELETE` stops listing the server; the speaker drops the source with its next account sync. When native presets use the server the call answers `409 dlna_native_in_use` unless `?force=true`, which first switches those slots back to first-track playback. `GET /api/dlna/native?device_id=` lists every discovered server and every enabled server; an enabled server that is no longer discovered shows `server_known=false` and can be deleted.
+
+Enabled servers are stored in the table `media_server_sources`; downgrading OpenCloudTouch is not supported. Requests for the same speaker and server are serialised by a lock inside the single backend process.
+
 ## Timeouts
 
 Connecting times out after 3 s. `OCT_DLNA_TIMEOUT` (default 15 s, 1-60) is the read timeout and also the total deadline of one operation. See [CONFIGURATION.md](CONFIGURATION.md).
 
 ## Mock mode
 
-With `OCT_MOCK_MODE=true` a fake server "Mock Media Server" is used (no network): folder `Music` with 120 tracks, `Albums` three folder levels deep, `Mixed` with a non-audio item and a `file://` cover, and `Many Folders` whose first 60 entries are folders.
+With `OCT_MOCK_MODE=true` a fake server "Mock Media Server" is used (no network; a second fake server with a UUID id can be enabled natively and becomes `ready` at once): folder `Music` with 120 tracks, `Albums` three folder levels deep, `Mixed` with a non-audio item and a `file://` cover, and `Many Folders` whose first 60 entries are folders.

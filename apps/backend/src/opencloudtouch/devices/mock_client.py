@@ -5,7 +5,8 @@ Provides deterministic responses that simulate device HTTP API.
 """
 
 import logging
-from typing import Optional
+from collections.abc import Awaitable, Callable
+from typing import ClassVar, Optional
 
 from opencloudtouch.core.dlna_reference import DlnaReference, build_orion_location
 from opencloudtouch.devices.client import (
@@ -14,6 +15,7 @@ from opencloudtouch.devices.client import (
     DeviceClient,
     DeviceInfo,
     NowPlayingInfo,
+    SpeakerSource,
     VolumeInfo,
 )
 from opencloudtouch.devices.models import SELECTABLE_SOURCES
@@ -101,6 +103,20 @@ class MockDeviceClient(DeviceClient):
             ),
         },
     }
+
+    # Stands in for the speaker reading OpenCloudTouch's account document: returns the
+    # server accounts OpenCloudTouch lists for a device (set by main.py).
+    listed_accounts: ClassVar[Callable[[str], Awaitable[list[str]]] | None] = None
+    # Speakers (device ids) that still cache the old provider list: they list nothing
+    # until ``pair_with_account`` ran. Empty by default: enabling is READY at once.
+    stale_devices: ClassVar[set[str]] = set()
+    pair_calls: ClassVar[list[str]] = []
+
+    @classmethod
+    def reset_sources(cls) -> None:
+        cls.listed_accounts = None
+        cls.stale_devices = set()
+        cls.pair_calls = []
 
     def __init__(self, device_id: str, ip_address: Optional[str] = None):
         """
@@ -339,3 +355,21 @@ class MockDeviceClient(DeviceClient):
     async def reboot(self) -> None:
         """Mock reboot (no-op)."""
         logger.info("[MOCK] reboot() for device %s", self.device_id)
+
+    # ---- Music service accounts ----
+
+    async def get_source_list(self) -> list[SpeakerSource]:
+        """The media servers OpenCloudTouch lists for this mock speaker (READY)."""
+        hook = type(self).listed_accounts  # via the class: no method binding
+        if hook is None or self.device_id in self.stale_devices:
+            return []
+        return [
+            SpeakerSource("STORED_MUSIC", a, "READY")
+            for a in await hook(self.device_id)
+        ]
+
+    async def pair_with_account(self, account_id: str) -> None:
+        """Mock re-pairing: the speaker now reads the account document."""
+        logger.info("[MOCK] pair_with_account() for device %s", self.device_id)
+        self.pair_calls.append(account_id)
+        self.stale_devices.discard(self.device_id)

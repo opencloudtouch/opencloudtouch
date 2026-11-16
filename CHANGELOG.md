@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The Marge emulation lists enabled DLNA media servers as native `STORED_MUSIC` sources: per-server sources in `/full` (provider id 7), the new handshake route `POST /streaming/account/{id}/device/` used when a speaker is re-paired, and the speaker's numeric source ids are mapped back to `STORED_MUSIC` when it reports presets and recents; a new table `media_server_sources` and a `presets.native_type` column are added by migration (downgrade is not supported)
 
+- Native playback of a media server on a speaker: `GET /api/dlna/native`, `GET /api/dlna/native/{device_id}/servers/{server_id}/presets`, `PUT` and `DELETE /api/dlna/native/{device_id}/servers/{server_id}` enable or disable the media server as a speaker source (`STORED_MUSIC`) and report its state from the speaker's live source list. OpenCloudTouch lists the server itself; a speaker that does not list it yet is paired again once (`setMargeAccount`), never restarted; new error codes `dlna_native_in_use`, `dlna_native_setup_failed` and `dlna_native_remove_failed`
+
 ### Changed
 - `STORED_MUSIC` is announced with the real provider id 7 instead of 50 in `/streaming/sourceproviders` and `/full` (50 is still accepted from speakers that cached the old list)
 - DLNA browse returns 50 entries per request by default instead of the whole folder; DLNA errors carry the codes `dlna_server_not_found`, `dlna_object_not_found`, `dlna_upstream_error` and `dlna_server_timeout` (a slow server now answers 504 instead of 502)

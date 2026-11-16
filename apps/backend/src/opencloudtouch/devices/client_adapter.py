@@ -24,6 +24,8 @@ from opencloudtouch.core.dlna_reference import (
 )
 from opencloudtouch.core.exceptions import DeviceConnectionError
 from opencloudtouch.devices.client import (
+    SpeakerCommandError,
+    SpeakerSource,
     BassCapabilities,
     BassInfo,
     DeviceClient,
@@ -714,3 +716,55 @@ class BoseDeviceClientAdapter(DeviceClient):
         except Exception as e:
             logger.exception("Failed to reboot device at %s", self.ip)
             raise DeviceConnectionError(self.ip, str(e)) from e
+
+    # ---- Music service accounts (media server registration) ----
+
+    @staticmethod
+    def _speaker_error_code(text: str) -> int | None:
+        """Number of the first ``<error value="..">`` of a speaker error answer."""
+        try:
+            node = ElementTree.fromstring(text).find(".//error")
+            return int(node.get("value", "")) if node is not None else None
+        except (ElementTree.ParseError, ValueError):
+            return None
+
+    async def get_source_list(self) -> list[SpeakerSource]:
+        """Read ``GET /sources``."""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{self.base_url}/sources")
+                response.raise_for_status()
+            root = ElementTree.fromstring(response.text)
+        except Exception as e:
+            logger.warning("Could not read the source list of %s", self.ip)
+            raise DeviceConnectionError(self.ip, str(e)) from e
+        return [
+            SpeakerSource(
+                item.get("source", ""),
+                item.get("sourceAccount", ""),
+                item.get("status", ""),
+            )
+            for item in root.iter("sourceItem")
+        ]
+
+    async def pair_with_account(self, account_id: str) -> None:
+        """``POST /setMargeAccount``; answers 200 with an ``<info>`` body on success."""
+        body = (
+            "<PairDeviceWithAccount>"
+            f"<accountId>{xml_escape(account_id)}</accountId>"
+            "<userAuthToken>local</userAuthToken></PairDeviceWithAccount>"
+        )
+        try:
+            async with httpx.AsyncClient(timeout=max(self.timeout, 15)) as client:
+                response = await client.post(
+                    f"{self.base_url}/setMargeAccount",
+                    content=body.encode("utf-8"),
+                    headers={"Content-Type": "application/xml"},
+                )
+        except Exception as e:
+            logger.warning("Pairing request failed on %s", self.ip)
+            raise DeviceConnectionError(self.ip, str(e)) from e
+        if response.status_code >= 400:
+            raise SpeakerCommandError(self._speaker_error_code(response.text))
+        if "<info" not in response.text:
+            raise SpeakerCommandError(None)
