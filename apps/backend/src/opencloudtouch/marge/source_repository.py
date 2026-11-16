@@ -1,4 +1,4 @@
-"""Persistence of the media servers a speaker registered as STORED_MUSIC sources.
+"""Persistence of the media servers OpenCloudTouch lists as STORED_MUSIC sources.
 
 Migration range 500-599 is reserved for this table (400-499: Spotify plan).
 """
@@ -14,10 +14,7 @@ logger = logging.getLogger(__name__)
 
 FIRST_SOURCE_ID = 20000000  # 8 digits like real Bose ids (unverified, hardware item H5)
 
-_COLUMNS = (
-    "source_id, device_id, server_id, display_name, removal_pending,"
-    " received_provider_id, created_at, updated_at"
-)
+_COLUMNS = "source_id, device_id, server_id, display_name, created_at, updated_at"
 
 
 @dataclass(frozen=True)
@@ -28,8 +25,6 @@ class MediaServerSource:
     device_id: str
     server_id: str
     display_name: str
-    removal_pending: bool
-    received_provider_id: int
     created_at: datetime
     updated_at: datetime
 
@@ -44,10 +39,8 @@ def _to_source(row: Any) -> MediaServerSource:
         device_id=row[1],
         server_id=row[2],
         display_name=row[3],
-        removal_pending=bool(row[4]),
-        received_provider_id=row[5],
-        created_at=datetime.fromisoformat(row[6]),
-        updated_at=datetime.fromisoformat(row[7]),
+        created_at=datetime.fromisoformat(row[4]),
+        updated_at=datetime.fromisoformat(row[5]),
     )
 
 
@@ -64,8 +57,6 @@ class MargeSourceRepository(BaseRepository):
                 device_id TEXT NOT NULL,
                 server_id TEXT NOT NULL,
                 display_name TEXT NOT NULL,
-                removal_pending INTEGER NOT NULL DEFAULT 0,
-                received_provider_id INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 UNIQUE(device_id, server_id)
@@ -86,11 +77,7 @@ class MargeSourceRepository(BaseRepository):
         )
 
     async def upsert(
-        self,
-        device_id: str,
-        server_id: str,
-        display_name: str,
-        received_provider_id: int,
+        self, device_id: str, server_id: str, display_name: str
     ) -> MediaServerSource:
         """Create the row or refresh it; the database decides the id (idempotent)."""
         db = self._ensure_initialized()
@@ -98,16 +85,14 @@ class MargeSourceRepository(BaseRepository):
         cursor = await db.execute(
             f"""
             INSERT INTO media_server_sources (
-                device_id, server_id, display_name, received_provider_id,
-                created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?)
+                device_id, server_id, display_name, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(device_id, server_id) DO UPDATE SET
                 display_name = excluded.display_name,
-                received_provider_id = excluded.received_provider_id,
                 updated_at = excluded.updated_at
             RETURNING {_COLUMNS}
             """,  # nosec B608 - constant column list
-            (device_id, server_id, display_name, received_provider_id, now, now),
+            (device_id, server_id, display_name, now, now),
         )
         row = await cursor.fetchone()
         await db.commit()
@@ -135,11 +120,11 @@ class MargeSourceRepository(BaseRepository):
         )
 
     async def list_active(self, device_id: str) -> list[MediaServerSource]:
-        """Rows of a device that are not pending removal, oldest first."""
+        """Rows of a device, oldest first."""
         db = self._ensure_initialized()
         cursor = await db.execute(
             f"SELECT {_COLUMNS} FROM media_server_sources"  # nosec B608
-            " WHERE device_id = ? AND removal_pending = 0 ORDER BY source_id",
+            " WHERE device_id = ? ORDER BY source_id",
             (device_id,),
         )
         return [_to_source(row) for row in await cursor.fetchall()]
@@ -153,13 +138,11 @@ class MargeSourceRepository(BaseRepository):
         row = await cursor.fetchone()
         return int(row[0]) if row else 0
 
-    async def mark_removal_pending(self, device_id: str, source_id: int) -> None:
-        """Flag a row of this device; an id of another device is never touched."""
+    async def delete(self, device_id: str, server_id: str) -> None:
         db = self._ensure_initialized()
         await db.execute(
-            "UPDATE media_server_sources SET removal_pending = 1, updated_at = ?"
-            " WHERE device_id = ? AND source_id = ?",
-            (datetime.now(UTC).isoformat(), device_id, source_id),
+            "DELETE FROM media_server_sources WHERE device_id = ? AND server_id = ?",
+            (device_id, server_id),
         )
         await db.commit()
 

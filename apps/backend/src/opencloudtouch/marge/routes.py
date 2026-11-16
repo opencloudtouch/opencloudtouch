@@ -14,15 +14,12 @@ from opencloudtouch.core.dependencies import (
     get_marge_service,
     get_stereo_pair_service,
 )
-from opencloudtouch.core.dlna_reference import server_id_from_account
 from opencloudtouch.core.logging import clip_for_log
 from opencloudtouch.core.request_body import RequestBodyTooLarge, read_limited_body
 from opencloudtouch.core.source_types import BASE_SOURCES
 from opencloudtouch.marge.service import (
     AccountMismatchError,
     MargeService,
-    SourceConflictError,
-    UnknownAccountError,
 )
 from opencloudtouch.recents.models import RecentPlay
 from opencloudtouch.stereo_pairs.repository import DeviceAlreadyPairedError
@@ -48,7 +45,6 @@ from opencloudtouch.marge.xml_builder import (
     build_recent_response_xml,
     build_recents_response_xml,
     build_recents_xml,
-    build_source_response_xml,
     build_sources_xml,
     source_name_for_id,
 )
@@ -59,7 +55,6 @@ router = APIRouter(tags=["marge"])
 
 _MEDIA_XML = "application/xml"
 _MEDIA_STREAMING_XML = "application/vnd.bose.streaming-v1.2+xml"
-_SOURCE_NAME_MAX = 64
 
 
 def _xml_response(
@@ -601,69 +596,42 @@ async def add_device_recent(
     )
 
 
-def _log_source_call(request: Request, status_code: int, size: int = 0) -> None:
-    # Speaker input: status and size only, never the body, server id or names.
-    logger.info("[MARGE/SOURCE] %s -> %d (%d bytes)", request.method, status_code, size)
+def _log_device_call(request: Request, status_code: int, size: int = 0) -> None:
+    # Speaker input: status and size only, never the body.
+    logger.info("[MARGE/DEVICE] %s -> %d (%d bytes)", request.method, status_code, size)
 
 
-def _parse_source_request(body: bytes) -> tuple[str, str, int] | None:
-    """(server id, display name, provider id) of a valid registration body."""
-    try:
-        root = parse_xml_string(body)
-    except (ParseError, ValueError):
-        return None
-    server_id = server_id_from_account((root.findtext("username") or "").strip())
-    provider = (root.findtext("sourceproviderid") or "").strip()
-    name = (root.findtext("sourcename") or "").strip()
-    if root.tag != "source" or not server_id or provider not in ("7", "50"):
-        return None
-    if not name or len(name) > _SOURCE_NAME_MAX:
-        return None
-    return server_id, name, int(provider)
-
-
-@router.post("/streaming/account/{account_id}/source", include_in_schema=False)
-async def add_account_source(
+@router.post("/streaming/account/{account_id}/device/", include_in_schema=False)
+@router.post("/streaming/account/{account_id}/device", include_in_schema=False)
+async def add_account_device(
     account_id: str, request: Request, marge: MargeServiceDep
 ) -> Response:
-    """Speaker registered a media server (answer of ``setMusicServiceAccount``)."""
+    """Pairing handshake (after ``setMargeAccount``): acknowledge the speaker.
+
+    Nothing is stored; the speaker then reads sourceproviders and the account.
+    """
     try:
         body = await read_limited_body(request)
     except RequestBodyTooLarge:
-        _log_source_call(request, 413)
+        _log_device_call(request, 413)
         return Response(status_code=413)
-    parsed = _parse_source_request(body)
-    if parsed is None:
-        _log_source_call(request, 400, len(body))
+    try:
+        root = parse_xml_string(body)
+    except (ParseError, ValueError):
+        _log_device_call(request, 400, len(body))
         return Response(status_code=400)
-    try:
-        row = await marge.register_source(account_id, *parsed)
-    except UnknownAccountError:
-        _log_source_call(request, 404, len(body))
+    device_id = (root.get("deviceid") or "").strip()
+    if root.tag != "device" or not device_id:
+        _log_device_call(request, 400, len(body))
+        return Response(status_code=400)
+    if not await marge.is_known_device(account_id, device_id):
+        _log_device_call(request, 404, len(body))
         return Response(status_code=404)
-    except SourceConflictError:
-        _log_source_call(request, 409, len(body))
-        return Response(status_code=409)
-    _log_source_call(request, 201, len(body))
-    return _xml_response(
-        build_source_response_xml(row), _MEDIA_STREAMING_XML, status_code=201
-    )
-
-
-@router.delete(
-    "/streaming/account/{account_id}/source/{source_id}", include_in_schema=False
-)
-async def remove_account_source(
-    account_id: str, source_id: str, request: Request, marge: MargeServiceDep
-) -> Response:
-    """Speaker removed a registration; the row is flagged, not deleted."""
-    try:
-        await marge.remove_source(account_id, source_id)
-    except UnknownAccountError:
-        _log_source_call(request, 404)
-        return Response(status_code=404)
-    _log_source_call(request, 200)
-    return Response(status_code=200)
+    _log_device_call(request, 201, len(body))
+    device = ET.Element("device", {"deviceid": device_id})
+    for tag in ("createdOn", "ipaddress", "name", "updatedOn"):
+        ET.SubElement(device, tag)
+    return _xml_response(device, _MEDIA_STREAMING_XML, status_code=201)
 
 
 @router.post("/streaming/account/{account_id}/group/")

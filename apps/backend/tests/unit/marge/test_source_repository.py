@@ -21,49 +21,45 @@ async def repo(tmp_path):
 
 
 async def test_first_id_is_at_least_20000000(repo):
-    row = await repo.upsert("DEV1", SERVER_A, "Music", 7)
+    row = await repo.upsert("DEV1", SERVER_A, "Music")
     assert row.source_id >= 20000000
-    assert row.received_provider_id == 7
-    assert row.removal_pending is False
 
 
 async def test_same_server_twice_keeps_id_and_one_row(repo):
-    first = await repo.upsert("DEV1", SERVER_A, "Music", 50)
-    second = await repo.upsert("DEV1", SERVER_A, "Renamed", 7)
+    first = await repo.upsert("DEV1", SERVER_A, "Music")
+    second = await repo.upsert("DEV1", SERVER_A, "Renamed")
     assert second.source_id == first.source_id
     assert second.display_name == "Renamed"
-    assert second.received_provider_id == 7
     assert await repo.count_for_device("DEV1") == 1
 
 
 async def test_delete_then_create_gives_a_new_id(repo):
-    first = await repo.upsert("DEV1", SERVER_A, "Music", 7)
+    first = await repo.upsert("DEV1", SERVER_A, "Music")
     await repo.delete_for_device("DEV1")
-    again = await repo.upsert("DEV1", SERVER_A, "Music", 7)
+    again = await repo.upsert("DEV1", SERVER_A, "Music")
     assert again.source_id > first.source_id
 
 
 async def test_same_server_on_two_devices_has_two_rows(repo):
-    a = await repo.upsert("DEV1", SERVER_A, "Music", 7)
-    b = await repo.upsert("DEV2", SERVER_A, "Music", 7)
+    a = await repo.upsert("DEV1", SERVER_A, "Music")
+    b = await repo.upsert("DEV2", SERVER_A, "Music")
     assert a.source_id != b.source_id
 
 
-async def test_removal_pending_only_touches_the_own_device(repo):
-    own = await repo.upsert("DEV1", SERVER_A, "Music", 7)
-    other = await repo.upsert("DEV2", SERVER_B, "Music", 7)
+async def test_delete_only_removes_the_named_row(repo):
+    await repo.upsert("DEV1", SERVER_A, "Music")
+    await repo.upsert("DEV1", SERVER_B, "Music")
+    await repo.upsert("DEV2", SERVER_A, "Music")
 
-    await repo.mark_removal_pending("DEV1", other.source_id)
-    assert [r.server_id for r in await repo.list_active("DEV2")] == [SERVER_B]
+    await repo.delete("DEV1", SERVER_A)
 
-    await repo.mark_removal_pending("DEV1", own.source_id)
-    assert await repo.list_active("DEV1") == []
-    assert (await repo.get_by_id(own.source_id)).removal_pending is True
+    assert [r.server_id for r in await repo.list_active("DEV1")] == [SERVER_B]
+    assert len(await repo.list_active("DEV2")) == 1
 
 
 async def test_delete_all_removes_every_row(repo):
-    await repo.upsert("DEV1", SERVER_A, "Music", 7)
-    await repo.upsert("DEV2", SERVER_B, "Music", 7)
+    await repo.upsert("DEV1", SERVER_A, "Music")
+    await repo.upsert("DEV2", SERVER_B, "Music")
     await repo.delete_all()
     assert await repo.list_active("DEV1") == []
     assert await repo.list_active("DEV2") == []
@@ -73,13 +69,13 @@ async def test_second_start_is_a_noop_and_rows_survive(tmp_path):
     path = tmp_path / "t.db"
     first = MargeSourceRepository(path)
     await first.initialize()
-    row = await first.upsert("DEV1", SERVER_A, "Music", 7)
+    row = await first.upsert("DEV1", SERVER_A, "Music")
     await first.close()
 
     second = MargeSourceRepository(path)
     await second.initialize()
     assert (await second.get_by_id(row.source_id)).server_id == SERVER_A
-    assert (await second.upsert("DEV1", SERVER_B, "x", 7)).source_id > row.source_id
+    assert (await second.upsert("DEV1", SERVER_B, "x")).source_id > row.source_id
     await second.close()
 
 
