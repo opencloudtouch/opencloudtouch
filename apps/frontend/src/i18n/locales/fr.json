@@ -139,7 +139,7 @@
       "crumbsHidden_other": "Afficher {{count}} dossiers intermédiaires",
       "folderList": "Contenu de « {{name}} »",
       "openFolder": "Ouvrir le dossier « {{title}} »",
-      "folderHint": "Ne lit que le premier titre",
+      "folderHint": "Lu comme un dossier",
       "forPreset": "Pour préréglage {{number}}",
       "useFor": "Utiliser pour le préréglage {{number}} : {{title}}",
       "filterLabel": "Filtrer les entrées chargées",
@@ -177,7 +177,55 @@
       "saveRetry": "Réessayer",
       "saveFailed": "Le préréglage n’a pas pu être enregistré. Réessayez.",
       "badge": "DLNA",
-      "badgeLabel": "D’un serveur multimédia DLNA"
+      "badgeLabel": "D’un serveur multimédia DLNA",
+      "setup": {
+        "title": "Serveur multimédia sur cette enceinte",
+        "panelLabel": "Serveur multimédia sur cette enceinte : {{name}}",
+        "state": {
+          "loading": "Vérification",
+          "settingUp": "Configuration",
+          "removing": "Suppression",
+          "notSetUp": "Non configuré",
+          "ready": "Prêt",
+          "unavailable": "Indisponible",
+          "unknown": "État inconnu"
+        },
+        "loading": "Vérification de ce serveur multimédia sur l'enceinte …",
+        "notSetUp": "Pas encore configuré. Cela se fait automatiquement à l'enregistrement.",
+        "settingUp": "Configuration …",
+        "settingUpLong": "Cela prend un moment. Patientez, cela peut durer jusqu'à 15 secondes.",
+        "rowSettingUp": "Configuration …",
+        "rowSettingUpLong": "Configuration, cela prend un moment …",
+        "ready": "L'enceinte peut lire les dossiers et les titres de ce serveur multimédia.",
+        "unavailableReason": "L'enceinte ne voit probablement pas ce serveur multimédia. Vérifiez que les deux sont sur le même réseau.",
+        "retry": "Réessayer",
+        "retryLabel": "Réessayer : configuration de {{name}}",
+        "unknownText": "L'enceinte n'était pas joignable. L'enregistrement reste possible.",
+        "net": "OpenCloudTouch n'a pas renvoyé l'état. Vérifiez la connexion et réessayez.",
+        "recheck": "Vérifier à nouveau",
+        "recheckLabel": "Vérifier à nouveau : état de {{name}}"
+      },
+      "remove": {
+        "action": "Supprimer",
+        "actionLabel": "Supprimer : {{name}}",
+        "title": "Supprimer le serveur multimédia de cette enceinte ?",
+        "explain": "L'enceinte oublie ce serveur multimédia. Il est reconfiguré automatiquement au prochain enregistrement d'un dossier.",
+        "loadingSlots": "Chargement des préréglages concernés …",
+        "slotsTitle": "Ces préréglages seront basculés :",
+        "slot": "Préréglage {{number}} : {{name}}",
+        "noSlots": "Aucun préréglage n'utilise ce serveur multimédia.",
+        "confirm": "Supprimer",
+        "confirmLabel": "Confirmer la suppression : {{name}}",
+        "progress": "Suppression …",
+        "leave": "Fermer, continue en arrière-plan",
+        "done": "Supprimé.",
+        "orphanTitle": "Serveur multimédia introuvable",
+        "orphanText": "Ce serveur multimédia est actuellement introuvable sur le réseau. Vous pouvez le supprimer de cette enceinte.",
+        "orphanList": "Serveurs multimédias introuvables",
+        "failedTitle": "Action échouée",
+        "failedGeneric": "Cela n'a pas fonctionné. Veuillez réessayer.",
+        "close": "Terminé"
+      }
     }
   },
   "settings": {
@@ -763,7 +811,10 @@
       "dlna_upstream_error": "Le serveur multimédia n’a pas répondu correctement. Réessayez dans un instant ou vérifiez le serveur.",
       "dlna_server_timeout": "Le serveur multimédia a répondu trop lentement. Réessayez.",
       "dlna_not_playable": "L’enceinte ne peut pas lire cette entrée. Choisissez un autre titre ou un autre dossier.",
-      "dlna_reference_too_long": "L’adresse de l’entrée est trop longue. Choisissez une autre entrée ou un dossier de niveau supérieur."
+      "dlna_reference_too_long": "L’adresse de l’entrée est trop longue. Choisissez une autre entrée ou un dossier de niveau supérieur.",
+      "dlna_native_in_use": "Des préréglages utilisent encore ce serveur multimédia. Vérifiez la liste et confirmez à nouveau.",
+      "dlna_native_remove_failed": "Le serveur multimédia n'a pas pu être supprimé. Rien n'a été modifié. Réessayez.",
+      "dlna_native_setup_failed": "L'enceinte n'a pas accepté le serveur multimédia. Réessayez dans un instant."
     },
     "loadFailed": "Échec du chargement. Veuillez réessayer.",
     "unknown": "Une erreur inattendue s'est produite. Veuillez réessayer.",

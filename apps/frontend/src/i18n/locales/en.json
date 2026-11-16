@@ -139,7 +139,7 @@
       "crumbsHidden_other": "Show {{count}} folders in between",
       "folderList": "Contents of “{{name}}”",
       "openFolder": "Open folder “{{title}}”",
-      "folderHint": "Plays the first track only",
+      "folderHint": "Plays as a folder",
       "forPreset": "For preset {{number}}",
       "useFor": "Use for preset {{number}}: {{title}}",
       "filterLabel": "Filter loaded entries",
@@ -177,7 +177,55 @@
       "saveRetry": "Try again",
       "saveFailed": "The preset could not be saved. Try again.",
       "badge": "DLNA",
-      "badgeLabel": "From a DLNA media server"
+      "badgeLabel": "From a DLNA media server",
+      "setup": {
+        "title": "Media server on this speaker",
+        "panelLabel": "Media server on this speaker: {{name}}",
+        "state": {
+          "loading": "Checking",
+          "settingUp": "Setting up",
+          "removing": "Removing",
+          "notSetUp": "Not set up",
+          "ready": "Ready",
+          "unavailable": "Not available",
+          "unknown": "State unknown"
+        },
+        "loading": "Checking this media server on the speaker …",
+        "notSetUp": "Not set up yet. This happens automatically when you save.",
+        "settingUp": "Setting up …",
+        "settingUpLong": "This takes a moment. Please wait, it can take up to 15 seconds.",
+        "rowSettingUp": "Setting up …",
+        "rowSettingUpLong": "Setting up, this takes a moment …",
+        "ready": "The speaker can play folders and tracks from this media server.",
+        "unavailableReason": "The speaker probably does not see this media server. Check that both are on the same network.",
+        "retry": "Try again",
+        "retryLabel": "Try again: set up for {{name}}",
+        "unknownText": "The speaker could not be reached. Saving stays possible.",
+        "net": "OpenCloudTouch did not return the state. Check the connection and try again.",
+        "recheck": "Check again",
+        "recheckLabel": "Check again: state of {{name}}"
+      },
+      "remove": {
+        "action": "Remove",
+        "actionLabel": "Remove: {{name}}",
+        "title": "Remove the media server for this speaker?",
+        "explain": "The speaker forgets this media server. It is set up again automatically the next time you save a folder.",
+        "loadingSlots": "Loading the affected presets …",
+        "slotsTitle": "These presets will be switched:",
+        "slot": "Preset {{number}}: {{name}}",
+        "noSlots": "No preset uses this media server.",
+        "confirm": "Remove",
+        "confirmLabel": "Confirm removal: {{name}}",
+        "progress": "Removing …",
+        "leave": "Close, keeps running",
+        "done": "Removed.",
+        "orphanTitle": "Media server not found",
+        "orphanText": "This media server is currently not found on the network. You can remove it for this speaker.",
+        "orphanList": "Media servers that are not found",
+        "failedTitle": "Action failed",
+        "failedGeneric": "That did not work. Please try again.",
+        "close": "Done"
+      }
     }
   },
   "settings": {
@@ -763,7 +811,10 @@
       "dlna_upstream_error": "The media server did not answer properly. Try again in a moment or check the server.",
       "dlna_server_timeout": "The media server answered too slowly. Try again.",
       "dlna_not_playable": "The speaker cannot play this item. Pick another track or folder.",
-      "dlna_reference_too_long": "The item's address is too long. Pick another item or a higher folder."
+      "dlna_reference_too_long": "The item's address is too long. Pick another item or a higher folder.",
+      "dlna_native_in_use": "Presets still use this media server. Review the list and confirm again.",
+      "dlna_native_remove_failed": "The media server could not be removed. Nothing was changed. Try again.",
+      "dlna_native_setup_failed": "The speaker did not accept the media server. Try again in a moment."
     },
     "loadFailed": "Failed to load. Please try again.",
     "unknown": "An unexpected error occurred. Please try again.",

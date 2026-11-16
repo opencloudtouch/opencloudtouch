@@ -139,7 +139,7 @@
       "crumbsHidden_other": "途中のフォルダー{{count}}件を表示",
       "folderList": "「{{name}}」の内容",
       "openFolder": "フォルダー「{{title}}」を開く",
-      "folderHint": "最初の曲のみ再生します",
+      "folderHint": "フォルダとして再生されます",
       "forPreset": "プリセット{{number}}に使う",
       "useFor": "プリセット{{number}}に使う: {{title}}",
       "filterLabel": "読み込み済みの項目を絞り込む",
@@ -177,7 +177,55 @@
       "saveRetry": "もう一度試す",
       "saveFailed": "プリセットを保存できませんでした。もう一度お試しください。",
       "badge": "DLNA",
-      "badgeLabel": "DLNAメディアサーバーから"
+      "badgeLabel": "DLNAメディアサーバーから",
+      "setup": {
+        "title": "このスピーカーのメディアサーバー",
+        "panelLabel": "このスピーカーのメディアサーバー: {{name}}",
+        "state": {
+          "loading": "確認中",
+          "settingUp": "設定中",
+          "removing": "削除中",
+          "notSetUp": "未設定",
+          "ready": "準備完了",
+          "unavailable": "利用不可",
+          "unknown": "状態不明"
+        },
+        "loading": "このメディアサーバーをスピーカーで確認しています …",
+        "notSetUp": "まだ設定されていません。保存すると自動的に設定されます。",
+        "settingUp": "設定中 …",
+        "settingUpLong": "少し時間がかかります。最大15秒ほどお待ちください。",
+        "rowSettingUp": "設定中 …",
+        "rowSettingUpLong": "設定中です。少し時間がかかります …",
+        "ready": "スピーカーはこのメディアサーバーのフォルダと曲を再生できます。",
+        "unavailableReason": "スピーカーからこのメディアサーバーが見えていない可能性があります。両方が同じネットワークにあるか確認してください。",
+        "retry": "再試行",
+        "retryLabel": "再試行: {{name}}の設定",
+        "unknownText": "スピーカーに接続できませんでした。保存は引き続き可能です。",
+        "net": "OpenCloudTouchが状態を返しませんでした。接続を確認してもう一度お試しください。",
+        "recheck": "再確認",
+        "recheckLabel": "再確認: {{name}}の状態"
+      },
+      "remove": {
+        "action": "削除",
+        "actionLabel": "削除: {{name}}",
+        "title": "このスピーカーからメディアサーバーを削除しますか？",
+        "explain": "スピーカーはこのメディアサーバーを忘れます。次にフォルダを保存すると、自動的に再設定されます。",
+        "loadingSlots": "影響を受けるプリセットを読み込んでいます …",
+        "slotsTitle": "次のプリセットが切り替わります:",
+        "slot": "プリセット{{number}}: {{name}}",
+        "noSlots": "このメディアサーバーを使っているプリセットはありません。",
+        "confirm": "削除",
+        "confirmLabel": "削除を確認: {{name}}",
+        "progress": "削除中 …",
+        "leave": "閉じる（処理は続きます）",
+        "done": "削除しました。",
+        "orphanTitle": "メディアサーバーが見つかりません",
+        "orphanText": "このメディアサーバーは現在ネットワーク上に見つかりません。このスピーカーから削除できます。",
+        "orphanList": "見つからないメディアサーバー",
+        "failedTitle": "操作に失敗しました",
+        "failedGeneric": "うまくいきませんでした。もう一度お試しください。",
+        "close": "完了"
+      }
     }
   },
   "settings": {
@@ -763,7 +811,10 @@
       "dlna_upstream_error": "メディアサーバーが正しく応答しませんでした。しばらくしてからもう一度試すか、サーバーを確認してください。",
       "dlna_server_timeout": "メディアサーバーの応答が遅すぎました。もう一度お試しください。",
       "dlna_not_playable": "スピーカーでこの項目を再生できません。ほかの曲またはフォルダーを選んでください。",
-      "dlna_reference_too_long": "項目のアドレスが長すぎます。ほかの項目か、より上の階層のフォルダーを選んでください。"
+      "dlna_reference_too_long": "項目のアドレスが長すぎます。ほかの項目か、より上の階層のフォルダーを選んでください。",
+      "dlna_native_in_use": "このメディアサーバーを使っているプリセットがまだあります。一覧を確認して、もう一度確定してください。",
+      "dlna_native_remove_failed": "メディアサーバーを削除できませんでした。何も変更されていません。もう一度お試しください。",
+      "dlna_native_setup_failed": "スピーカーがメディアサーバーを受け付けませんでした。しばらくしてからもう一度お試しください。"
     },
     "loadFailed": "読み込みに失敗しました。もう一度お試しください。",
     "unknown": "予期しないエラーが発生しました。もう一度お試しください。",

@@ -139,7 +139,7 @@
       "crumbsHidden_other": "Pokaż foldery pośrednie: {{count}}",
       "folderList": "Zawartość „{{name}}”",
       "openFolder": "Otwórz folder „{{title}}”",
-      "folderHint": "Odtwarza tylko pierwszy utwór",
+      "folderHint": "Odtwarzane jako folder",
       "forPreset": "Dla presetu {{number}}",
       "useFor": "Użyj dla presetu {{number}}: {{title}}",
       "filterLabel": "Filtruj załadowane pozycje",
@@ -177,7 +177,55 @@
       "saveRetry": "Spróbuj ponownie",
       "saveFailed": "Nie udało się zapisać presetu. Spróbuj ponownie.",
       "badge": "DLNA",
-      "badgeLabel": "Z serwera multimediów DLNA"
+      "badgeLabel": "Z serwera multimediów DLNA",
+      "setup": {
+        "title": "Serwer multimediów na tym głośniku",
+        "panelLabel": "Serwer multimediów na tym głośniku: {{name}}",
+        "state": {
+          "loading": "Sprawdzanie",
+          "settingUp": "Konfigurowanie",
+          "removing": "Usuwanie",
+          "notSetUp": "Nie skonfigurowano",
+          "ready": "Gotowy",
+          "unavailable": "Niedostępny",
+          "unknown": "Stan nieznany"
+        },
+        "loading": "Sprawdzanie tego serwera multimediów na głośniku …",
+        "notSetUp": "Jeszcze nie skonfigurowano. Dzieje się to automatycznie podczas zapisywania.",
+        "settingUp": "Konfigurowanie …",
+        "settingUpLong": "To chwilę potrwa. Poczekaj, może to zająć do 15 sekund.",
+        "rowSettingUp": "Konfigurowanie …",
+        "rowSettingUpLong": "Konfigurowanie, to chwilę potrwa …",
+        "ready": "Głośnik może odtwarzać foldery i utwory z tego serwera multimediów.",
+        "unavailableReason": "Głośnik prawdopodobnie nie widzi tego serwera multimediów. Sprawdź, czy oba urządzenia są w tej samej sieci.",
+        "retry": "Spróbuj ponownie",
+        "retryLabel": "Spróbuj ponownie: konfiguracja {{name}}",
+        "unknownText": "Głośnik był nieosiągalny. Zapisywanie nadal jest możliwe.",
+        "net": "OpenCloudTouch nie zwrócił stanu. Sprawdź połączenie i spróbuj ponownie.",
+        "recheck": "Sprawdź ponownie",
+        "recheckLabel": "Sprawdź ponownie: stan {{name}}"
+      },
+      "remove": {
+        "action": "Usuń",
+        "actionLabel": "Usuń: {{name}}",
+        "title": "Usunąć serwer multimediów z tego głośnika?",
+        "explain": "Głośnik zapomina ten serwer multimediów. Przy następnym zapisie folderu zostanie skonfigurowany automatycznie.",
+        "loadingSlots": "Wczytywanie dotkniętych presetów …",
+        "slotsTitle": "Te presety zostaną przełączone:",
+        "slot": "Preset {{number}}: {{name}}",
+        "noSlots": "Żaden preset nie używa tego serwera multimediów.",
+        "confirm": "Usuń",
+        "confirmLabel": "Potwierdź usunięcie: {{name}}",
+        "progress": "Usuwanie …",
+        "leave": "Zamknij, działa dalej",
+        "done": "Usunięto.",
+        "orphanTitle": "Nie znaleziono serwera multimediów",
+        "orphanText": "Tego serwera multimediów nie można teraz znaleźć w sieci. Możesz go usunąć z tego głośnika.",
+        "orphanList": "Serwery multimediów, których nie znaleziono",
+        "failedTitle": "Akcja nie powiodła się",
+        "failedGeneric": "To się nie udało. Spróbuj ponownie.",
+        "close": "Gotowe"
+      }
     }
   },
   "settings": {
@@ -763,7 +811,10 @@
       "dlna_upstream_error": "Serwer multimediów nie odpowiedział prawidłowo. Spróbuj ponownie za chwilę lub sprawdź serwer.",
       "dlna_server_timeout": "Serwer multimediów odpowiedział zbyt wolno. Spróbuj ponownie.",
       "dlna_not_playable": "Głośnik nie może odtworzyć tej pozycji. Wybierz inny utwór lub folder.",
-      "dlna_reference_too_long": "Adres pozycji jest zbyt długi. Wybierz inną pozycję lub folder wyżej."
+      "dlna_reference_too_long": "Adres pozycji jest zbyt długi. Wybierz inną pozycję lub folder wyżej.",
+      "dlna_native_in_use": "Nadal są presety używające tego serwera multimediów. Sprawdź listę i potwierdź ponownie.",
+      "dlna_native_remove_failed": "Nie udało się usunąć serwera multimediów. Nic nie zmieniono. Spróbuj ponownie.",
+      "dlna_native_setup_failed": "Głośnik nie przyjął serwera multimediów. Spróbuj ponownie za chwilę."
     },
     "loadFailed": "Ładowanie nie powiodło się. Spróbuj ponownie.",
     "unknown": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.",

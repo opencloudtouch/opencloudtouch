@@ -139,7 +139,7 @@
       "crumbsHidden_other": "{{count}} tussenliggende mappen tonen",
       "folderList": "Inhoud van “{{name}}”",
       "openFolder": "Map “{{title}}” openen",
-      "folderHint": "Speelt alleen het eerste nummer",
+      "folderHint": "Wordt als map afgespeeld",
       "forPreset": "Voor preset {{number}}",
       "useFor": "Gebruiken voor preset {{number}}: {{title}}",
       "filterLabel": "Geladen items filteren",
@@ -177,7 +177,55 @@
       "saveRetry": "Opnieuw proberen",
       "saveFailed": "De preset kon niet worden opgeslagen. Probeer het opnieuw.",
       "badge": "DLNA",
-      "badgeLabel": "Van een DLNA-mediaserver"
+      "badgeLabel": "Van een DLNA-mediaserver",
+      "setup": {
+        "title": "Mediaserver op deze speaker",
+        "panelLabel": "Mediaserver op deze speaker: {{name}}",
+        "state": {
+          "loading": "Controleren",
+          "settingUp": "Instellen",
+          "removing": "Verwijderen",
+          "notSetUp": "Niet ingesteld",
+          "ready": "Klaar",
+          "unavailable": "Niet beschikbaar",
+          "unknown": "Status onbekend"
+        },
+        "loading": "Deze mediaserver wordt op de speaker gecontroleerd …",
+        "notSetUp": "Nog niet ingesteld. Dat gebeurt automatisch bij het opslaan.",
+        "settingUp": "Instellen …",
+        "settingUpLong": "Dit duurt even. Even wachten, het kan tot 15 seconden duren.",
+        "rowSettingUp": "Instellen …",
+        "rowSettingUpLong": "Instellen, dit duurt even …",
+        "ready": "De speaker kan mappen en nummers van deze mediaserver afspelen.",
+        "unavailableReason": "De speaker ziet deze mediaserver waarschijnlijk niet. Controleer of beide op hetzelfde netwerk zitten.",
+        "retry": "Opnieuw proberen",
+        "retryLabel": "Opnieuw proberen: instellen van {{name}}",
+        "unknownText": "De speaker was niet bereikbaar. Opslaan blijft mogelijk.",
+        "net": "OpenCloudTouch gaf de status niet terug. Controleer de verbinding en probeer het opnieuw.",
+        "recheck": "Opnieuw controleren",
+        "recheckLabel": "Opnieuw controleren: status van {{name}}"
+      },
+      "remove": {
+        "action": "Verwijderen",
+        "actionLabel": "Verwijderen: {{name}}",
+        "title": "De mediaserver voor deze speaker verwijderen?",
+        "explain": "De speaker vergeet deze mediaserver. Bij het volgende opslaan van een map wordt hij automatisch weer ingesteld.",
+        "loadingSlots": "Betrokken presets worden geladen …",
+        "slotsTitle": "Deze presets worden omgezet:",
+        "slot": "Preset {{number}}: {{name}}",
+        "noSlots": "Geen enkele preset gebruikt deze mediaserver.",
+        "confirm": "Verwijderen",
+        "confirmLabel": "Verwijderen bevestigen: {{name}}",
+        "progress": "Verwijderen …",
+        "leave": "Sluiten, loopt door",
+        "done": "Verwijderd.",
+        "orphanTitle": "Mediaserver niet gevonden",
+        "orphanText": "Deze mediaserver is op dit moment niet op het netwerk te vinden. Je kunt hem voor deze speaker verwijderen.",
+        "orphanList": "Mediaservers die niet gevonden worden",
+        "failedTitle": "Actie mislukt",
+        "failedGeneric": "Dat is niet gelukt. Probeer het opnieuw.",
+        "close": "Klaar"
+      }
     }
   },
   "settings": {
@@ -763,7 +811,10 @@
       "dlna_upstream_error": "De mediaserver antwoordde niet goed. Probeer het zo meteen opnieuw of controleer de server.",
       "dlna_server_timeout": "De mediaserver antwoordde te langzaam. Probeer het opnieuw.",
       "dlna_not_playable": "De speaker kan dit item niet afspelen. Kies een ander nummer of een andere map.",
-      "dlna_reference_too_long": "Het adres van het item is te lang. Kies een ander item of een map hoger op."
+      "dlna_reference_too_long": "Het adres van het item is te lang. Kies een ander item of een map hoger op.",
+      "dlna_native_in_use": "Er zijn nog presets die deze mediaserver gebruiken. Controleer de lijst en bevestig opnieuw.",
+      "dlna_native_remove_failed": "De mediaserver kon niet worden verwijderd. Er is niets gewijzigd. Probeer het opnieuw.",
+      "dlna_native_setup_failed": "De speaker heeft de mediaserver niet geaccepteerd. Probeer het zo meteen opnieuw."
     },
     "loadFailed": "Laden mislukt. Probeer het opnieuw.",
     "unknown": "Er is een onverwachte fout opgetreden. Probeer het opnieuw.",

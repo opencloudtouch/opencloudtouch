@@ -139,7 +139,7 @@
       "crumbsHidden_other": "Mostra {{count}} cartelle intermedie",
       "folderList": "Contenuto di «{{name}}»",
       "openFolder": "Apri la cartella «{{title}}»",
-      "folderHint": "Riproduce solo il primo brano",
+      "folderHint": "Viene riprodotto come cartella",
       "forPreset": "Per preset {{number}}",
       "useFor": "Usa per il preset {{number}}: {{title}}",
       "filterLabel": "Filtra le voci caricate",
@@ -177,7 +177,55 @@
       "saveRetry": "Riprova",
       "saveFailed": "Impossibile salvare il preset. Riprova.",
       "badge": "DLNA",
-      "badgeLabel": "Da un server multimediale DLNA"
+      "badgeLabel": "Da un server multimediale DLNA",
+      "setup": {
+        "title": "Server multimediale su questo altoparlante",
+        "panelLabel": "Server multimediale su questo altoparlante: {{name}}",
+        "state": {
+          "loading": "Verifica in corso",
+          "settingUp": "Configurazione in corso",
+          "removing": "Rimozione in corso",
+          "notSetUp": "Non configurato",
+          "ready": "Pronto",
+          "unavailable": "Non disponibile",
+          "unknown": "Stato sconosciuto"
+        },
+        "loading": "Verifica di questo server multimediale sull'altoparlante …",
+        "notSetUp": "Non ancora configurato. Succede automaticamente al salvataggio.",
+        "settingUp": "Configurazione in corso …",
+        "settingUpLong": "Ci vuole un momento. Attendi, possono servire fino a 15 secondi.",
+        "rowSettingUp": "Configurazione in corso …",
+        "rowSettingUpLong": "Configurazione in corso, ci vuole un momento …",
+        "ready": "L'altoparlante può riprodurre cartelle e brani di questo server multimediale.",
+        "unavailableReason": "L'altoparlante probabilmente non vede questo server multimediale. Controlla che siano sulla stessa rete.",
+        "retry": "Riprova",
+        "retryLabel": "Riprova: configurazione di {{name}}",
+        "unknownText": "L'altoparlante non era raggiungibile. Il salvataggio resta possibile.",
+        "net": "OpenCloudTouch non ha restituito lo stato. Controlla la connessione e riprova.",
+        "recheck": "Controlla di nuovo",
+        "recheckLabel": "Controlla di nuovo: stato di {{name}}"
+      },
+      "remove": {
+        "action": "Rimuovi",
+        "actionLabel": "Rimuovi: {{name}}",
+        "title": "Rimuovere il server multimediale da questo altoparlante?",
+        "explain": "L'altoparlante dimentica questo server multimediale. Viene configurato di nuovo automaticamente al prossimo salvataggio di una cartella.",
+        "loadingSlots": "Caricamento dei preset interessati …",
+        "slotsTitle": "Questi preset verranno modificati:",
+        "slot": "Preset {{number}}: {{name}}",
+        "noSlots": "Nessun preset usa questo server multimediale.",
+        "confirm": "Rimuovi",
+        "confirmLabel": "Conferma la rimozione: {{name}}",
+        "progress": "Rimozione in corso …",
+        "leave": "Chiudi, continua in background",
+        "done": "Rimosso.",
+        "orphanTitle": "Server multimediale non trovato",
+        "orphanText": "Al momento questo server multimediale non si trova sulla rete. Puoi rimuoverlo da questo altoparlante.",
+        "orphanList": "Server multimediali non trovati",
+        "failedTitle": "Azione non riuscita",
+        "failedGeneric": "Non ha funzionato. Riprova.",
+        "close": "Fatto"
+      }
     }
   },
   "settings": {
@@ -763,7 +811,10 @@
       "dlna_upstream_error": "Il server multimediale non ha risposto correttamente. Riprova tra poco o controlla il server.",
       "dlna_server_timeout": "Il server multimediale ha risposto troppo lentamente. Riprova.",
       "dlna_not_playable": "Il diffusore non può riprodurre questa voce. Scegli un altro brano o un’altra cartella.",
-      "dlna_reference_too_long": "L’indirizzo della voce è troppo lungo. Scegli un’altra voce o una cartella di livello superiore."
+      "dlna_reference_too_long": "L’indirizzo della voce è troppo lungo. Scegli un’altra voce o una cartella di livello superiore.",
+      "dlna_native_in_use": "Ci sono ancora preset che usano questo server multimediale. Controlla l'elenco e conferma di nuovo.",
+      "dlna_native_remove_failed": "Non è stato possibile rimuovere il server multimediale. Non è cambiato nulla. Riprova.",
+      "dlna_native_setup_failed": "L'altoparlante non ha accettato il server multimediale. Riprova tra un momento."
     },
     "loadFailed": "Caricamento fallito. Riprovare.",
     "unknown": "Si è verificato un errore imprevisto. Riprovare.",

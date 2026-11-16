@@ -139,7 +139,7 @@
       "crumbsHidden_other": "Mostrar {{count}} carpetas intermedias",
       "folderList": "Contenido de «{{name}}»",
       "openFolder": "Abrir la carpeta «{{title}}»",
-      "folderHint": "Solo reproduce la primera pista",
+      "folderHint": "Se reproduce como carpeta",
       "forPreset": "Para el preset {{number}}",
       "useFor": "Usar para el preset {{number}}: {{title}}",
       "filterLabel": "Filtrar las entradas cargadas",
@@ -177,7 +177,55 @@
       "saveRetry": "Intentar de nuevo",
       "saveFailed": "No se pudo guardar el preset. Inténtalo de nuevo.",
       "badge": "DLNA",
-      "badgeLabel": "De un servidor multimedia DLNA"
+      "badgeLabel": "De un servidor multimedia DLNA",
+      "setup": {
+        "title": "Servidor multimedia en este altavoz",
+        "panelLabel": "Servidor multimedia en este altavoz: {{name}}",
+        "state": {
+          "loading": "Comprobando",
+          "settingUp": "Configurando",
+          "removing": "Quitando",
+          "notSetUp": "No configurado",
+          "ready": "Listo",
+          "unavailable": "No disponible",
+          "unknown": "Estado desconocido"
+        },
+        "loading": "Comprobando este servidor multimedia en el altavoz …",
+        "notSetUp": "Aún no configurado. Esto ocurre automáticamente al guardar.",
+        "settingUp": "Configurando …",
+        "settingUpLong": "Esto tarda un momento. Espera, puede durar hasta 15 segundos.",
+        "rowSettingUp": "Configurando …",
+        "rowSettingUpLong": "Configurando, esto tarda un momento …",
+        "ready": "El altavoz puede reproducir carpetas y canciones de este servidor multimedia.",
+        "unavailableReason": "Es probable que el altavoz no vea este servidor multimedia. Comprueba que ambos estén en la misma red.",
+        "retry": "Reintentar",
+        "retryLabel": "Reintentar: configuración de {{name}}",
+        "unknownText": "No se pudo contactar con el altavoz. Se puede guardar igualmente.",
+        "net": "OpenCloudTouch no devolvió el estado. Comprueba la conexión e inténtalo de nuevo.",
+        "recheck": "Comprobar de nuevo",
+        "recheckLabel": "Comprobar de nuevo: estado de {{name}}"
+      },
+      "remove": {
+        "action": "Quitar",
+        "actionLabel": "Quitar: {{name}}",
+        "title": "¿Quitar el servidor multimedia de este altavoz?",
+        "explain": "El altavoz olvida este servidor multimedia. Se vuelve a configurar automáticamente la próxima vez que guardes una carpeta.",
+        "loadingSlots": "Cargando los presets afectados …",
+        "slotsTitle": "Estos presets se cambiarán:",
+        "slot": "Preset {{number}}: {{name}}",
+        "noSlots": "Ningún preset usa este servidor multimedia.",
+        "confirm": "Quitar",
+        "confirmLabel": "Confirmar la eliminación: {{name}}",
+        "progress": "Quitando …",
+        "leave": "Cerrar, sigue en marcha",
+        "done": "Quitado.",
+        "orphanTitle": "Servidor multimedia no encontrado",
+        "orphanText": "Ahora mismo este servidor multimedia no se encuentra en la red. Puedes quitarlo de este altavoz.",
+        "orphanList": "Servidores multimedia que no se encuentran",
+        "failedTitle": "Acción fallida",
+        "failedGeneric": "No ha funcionado. Inténtalo de nuevo.",
+        "close": "Hecho"
+      }
     }
   },
   "settings": {
@@ -763,7 +811,10 @@
       "dlna_upstream_error": "El servidor multimedia no respondió correctamente. Inténtalo de nuevo en un momento o revisa el servidor.",
       "dlna_server_timeout": "El servidor multimedia respondió demasiado despacio. Inténtalo de nuevo.",
       "dlna_not_playable": "El altavoz no puede reproducir esta entrada. Elige otra pista u otra carpeta.",
-      "dlna_reference_too_long": "La dirección de la entrada es demasiado larga. Elige otra entrada o una carpeta superior."
+      "dlna_reference_too_long": "La dirección de la entrada es demasiado larga. Elige otra entrada o una carpeta superior.",
+      "dlna_native_in_use": "Todavía hay presets que usan este servidor multimedia. Revisa la lista y confirma de nuevo.",
+      "dlna_native_remove_failed": "No se pudo quitar el servidor multimedia. No se ha cambiado nada. Inténtalo de nuevo.",
+      "dlna_native_setup_failed": "El altavoz no aceptó el servidor multimedia. Inténtalo de nuevo en un momento."
     },
     "loadFailed": "Error al cargar. Inténtelo de nuevo.",
     "unknown": "Se produjo un error inesperado. Inténtelo de nuevo.",
