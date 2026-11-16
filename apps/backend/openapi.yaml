@@ -878,14 +878,18 @@ paths:
       tags:
       - presets
       summary: Set Dlna Preset
-      description: 'Assign a DLNA track (or the first track of a folder) to a preset
-        button.
+      description: 'Assign a DLNA track or folder to a preset button.
 
 
-        Only the media server reference is stored; the playback URL is resolved from
-        the
+        A folder whose media server is enabled (READY) on the speaker is stored as
+        a native
 
-        server each time the button is pressed.'
+        STORED_MUSIC item (whole folder with queue, no OpenCloudTouch needed); otherwise
+        only
+
+        the media server reference is stored and resolved at each press (first track).
+
+        The response field ``dlna_playback`` tells which one was written.'
       operationId: set_dlna_preset_api_presets_dlna_post
       requestBody:
         content:
@@ -5357,6 +5361,17 @@ components:
           - $ref: '#/components/schemas/DlnaRef'
           - type: 'null'
           description: DLNA object of a DLNA preset, null otherwise
+        dlna_playback:
+          anyOf:
+          - type: string
+            enum:
+            - native
+            - reference
+          - type: 'null'
+          title: Dlna Playback
+          description: 'How a DLNA preset plays: ''native'' (the speaker plays the
+            folder itself) or ''reference'' (OpenCloudTouch resolves the first track
+            on press); null for other presets'
         created_at:
           type: string
           title: Created At
