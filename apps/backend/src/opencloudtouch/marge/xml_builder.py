@@ -265,16 +265,6 @@ def _row_source_element(parent: ET.Element, row: MediaServerSource) -> None:
     ET.SubElement(source, "username").text = row.account
 
 
-def build_source_response_xml(row: MediaServerSource) -> ET.Element:
-    """Answer of ``POST /streaming/account/{id}/source`` (always provider id 7)."""
-    element = ET.Element("source")
-    ET.SubElement(element, "sourceID").text = str(row.source_id)
-    ET.SubElement(element, "sourceProviderID").text = _STORED_MUSIC_ID
-    ET.SubElement(element, "createdOn").text = _format_time(row.created_at)
-    ET.SubElement(element, "updatedOn").text = _format_time(row.updated_at)
-    return element
-
-
 _EPOCH = "2018-01-01T00:00:00.000+00:00"
 
 

@@ -30,7 +30,7 @@ SERVER_B = "66666666-7777-8888-9999-aaaaaaaaaaaa"
 ACCOUNT_1 = "acc-0001"
 DEV1, DEV2 = "AABBCCDDEE01", "AABBCCDDEE02"
 SECRET_NAME = "Secret Living Room Name"
-SOURCE_URL = "/streaming/account/{}/source"
+DEVICE_URL = "/streaming/account/{}/device"
 
 
 class FakeDevices:
@@ -51,17 +51,6 @@ class FakeDevices:
 
     async def get_by_device_id(self, device_id):
         return self.by_id.get(device_id)
-
-
-def body(
-    server=SERVER_A, provider="7", name="Music", extra="<credential/>", account=None
-):
-    user = account if account is not None else f"{server}/0"
-    return (
-        f"<source>{extra}<username>{user}</username>"
-        f"<sourceproviderid>{provider}</sourceproviderid>"
-        f"<sourcename>{name}</sourcename></source>"
-    ).encode()
 
 
 @pytest.fixture
@@ -114,32 +103,41 @@ async def test_full_without_rows_only_changes_the_provider_id(client):
     assert ">50<" not in response.text and 'id="50"' not in response.text
 
 
-# ---- POST source (AC-A3 .. A6, A16) --------------------------------------------
+# ---- POST device (pairing handshake, Amendment 2) --------------------------------
 
 
-@pytest.mark.parametrize("provider", ["7", "50"])
-async def test_register_answers_201_with_provider_7(client, env, provider):
+def device_body(device=DEV1, extra=""):
+    return f'<device deviceid="{device}">{extra}<name>x</name></device>'.encode()
+
+
+@pytest.mark.parametrize("suffix", ["/", ""])
+async def test_device_handshake_answers_201_and_stores_nothing(client, env, suffix):
     response = await client.post(
-        SOURCE_URL.format(ACCOUNT_1), content=body(provider=provider)
+        DEVICE_URL.format(ACCOUNT_1) + suffix, content=device_body()
     )
     assert response.status_code == 201
     assert "streaming-v1.2" in response.headers["content-type"]
     root = xml(response)
-    assert int(root.findtext("sourceID")) >= 20000000
-    assert root.findtext("sourceProviderID") == "7"
-    assert root.findtext("createdOn") and root.findtext("updatedOn")
-    rows = await env.sources.list_active(DEV1)
-    assert len(rows) == 1
-    assert rows[0].received_provider_id == int(provider)
+    assert root.tag == "device" and root.get("deviceid") == DEV1
+    assert [c.tag for c in root] == ["createdOn", "ipaddress", "name", "updatedOn"]
+    assert await env.sources.count_for_device(DEV1) == 0
 
 
-async def test_same_server_twice_gives_same_id_and_one_row(client, env):
-    first = await client.post(SOURCE_URL.format(ACCOUNT_1), content=body())
-    second = await client.post(
-        SOURCE_URL.format(ACCOUNT_1), content=body(server=SERVER_A.upper())
+async def test_device_account_equal_to_device_id_is_found_by_fallback(client):
+    response = await client.post(DEVICE_URL.format(DEV2), content=device_body(DEV2))
+    assert response.status_code == 201
+
+
+async def test_device_unknown_account_is_404(client):
+    response = await client.post(DEVICE_URL.format("nobody"), content=device_body())
+    assert response.status_code == 404
+
+
+async def test_device_of_another_account_is_404(client):
+    response = await client.post(
+        DEVICE_URL.format(ACCOUNT_1), content=device_body(DEV2)
     )
-    assert xml(first).findtext("sourceID") == xml(second).findtext("sourceID")
-    assert await env.sources.count_for_device(DEV1) == 1
+    assert response.status_code == 404
 
 
 @pytest.mark.parametrize(
@@ -147,133 +145,48 @@ async def test_same_server_twice_gives_same_id_and_one_row(client, env):
     [
         b"not xml",
         b"<other/>",
-        body(account=""),
-        body(account=SERVER_A),  # no /0
-        body(account=f"{SERVER_A}/1"),
-        body(account="not-a-uuid/0"),
-        body(provider=""),
-        body(provider="11"),
-        body(name=""),
-        body(name="   "),
-        body(name="x" * 65),
-        b'<!DOCTYPE s [<!ENTITY e "x">]><source><username>&e;</username></source>',
+        b"<device/>",
+        b'<device deviceid=""/>',
+        b'<!DOCTYPE d [<!ENTITY e "x">]><device deviceid="&e;"/>',
     ],
 )
-async def test_invalid_input_is_400_and_stores_nothing(client, env, payload):
-    response = await client.post(SOURCE_URL.format(ACCOUNT_1), content=payload)
+async def test_device_invalid_input_is_400(client, payload):
+    response = await client.post(DEVICE_URL.format(ACCOUNT_1), content=payload)
     assert response.status_code == 400
     assert response.content == b""
-    assert await env.sources.count_for_device(DEV1) == 0
 
 
-async def test_unknown_elements_and_credential_are_ignored(client):
+async def test_device_declared_oversize_body_is_413(client):
     response = await client.post(
-        SOURCE_URL.format(ACCOUNT_1),
-        content=body(extra="<credential>x</credential><foo>bar</foo>"),
-    )
-    assert response.status_code == 201
-
-
-async def test_unknown_account_is_404(client, env):
-    response = await client.post(SOURCE_URL.format("nobody"), content=body())
-    assert response.status_code == 404
-
-
-async def test_account_equal_to_device_id_is_found_by_fallback(client, env):
-    response = await client.post(SOURCE_URL.format(DEV2), content=body())
-    assert response.status_code == 201
-    assert len(await env.sources.list_active(DEV2)) == 1
-
-
-async def test_account_of_x_never_creates_rows_of_y(client, env):
-    await client.post(SOURCE_URL.format(ACCOUNT_1), content=body())
-    assert await env.sources.list_active(DEV2) == []
-
-
-async def test_21st_row_is_409_but_an_existing_one_still_updates(client, env):
-    for i in range(20):
-        server = f"00000000-0000-0000-0000-{i:012d}"
-        assert (
-            await client.post(SOURCE_URL.format(ACCOUNT_1), content=body(server=server))
-        ).status_code == 201
-    over = await client.post(
-        SOURCE_URL.format(ACCOUNT_1), content=body(server=SERVER_A)
-    )
-    assert over.status_code == 409
-    assert await env.sources.count_for_device(DEV1) == 20
-    again = await client.post(
-        SOURCE_URL.format(ACCOUNT_1),
-        content=body(server="00000000-0000-0000-0000-000000000003"),
-    )
-    assert again.status_code == 201
-
-
-async def test_row_pending_removal_is_not_cleared_by_the_callback(client, env):
-    row = await env.sources.upsert(DEV1, SERVER_A, "Music", 7)
-    await env.sources.mark_removal_pending(DEV1, row.source_id)
-    response = await client.post(SOURCE_URL.format(ACCOUNT_1), content=body())
-    assert response.status_code == 409
-    assert (await env.sources.get_by_id(row.source_id)).removal_pending is True
-
-
-async def test_declared_oversize_body_is_413_without_reading(client, env):
-    response = await client.post(
-        SOURCE_URL.format(ACCOUNT_1), content=body(name="x" * 5000)
+        DEVICE_URL.format(ACCOUNT_1), content=device_body(extra="x" * 5000)
     )
     assert response.status_code == 413
-    assert await env.sources.count_for_device(DEV1) == 0
 
 
-async def test_chunked_oversize_body_is_413(client, env):
+async def test_device_chunked_oversize_body_is_413(client):
     async def chunks():
         for _ in range(10):
             yield b"x" * 1000
 
-    response = await client.post(SOURCE_URL.format(ACCOUNT_1), content=chunks())
+    response = await client.post(DEVICE_URL.format(ACCOUNT_1), content=chunks())
     assert response.status_code == 413
 
 
-# ---- DELETE source (AC-A7) ------------------------------------------------------
-
-
-async def test_delete_flags_the_row_and_keeps_it(client, env):
-    row = await env.sources.upsert(DEV1, SERVER_A, "Music", 7)
-    response = await client.delete(f"{SOURCE_URL.format(ACCOUNT_1)}/{row.source_id}")
-    assert response.status_code == 200 and response.content == b""
-    stored = await env.sources.get_by_id(row.source_id)
-    assert stored is not None and stored.removal_pending is True
-
-
-async def test_delete_unknown_id_is_a_noop_200(client):
-    assert (
-        await client.delete(f"{SOURCE_URL.format(ACCOUNT_1)}/999")
-    ).status_code == 200
-    assert (
-        await client.delete(f"{SOURCE_URL.format(ACCOUNT_1)}/abc")
-    ).status_code == 200
-
-
-async def test_delete_never_touches_another_devices_row(client, env):
-    other = await env.sources.upsert(DEV2, SERVER_A, "Music", 7)
-    await client.delete(f"{SOURCE_URL.format(ACCOUNT_1)}/{other.source_id}")
-    assert (await env.sources.get_by_id(other.source_id)).removal_pending is False
-
-
-async def test_delete_unknown_account_is_404(client):
-    assert (await client.delete(f"{SOURCE_URL.format('nobody')}/1")).status_code == 404
+async def test_source_routes_are_gone(client):
+    url = f"/streaming/account/{ACCOUNT_1}/source"
+    assert (await client.post(url, content=b"<source/>")).status_code in (404, 405)
+    assert (await client.delete(f"{url}/1")).status_code in (404, 405)
 
 
 # ---- /full with rows (AC-A8) ----------------------------------------------------
 
 
 async def test_full_lists_per_server_sources_and_drops_the_generic_one(client, env):
-    a = await env.sources.upsert(DEV1, SERVER_A, "Music", 7)
-    b = await env.sources.upsert(DEV1, SERVER_B, "Other", 7)
-    gone = await env.sources.upsert(
-        DEV1, "00000000-0000-0000-0000-000000000009", "x", 7
-    )
-    await env.sources.mark_removal_pending(DEV1, gone.source_id)
-    await env.sources.upsert(DEV2, "00000000-0000-0000-0000-000000000008", "y", 7)
+    a = await env.sources.upsert(DEV1, SERVER_A, "Music")
+    b = await env.sources.upsert(DEV1, SERVER_B, "Other")
+    await env.sources.upsert(DEV1, "00000000-0000-0000-0000-000000000009", "x")
+    await env.sources.delete(DEV1, "00000000-0000-0000-0000-000000000009")
+    await env.sources.upsert(DEV2, "00000000-0000-0000-0000-000000000008", "y")
 
     response = await client.get(f"/streaming/account/{ACCOUNT_1}/full")
 
@@ -307,7 +220,7 @@ def preset_put(sourceid, location="obj-1", ctype="dir"):
 async def test_preset_put_with_registered_id_stores_the_native_representation(
     client, env
 ):
-    row = await env.sources.upsert(DEV1, SERVER_A, "Music", 7)
+    row = await env.sources.upsert(DEV1, SERVER_A, "Music")
     response = await client.put(
         f"/streaming/account/{ACCOUNT_1}/device/{DEV1}/preset/2",
         content=preset_put(row.source_id),
@@ -326,7 +239,7 @@ async def test_preset_put_with_registered_id_stores_the_native_representation(
 
 
 async def test_preset_put_native_track_type_is_kept(client, env):
-    row = await env.sources.upsert(DEV1, SERVER_A, "Music", 7)
+    row = await env.sources.upsert(DEV1, SERVER_A, "Music")
     await client.put(
         f"/streaming/account/{ACCOUNT_1}/device/{DEV1}/preset/2",
         content=preset_put(row.source_id, ctype="track"),
@@ -353,7 +266,7 @@ async def test_preset_put_alias_50_is_stored_as_stored_music(client, env):
 
 
 async def test_preset_put_with_a_foreign_account_is_404_and_stores_nothing(client, env):
-    row = await env.sources.upsert(DEV1, SERVER_A, "Music", 7)
+    row = await env.sources.upsert(DEV1, SERVER_A, "Music")
     foreign = await client.put(
         f"/streaming/account/acc-0002/device/{DEV1}/preset/2",
         content=preset_put(row.source_id),
@@ -395,7 +308,7 @@ async def test_recent_with_legacy_or_real_provider_is_stored_as_stored_music(
 
 
 async def test_recent_with_registered_numeric_id_is_stored_unchanged(client, env):
-    row = await env.sources.upsert(DEV1, SERVER_A, "Music", 7)
+    row = await env.sources.upsert(DEV1, SERVER_A, "Music")
     env.service._recents_repo.add_recent.side_effect = lambda r: _with_id(r)
     response = await client.post(
         f"/streaming/account/{ACCOUNT_1}/device/{DEV1}/recent",
@@ -425,7 +338,7 @@ def _row(env_rows):
 
 @pytest.fixture
 async def one_row(env):
-    return await env.sources.upsert(DEV1, SERVER_A, "Music", 7)
+    return await env.sources.upsert(DEV1, SERVER_A, "Music")
 
 
 async def test_recent_builders_follow_the_documented_cases(one_row):
@@ -505,20 +418,18 @@ async def test_presets_route_ignores_native_type_without_rows(env):
 # ---- logging (AC-A14) -----------------------------------------------------------
 
 
-async def test_new_routes_log_no_body_no_server_no_names(client, env, caplog):
+async def test_device_route_logs_no_body_no_names(client, env, caplog):
     caplog.set_level(logging.DEBUG)
-    payload = body(name=SECRET_NAME)
-    created = await client.post(SOURCE_URL.format(ACCOUNT_1), content=payload)
-    row_id = xml(created).findtext("sourceID")
-    await client.post(SOURCE_URL.format(ACCOUNT_1), content=b"<broken")
-    await client.delete(f"{SOURCE_URL.format(ACCOUNT_1)}/{row_id}")
-    await client.post(SOURCE_URL.format(ACCOUNT_1), content=body(name="x" * 6000))
-
+    await client.post(
+        DEVICE_URL.format(ACCOUNT_1),
+        content=device_body(extra=f"<ip>{SECRET_NAME}</ip>"),
+    )
+    await client.post(DEVICE_URL.format(ACCOUNT_1), content=b"<broken")
     at_info = "\n".join(
         r.getMessage()
         for r in caplog.records
         if r.levelno >= logging.INFO and r.name.startswith("opencloudtouch")
     )
-    assert at_info
-    for forbidden in (SERVER_A, SECRET_NAME, "Kitchen Speaker", "http://", "<source"):
+    assert "[MARGE/DEVICE]" in at_info
+    for forbidden in (SECRET_NAME, "Kitchen Speaker", "<device", "<broken"):
         assert forbidden not in at_info

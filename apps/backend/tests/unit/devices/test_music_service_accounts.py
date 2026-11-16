@@ -67,49 +67,49 @@ async def test_get_source_list_unreachable(adapter):
         cls.stop()
 
 
-async def test_set_account_sends_credentials_and_escapes(adapter):
-    cls, client = _http(_response())
+async def test_pair_sends_the_account_and_expects_info(adapter):
+    cls, client = _http(_response(text='<info deviceID="X"></info>'))
     try:
-        await adapter.set_music_service_account("STORED_MUSIC", 'A "B" <&>', USER)
+        await adapter.pair_with_account("acct<1>")
     finally:
         cls.stop()
     url = client.post.call_args.args[0]
     body = client.post.call_args.kwargs["content"].decode()
-    assert url.endswith("/setMusicServiceAccount")
-    assert 'displayName="A &quot;B&quot; &lt;&amp;&gt;"' in body
-    assert f"<user>{USER}</user><pass/>" in body
+    assert url.endswith("/setMargeAccount")
+    assert body == (
+        "<PairDeviceWithAccount><accountId>acct&lt;1&gt;</accountId>"
+        "<userAuthToken>local</userAuthToken></PairDeviceWithAccount>"
+    )
 
 
-@pytest.mark.parametrize("path", ["set", "remove"])
-async def test_account_command_error_carries_speaker_code(adapter, path):
+async def test_pair_error_carries_the_speaker_code(adapter):
     answer = _response(
-        400, '<errors><error value="1022" name="x" severity="Error"/></errors>'
+        500, '<errors><error value="1038" name="x" severity="Error"/></errors>'
     )
     cls, _ = _http(answer)
-    method = getattr(adapter, f"{path}_music_service_account")
     try:
         with pytest.raises(SpeakerCommandError) as err:
-            await method("STORED_MUSIC", "n", USER)
+            await adapter.pair_with_account("acct")
     finally:
         cls.stop()
-    assert err.value.error_code == 1022
+    assert err.value.error_code == 1038
 
 
-async def test_account_command_error_without_code(adapter):
-    cls, _ = _http(_response(500, "not xml"))
+async def test_pair_without_info_answer_is_an_error(adapter):
+    cls, _ = _http(_response(200, "<other/>"))
     try:
         with pytest.raises(SpeakerCommandError) as err:
-            await adapter.remove_music_service_account("STORED_MUSIC", "n", USER)
+            await adapter.pair_with_account("acct")
     finally:
         cls.stop()
     assert err.value.error_code is None
 
 
-async def test_account_command_unreachable(adapter):
+async def test_pair_unreachable(adapter):
     cls, _ = _http(error=OSError("down"))
     try:
         with pytest.raises(DeviceConnectionError):
-            await adapter.set_music_service_account("STORED_MUSIC", "n", USER)
+            await adapter.pair_with_account("acct")
     finally:
         cls.stop()
 
@@ -120,42 +120,29 @@ async def test_account_command_unreachable(adapter):
 @pytest.fixture
 def mock():
     MockDeviceClient.reset_sources()
+
+    async def listed(device_id):
+        return [USER]
+
+    MockDeviceClient.listed_accounts = listed
     yield MockDeviceClient("AABBCC112233")
     MockDeviceClient.reset_sources()
-    MockDeviceClient.on_register = None
 
 
-async def test_mock_registration_is_ready_without_reboot(mock):
-    seen = []
-
-    async def on_register(*args):
-        seen.append(args)
-
-    MockDeviceClient.on_register = on_register
-    await mock.set_music_service_account("STORED_MUSIC", "Music", USER)
+async def test_mock_lists_the_servers_oct_lists(mock):
     assert [(s.account, s.status) for s in await mock.get_source_list()] == [
         (USER, "READY")
     ]
-    assert seen == [("AABBCC112233", USER.split("/")[0], "Music", 7)]
-    # state is shared between client instances (a client is created per call)
-    assert len(await MockDeviceClient("AABBCC112233").get_source_list()) == 1
 
 
-async def test_mock_stale_provider_shows_up_after_reboot(mock):
-    MockDeviceClient.provider_id = 50
-    await mock.set_music_service_account("STORED_MUSIC", "Music", USER)
+async def test_mock_stale_speaker_lists_nothing_until_re_paired(mock):
+    MockDeviceClient.stale_devices.add("AABBCC112233")
     assert await mock.get_source_list() == []
-    await mock.reboot()
+    await MockDeviceClient("AABBCC112233").pair_with_account("acct")
+    assert MockDeviceClient.pair_calls == ["acct"]
     assert len(await mock.get_source_list()) == 1
 
 
-async def test_mock_remove_answers_like_the_speaker(mock):
-    with pytest.raises(SpeakerCommandError) as err:
-        await mock.remove_music_service_account("STORED_MUSIC", "n", USER)
-    assert err.value.error_code == 1047
-    await mock.set_music_service_account("STORED_MUSIC", "n", USER)
-    with pytest.raises(SpeakerCommandError) as dup:
-        await mock.set_music_service_account("STORED_MUSIC", "n", USER)
-    assert dup.value.error_code == 1022
-    await mock.remove_music_service_account("STORED_MUSIC", "n", USER.upper())
-    assert await mock.get_source_list() == []
+async def test_mock_without_hook_lists_nothing():
+    MockDeviceClient.reset_sources()
+    assert await MockDeviceClient("AABBCC112233").get_source_list() == []

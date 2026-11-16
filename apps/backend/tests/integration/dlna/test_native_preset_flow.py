@@ -42,10 +42,10 @@ async def env():
         await devices.upsert(Device(DEV, "192.0.2.10", "Speaker", "ST10", DEV, "1"))
         MockDeviceClient.reset_sources()
 
-        async def on_register(device_id, server_id, name, provider_id):
-            await sources.upsert(device_id, server_id, name, provider_id)
+        async def listed(device_id):
+            return [row.account for row in await sources.list_active(device_id)]
 
-        MockDeviceClient.on_register = on_register
+        MockDeviceClient.listed_accounts = listed
         dlna = DlnaService(MockDlnaDiscovery(), MockDlnaClient())
         native = DlnaNativeService(
             sources,
@@ -65,7 +65,6 @@ async def env():
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
             yield client, preset_service, sources
-        MockDeviceClient.on_register = None
         MockDeviceClient.reset_sources()
         for repo in (devices, presets, recents, sources):
             await repo.close()
@@ -87,12 +86,12 @@ async def test_not_enabled_server_falls_back_to_v1(env):
     assert created.json()["dlna"] == {"server_id": SID, "object_id": "music"}
 
 
-async def test_enable_reboot_save_sync_and_marge(env, caplog):
+async def test_enable_save_sync_and_marge(env, caplog):
     client, service, sources = env
-    MockDeviceClient.provider_id = 50  # the speaker cached the old provider list
+    MockDeviceClient.stale_devices.add(DEV)  # the speaker needs one re-pairing
     put = await client.put(f"/api/dlna/native/{DEV}/servers/{SID}")
-    assert (put.status_code, put.json()["state"]) == (202, "restart_required")
-    await MockDeviceClient(DEV).reboot()
+    assert (put.status_code, put.json()["state"]) == (200, "ready")
+    assert MockDeviceClient.pair_calls == [DEV]
 
     with caplog.at_level(logging.DEBUG):
         created = await client.post("/api/presets/dlna", json=BODY)

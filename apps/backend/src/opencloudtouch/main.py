@@ -222,15 +222,11 @@ async def _init_services(
     if cfg.mock_mode:
         from opencloudtouch.devices.mock_client import MockDeviceClient
 
-        async def _speaker_callback(
-            device_id: str, server_id: str, name: str, provider_id: int
-        ) -> None:
-            # Mock mode: the fake speaker's call to Marge ``POST .../source``
-            await repos["marge_source_repo"].upsert(
-                device_id, server_id, name, provider_id
-            )
+        async def _listed_accounts(device_id: str) -> list[str]:
+            rows = await repos["marge_source_repo"].list_active(device_id)
+            return [row.account for row in rows]
 
-        MockDeviceClient.on_register = _speaker_callback
+        MockDeviceClient.listed_accounts = _listed_accounts
     app.state.preset_service.native_service = app.state.dlna_native_service
     logger.info("DlnaNativeService initialized")
 

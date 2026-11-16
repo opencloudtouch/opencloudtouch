@@ -212,7 +212,7 @@ def test_marge_xml_adds_the_suffix_for_a_native_track(monkeypatch):
     from opencloudtouch.marge.xml_builder import build_preset_response_xml
 
     now = datetime.now(UTC)
-    row = MediaServerSource(20000001, "D", SERVER, "Server", False, 7, now, now)
+    row = MediaServerSource(20000001, "D", SERVER, "Server", now, now)
     track = Preset(
         "D",
         2,
@@ -239,7 +239,7 @@ async def test_marge_store_strips_the_suffix_on_read(monkeypatch):
 
     monkeypatch.setattr(dlna_reference, "NATIVE_TRACK_PRESETS_VERIFIED", True)
     now = datetime.now(UTC)
-    row = MediaServerSource(20000001, "D", SERVER, "Server", False, 7, now, now)
+    row = MediaServerSource(20000001, "D", SERVER, "Server", now, now)
     sources = AsyncMock()
     sources.get_by_id = AsyncMock(return_value=row)
     presets = AsyncMock()

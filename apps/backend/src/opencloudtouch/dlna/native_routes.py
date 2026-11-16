@@ -1,8 +1,8 @@
-"""API routes for native (speaker-side) media server registrations."""
+"""API routes for enabling media servers as native speaker sources."""
 
 from typing import Any
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
 from opencloudtouch.core.dependencies import DlnaNativeServiceDep
@@ -52,7 +52,7 @@ class NativeDisableResponse(BaseModel):
 async def list_native_servers(
     service: DlnaNativeServiceDep, device_id: str = Query(min_length=1)
 ) -> NativeServerList:
-    """Every discovered media server and every registration, with its state on this speaker."""
+    """Every discovered media server and every enabled server, with its state on this speaker."""
     entries = await service.state(device_id)
     return NativeServerList(
         device_id=device_id,
@@ -76,29 +76,26 @@ async def list_native_slots(
 
 @router.put(
     "/{device_id}/servers/{server_id}",
-    status_code=202,
     response_model=NativeEnableResponse,
     responses={
-        200: {"model": NativeEnableResponse, "description": "Already registered"},
         **_ERRORS,
-        409: {
-            "model": ErrorDetail,
-            "description": "Registered but not usable, or removal pending",
-        },
         502: {
             "model": ErrorDetail,
-            "description": "The speaker did not register the server",
+            "description": "The speaker did not accept the pairing",
         },
     },
 )
 async def enable_native_server(
-    device_id: str, server_id: str, response: Response, service: DlnaNativeServiceDep
+    device_id: str, server_id: str, service: DlnaNativeServiceDep
 ) -> NativeEnableResponse:
-    """Register the media server on the speaker (202), or report the current state (200)."""
-    result = await service.enable(device_id, server_id)
-    if not result.created:
-        response.status_code = 200
-    return NativeEnableResponse(server_id=server_id, state=result.state)
+    """Enable the media server for the speaker and report the resulting state.
+
+    Takes a few seconds when the speaker has to be re-paired; ``unavailable`` means the
+    speaker did not list the server within 15 s (usually it cannot see the server).
+    """
+    return NativeEnableResponse(
+        server_id=server_id, state=await service.enable(device_id, server_id)
+    )
 
 
 @router.delete(
@@ -108,11 +105,11 @@ async def enable_native_server(
         **_ERRORS,
         409: {
             "model": ErrorDetail,
-            "description": "Native presets use the registration",
+            "description": "Native presets use the media server",
         },
         502: {
             "model": ErrorDetail,
-            "description": "The speaker did not remove the server",
+            "description": "A preset slot could not be switched back",
         },
     },
 )
@@ -122,7 +119,7 @@ async def disable_native_server(
     service: DlnaNativeServiceDep,
     force: bool = False,
 ) -> NativeDisableResponse:
-    """Remove the registration; ``force`` first switches native presets back to first-track."""
+    """Stop listing the server; ``force`` first switches native presets back to first-track."""
     return NativeDisableResponse(
         affected_slots=await service.disable(device_id, server_id, force)
     )

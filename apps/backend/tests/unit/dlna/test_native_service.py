@@ -1,4 +1,4 @@
-"""DlnaNativeService: state table, enable, disable (AC-B1..B10)."""
+"""DlnaNativeService: state table, enable (re-pairing), disable (AC-B1..B10)."""
 
 import asyncio
 from types import SimpleNamespace
@@ -25,22 +25,22 @@ STALE = "7b1ae3d5-0f7b-4144-9e40-3f5c9dae6a03"
 
 
 class FakeSpeaker:
-    """Shared in-memory speaker; ``client()`` hands out per-call clients."""
+    """Shared in-memory speaker; ``client()`` hands out per-call clients.
+
+    It lists the media servers OpenCloudTouch has rows for (the speaker reads them from
+    ``/full``): at once, or only after a re-pairing when ``stale`` is set.
+    """
 
     def __init__(self, store):
         self.store = store
-        self.sources: dict[str, str] = {}
+        self.static: dict[str, str] = {}  # accounts listed regardless of OCT rows
         self.calls: list[tuple] = []
-        self.provider_id = 7
-        self.set_error: int | None = None
-        self.remove_error: int | None = None
+        self.stale = False
+        self.paired = False
+        self.sees_servers = True  # False: the speaker cannot reach the media server
+        self.pair_error: int | None = None
+        self.pair_unreachable = False
         self.unreachable = False
-        self.callback = True  # speaker calls Marge during setMusicServiceAccount
-        self.callback_after: float | None = None  # ... or this long after it returned
-        self.list_after_set = (
-            "READY"  # status the account shows afterwards (None: absent)
-        )
-        self.remove_keeps_listed = False
         self.stored: list[dict] = []
         self.store_error = False
 
@@ -55,35 +55,19 @@ class FakeClient:
     async def get_source_list(self):
         if self.s.unreachable:
             raise DeviceConnectionError("dev", "down")
-        return [
-            SpeakerSource("STORED_MUSIC", a, st) for a, st in self.s.sources.items()
-        ]
+        listed = dict(self.s.static)
+        if self.s.sees_servers and (self.s.paired or not self.s.stale):
+            for row in await self.s.store.list_active(DEV):
+                listed[f"{row.server_id}/0"] = "READY"
+        return [SpeakerSource("STORED_MUSIC", a, st) for a, st in listed.items()]
 
-    async def set_music_service_account(self, source, display_name, user):
-        self.s.calls.append(("set", user))
-        if self.s.set_error:
-            raise SpeakerCommandError(self.s.set_error)
-        server_id = user.split("/")[0]
-        if self.s.callback:
-            await self.s.store.upsert(DEV, server_id, display_name, self.s.provider_id)
-        if self.s.callback_after is not None:
-
-            async def late():
-                await asyncio.sleep(self.s.callback_after)
-                await self.s.store.upsert(
-                    DEV, server_id, display_name, self.s.provider_id
-                )
-
-            self.s.late_task = asyncio.create_task(late())
-        if self.s.list_after_set:
-            self.s.sources[user] = self.s.list_after_set
-
-    async def remove_music_service_account(self, source, display_name, user):
-        self.s.calls.append(("remove", user))
-        if self.s.remove_error:
-            raise SpeakerCommandError(self.s.remove_error)
-        if not self.s.remove_keeps_listed:
-            self.s.sources.pop(user, None)
+    async def pair_with_account(self, account_id):
+        self.s.calls.append(("pair", account_id))
+        if self.s.pair_unreachable:
+            raise DeviceConnectionError("dev", "down")
+        if self.s.pair_error:
+            raise SpeakerCommandError(self.s.pair_error)
+        self.s.paired = True
 
     async def store_preset(self, **kwargs):
         if self.s.store_error:
@@ -95,12 +79,17 @@ class FakeClient:
 
 
 class FakeDevices:
-    def __init__(self, known=True):
+    def __init__(self, known=True, account="acct-1"):
         self.known = known
+        self.account = account
 
     async def get_by_device_id(self, device_id):
         return (
-            SimpleNamespace(device_id=device_id, ip="10.0.0.9") if self.known else None
+            SimpleNamespace(
+                device_id=device_id, ip="10.0.0.9", marge_account_uuid=self.account
+            )
+            if self.known
+            else None
         )
 
 
@@ -148,15 +137,14 @@ def speaker(store):
     return FakeSpeaker(store)
 
 
-def make(store, speaker, *, presets=(), servers=None, known=True):
+def make(store, speaker, *, presets=(), servers=None, known=True, account="acct-1"):
     servers = servers if servers is not None else [DlnaServer(SID, "Music", "l", "c")]
     return DlnaNativeService(
         store,
-        FakeDevices(known),
+        FakeDevices(known, account),
         FakeDlna(servers),
         FakePresets(presets),
         client_factory=lambda device: speaker.client(),
-        row_polls=3,
         poll_interval=0.01,
         ready_timeout=0.1,
     )
@@ -172,46 +160,35 @@ def states(report):
 @pytest.mark.parametrize(
     "row, listed, expected",
     [
-        (None, None, NativeState.NOT_REGISTERED),
-        (None, "READY", NativeState.UNMANAGED),
-        (None, "UNAVAILABLE", NativeState.UNMANAGED),
-        ("active7", None, NativeState.UNAVAILABLE),
-        ("active50", None, NativeState.RESTART_REQUIRED),
-        ("active7", "READY", NativeState.READY),
-        ("active50", "ready", NativeState.READY),
-        ("active7", "UNAVAILABLE", NativeState.UNAVAILABLE),
-        ("pending", "READY", NativeState.REMOVAL_PENDING),
-        ("pending", None, NativeState.NOT_REGISTERED),
+        (False, None, NativeState.NOT_ENABLED),
+        (False, "READY", NativeState.NOT_ENABLED),  # the speaker drops it on its sync
+        (True, None, NativeState.UNAVAILABLE),
+        (True, "READY", NativeState.READY),
+        (True, "ready", NativeState.READY),
+        (True, "UNAVAILABLE", NativeState.UNAVAILABLE),
     ],
 )
 async def test_state_table(store, speaker, row, listed, expected):
+    speaker.sees_servers = False
     if row:
-        created = await store.upsert(DEV, SID, "Music", 50 if row == "active50" else 7)
-        if row == "pending":
-            await store.mark_removal_pending(DEV, created.source_id)
+        await store.upsert(DEV, SID, "Music")
     if listed:
-        speaker.sources[ACCOUNT.upper()] = listed  # speakers may report upper case
-    report = await make(store, speaker).state(DEV)
-    entry = states(report)[SID]
+        speaker.static[ACCOUNT.upper()] = listed  # speakers may report upper case
+    entry = states(await make(store, speaker).state(DEV))[SID]
     assert entry.state is expected
     assert entry.server_known is True
-    assert (entry.source_id is not None) == bool(
-        row and not (row == "pending" and not listed)
-    )
-    if row == "pending" and not listed:
-        assert await store.get_by_server(DEV, SID) is None  # deleted by the read
+    assert (entry.source_id is not None) == row
 
 
 async def test_state_lists_stale_rows_and_new_uuid_separately(store, speaker):
-    await store.upsert(DEV, STALE, "Gone", 7)
-    speaker.sources[f"{STALE}/0"] = "READY"
+    await store.upsert(DEV, STALE, "Gone")
     service = make(store, speaker)
     entries = states(await service.state(DEV))
     assert entries[STALE].server_known is False
     assert entries[STALE].name == "Gone"
     assert entries[STALE].state is NativeState.READY
-    assert entries[SID].state is NativeState.NOT_REGISTERED
-    assert speaker.calls == []  # never re-registered or removed automatically
+    assert entries[SID].state is NativeState.NOT_ENABLED
+    assert speaker.calls == []  # never paired or changed automatically
 
 
 async def test_state_speaker_unreadable(store, speaker):
@@ -228,24 +205,39 @@ async def test_state_unknown_device(store, speaker):
 # ---- AC-B2..B6: enable --------------------------------------------------------------
 
 
-async def test_enable_registers_and_reports_ready(store, speaker):
-    result = await make(store, speaker).enable(DEV, SID)
-    assert (result.state, result.created) == (NativeState.READY, True)
-    assert speaker.calls == [("set", ACCOUNT)]
-    assert (await store.get_by_server(DEV, SID)).display_name == "Music"
+async def test_enable_on_an_up_to_date_speaker_does_not_re_pair(store, speaker):
+    assert await make(store, speaker).enable(DEV, SID) is NativeState.READY
+    assert speaker.calls == []
+    row = await store.get_by_server(DEV, SID)
+    assert row.display_name == "Music" and row.source_id >= 20000000
 
 
-async def test_enable_with_stale_provider_asks_for_one_restart(store, speaker):
-    speaker.provider_id = 50
-    speaker.list_after_set = None
-    result = await make(store, speaker).enable(DEV, SID)
-    assert (result.state, result.created) == (NativeState.RESTART_REQUIRED, True)
+async def test_enable_on_a_stale_speaker_re_pairs_once(store, speaker):
+    speaker.stale = True
+    assert await make(store, speaker).enable(DEV, SID) is NativeState.READY
+    assert speaker.calls == [("pair", "acct-1")]
 
 
-async def test_enable_never_listed_ends_unavailable(store, speaker):
-    speaker.list_after_set = None
-    result = await make(store, speaker).enable(DEV, SID)
-    assert result.state is NativeState.UNAVAILABLE
+async def test_re_pairing_falls_back_to_the_device_id_without_an_account(
+    store, speaker
+):
+    speaker.stale = True
+    await make(store, speaker, account=None).enable(DEV, SID)
+    assert speaker.calls == [("pair", DEV)]
+
+
+async def test_enable_when_the_speaker_never_lists_it_ends_unavailable(store, speaker):
+    speaker.sees_servers = False
+    assert await make(store, speaker).enable(DEV, SID) is NativeState.UNAVAILABLE
+    assert speaker.calls == [("pair", "acct-1")]  # once, not repeated while polling
+    assert await store.get_by_server(DEV, SID) is not None
+
+
+async def test_enable_when_ready_changes_nothing(store, speaker):
+    row = await store.upsert(DEV, SID, "Music")
+    assert await make(store, speaker).enable(DEV, SID) is NativeState.READY
+    assert speaker.calls == []
+    assert (await store.get_by_server(DEV, SID)).source_id == row.source_id
 
 
 async def test_enable_check_order_without_speaker_write(store, speaker):
@@ -261,6 +253,7 @@ async def test_enable_check_order_without_speaker_write(store, speaker):
     with pytest.raises(DeviceConnectionError):
         await make(store, speaker).enable(DEV, SID)
     assert speaker.calls == []
+    assert await store.count_for_device(DEV) == 0
 
 
 async def test_enable_rejects_a_server_id_that_is_not_a_uuid(store, speaker):
@@ -273,152 +266,64 @@ async def test_enable_rejects_a_server_id_that_is_not_a_uuid(store, speaker):
     assert speaker.calls == []
 
 
-async def test_enable_speaker_error_deletes_the_row_of_this_request(store, speaker):
-    speaker.set_error = 1022
+async def test_pairing_refused_deletes_the_row_of_this_request(store, speaker):
+    speaker.stale = True
+    speaker.pair_error = 1038
     with pytest.raises(CodedApiError) as err:
         await make(store, speaker).enable(DEV, SID)
     assert (err.value.status_code, err.value.code) == (
         502,
-        error_codes.DLNA_NATIVE_REGISTRATION_FAILED,
+        error_codes.DLNA_NATIVE_SETUP_FAILED,
     )
     assert await store.get_by_server(DEV, SID) is None
 
 
-async def test_enable_error_after_callback_removes_the_created_row(store, speaker):
-    class Failing(FakeClient):
-        async def set_music_service_account(self, source, display_name, user):
-            await self.s.store.upsert(DEV, SID, display_name, 7)
-            raise SpeakerCommandError(1022)
-
-    service = make(store, speaker)
-    service._client_factory = lambda device: Failing(speaker)
+async def test_pairing_refused_keeps_a_row_that_existed(store, speaker):
+    speaker.stale = True
+    speaker.sees_servers = False
+    speaker.pair_error = 1038
+    await store.upsert(DEV, SID, "Music")
     with pytest.raises(CodedApiError):
-        await service.enable(DEV, SID)
+        await make(store, speaker).enable(DEV, SID)
+    assert await store.get_by_server(DEV, SID) is not None
+
+
+async def test_speaker_lost_while_pairing_deletes_the_new_row(store, speaker):
+    speaker.stale = True
+    speaker.pair_unreachable = True
+    with pytest.raises(DeviceConnectionError):
+        await make(store, speaker).enable(DEV, SID)
     assert await store.get_by_server(DEV, SID) is None
 
 
-async def test_enable_without_callback_fails(store, speaker):
-    speaker.callback = False
-    with pytest.raises(CodedApiError) as err:
-        await make(store, speaker).enable(DEV, SID)
-    assert err.value.code == error_codes.DLNA_NATIVE_REGISTRATION_FAILED
-
-
-async def test_callback_after_the_speaker_call_returned(store, speaker):
-    speaker.callback = False
-    speaker.callback_after = 0.015
-    result = await make(store, speaker).enable(DEV, SID)
-    assert result.state is NativeState.READY
-    assert await store.count_for_device(DEV) == 1
-
-
-async def test_enable_unmanaged_adopts_without_speaker_write(store, speaker):
-    speaker.sources[ACCOUNT] = "READY"
-    result = await make(store, speaker).enable(DEV, SID)
-    assert (result.state, result.created) == (NativeState.READY, False)
-    assert speaker.calls == []
-    assert (await store.get_by_server(DEV, SID)) is not None
-
-
-@pytest.mark.parametrize("status", ["READY"])
-async def test_enable_ready_is_idempotent(store, speaker, status):
-    await store.upsert(DEV, SID, "Music", 7)
-    speaker.sources[ACCOUNT] = status
-    result = await make(store, speaker).enable(DEV, SID)
-    assert (result.state, result.created) == (NativeState.READY, False)
-    assert speaker.calls == []
-
-
-async def test_enable_restart_required_is_idempotent(store, speaker):
-    await store.upsert(DEV, SID, "Music", 50)
-    result = await make(store, speaker).enable(DEV, SID)
-    assert (result.state, result.created) == (NativeState.RESTART_REQUIRED, False)
-    assert speaker.calls == []
-
-
-async def test_enable_unavailable_conflicts(store, speaker):
-    await store.upsert(DEV, SID, "Music", 7)
-    speaker.sources[ACCOUNT] = "UNAVAILABLE"
-    with pytest.raises(CodedApiError) as err:
-        await make(store, speaker).enable(DEV, SID)
-    assert (err.value.status_code, err.value.code) == (
-        409,
-        error_codes.DLNA_NATIVE_ALREADY_REGISTERED,
-    )
-
-
-async def test_enable_removal_pending_conflicts(store, speaker):
-    row = await store.upsert(DEV, SID, "Music", 7)
-    await store.mark_removal_pending(DEV, row.source_id)
-    speaker.sources[ACCOUNT] = "READY"
-    with pytest.raises(CodedApiError) as err:
-        await make(store, speaker).enable(DEV, SID)
-    assert (err.value.status_code, err.value.code) == (
-        409,
-        error_codes.DLNA_NATIVE_REMOVAL_PENDING,
-    )
-
-
-async def test_parallel_puts_make_one_speaker_call(store, speaker):
+async def test_parallel_enables_re_pair_once_and_make_one_row(store, speaker):
+    speaker.stale = True
     service = make(store, speaker)
     results = await asyncio.gather(*(service.enable(DEV, SID) for _ in range(4)))
-    assert [r.created for r in results].count(True) == 1
-    assert speaker.calls == [("set", ACCOUNT)]
+    assert set(results) == {NativeState.READY}
+    assert speaker.calls == [("pair", "acct-1")]
     assert await store.count_for_device(DEV) == 1
 
 
-async def test_different_servers_register_independently(store, speaker):
+async def test_different_servers_enable_independently(store, speaker):
     servers = [DlnaServer(SID, "A", "l", "c"), DlnaServer(SID2, "B", "l", "c")]
     service = make(store, speaker, servers=servers)
     await asyncio.gather(service.enable(DEV, SID), service.enable(DEV, SID2))
-    assert sorted(c[1] for c in speaker.calls) == sorted([ACCOUNT, f"{SID2}/0"])
+    assert await store.count_for_device(DEV) == 2
 
 
 # ---- AC-B7..B8: disable -------------------------------------------------------------
 
 
-async def _registered(store, speaker, provider=7):
-    row = await store.upsert(DEV, SID, "Music", provider)
-    speaker.sources[ACCOUNT] = "READY"
-    return row
-
-
-async def test_disable_removes_and_deletes_the_row(store, speaker):
-    await _registered(store, speaker)
+async def test_disable_deletes_the_row_without_a_speaker_call(store, speaker):
+    await store.upsert(DEV, SID, "Music")
     assert await make(store, speaker).disable(DEV, SID) == []
-    assert speaker.calls == [("remove", ACCOUNT)]
+    assert speaker.calls == [] and speaker.stored == []
     assert await store.get_by_server(DEV, SID) is None
-
-
-async def test_disable_1047_counts_as_success(store, speaker):
-    await _registered(store, speaker)
-    speaker.remove_error = 1047
-    speaker.sources.clear()  # 1047: the speaker does not know the account
-    await make(store, speaker).disable(DEV, SID)
-    assert await store.get_by_server(DEV, SID) is None
-
-
-async def test_disable_other_error_keeps_the_row(store, speaker):
-    await _registered(store, speaker)
-    speaker.remove_error = 1000
-    with pytest.raises(CodedApiError) as err:
-        await make(store, speaker).disable(DEV, SID)
-    assert (err.value.status_code, err.value.code) == (
-        502,
-        error_codes.DLNA_NATIVE_REMOVE_FAILED,
-    )
-    assert await store.get_by_server(DEV, SID) is not None
-
-
-async def test_disable_still_listed_becomes_removal_pending(store, speaker):
-    await _registered(store, speaker)
-    speaker.remove_keeps_listed = True
-    await make(store, speaker).disable(DEV, SID)
-    assert (await store.get_by_server(DEV, SID)).removal_pending is True
 
 
 async def test_disable_with_native_presets_needs_force(store, speaker):
-    await _registered(store, speaker)
+    await store.upsert(DEV, SID, "Music")
     service = make(store, speaker, presets=[native_preset(2), native_preset(5, SID2)])
     with pytest.raises(CodedApiError) as err:
         await service.disable(DEV, SID)
@@ -426,7 +331,8 @@ async def test_disable_with_native_presets_needs_force(store, speaker):
         409,
         error_codes.DLNA_NATIVE_IN_USE,
     )
-    assert speaker.calls == [] and speaker.stored == []
+    assert speaker.stored == []
+    assert await store.get_by_server(DEV, SID) is not None
     assert [
         (p.preset_number, p.station_name)
         for p in await service.affected_slots(DEV, SID)
@@ -434,34 +340,47 @@ async def test_disable_with_native_presets_needs_force(store, speaker):
 
 
 async def test_disable_force_rewrites_slots_to_v1_first(store, speaker):
-    await _registered(store, speaker)
+    await store.upsert(DEV, SID, "Music")
     preset = native_preset(2)
     service = make(store, speaker, presets=[preset])
     assert await service.disable(DEV, SID, force=True) == [2]
     assert speaker.stored[0]["preset_number"] == 2
     assert speaker.stored[0]["dlna_reference"].server_id == SID
     assert preset.native_type is None
-    assert speaker.calls == [("remove", ACCOUNT)]
+    assert await store.get_by_server(DEV, SID) is None
 
 
-async def test_disable_force_failing_rewrite_keeps_registration(store, speaker):
-    await _registered(store, speaker)
+async def test_disable_force_failing_rewrite_keeps_the_row(store, speaker):
+    await store.upsert(DEV, SID, "Music")
     speaker.store_error = True
     service = make(store, speaker, presets=[native_preset(2)])
     with pytest.raises(CodedApiError) as err:
         await service.disable(DEV, SID, force=True)
     assert err.value.code == error_codes.DLNA_NATIVE_REMOVE_FAILED
-    assert speaker.calls == []
     assert await store.get_by_server(DEV, SID) is not None
 
 
 async def test_disable_stale_row_is_possible(store, speaker):
-    await store.upsert(DEV, STALE, "Gone", 7)
-    speaker.sources[f"{STALE}/0"] = "READY"
+    await store.upsert(DEV, STALE, "Gone")
     await make(store, speaker).disable(DEV, STALE)
     assert await store.get_by_server(DEV, STALE) is None
 
 
-async def test_disable_unknown_registration_is_a_noop(store, speaker):
+async def test_disable_unknown_server_is_a_noop(store, speaker):
     assert await make(store, speaker).disable(DEV, SID) == []
     assert speaker.calls == []
+
+
+# ---- native_ready (used by the preset write) -----------------------------------------
+
+
+async def test_native_ready_needs_a_row_and_a_ready_listing(store, speaker):
+    service = make(store, speaker)
+    assert await service.native_ready(DEV, SID) is False  # no row
+    await store.upsert(DEV, SID, "Music")
+    assert await service.native_ready(DEV, SID.upper()) is True
+    speaker.sees_servers = False
+    assert await service.native_ready(DEV, SID) is False  # row, not listed
+    speaker.unreachable = True
+    with pytest.raises(DeviceConnectionError):
+        await service.native_ready(DEV, SID)
