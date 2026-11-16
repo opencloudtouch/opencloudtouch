@@ -122,6 +122,34 @@ async def test_mock_capabilities_return_none_on_bass_probe_failure(monkeypatch):
     assert flags is None
 
 
+@pytest.mark.asyncio
+async def test_bass_probe_exception_logs_debug_without_traceback(monkeypatch, caplog):
+    """Unsupported bass probes preserve stored capabilities without ERROR logs."""
+    import logging
+
+    monkeypatch.setenv("OCT_MOCK_MODE", "true")
+    client = MockDeviceClient("AABBCC112233")
+
+    async def unsupported_bass_probe():
+        raise ValueError("Invalid /bassCapabilities response")
+
+    monkeypatch.setattr(client, "get_bass_capabilities", unsupported_bass_probe)
+
+    with caplog.at_level(logging.DEBUG):
+        flags = await original_fetch_capabilities("192.168.1.100", client)
+
+    assert flags is None
+    records = [
+        record
+        for record in caplog.records
+        if "bass capabilities" in record.getMessage().lower()
+    ]
+    assert len(records) == 1
+    assert records[0].levelno == logging.DEBUG
+    assert records[0].exc_info is None
+    assert not any(record.levelno >= logging.ERROR for record in caplog.records)
+
+
 class TestDeviceSyncService:
     """Test suite for DeviceSyncService."""
 

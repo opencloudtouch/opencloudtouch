@@ -24,8 +24,9 @@ from opencloudtouch.devices.client_adapter import BoseDeviceClientAdapter
 
 def _make_client(base_url: str = "http://192.168.1.100:8090"):
     """Create BoseDeviceClientAdapter with mocked BoseClient."""
-    with patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"), patch(
-        "opencloudtouch.devices.client_adapter.BoseClient"
+    with (
+        patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"),
+        patch("opencloudtouch.devices.client_adapter.BoseClient"),
     ):
         return BoseDeviceClientAdapter(base_url)
 
@@ -50,8 +51,9 @@ class TestBoseDeviceClientAdapterInit:
 
     def test_init_custom_timeout(self):
         """Custom timeout is stored."""
-        with patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"), patch(
-            "opencloudtouch.devices.client_adapter.BoseClient"
+        with (
+            patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"),
+            patch("opencloudtouch.devices.client_adapter.BoseClient"),
         ):
             client = BoseDeviceClientAdapter("http://192.168.1.100:8090", timeout=10.0)
         assert client.timeout == 10.0
@@ -362,6 +364,96 @@ class TestBass:
         assert result.minimum == -9
         assert result.maximum == 0
         assert result.default == 0
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            "",
+            "<bassCapabilities><bassAvailable>false</bassAvailable></bassCapabilities>",
+        ],
+    )
+    async def test_unsupported_bass_capabilities_return_unavailable(
+        self, respx_mock, caplog, payload
+    ):
+        """Unsupported HTTP 200 responses disable bass without ERROR logs."""
+        import logging
+
+        respx_mock.get("http://192.168.1.100:8090/bassCapabilities").mock(
+            return_value=httpx.Response(200, text=payload)
+        )
+        with caplog.at_level(logging.DEBUG):
+            result = await _make_client().get_bass_capabilities()
+
+        assert result == BassCapabilities(
+            available=False, minimum=0, maximum=0, default=0
+        )
+        assert not any(record.levelno >= logging.ERROR for record in caplog.records)
+        assert not any(record.exc_info for record in caplog.records)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            "<bassCapabilities />",
+            "<bassCapabilities><bassAvailable>unknown</bassAvailable></bassCapabilities>",
+            (
+                "<bassCapabilities><bassAvailable>true</bassAvailable>"
+                "<bassMin>10</bassMin><bassMax>0</bassMax>"
+                "<bassDefault>5</bassDefault></bassCapabilities>"
+            ),
+            "<error>Unsupported operation</error>",
+            "Not supported",
+            "<html><body>Proxy error</body></html>",
+            "<bassCapabilities><bassAvailable>true</bassAvailable>",
+            "<bassCapabilities><bassAvailable>true</bassAvailable></bassCapabilities>",
+            (
+                "<bassCapabilities><bassAvailable>true</bassAvailable>"
+                "<bassMin>-9</bassMin><bassMax>oops</bassMax>"
+                "<bassDefault>0</bassDefault></bassCapabilities>"
+            ),
+        ],
+    )
+    async def test_malformed_bass_capabilities_preserve_existing(
+        self, respx_mock, caplog, payload
+    ):
+        """Malformed responses are failures, not proof that bass is unsupported."""
+        import logging
+
+        respx_mock.get("http://192.168.1.100:8090/bassCapabilities").mock(
+            return_value=httpx.Response(200, text=payload)
+        )
+        with caplog.at_level(logging.DEBUG):
+            with pytest.raises(DeviceConnectionError):
+                await _make_client().get_bass_capabilities()
+
+        assert any(
+            "preserving stored capabilities" in record.getMessage()
+            for record in caplog.records
+        )
+        assert not any(record.levelno >= logging.ERROR for record in caplog.records)
+        assert not any(record.exc_info for record in caplog.records)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "error", [httpx.ConnectError("offline"), httpx.ReadTimeout("timeout")]
+    )
+    async def test_bass_capabilities_connection_error(self, respx_mock, error):
+        """Network failures propagate without marking bass unsupported."""
+        respx_mock.get("http://192.168.1.100:8090/bassCapabilities").mock(
+            side_effect=error
+        )
+        with pytest.raises(DeviceConnectionError):
+            await _make_client().get_bass_capabilities()
+
+    @pytest.mark.asyncio
+    async def test_bass_capabilities_http_error_preserves_failure(self, respx_mock):
+        """HTTP failures are not interpreted as lack of bass support."""
+        respx_mock.get("http://192.168.1.100:8090/bassCapabilities").mock(
+            return_value=httpx.Response(503)
+        )
+        with pytest.raises(DeviceConnectionError):
+            await _make_client().get_bass_capabilities()
 
     @pytest.mark.asyncio
     async def test_set_bass_posts_xml(self, respx_mock):
