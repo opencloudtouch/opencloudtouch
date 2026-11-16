@@ -297,6 +297,8 @@ def _find_preset_value(presets, station_name: str, attr: str) -> str | None:
     """Value of ``attr`` of the first preset with this station name, if it has one."""
     station_lower = station_name.casefold()
     for preset in presets:
+        if attr == "station_url" and preset.source == "DLNA":
+            continue  # a ``dlna://`` reference is not a stream URL
         if preset.station_name and preset.station_name.casefold() == station_lower:
             value = getattr(preset, attr, None)
             if value:

@@ -618,8 +618,10 @@ async def get_now_playing(
 
     # Enrich from preset DB and ICY metadata for radio sources
     matched_preset = await _enrich_from_presets(result, info, device_id, preset_service)
-    if matched_preset and (
-        not info.artist or not info.track or not result["artwork_url"]
+    if (
+        matched_preset
+        and matched_preset.source != "DLNA"  # no stream URL to read ICY metadata from
+        and (not info.artist or not info.track or not result["artwork_url"])
     ):
         await _enrich_from_icy(
             result,

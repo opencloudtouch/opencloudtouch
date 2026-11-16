@@ -25,6 +25,8 @@ from fastapi import Path as FastAPIPath
 from fastapi.responses import PlainTextResponse
 
 from opencloudtouch.core.dependencies import get_preset_service
+from opencloudtouch.core.exceptions import CodedApiError
+from opencloudtouch.presets.api.dlna_guard import reject_dlna_preset
 from opencloudtouch.presets.service import PresetService
 
 logger = logging.getLogger(__name__)
@@ -64,6 +66,7 @@ async def _get_preset_content(
             detail=f"Preset {preset_number} not configured for device {device_id}",
         )
 
+    reject_dlna_preset(preset)
     stream_url = preset.station_url
     if not stream_url:
         logger.error(
@@ -144,7 +147,7 @@ async def get_playlist_m3u(
             },
         )
 
-    except HTTPException:
+    except (HTTPException, CodedApiError):
         raise
     except Exception as e:
         logger.error(
@@ -234,7 +237,7 @@ async def get_playlist_pls(
             },
         )
 
-    except HTTPException:
+    except (HTTPException, CodedApiError):
         raise
     except Exception as e:
         logger.error(

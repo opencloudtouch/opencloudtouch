@@ -16,6 +16,10 @@ import logging
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from opencloudtouch.core.dlna_reference import DlnaReference, parse_orion_data
+from opencloudtouch.dlna.client import DlnaBrowseError
+from opencloudtouch.dlna.errors import classify
+from opencloudtouch.dlna.service import PRESS_RESOLVE_BUDGET, DlnaNotPlayableError
 from opencloudtouch.bmx.models import (
     BmxAudio,
     BmxPlaybackResponse,
@@ -227,6 +231,11 @@ async def custom_stream_playback(request: Request) -> JSONResponse:
             headers={"Access-Control-Allow-Origin": "*"},
         )
 
+    # DLNA presets carry a reference only: resolved now, never logged (tokens in URLs).
+    dlna = parse_orion_data(data)
+    if dlna is not None:
+        return await _dlna_playback(request, *dlna)
+
     try:
         # Decode base64 data
         json_str = base64.urlsafe_b64decode(data).decode("utf-8")
@@ -248,30 +257,7 @@ async def custom_stream_playback(request: Request) -> JSONResponse:
 
         logger.info("[BMX ORION] Custom stream: %s → %s", name, stream_url)
 
-        stream = BmxStream(streamUrl=stream_url)
-        audio = BmxAudio(streamUrl=stream_url, streams=[stream])
-
-        # Add critical links
-        base_url = get_oct_base_url()
-        links = {
-            "bmx_nowplaying": {
-                "href": f"{base_url}/bmx/orion/now-playing",
-                "useInternalClient": "ALWAYS",
-            },
-            "bmx_reporting": {"href": f"{base_url}/bmx/orion/reporting"},
-        }
-
-        response = BmxPlaybackResponse(
-            audio=audio,
-            links=links,
-            imageUrl=image_url,
-            name=name,
-        )
-
-        return JSONResponse(
-            content=response.model_dump(by_alias=True),
-            headers={"Access-Control-Allow-Origin": "*"},
-        )
+        return _orion_playback_response(stream_url, image_url, name)
 
     except Exception as e:
         logger.exception("[BMX ORION] Error: %s", e)
@@ -280,6 +266,72 @@ async def custom_stream_playback(request: Request) -> JSONResponse:
             status_code=500,
             headers={"Access-Control-Allow-Origin": "*"},
         )
+
+
+def _orion_playback_response(
+    stream_url: str, image_url: str, name: str
+) -> JSONResponse:
+    """Playback answer of the Orion adapter for one stream URL."""
+    stream = BmxStream(streamUrl=stream_url)
+    audio = BmxAudio(streamUrl=stream_url, streams=[stream])
+
+    # Add critical links
+    base_url = get_oct_base_url()
+    links = {
+        "bmx_nowplaying": {
+            "href": f"{base_url}/bmx/orion/now-playing",
+            "useInternalClient": "ALWAYS",
+        },
+        "bmx_reporting": {"href": f"{base_url}/bmx/orion/reporting"},
+    }
+
+    response = BmxPlaybackResponse(
+        audio=audio,
+        links=links,
+        imageUrl=image_url,
+        name=name,
+    )
+
+    return JSONResponse(
+        content=response.model_dump(by_alias=True),
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+
+async def _dlna_playback(
+    request: Request, ref: DlnaReference, stored_name: str
+) -> JSONResponse:
+    """Resolve a DLNA reference at press time (cache-only, 3 s budget).
+
+    Nothing from the request is used as a URL, and neither titles nor URLs are logged.
+    """
+    headers = {"Access-Control-Allow-Origin": "*"}
+    try:
+        resolved = await request.app.state.dlna_service.resolve_playable(
+            ref.server_id,
+            ref.object_id,
+            cache_only=True,
+            deadline=PRESS_RESOLVE_BUDGET,
+        )
+    except (LookupError, DlnaBrowseError, DlnaNotPlayableError) as exc:
+        status, code, detail = classify(exc, press=True)
+        logger.warning("[BMX ORION] DLNA press failed: %s", code)
+        return JSONResponse(
+            content={"error": detail, "code": code},
+            status_code=status,
+            headers=headers,
+        )
+    except Exception:  # noqa: BLE001 - the message of an unknown error may hold URLs
+        logger.error("[BMX ORION] DLNA press failed unexpectedly")
+        return JSONResponse(
+            content={"error": "DLNA playback failed"}, status_code=500, headers=headers
+        )
+
+    return _orion_playback_response(
+        convert_https_to_http(resolved.resource_url),
+        resolved.album_art_url or "",
+        resolved.title or stored_name,
+    )
 
 
 async def _resolve_tunein_for_orion(tunein_id: str) -> JSONResponse:

@@ -8,6 +8,7 @@ from typing import Any
 from xml.etree import ElementTree as ET
 
 from opencloudtouch.core.config import get_config
+from opencloudtouch.core.dlna_reference import build_orion_location, from_station_url
 from opencloudtouch.core.source_types import BASE_SOURCES
 
 logger = logging.getLogger(__name__)
@@ -55,6 +56,9 @@ def build_preset_xml(preset: Any) -> ET.Element:
         # RadioBrowser preset (real format)
         preset_id = str(preset.preset_number)
         source = getattr(preset, "source", None) or "LOCAL_INTERNET_RADIO"
+        dlna_ref = (
+            from_station_url(preset.station_url) if source == "DLNA" else None
+        )
         if source not in _sources_by_name():
             # e.g. INTERNET_RADIO imported from a speaker: without a known <source>
             # the speaker drops the preset; the Orion location plays it anyway.
@@ -71,6 +75,11 @@ def build_preset_xml(preset: Any) -> ET.Element:
                     preset_id,
                     location[:80],
                 )
+        elif dlna_ref is not None:
+            # A reference, never ``streamUrl=dlna://...``: OCT resolves it on press.
+            location = build_orion_location(
+                get_config().station_descriptor_base_url, dlna_ref, name
+            )
         else:
             location = _build_orion_location(preset.station_url, name, image_url)
 
