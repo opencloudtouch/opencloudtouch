@@ -14,6 +14,15 @@ if TYPE_CHECKING:
     from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
 
 
+@dataclass(frozen=True)
+class NativeContentItem:
+    """A media-server item stored natively: ``STORED_MUSIC`` + ``<uuid>/0`` account."""
+
+    source_account: str
+    location: str
+    item_type: str  # "dir" or "track"
+
+
 @dataclass
 class DeviceInfo:
     """Device information from /info endpoint."""
@@ -203,6 +212,7 @@ class DeviceClient(ABC):
         station_image_url: str = "",
         station_uuid: str = "",
         dlna_reference: DlnaReference | None = None,
+        native_item: NativeContentItem | None = None,
     ) -> None:
         """
         Store a preset on the Bose device.
@@ -216,6 +226,7 @@ class DeviceClient(ABC):
             station_image_url: Optional station logo URL
             station_uuid: Optional station ID (used for TuneIn dynamic resolution)
             dlna_reference: DLNA object stored as a reference instead of a stream URL
+            native_item: media-server item stored as a native STORED_MUSIC item
         """
         pass
 

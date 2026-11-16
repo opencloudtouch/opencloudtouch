@@ -14,6 +14,7 @@ from opencloudtouch.devices.client import (
     BassInfo,
     DeviceClient,
     DeviceInfo,
+    NativeContentItem,
     NowPlayingInfo,
     SpeakerCommandError,
     SpeakerSource,
@@ -278,6 +279,7 @@ class MockDeviceClient(DeviceClient):
         station_image_url: str = "",
         station_uuid: str = "",
         dlna_reference: DlnaReference | None = None,
+        native_item: NativeContentItem | None = None,
     ) -> None:
         """Mock store preset (no-op for testing, but enforces the DLNA length cap)."""
         if dlna_reference is not None:
@@ -285,9 +287,8 @@ class MockDeviceClient(DeviceClient):
                 oct_backend_url, dlna_reference, station_name, enforce_limit=True
             )
         logger.info(  # NOSONAR — internal IDs for debug
-            "[MOCK] store_preset(%d, %s) for device %s",
+            "[MOCK] store_preset(%d) for device %s",
             preset_number,
-            station_name,
             device_id,
         )
 

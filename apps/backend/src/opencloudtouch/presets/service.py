@@ -14,9 +14,11 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
 
+from opencloudtouch.core import dlna_reference
 from opencloudtouch.core.dlna_reference import (
     DLNA_NAME_MAX,
     DlnaReference,
+    native_location,
     to_station_url,
 )
 from opencloudtouch.core.dlna_reference import (
@@ -24,12 +26,14 @@ from opencloudtouch.core.dlna_reference import (
 )
 from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
 from opencloudtouch.devices.repository import DeviceRepository
+from opencloudtouch.devices.client import NativeContentItem
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.parser import DevicePresetParser
 from opencloudtouch.presets.repository import PresetRepository
 
 if TYPE_CHECKING:
+    from opencloudtouch.dlna.native_service import DlnaNativeService
     from opencloudtouch.dlna.service import DlnaService
 
 logger = logging.getLogger(__name__)
@@ -54,6 +58,8 @@ class PresetService:
         self.repository = repository
         self.device_repository = device_repository
         self._parser = DevicePresetParser()
+        # Set by the application wiring; without it every DLNA preset uses the v1 path.
+        self.native_service: "DlnaNativeService | None" = None
 
     @staticmethod
     async def _validate_stream_url(
@@ -221,7 +227,8 @@ class PresetService:
         station_name: str,
         station_url: str,
         station_favicon: Optional[str],
-        dlna_reference: DlnaReference | None = None,
+        dlna_ref: DlnaReference | None = None,
+        native_item: NativeContentItem | None = None,
     ) -> None:
         """Program a slot on the speaker (raises DeviceConnectionError if unreachable)."""
         device = await self.device_repository.get_by_device_id(device_id)
@@ -233,6 +240,7 @@ class PresetService:
 
         base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
         client = get_device_client(base_url)
+        extra = {"native_item": native_item} if native_item else {}
         try:
             await client.store_preset(
                 device_id=device_id,
@@ -242,13 +250,12 @@ class PresetService:
                 oct_backend_url=get_config().station_descriptor_base_url,
                 station_image_url=station_favicon or "",
                 station_uuid=station_uuid,
-                dlna_reference=dlna_reference,
+                dlna_reference=dlna_ref,
+                **extra,
             )
         finally:
             await client.close()
-        logger.info(
-            "Bose device programmed: Preset %d = %s", preset_number, station_name
-        )
+        logger.info("Bose device programmed: preset %d", preset_number)
 
     async def set_dlna_preset(
         self,
@@ -258,10 +265,13 @@ class PresetService:
         object_id: str,
         dlna_service: "DlnaService",
     ) -> Preset:
-        """Store a DLNA object as a preset (reference only, resolved at press time).
+        """Store a DLNA object as a preset.
 
-        Title and cover come from the media server, never from the caller. Same order
-        and error behaviour as ``set_preset``: speaker first, then the database.
+        A folder (a track only once ``NATIVE_TRACK_PRESETS_VERIFIED``) whose server is
+        READY on the speaker becomes a native STORED_MUSIC item; every other case stores
+        the reference that is resolved at press time (v1). Title and cover come from the
+        media server, never from the caller. Same order and error behaviour as
+        ``set_preset``: speaker first, then the database.
 
         Raises:
             DeviceNotFoundError: unknown device
@@ -280,8 +290,22 @@ class PresetService:
             cache_only=False,
             deadline=get_config().dlna_timeout,
         )
-        ref = DlnaReference(server_id, object_id)
         name = resolved.title[:DLNA_NAME_MAX]
+        item_type = "dir" if resolved.is_container else "track"
+        native = (
+            self.native_service is not None
+            and (resolved.is_container or dlna_reference.NATIVE_TRACK_PRESETS_VERIFIED)
+            and await self.native_service.native_ready(device_id, server_id)
+        )
+        native_item: NativeContentItem | None = None
+        if native:
+            # The registered account is the lower-case UUID; the DB identity follows it.
+            ref = DlnaReference(server_id.lower(), object_id)
+            native_item = NativeContentItem(
+                f"{ref.server_id}/0", native_location(object_id, item_type), item_type
+            )
+        else:
+            ref = DlnaReference(server_id, object_id)
         uuid, url = dlna_station_uuid(ref), to_station_url(ref)
         await self._program_speaker(
             device_id,
@@ -290,7 +314,8 @@ class PresetService:
             name,
             url,
             resolved.album_art_url,
-            dlna_reference=ref,
+            dlna_ref=None if native_item else ref,
+            native_item=native_item,
         )
         return await self.repository.set_preset(
             Preset(
@@ -301,6 +326,7 @@ class PresetService:
                 station_url=url,
                 station_favicon=resolved.album_art_url,
                 source="DLNA",
+                native_type=item_type if native_item else None,
             )
         )
 

@@ -11,6 +11,7 @@ from opencloudtouch.core.config import get_config
 from opencloudtouch.core.dlna_reference import (
     build_orion_location,
     from_station_url,
+    native_location,
     server_id_from_account,
 )
 from opencloudtouch.core.source_types import BASE_SOURCES, source_type_for_streaming_id
@@ -91,7 +92,8 @@ def build_preset_xml(
                     location[:80],
                 )
         elif dlna_ref is not None and native_row is not None:
-            source, location = "STORED_MUSIC", dlna_ref.object_id
+            source = "STORED_MUSIC"
+            location = native_location(dlna_ref.object_id, preset.native_type)
             item_type, account = preset.native_type, native_row.account
         elif dlna_ref is not None:
             # A reference, never ``streamUrl=dlna://...``: OCT resolves it on press.

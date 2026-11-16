@@ -92,6 +92,13 @@ class Preset:
             "station_favicon": self.station_favicon,
             "source": self.source,
             "native_type": self.native_type,
+            "dlna_playback": (
+                None
+                if self.source != "DLNA"
+                else "native"
+                if self.native_type
+                else "reference"
+            ),
             "dlna": (
                 {"server_id": ref.server_id, "object_id": ref.object_id}
                 if (ref := self.dlna_reference)

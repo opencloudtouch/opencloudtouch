@@ -1,7 +1,7 @@
 """FastAPI routes for preset management."""
 
 import logging
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Path as FastAPIPath
@@ -77,6 +77,14 @@ class PresetResponse(BaseModel):
     dlna: Optional[DlnaRef] = Field(
         None, description="DLNA object of a DLNA preset, null otherwise"
     )
+    dlna_playback: Optional[Literal["native", "reference"]] = Field(
+        None,
+        description=(
+            "How a DLNA preset plays: 'native' (the speaker plays the folder itself) or "
+            "'reference' (OpenCloudTouch resolves the first track on press); "
+            "null for other presets"
+        ),
+    )
     created_at: str
     updated_at: str
 
@@ -141,10 +149,12 @@ async def set_dlna_preset(
     dlna_service: DlnaServiceDep,
     preset_service: PresetService = Depends(get_preset_service),
 ) -> PresetResponse:
-    """Assign a DLNA track (or the first track of a folder) to a preset button.
+    """Assign a DLNA track or folder to a preset button.
 
-    Only the media server reference is stored; the playback URL is resolved from the
-    server each time the button is pressed.
+    A folder whose media server is enabled (READY) on the speaker is stored as a native
+    STORED_MUSIC item (whole folder with queue, no OpenCloudTouch needed); otherwise only
+    the media server reference is stored and resolved at each press (first track).
+    The response field ``dlna_playback`` tells which one was written.
     """
     failure: tuple[int, str, str] | None = None
     try:

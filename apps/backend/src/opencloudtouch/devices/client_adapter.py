@@ -30,6 +30,7 @@ from opencloudtouch.devices.client import (
     BassInfo,
     DeviceClient,
     DeviceInfo,
+    NativeContentItem,
     NowPlayingInfo,
     VolumeInfo,
 )
@@ -37,6 +38,11 @@ from opencloudtouch.devices.models import SELECTABLE_SOURCES
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
 
 logger = logging.getLogger(__name__)
+
+
+def _attr(value: str) -> str:
+    """Escape a value for a double-quoted XML attribute."""
+    return xml_escape(value, {'"': "&quot;"})
 
 
 class BoseDeviceClientAdapter(DeviceClient):
@@ -246,6 +252,7 @@ class BoseDeviceClientAdapter(DeviceClient):
         station_image_url: str,
         station_uuid: str,
         dlna_reference: DlnaReference | None = None,
+        native_item: NativeContentItem | None = None,
     ) -> str:
         """Build XML payload for the /storePreset endpoint.
 
@@ -256,6 +263,22 @@ class BoseDeviceClientAdapter(DeviceClient):
             XML string for POST /storePreset.
         """
         # Per-source branch: a DLNA reference never carries a URL or a TuneIn id.
+        if native_item is not None:
+            art = (
+                f"<containerArt>{xml_escape(station_image_url)}</containerArt>"
+                if station_image_url
+                else ""
+            )
+            return (
+                f'<preset id="{preset_number}" createdOn="0" updatedOn="0">'
+                f'<ContentItem source="STORED_MUSIC" '
+                f'type="{_attr(native_item.item_type)}" '
+                f'location="{_attr(native_item.location)}" '
+                f'sourceAccount="{_attr(native_item.source_account)}" '
+                f'isPresetable="true">'
+                f"<itemName>{xml_escape(station_name)}</itemName>{art}"
+                f"</ContentItem></preset>"
+            )
         if dlna_reference is not None:
             orion_url = build_orion_location(
                 oct_backend_url, dlna_reference, station_name, enforce_limit=True
@@ -300,6 +323,7 @@ class BoseDeviceClientAdapter(DeviceClient):
         station_image_url: str = "",
         station_uuid: str = "",
         dlna_reference: DlnaReference | None = None,
+        native_item: NativeContentItem | None = None,
     ) -> None:
         """
         Store a preset on the Bose device using LOCAL_INTERNET_RADIO + Orion adapter.
@@ -316,6 +340,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             station_image_url: Optional station logo URL
             station_uuid: Optional station UUID for TuneIn fallback
             dlna_reference: DLNA object to store as a reference (no stream URL)
+            native_item: media-server item stored as native STORED_MUSIC (no Orion URL)
 
         Raises:
             DeviceConnectionError: If device is unreachable
@@ -334,9 +359,9 @@ class BoseDeviceClientAdapter(DeviceClient):
             station_image_url,
             station_uuid,
             dlna_reference,
+            native_item,
         )
         try:
-
             logger.info(
                 "Storing preset %d on %s",
                 preset_number,

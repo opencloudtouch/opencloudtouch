@@ -231,6 +231,7 @@ async def _init_services(
             )
 
         MockDeviceClient.on_register = _speaker_callback
+    app.state.preset_service.native_service = app.state.dlna_native_service
     logger.info("DlnaNativeService initialized")
 
     # Zone service (with injected client factory to avoid circular deps)
