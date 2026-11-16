@@ -47,10 +47,27 @@ OpenCloudTouch discovers UPnP/DLNA media servers (SSDP) and browses their Conten
 
 Titles and URLs are not written to logs or error messages.
 
+## Native media server on a speaker
+
+A speaker can play a media server by itself (source `STORED_MUSIC`). OpenCloudTouch registers the server on the speaker with `setMusicServiceAccount` (account `<server UUID>/0`); the speaker then calls the Marge emulation to create the registration row. The registration is per speaker and per media server and never happens automatically. Only media servers whose id is a UUID can be registered.
+
+| State | Meaning |
+|---|---|
+| `not_registered` | Not registered on this speaker. |
+| `unmanaged` | The speaker lists the account but OpenCloudTouch has no row (database reset or registered by another client). Enabling adopts it without calling the speaker again. |
+| `restart_required` | The speaker sent the old provider id 50 (it cached an earlier provider list) and does not list the account yet. Restart this speaker once with `POST /api/devices/{id}/reboot` or switch it off and on at the power supply; the estimated restart time is 1-2 minutes. OpenCloudTouch never restarts a speaker itself. |
+| `ready` | The speaker lists the account as `READY`. |
+| `unavailable` | Registered but not usable (listed with another status, or not listed after 30 s). Remove it and register again; OpenCloudTouch never re-registers on its own. |
+| `removal_pending` | The speaker was told to remove the account but still lists it; the removal finishes with a restart. |
+
+The state comes from the speaker's live source list. Registration is `PUT /api/dlna/native/{device_id}/servers/{server_id}` (`202` after registering, `200` with the current state when nothing had to be done; it waits up to 30 s for `ready`). A second server on the same speaker normally becomes `ready` within seconds and needs no restart. `DELETE` removes the registration; when native presets use it the call answers `409 dlna_native_in_use` unless `?force=true`, which first switches those slots back to first-track playback. `GET /api/dlna/native?device_id=` lists every discovered server and every registration; a registration whose server is no longer discovered shows `server_known=false` and can be deleted. The speaker answering `1047` on removal (account unknown) counts as removed.
+
+Registrations are stored in the table `media_server_sources`; downgrading OpenCloudTouch is not supported. Requests for the same speaker and server are serialised by a lock inside the single backend process.
+
 ## Timeouts
 
 Connecting times out after 3 s. `OCT_DLNA_TIMEOUT` (default 15 s, 1-60) is the read timeout and also the total deadline of one operation. See [CONFIGURATION.md](CONFIGURATION.md).
 
 ## Mock mode
 
-With `OCT_MOCK_MODE=true` a fake server "Mock Media Server" is used (no network): folder `Music` with 120 tracks, `Albums` three folder levels deep, `Mixed` with a non-audio item and a `file://` cover, and `Many Folders` whose first 60 entries are folders.
+With `OCT_MOCK_MODE=true` a fake server "Mock Media Server" is used (no network; a second fake server with a UUID id can be registered natively, and a registration becomes `ready` without a restart): folder `Music` with 120 tracks, `Albums` three folder levels deep, `Mixed` with a non-audio item and a `file://` cover, and `Many Folders` whose first 60 entries are folders.

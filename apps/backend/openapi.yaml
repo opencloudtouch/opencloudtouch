@@ -197,6 +197,208 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/native:
+    get:
+      tags:
+      - dlna
+      summary: List Native Servers
+      description: Every discovered media server and every registration, with its
+        state on this speaker.
+      operationId: list_native_servers_api_dlna_native_get
+      parameters:
+      - name: device_id
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NativeServerList'
+        '404':
+          description: Device or media server not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '503':
+          description: Speaker unreachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/native/{device_id}/servers/{server_id}/presets:
+    get:
+      tags:
+      - dlna
+      summary: List Native Slots
+      description: Native presets of the speaker that use this media server.
+      operationId: list_native_slots_api_dlna_native__device_id__servers__server_id__presets_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: server_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Server Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NativeSlotList'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/native/{device_id}/servers/{server_id}:
+    put:
+      tags:
+      - dlna
+      summary: Enable Native Server
+      description: Register the media server on the speaker (202), or report the current
+        state (200).
+      operationId: enable_native_server_api_dlna_native__device_id__servers__server_id__put
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: server_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Server Id
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NativeEnableResponse'
+        '200':
+          description: Already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NativeEnableResponse'
+        '404':
+          description: Device or media server not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '503':
+          description: Speaker unreachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '409':
+          description: Registered but not usable, or removal pending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '502':
+          description: The speaker did not register the server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - dlna
+      summary: Disable Native Server
+      description: Remove the registration; ``force`` first switches native presets
+        back to first-track.
+      operationId: disable_native_server_api_dlna_native__device_id__servers__server_id__delete
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: server_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Server Id
+      - name: force
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Force
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NativeDisableResponse'
+        '404':
+          description: Device or media server not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '503':
+          description: Speaker unreachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '409':
+          description: Native presets use the registration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '502':
+          description: The speaker did not remove the server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/devices:
     get:
       tags:
@@ -4874,6 +5076,104 @@ components:
       - device_ids
       title: ModifyMembersRequest
       description: Request to add or remove zone members.
+    NativeDisableResponse:
+      properties:
+        affected_slots:
+          items:
+            type: integer
+          type: array
+          title: Affected Slots
+      type: object
+      required:
+      - affected_slots
+      title: NativeDisableResponse
+    NativeEnableResponse:
+      properties:
+        server_id:
+          type: string
+          title: Server Id
+        state:
+          $ref: '#/components/schemas/NativeState'
+      type: object
+      required:
+      - server_id
+      - state
+      title: NativeEnableResponse
+    NativeServer:
+      properties:
+        server_id:
+          type: string
+          title: Server Id
+        name:
+          type: string
+          title: Name
+        state:
+          $ref: '#/components/schemas/NativeState'
+        server_known:
+          type: boolean
+          title: Server Known
+        source_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Source Id
+      type: object
+      required:
+      - server_id
+      - name
+      - state
+      - server_known
+      - source_id
+      title: NativeServer
+    NativeServerList:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+        servers:
+          items:
+            $ref: '#/components/schemas/NativeServer'
+          type: array
+          title: Servers
+      type: object
+      required:
+      - device_id
+      - servers
+      title: NativeServerList
+    NativeSlot:
+      properties:
+        preset_number:
+          type: integer
+          title: Preset Number
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - preset_number
+      - name
+      title: NativeSlot
+    NativeSlotList:
+      properties:
+        slots:
+          items:
+            $ref: '#/components/schemas/NativeSlot'
+          type: array
+          title: Slots
+      type: object
+      required:
+      - slots
+      title: NativeSlotList
+    NativeState:
+      type: string
+      enum:
+      - not_registered
+      - unmanaged
+      - restart_required
+      - ready
+      - unavailable
+      - removal_pending
+      title: NativeState
     NtpPatchRequest:
       properties:
         device_ip:

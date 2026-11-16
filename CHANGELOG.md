@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The Marge emulation registers DLNA media servers as native `STORED_MUSIC` sources: `POST`/`DELETE /streaming/account/{id}/source`, per-server sources in `/full`, and the speaker's numeric source ids are mapped back to `STORED_MUSIC` when it reports presets and recents; a new table `media_server_sources` and a `presets.native_type` column are added by migration (downgrade is not supported)
 
+- Native playback of a media server on a speaker: `GET /api/dlna/native`, `GET /api/dlna/native/{device_id}/servers/{server_id}/presets`, `PUT` and `DELETE /api/dlna/native/{device_id}/servers/{server_id}` register or remove the media server as a speaker source (`STORED_MUSIC`) and report its state from the speaker's live source list; new error codes `dlna_native_already_registered`, `dlna_native_removal_pending`, `dlna_native_in_use`, `dlna_native_registration_failed` and `dlna_native_remove_failed`. A speaker that cached the old provider list needs one restart (state `restart_required`)
+
 ### Changed
 - `STORED_MUSIC` is announced with the real provider id 7 instead of 50 in `/streaming/sourceproviders` and `/full` (50 is still accepted from speakers that cached the old list)
 - DLNA browse returns 50 entries per request by default instead of the whole folder; DLNA errors carry the codes `dlna_server_not_found`, `dlna_object_not_found`, `dlna_upstream_error` and `dlna_server_timeout` (a slow server now answers 504 instead of 502)
