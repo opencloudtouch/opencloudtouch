@@ -115,7 +115,7 @@ paths:
       tags:
       - dlna
       summary: Browse Dlna Server
-      description: Browse a DLNA MediaServer ContentDirectory.
+      description: Browse one page of a DLNA MediaServer ContentDirectory.
       operationId: browse_dlna_server_api_dlna_servers__server_id__browse_get
       parameters:
       - name: server_id
@@ -131,16 +131,48 @@ paths:
           type: string
           default: '0'
           title: Object Id
+      - name: starting_index
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Starting Index
+      - name: requested_count
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Requested Count
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Browse Dlna Server Api Dlna Servers  Server Id  Browse
-                  Get
+                $ref: '#/components/schemas/DlnaBrowseResponse'
+        '404':
+          description: Server or object not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '502':
+          description: DLNA server failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '504':
+          description: DLNA server timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
         '422':
           description: Validation Error
           content:
@@ -4224,6 +4256,136 @@ components:
       type: object
       title: DiagnosticsRequest
       description: Request body for diagnostics download (no GitHub token needed).
+    DlnaBrowseResponse:
+      properties:
+        server_id:
+          type: string
+          title: Server Id
+        object_id:
+          type: string
+          title: Object Id
+        items:
+          items:
+            $ref: '#/components/schemas/DlnaItem'
+          type: array
+          title: Items
+        starting_index:
+          type: integer
+          title: Starting Index
+        number_returned:
+          type: integer
+          title: Number Returned
+        total_matches:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total Matches
+        next_index:
+          type: integer
+          title: Next Index
+        has_more:
+          type: boolean
+          title: Has More
+      type: object
+      required:
+      - server_id
+      - object_id
+      - items
+      - starting_index
+      - number_returned
+      - total_matches
+      - next_index
+      - has_more
+      title: DlnaBrowseResponse
+      description: One page of a DLNA folder; consumers must use ``has_more``, not
+        the page length.
+    DlnaItem:
+      properties:
+        id:
+          type: string
+          title: Id
+        parent_id:
+          type: string
+          title: Parent Id
+        title:
+          type: string
+          title: Title
+        is_container:
+          type: boolean
+          title: Is Container
+        resource_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resource Url
+        media_class:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Media Class
+        artist:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artist
+        album:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Album
+        genre:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Genre
+        creator:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Creator
+        album_art_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Album Art Url
+        duration:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Duration
+        size:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Size
+        bitrate:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Bitrate
+        sample_frequency:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Sample Frequency
+        audio_channels:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Audio Channels
+        protocol_info:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Protocol Info
+      type: object
+      required:
+      - id
+      - parent_id
+      - title
+      - is_container
+      title: DlnaItem
+      description: A DLNA ContentDirectory item or container.
     EnablePermanentSSHRequest:
       properties:
         device_id:
@@ -4245,6 +4407,115 @@ components:
       - ip
       title: EnablePermanentSSHRequest
       description: Request to enable permanent SSH access on device.
+    ErrorDetail:
+      description: "Standardized error response format (RFC 7807-inspired).\n\nProvides\
+        \ consistent error structure across all API endpoints.\n\nAttributes:\n  \
+        \  type: Error category (validation_error, not_found, server_error, etc.)\n\
+        \    title: Human-readable error title\n    status: HTTP status code\n   \
+        \ detail: Detailed error message\n    instance: Request path that triggered\
+        \ error (optional)\n    errors: Field-level validation errors (optional, for\
+        \ 422 responses)\n    code: Stable machine-readable error identifier (see\
+        \ ``error_codes``)\n    params: Flat string map for message interpolation\
+        \ on the client\n    extra: Structured data for the client (not for translation)\n\
+        \nExample:\n    {\n        \"type\": \"not_found\",\n        \"title\": \"\
+        Device Not Found\",\n        \"status\": 404,\n        \"detail\": \"Device\
+        \ not found: abc123\",\n        \"instance\": \"/api/devices/abc123\",\n \
+        \       \"errors\": null,\n        \"code\": \"device_not_found\",\n     \
+        \   \"params\": null,\n        \"extra\": null\n    }"
+      properties:
+        type:
+          title: Type
+          type: string
+        title:
+          title: Title
+          type: string
+        status:
+          title: Status
+          type: integer
+        detail:
+          title: Detail
+          type: string
+        instance:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Instance
+        errors:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/ErrorItem'
+            type: array
+          - type: 'null'
+          default: null
+          title: Errors
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Code
+        params:
+          anyOf:
+          - additionalProperties:
+              type: string
+            type: object
+          - type: 'null'
+          default: null
+          title: Params
+        extra:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          default: null
+          title: Extra
+      required:
+      - type
+      - title
+      - status
+      - detail
+      title: ErrorDetail
+      type: object
+    ErrorItem:
+      description: 'One field-level error inside ``ErrorDetail.errors``.
+
+
+        ``field`` keeps the legacy dotted location (``body.port``); ``path`` is the
+
+        same location without the leading ``body``/``query``/``path``/``header``
+
+        segment (``port``) and is what clients map to input names.'
+      properties:
+        field:
+          title: Field
+          type: string
+        path:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Path
+        message:
+          title: Message
+          type: string
+        type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Type
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Code
+      required:
+      - field
+      - message
+      title: ErrorItem
+      type: object
     FinalizeRequest:
       properties:
         device_ip:
@@ -5432,112 +5703,3 @@ components:
       - ip
       title: MessageResponse
       description: Generic message response.
-    ErrorItem:
-      description: 'One field-level error inside ``ErrorDetail.errors``.
-
-
-        ``field`` keeps the legacy dotted location (``body.port``); ``path`` is the
-
-        same location without the leading ``body``/``query``/``path``/``header``
-
-        segment (``port``) and is what clients map to input names.'
-      properties:
-        field:
-          title: Field
-          type: string
-        path:
-          anyOf:
-          - type: string
-          - type: 'null'
-          default: null
-          title: Path
-        message:
-          title: Message
-          type: string
-        type:
-          anyOf:
-          - type: string
-          - type: 'null'
-          default: null
-          title: Type
-        code:
-          anyOf:
-          - type: string
-          - type: 'null'
-          default: null
-          title: Code
-      required:
-      - field
-      - message
-      title: ErrorItem
-      type: object
-    ErrorDetail:
-      description: "Standardized error response format (RFC 7807-inspired).\n\nProvides\
-        \ consistent error structure across all API endpoints.\n\nAttributes:\n  \
-        \  type: Error category (validation_error, not_found, server_error, etc.)\n\
-        \    title: Human-readable error title\n    status: HTTP status code\n   \
-        \ detail: Detailed error message\n    instance: Request path that triggered\
-        \ error (optional)\n    errors: Field-level validation errors (optional, for\
-        \ 422 responses)\n    code: Stable machine-readable error identifier (see\
-        \ ``error_codes``)\n    params: Flat string map for message interpolation\
-        \ on the client\n    extra: Structured data for the client (not for translation)\n\
-        \nExample:\n    {\n        \"type\": \"not_found\",\n        \"title\": \"\
-        Device Not Found\",\n        \"status\": 404,\n        \"detail\": \"Device\
-        \ not found: abc123\",\n        \"instance\": \"/api/devices/abc123\",\n \
-        \       \"errors\": null,\n        \"code\": \"device_not_found\",\n     \
-        \   \"params\": null,\n        \"extra\": null\n    }"
-      properties:
-        type:
-          title: Type
-          type: string
-        title:
-          title: Title
-          type: string
-        status:
-          title: Status
-          type: integer
-        detail:
-          title: Detail
-          type: string
-        instance:
-          anyOf:
-          - type: string
-          - type: 'null'
-          default: null
-          title: Instance
-        errors:
-          anyOf:
-          - items:
-              $ref: '#/components/schemas/ErrorItem'
-            type: array
-          - type: 'null'
-          default: null
-          title: Errors
-        code:
-          anyOf:
-          - type: string
-          - type: 'null'
-          default: null
-          title: Code
-        params:
-          anyOf:
-          - additionalProperties:
-              type: string
-            type: object
-          - type: 'null'
-          default: null
-          title: Params
-        extra:
-          anyOf:
-          - additionalProperties: true
-            type: object
-          - type: 'null'
-          default: null
-          title: Extra
-      required:
-      - type
-      - title
-      - status
-      - detail
-      title: ErrorDetail
-      type: object
