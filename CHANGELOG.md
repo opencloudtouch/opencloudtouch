@@ -10,10 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- DLNA browsing is paged: `GET /api/dlna/servers/{server_id}/browse` takes `starting_index` and `requested_count` and returns `number_returned`, `total_matches`, `next_index` and `has_more`; only folders and audio items are listed, and cover URLs that are not absolute http(s) are dropped
+- `OCT_DLNA_TIMEOUT` (default 15 s, 1-60) sets the DLNA read timeout and the total deadline per operation; connecting times out after 3 s
+- With `OCT_MOCK_MODE=true` a fake "Mock Media Server" (120 tracks, nested folders, mixed content) answers DLNA browsing without network access
 - Stereo pairs for SoundTouch 10 (LEFT/RIGHT) can be created, listed, repaired and dissolved from the multi-room page, without SSH access to the speakers
 - The speaker-facing Marge emulation answers the group calls (create, read, rename, delete, teardown), `provider_settings` and the recents the speaker reports (`POST .../device/{id}/recent`)
 - A stereo pair shows as one device in the device list: the pair name, "2× model", the main speaker's IP, an "L/R Stereo" badge and both speakers in the footer; the second speaker is no longer listed there, and the pair is dissolved from its card (presets stay on the main speaker)
 - Group changes on a speaker (`groupUpdated`) are parsed and forwarded as a `group` event on the device event stream; the pair list refreshes on it
+
+### Changed
+- DLNA browse returns 50 entries per request by default instead of the whole folder; DLNA errors carry the codes `dlna_server_not_found`, `dlna_object_not_found`, `dlna_upstream_error` and `dlna_server_timeout` (a slow server now answers 504 instead of 502)
 
 ### Fixed
 - Renaming a stereo pair works: the speaker answers `PUT /updateGroup` with 405, so the rename is sent as `POST /updateGroup` with the whole group

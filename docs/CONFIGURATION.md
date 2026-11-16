@@ -43,6 +43,7 @@ OpenCloudTouch is configured via `OCT_`-prefixed environment variables (case-ins
 | `OCT_DEVICE_HTTP_PORT` | `8090` | SoundTouch device HTTP API port |
 | `OCT_DEVICE_WS_PORT` | `8080` | SoundTouch device WebSocket port |
 | `OCT_STATE_CACHE_MAX_AGE` | `10.0` | Max age (seconds) for WebSocket-fed state cache before falling back to an HTTP poll |
+| `OCT_DLNA_TIMEOUT` | `15.0` | DLNA media server read timeout and total deadline per browse operation (seconds, 1-60). Connecting always times out after 3 s. Raise it for a slow NAS. |
 | `OCT_STATION_DESCRIPTOR_BASE_URL` | `http://localhost:7777` | Base URL OCT advertises to devices for preset programming. If left as `localhost`, it's automatically replaced with `content.api.bose.io:<port>` (devices resolve this via `/etc/hosts` redirect) since devices can't reach the server's own `localhost`. |
 
 ## Bug Reports & Production Safety
