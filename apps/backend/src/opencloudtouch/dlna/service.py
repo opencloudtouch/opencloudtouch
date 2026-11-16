@@ -39,6 +39,7 @@ class ResolvedDlnaItem:
     title: str
     resource_url: str
     album_art_url: str | None
+    is_container: bool = False
 
 
 def _host_key(url: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address | str | None:
@@ -239,7 +240,9 @@ class DlnaService:
             None,
         )
         assert playable.resource_url is not None  # checked by the host rule above
-        return ResolvedDlnaItem(item.title, playable.resource_url, cover)
+        return ResolvedDlnaItem(
+            item.title, playable.resource_url, cover, item.is_container
+        )
 
     async def _first_audio_item(self, server: DlnaServer, object_id: str) -> DlnaItem:
         index = 0

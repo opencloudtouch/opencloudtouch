@@ -14,6 +14,7 @@ from opencloudtouch.core.dlna_reference import (
     DlnaReference,
     from_station_url,
     parse_orion_data,
+    strip_native_location,
     to_station_url,
 )
 from opencloudtouch.core.dlna_reference import station_uuid as dlna_station_uuid
@@ -199,12 +200,14 @@ class MargeService:
             row = await self._registered_source(device_id, account_id, source_id)
         native_type = None
         if row:
-            native_ref = DlnaReference(row.server_id, location)
-            dlna_ref: Optional[DlnaReference] = native_ref
-            station_url, art = to_station_url(native_ref), ""
             native_type = (
                 content_item_type if content_item_type in _NATIVE_TYPES else "dir"
             )
+            native_ref = DlnaReference(
+                row.server_id, strip_native_location(location, native_type)
+            )
+            dlna_ref: Optional[DlnaReference] = native_ref
+            station_url, art = to_station_url(native_ref), ""
         else:
             station_url, art = _station_from_location(source, location, name)
             dlna_ref = from_station_url(station_url)

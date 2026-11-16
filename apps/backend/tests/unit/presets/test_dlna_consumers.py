@@ -17,22 +17,35 @@ from opencloudtouch.main import _find_preset_value
 from opencloudtouch.presets.api.descriptor_service import StationDescriptorService
 from opencloudtouch.presets.models import Preset
 
-DLNA = Preset(
-    device_id="D",
-    preset_number=1,
-    station_uuid="dlna-0123456789abcdef",
-    station_name="Song",
-    station_url=to_station_url(DlnaReference("udn", "obj")),
-    source="DLNA",
-)
+
+def _dlna(native_type=None) -> Preset:
+    return Preset(
+        device_id="D",
+        preset_number=1,
+        station_uuid="dlna-0123456789abcdef",
+        station_name="Song",
+        station_url=to_station_url(DlnaReference("udn", "obj")),
+        source="DLNA",
+        native_type=native_type,
+    )
+
+
+# v1 reference and native STORED_MUSIC presets share one identity (AC-C7)
+DLNA = _dlna()
+NATIVE = _dlna("dir")
+
+
+@pytest.fixture(params=[DLNA, NATIVE], ids=["v1", "native"])
+def dlna_preset(request):
+    return request.param
 
 
 @pytest.fixture
-def service():
+def service(dlna_preset):
     from opencloudtouch.main import app
 
     svc = AsyncMock()
-    svc.get_preset = AsyncMock(return_value=DLNA)
+    svc.get_preset = AsyncMock(return_value=dlna_preset)
     svc._validate_stream_url = AsyncMock()
     app.dependency_overrides[get_preset_service] = lambda: svc
     app.dependency_overrides[get_device_state_manager] = lambda: DeviceStateManager()
@@ -63,26 +76,26 @@ def test_streaming_routes_answer_409_without_fetching(client, service, path):
 
 
 @pytest.mark.asyncio
-async def test_descriptor_service_returns_none():
+async def test_descriptor_service_returns_none(dlna_preset):
     svc = AsyncMock()
-    svc.get_preset = AsyncMock(return_value=DLNA)
+    svc.get_preset = AsyncMock(return_value=dlna_preset)
     assert await StationDescriptorService(svc).get_descriptor("D", 1) is None
 
 
-def test_find_preset_value_ignores_dlna_stream_url():
-    assert _find_preset_value([DLNA], "Song", "station_url") is None
-    assert _find_preset_value([DLNA], "Song", "station_favicon") is None  # unset
+def test_find_preset_value_ignores_dlna_stream_url(dlna_preset):
+    assert _find_preset_value([dlna_preset], "Song", "station_url") is None
+    assert _find_preset_value([dlna_preset], "Song", "station_favicon") is None
 
 
 @pytest.mark.asyncio
-async def test_now_playing_skips_icy_for_dlna():
+async def test_now_playing_skips_icy_for_dlna(dlna_preset):
     info = NowPlayingInfo(
         source="INTERNET_RADIO", state="PLAY_STATE", station_name="Song"
     )
     devices = MagicMock()
     devices.get_now_playing = AsyncMock(return_value=info)
     presets = AsyncMock()
-    presets.get_all_presets = AsyncMock(return_value=[DLNA])
+    presets.get_all_presets = AsyncMock(return_value=[dlna_preset])
     with patch(
         "opencloudtouch.devices.api.routes._enrich_from_icy", new=AsyncMock()
     ) as icy:

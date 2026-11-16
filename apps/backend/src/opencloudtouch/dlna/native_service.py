@@ -185,6 +185,18 @@ class DlnaNativeService:
             )
         return result
 
+    async def native_ready(self, device_id: str, server_id: str) -> bool:
+        """True when the server is enabled here and READY on the speaker's live list."""
+        device = await self._device(device_id)
+        client = self._client_factory(device)
+        try:
+            sources = await client.get_source_list()  # DeviceConnectionError -> caller
+        finally:
+            await client.close()
+        sid = server_id.lower()
+        row = await self._store.get_by_server(device_id, sid)
+        return derive_state(row, _listed(sources, sid)) is NativeState.READY
+
     async def affected_slots(self, device_id: str, server_id: str) -> "list[Preset]":
         """Native presets of the device that use the server."""
         slots = []

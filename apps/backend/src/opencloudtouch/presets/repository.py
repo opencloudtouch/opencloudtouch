@@ -133,10 +133,7 @@ class PresetRepository(BaseRepository):
 
         await db.commit()
         logger.debug(
-            "Set preset %d for device %s: %s",
-            preset.preset_number,
-            preset.device_id,
-            preset.station_name,
+            "Set preset %d for device %s", preset.preset_number, preset.device_id
         )
 
         return preset

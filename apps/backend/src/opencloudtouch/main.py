@@ -227,6 +227,7 @@ async def _init_services(
             return [row.account for row in rows]
 
         MockDeviceClient.listed_accounts = _listed_accounts
+    app.state.preset_service.native_service = app.state.dlna_native_service
     logger.info("DlnaNativeService initialized")
 
     # Zone service (with injected client factory to avoid circular deps)

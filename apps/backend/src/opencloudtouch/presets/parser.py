@@ -1,4 +1,4 @@
-﻿"""Preset XML parser for Bose SoundTouch devices.
+"""Preset XML parser for Bose SoundTouch devices.
 
 Parses the /presets endpoint XML response into Preset domain objects.
 This module has a single responsibility — parsing — with no I/O or DB access.
@@ -18,6 +18,7 @@ from opencloudtouch.core.dlna_reference import (
     DlnaReference,
     parse_orion_data,
     server_id_from_account,
+    strip_native_location,
     to_station_url,
 )
 from opencloudtouch.core.dlna_reference import (
@@ -99,8 +100,8 @@ class DevicePresetParser:
         )
         if server_id and location:
             # Native media server item: never skipped, sync would delete the slot.
-            ref = DlnaReference(server_id, location)
             native_type = content_item.get("type", "")
+            ref = DlnaReference(server_id, strip_native_location(location, native_type))
             return Preset(
                 device_id=device_id,
                 preset_number=preset_number,

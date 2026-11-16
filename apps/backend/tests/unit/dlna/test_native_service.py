@@ -369,3 +369,18 @@ async def test_disable_stale_row_is_possible(store, speaker):
 async def test_disable_unknown_server_is_a_noop(store, speaker):
     assert await make(store, speaker).disable(DEV, SID) == []
     assert speaker.calls == []
+
+
+# ---- native_ready (used by the preset write) -----------------------------------------
+
+
+async def test_native_ready_needs_a_row_and_a_ready_listing(store, speaker):
+    service = make(store, speaker)
+    assert await service.native_ready(DEV, SID) is False  # no row
+    await store.upsert(DEV, SID, "Music")
+    assert await service.native_ready(DEV, SID.upper()) is True
+    speaker.sees_servers = False
+    assert await service.native_ready(DEV, SID) is False  # row, not listed
+    speaker.unreachable = True
+    with pytest.raises(DeviceConnectionError):
+        await service.native_ready(DEV, SID)

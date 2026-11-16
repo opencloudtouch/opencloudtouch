@@ -21,7 +21,7 @@ Keep your SoundTouch® speakers (e.g. SoundTouch® 10/30/300) running — withou
 ## Features
 
 - Internet radio with preset support (1–6 hardware buttons)
-- DLNA tracks or folders from your media server (NAS) on preset buttons (backend API)
+- DLNA tracks or folders from your media server (NAS) on preset buttons (backend API); a folder plays natively on the speaker with a queue, even without OpenCloudTouch, once the media server is enabled on that speaker
 - Responsive web UI for desktop and mobile
 - Device discovery via SSDP/UPnP + manual IP fallbacks
 - Preset programming with local descriptor and playlist endpoints
