@@ -37,6 +37,7 @@ vi.mock("../../src/api/stereoPairs", async (importOriginal) => ({
 vi.mock("../../src/api/presets", () => ({
   getDevicePresets: vi.fn(),
   setPreset: vi.fn(),
+  setDlnaPreset: vi.fn(),
   clearPreset: vi.fn(),
   syncPresetsFromDevice: vi.fn(),
 }));
@@ -199,11 +200,13 @@ vi.mock("../../src/components/RadioSearch", () => ({
     isOpen,
     onClose,
     onStationSelect,
+    onDlnaSelect,
     onDelete,
     hasExistingPreset,
   }: {
     isOpen: boolean;
     onClose: () => void;
+    onDlnaSelect?: (ref: { server_id: string; object_id: string }) => Promise<void>;
     onStationSelect: (station: {
       stationuuid: string;
       name: string;
@@ -239,6 +242,18 @@ vi.mock("../../src/components/RadioSearch", () => ({
           data-testid="select-station"
         >
           Select Test Radio
+        </button>
+        <button
+          onClick={async () => {
+            try {
+              await onDlnaSelect?.({ server_id: "srv", object_id: "obj-7" });
+            } catch {
+              // RadioSearch shows the error inside its dialog.
+            }
+          }}
+          data-testid="select-dlna"
+        >
+          Select DLNA
         </button>
         {hasExistingPreset && onDelete && (
           <button onClick={onDelete} data-testid="search-delete-preset">
@@ -417,6 +432,55 @@ describe("Devices Page", () => {
       });
 
       // Note: Modal remains open (component behavior - user must close manually)
+    });
+
+    it("saves a DLNA item for the slot, shows its title, closes the dialog and confirms with a toast", async () => {
+      vi.mocked(presetsApi.setDlnaPreset).mockResolvedValue({
+        id: 1,
+        device_id: "AABBCC123456",
+        preset_number: 1,
+        station_uuid: "dlna:srv:obj-7",
+        station_name: "Folk Songs",
+        station_url: "",
+        source: "LOCAL_INTERNET_RADIO",
+        dlna: { server_id: "srv", object_id: "obj-7" },
+        created_at: "2024-01-01T00:00:00Z",
+        updated_at: "2024-01-01T00:00:00Z",
+      });
+      await act(async () => {
+        render(<Devices devices={mockDevices} />);
+      });
+      await waitFor(() => expect(presetsApi.getDevicePresets).toHaveBeenCalledTimes(2));
+      await act(async () => {});
+
+      fireEvent.click(screen.getByTestId("preset-1-assign"));
+      fireEvent.click(screen.getByTestId("select-dlna"));
+
+      await waitFor(() => expect(screen.getByTestId("preset-1-name")).toHaveTextContent("Folk Songs"));
+      expect(presetsApi.setDlnaPreset).toHaveBeenCalledWith({
+        device_id: "AABBCC123456",
+        preset_number: 1,
+        server_id: "srv",
+        object_id: "obj-7",
+      });
+      expect(screen.queryByTestId("radio-search-modal")).not.toBeInTheDocument();
+      expect(mockShowToast).toHaveBeenCalledWith("Preset 1 saved.", "success");
+    });
+
+    it("keeps the dialog open when saving a DLNA item fails so the dialog can show the error", async () => {
+      vi.mocked(presetsApi.setDlnaPreset).mockRejectedValue(new Error("nope"));
+      await act(async () => {
+        render(<Devices devices={mockDevices} />);
+      });
+      await waitFor(() => expect(presetsApi.getDevicePresets).toHaveBeenCalledTimes(2));
+      await act(async () => {});
+
+      fireEvent.click(screen.getByTestId("preset-1-assign"));
+      fireEvent.click(screen.getByTestId("select-dlna"));
+
+      await waitFor(() => expect(presetsApi.setDlnaPreset).toHaveBeenCalled());
+      expect(screen.getByTestId("radio-search-modal")).toBeInTheDocument();
+      expect(mockShowToast).not.toHaveBeenCalledWith("Preset 1 saved.", "success");
     });
 
     it("should close search modal when clicking close button", async () => {

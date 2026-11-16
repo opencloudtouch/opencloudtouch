@@ -136,3 +136,54 @@ describe("RestoreExecution status icons", () => {
     expect(labels).toEqual(["Abgeschlossen", "Übersprungen", "Fehlgeschlagen"]);
   });
 });
+
+describe("DLNA browser in the preset dialog", () => {
+  it("has no axe violations in the server list and in a folder with one folder and one track", async () => {
+    const { default: axe } = await import("axe-core");
+    const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query");
+    const { default: RadioSearch } = await import("../../src/components/RadioSearch");
+    const { fireEvent, waitFor } = await import("@testing-library/react");
+    const json = (body: unknown) =>
+      new Response(JSON.stringify(body), { headers: { "content-type": "application/json" } });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        String(url).includes("/browse")
+          ? json({
+              server_id: "srv",
+              object_id: "0",
+              items: [
+                { id: "f", parent_id: "0", title: "Albums", is_container: true },
+                { id: "t", parent_id: "0", title: "Song", is_container: false, artist: "Ann" },
+              ],
+              starting_index: 0,
+              number_returned: 2,
+              total_matches: 2,
+              next_index: 2,
+              has_more: false,
+            })
+          : json([{ id: "srv", name: "NAS" }])
+      )
+    );
+    // jsdom has no layout: colour contrast is covered by the Cypress audit
+    const run = () => axe.run(document.body, { rules: { "color-contrast": { enabled: false } } });
+
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <RadioSearch isOpen presetNumber={2} onStationSelect={vi.fn()} onDlnaSelect={vi.fn()} />
+      </QueryClientProvider>
+    );
+    fireEvent.click(document.querySelector('[data-test="dlna-mode"]')!);
+    await screen.findByText("NAS");
+    expect((await run()).violations).toEqual([]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open server “NAS”" }));
+    await screen.findByText("Song");
+    expect((await run()).violations).toEqual([]);
+    await waitFor(() =>
+      expect(screen.getByRole("navigation", { name: "Path" })).toBeInTheDocument()
+    );
+
+    vi.unstubAllGlobals();
+  });
+});

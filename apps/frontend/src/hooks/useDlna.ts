@@ -3,7 +3,7 @@
  * Both expose a UI status instead of raw query flags; the slow hint after 5 s is a state, not a toast.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { browseDlna, getDlnaServers, DLNA_PAGE_SIZE } from "../api/dlna";
 import type { DlnaItem, DlnaServer } from "../api/dlna";
@@ -89,17 +89,22 @@ export function useDlnaBrowse(serverId: string | null, objectId: string) {
   const loading = query.isFetching && !data;
   const slow = useSlow(loading);
 
-  const autoPages = useRef(0);
+  const autoPagesRef = useRef(0);
   useEffect(() => {
-    autoPages.current = 0;
+    autoPagesRef.current = 0;
   }, [serverId, objectId]);
   const last = data?.pages.at(-1);
   useEffect(() => {
     if (!last || !hasNextPage || isFetchingNextPage || isError) return;
-    if (last.items.length >= DLNA_PAGE_SIZE || autoPages.current >= MAX_AUTO_PAGES) return;
-    autoPages.current += 1;
+    if (last.items.length >= DLNA_PAGE_SIZE || autoPagesRef.current >= MAX_AUTO_PAGES) return;
+    autoPagesRef.current += 1;
     void fetchNextPage();
   }, [last, hasNextPage, isFetchingNextPage, isError, fetchNextPage]);
+
+  const loadMore = useCallback(() => {
+    autoPagesRef.current = 0;
+    void fetchNextPage();
+  }, [fetchNextPage]);
 
   let status: DlnaStatus = "ready";
   if (loading) status = slow ? "slow" : "loading";
@@ -111,10 +116,7 @@ export function useDlnaBrowse(serverId: string | null, objectId: string) {
     items,
     hasMore: hasNextPage,
     loadingMore: isFetchingNextPage,
-    loadMore: () => {
-      autoPages.current = 0;
-      void fetchNextPage();
-    },
+    loadMore,
     retry: () => void (data ? fetchNextPage() : query.refetch()),
     cancel: () => void queryClient.cancelQueries({ queryKey }),
   };

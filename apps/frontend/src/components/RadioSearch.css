@@ -232,3 +232,19 @@
     flex: none;
   }
 }
+
+/* Delta for RadioSearch.css (append). DLNA mode: same dialog frame, one more chip, one more panel. */
+/* the search-type chips do not apply to DLNA: on wide screens they stay in place, disabled like in manual mode (no jump),
+   on phones they fold away so the first screen reaches the list (about 52 px gained at 568 px height) */
+@media (max-width: 600px) {
+  .rs-chips--dlna > .ui-chips:first-child {
+    display: none;
+  }
+}
+/* the DLNA panel is a flex column that fills the dialog like .rs-scroll does for the other modes */
+.rs-dlna {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}

@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HAS_TUNEIN_SUPPORT } from "../config/capabilities";
-import { getErrorMessage, parseApiError } from "../api/types";
+import { getErrorMessage, isApiErrorInstance, parseApiError } from "../api/types";
+import type { DlnaItem } from "../api/dlna";
 import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import StationDetail from "./StationDetail";
 import ConfirmDialog from "./ConfirmDialog";
 import Modal from "./Modal";
+import DlnaBanner from "./dlna/DlnaBanner";
+import DlnaBrowser, { type DlnaSession } from "./dlna/DlnaBrowser";
+import { loadDlnaSession, storeDlnaSession } from "./dlna/session";
 import { Icon } from "./Icon";
 import "./RadioSearch.css";
 import { userErrorMessage } from "../utils/errorMessages";
@@ -38,6 +42,8 @@ interface ExistingPreset {
 
 interface RadioSearchProps {
   onStationSelect: (station: RadioStation) => void | Promise<void>;
+  /** Saves a DLNA track or folder for the slot; a rejection is shown in the dialog (the dialog never sends a playback URL). */
+  onDlnaSelect?: (ref: { server_id: string; object_id: string }) => Promise<void>;
   isOpen: boolean;
   onClose?: () => void;
   onDelete?: () => void | Promise<void>;
@@ -62,7 +68,7 @@ function getApiBaseUrl(): string {
 
 type SearchType = "name" | "country" | "tag";
 type RadioProviderType = "radiobrowser" | "tunein";
-type SearchMode = "provider" | "manual";
+type SearchMode = "provider" | "manual" | "dlna";
 
 function isValidHttpUrl(value: string): boolean {
   try {
@@ -176,6 +182,7 @@ interface SearchChipsProps {
   readonly onModeChange: (mode: SearchMode) => void;
   readonly onProviderChange: (provider: RadioProviderType) => void;
   readonly onManualMode: () => void;
+  readonly onDlnaMode: () => void;
 }
 
 /** Search-type and provider chips above the result list. */
@@ -189,19 +196,20 @@ function SearchChips({
   onModeChange,
   onProviderChange,
   onManualMode,
+  onDlnaMode,
 }: SearchChipsProps) {
   const { t } = useTranslation();
   const canSearch = query.trim().length >= 2;
 
   return (
-    <div className="rs-chips">
+    <div className={searchMode === "dlna" ? "rs-chips rs-chips--dlna" : "rs-chips"}>
       <fieldset className="ui-chips" aria-label={t("presets.searchTypeGroup")}>
         {SEARCH_TYPES.map((st) => (
           <button
             key={st.value}
             className="ui-chip"
             aria-pressed={searchType === st.value}
-            disabled={searchMode === "manual"}
+            disabled={searchMode !== "provider"}
             onClick={() => {
               onSearchTypeChange(st.value);
               if (canSearch) onSearch(query, radioProvider, st.value);
@@ -226,6 +234,14 @@ function SearchChips({
             {p.label}
           </button>
         ))}
+        <button
+          data-test="dlna-mode"
+          className="ui-chip"
+          aria-pressed={searchMode === "dlna"}
+          onClick={onDlnaMode}
+        >
+          {t("presets.dlna.mode")}
+        </button>
         <button
           data-test="manual-stream-mode"
           className="ui-chip"
@@ -358,10 +374,11 @@ function SearchResults({
 
 export default function RadioSearch({
   onStationSelect,
+  onDlnaSelect,
   isOpen,
   onClose,
   onDelete,
-  presetNumber: _presetNumber,
+  presetNumber,
   hasExistingPreset,
   existingPreset,
 }: RadioSearchProps) {
@@ -383,6 +400,11 @@ export default function RadioSearch({
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [dlnaSession, setDlnaSession] = useState<DlnaSession | null>(loadDlnaSession);
+  const [savingItemId, setSavingItemId] = useState<string | null>(null);
+  // `code` is undefined for a failure without a backend code (generic message)
+  const [dlnaError, setDlnaError] = useState<{ code?: string } | null>(null);
+  const lastDlnaItemRef = useRef<DlnaItem | null>(null);
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -395,6 +417,7 @@ export default function RadioSearch({
     setResults([]);
     setError(null);
     setSaveError(null);
+    setDlnaError(null);
     setDetailUuid(null);
     setOffset(0);
     setHasMore(false);
@@ -505,6 +528,28 @@ export default function RadioSearch({
     }
   };
 
+  const saveDlna = async (item: DlnaItem) => {
+    if (!dlnaSession || !onDlnaSelect) return;
+    lastDlnaItemRef.current = item;
+    setDlnaError(null);
+    setSavingItemId(item.id);
+    try {
+      await onDlnaSelect({ server_id: dlnaSession.serverId, object_id: item.id });
+      onClose?.();
+    } catch (err) {
+      setDlnaError({ code: isApiErrorInstance(err) ? err.code : undefined });
+      console.error("Failed to save DLNA preset:", err);
+    } finally {
+      setSavingItemId(null);
+    }
+  };
+
+  const changeDlnaSession = (next: DlnaSession | null) => {
+    setDlnaSession(next);
+    storeDlnaSession(next);
+    setDlnaError(null);
+  };
+
   const urlInvalid = isInvalidUrlInput(manualUrl);
   const faviconInvalid = isInvalidUrlInput(manualFavicon);
   const manualFormIncomplete = !manualName.trim() || !isValidHttpUrl(manualUrl) || faviconInvalid;
@@ -583,49 +628,56 @@ export default function RadioSearch({
               setError(null);
               setDetailUuid(null);
             }}
+            onDlnaMode={() => {
+              setSearchMode("dlna");
+              setError(null);
+              setDetailUuid(null);
+            }}
           />
 
-          <div className="rs-field">
-            {searchMode === "manual" ? (
-              <div className="rs-url-field">
+          {searchMode !== "dlna" && (
+            <div className="rs-field">
+              {searchMode === "manual" ? (
+                <div className="rs-url-field">
+                  <input
+                    type="url"
+                    className="ui-input"
+                    placeholder={t("presets.manualStreamUrlPlaceholder")}
+                    value={manualUrl}
+                    onChange={(e) => setManualUrl(e.target.value)}
+                    aria-label={t("presets.manualStreamUrlPlaceholder")}
+                    data-test="manual-stream-url"
+                    aria-describedby={
+                      urlInvalid
+                        ? "manual-stream-url-help manual-stream-url-error"
+                        : "manual-stream-url-help"
+                    }
+                    aria-invalid={urlInvalid ? true : undefined}
+                    data-autofocus
+                  />
+                  <div id="manual-stream-url-help" className="ui-field-hint">
+                    {t("presets.manualStreamUrlHelp")}
+                  </div>
+                  {urlInvalid && (
+                    <div id="manual-stream-url-error" className="ui-field-error">
+                      {Icon.CircleX(16)}
+                      <span>{t("presets.manualInvalidUrl")}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
                 <input
-                  type="url"
-                  className="ui-input"
-                  placeholder={t("presets.manualStreamUrlPlaceholder")}
-                  value={manualUrl}
-                  onChange={(e) => setManualUrl(e.target.value)}
-                  aria-label={t("presets.manualStreamUrlPlaceholder")}
-                  data-test="manual-stream-url"
-                  aria-describedby={
-                    urlInvalid
-                      ? "manual-stream-url-help manual-stream-url-error"
-                      : "manual-stream-url-help"
-                  }
-                  aria-invalid={urlInvalid ? true : undefined}
+                  type="search"
+                  className="ui-input rs-search"
+                  placeholder={t(`presets.searchPlaceholder.${searchType}`)}
+                  aria-label={t("presets.searchTitle")}
+                  value={query}
+                  onChange={(e) => handleSearch(e.target.value)}
                   data-autofocus
                 />
-                <div id="manual-stream-url-help" className="ui-field-hint">
-                  {t("presets.manualStreamUrlHelp")}
-                </div>
-                {urlInvalid && (
-                  <div id="manual-stream-url-error" className="ui-field-error">
-                    {Icon.CircleX(16)}
-                    <span>{t("presets.manualInvalidUrl")}</span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <input
-                type="search"
-                className="ui-input rs-search"
-                placeholder={t(`presets.searchPlaceholder.${searchType}`)}
-                aria-label={t("presets.searchTitle")}
-                value={query}
-                onChange={(e) => handleSearch(e.target.value)}
-                data-autofocus
-              />
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {searchMode === "manual" && (
             <section
@@ -704,6 +756,47 @@ export default function RadioSearch({
               onOpenDetail={setDetailUuid}
               onLoadMore={handleLoadMore}
             />
+          )}
+
+          {searchMode === "dlna" && (
+            <div className="rs-dlna">
+              <DlnaBrowser
+                initialSession={dlnaSession}
+                onSessionChange={changeDlnaSession}
+                busyItemId={savingItemId}
+                busyLabel={t("presets.dlna.saving", { number: presetNumber })}
+                banner={
+                  dlnaError && (
+                    <DlnaBanner
+                      code={dlnaError.code}
+                      onRetry={() => lastDlnaItemRef.current && saveDlna(lastDlnaItemRef.current)}
+                      onDismiss={() => setDlnaError(null)}
+                    />
+                  )
+                }
+                renderRowAction={(item, { disabled, busy }) => (
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm dl-slot"
+                    disabled={disabled}
+                    aria-busy={busy || undefined}
+                    aria-label={t("presets.dlna.useFor", {
+                      number: presetNumber,
+                      title: item.title,
+                    })}
+                    onClick={() => saveDlna(item)}
+                  >
+                    {busy ? <span className="spinner-small" aria-hidden="true" /> : Icon.Plus(18)}
+                    <span className="dl-slot-num" aria-hidden="true">
+                      {presetNumber}
+                    </span>
+                    <span className="dl-slot-text" aria-hidden="true">
+                      {t("presets.dlna.forPreset", { number: presetNumber })}
+                    </span>
+                  </button>
+                )}
+              />
+            </div>
           )}
 
           {hasExistingPreset && onDelete && (

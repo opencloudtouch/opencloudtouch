@@ -23,7 +23,7 @@ import {
   power,
 } from "../api/devices";
 import { isDeviceOffline } from "../api/offlineDeviceStore";
-import { usePresets } from "../hooks/usePresets";
+import { usePresets, type DlnaRef } from "../hooks/usePresets";
 import { useVolume } from "../hooks/useVolume";
 import { useNowPlaying } from "../hooks/useNowPlaying";
 import { useZones } from "../hooks/useZones";
@@ -99,8 +99,17 @@ export default function Devices({
   );
   const deviceOffline = currentDevice ? isDeviceOffline(currentDevice.device_id) : false;
 
-  const { presets, loading, syncing, error, clearError, syncPresets, assignStation, removePreset } =
-    usePresets(deviceId);
+  const {
+    presets,
+    loading,
+    syncing,
+    error,
+    clearError,
+    syncPresets,
+    assignStation,
+    assignDlna,
+    removePreset,
+  } = usePresets(deviceId);
   const { show: showVolumeToast } = useToast();
   const { volume, muted, setDeviceVolume, toggleMute } = useVolume(deviceId, (message) =>
     showVolumeToast(message, "error")
@@ -259,6 +268,16 @@ export default function Devices({
     if (!assigningPreset || !deviceId) return;
 
     await doAssign(assigningPreset, station);
+  };
+
+  /** Errors propagate to the dialog, which shows them next to the list. */
+  const handleDlnaSelect = async (ref: DlnaRef) => {
+    if (!assigningPreset || !deviceId) return;
+
+    await assignDlna(assigningPreset, ref, deviceId);
+    setSearchOpen(false);
+    showToast(t("presets.presetSaved", { number: assigningPreset }), "success");
+    setAssigningPreset(null);
   };
 
   const doAssign = async (presetNumber: number, station: RadioStation) => {
@@ -713,6 +732,7 @@ export default function Devices({
           setAssigningPreset(null);
         }}
         onStationSelect={handleStationSelect}
+        onDlnaSelect={handleDlnaSelect}
         onDelete={handleDeletePreset}
         presetNumber={assigningPreset}
         hasExistingPreset={assigningPreset !== null && !!presets[assigningPreset]}
