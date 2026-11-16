@@ -514,3 +514,37 @@ async def test_client_errors_pass_through_the_deadline():
 
 def test_service_passes_timeout_to_default_client():
     assert DlnaService(discovery=AsyncMock(), timeout=30).client.timeout.read == 30
+
+
+def _server(server_id: str = "server-1") -> DlnaServer:
+    return DlnaServer(
+        id=server_id,
+        name="Test Server",
+        location="http://192.0.2.10/device.xml",
+        control_url="http://192.0.2.10/content/control",
+    )
+
+
+@pytest.mark.asyncio
+async def test_list_servers_waits_for_first_scan_when_nothing_is_known():
+    discovery = AsyncMock()
+    discovery.discover.return_value = [_server()]
+    service = DlnaService(discovery=discovery)
+
+    assert await service.list_servers() == [_server()]
+    discovery.discover.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_list_servers_answers_from_cache_and_rescans_in_background():
+    discovery = AsyncMock()
+    discovery.discover.return_value = [_server()]
+    service = DlnaService(discovery=discovery)
+    await service.get_servers()
+
+    discovery.discover.return_value = [_server(), _server("server-2")]
+    first = await service.list_servers()
+
+    assert [s.id for s in first] == ["server-1"]  # no waiting for the scan
+    await service._refresh_task
+    assert [s.id for s in await service.list_servers()] == ["server-1", "server-2"]

@@ -39,17 +39,35 @@ function statusOfError(error: unknown): DlnaStatus {
 
 const SERVERS_KEY = ["dlna", "servers"];
 
+/** The backend rescans in the background after answering from its cache; look again after this. */
+const RESCAN_FOLLOW_UP_MS = 6000;
+
 export function useDlnaServers() {
   const queryClient = useQueryClient();
   const [cancelled, setCancelled] = useState(false);
+  // True while the user asked for a fresh scan ("Search again"): that one is waited for.
+  const forcedRef = useRef(false);
   const query = useQuery({
     queryKey: SERVERS_KEY,
-    queryFn: ({ signal }) => getDlnaServers(signal),
+    queryFn: async ({ signal }) => {
+      try {
+        return await getDlnaServers(signal, forcedRef.current);
+      } finally {
+        forcedRef.current = false;
+      }
+    },
     retry: false,
     gcTime: 0,
     refetchOnWindowFocus: false,
   });
-  const loading = query.isFetching && !cancelled;
+  const { data, isSuccess, refetch } = query;
+  // A silent follow-up shows servers found by the background scan, without a loading state.
+  useEffect(() => {
+    if (!isSuccess) return;
+    const timer = setTimeout(() => void refetch(), RESCAN_FOLLOW_UP_MS);
+    return () => clearTimeout(timer);
+  }, [isSuccess, refetch]);
+  const loading = query.isFetching && (!data || forcedRef.current) && !cancelled;
   const slow = useSlow(loading);
 
   let status: DlnaStatus = "ready";
@@ -61,6 +79,7 @@ export function useDlnaServers() {
     servers: query.data ?? ([] as DlnaServer[]),
     refresh: () => {
       setCancelled(false);
+      forcedRef.current = true;
       void query.refetch();
     },
     cancel: () => {

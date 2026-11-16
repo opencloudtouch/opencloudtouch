@@ -20,9 +20,17 @@ export interface DlnaServer {
 /** Page size requested from the backend; a shorter page does not mean the end of the list. */
 export const DLNA_PAGE_SIZE = 50;
 
-/** Discover DLNA media servers (a network scan that can take seconds). */
-export async function getDlnaServers(signal?: AbortSignal): Promise<DlnaServer[]> {
-  const response = await fetch(`${API_BASE_URL}/api/dlna/servers`, { signal });
+/**
+ * List DLNA media servers. Known servers come back at once while the backend rescans; with
+ * `refresh` the answer waits for a fresh network scan (can take seconds).
+ */
+export async function getDlnaServers(signal?: AbortSignal, refresh = false): Promise<DlnaServer[]> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/dlna/servers${refresh ? "?refresh=true" : ""}`,
+    {
+      signal,
+    }
+  );
   await throwIfNotOk(response, "Failed to discover media servers");
 
   const data: Record<string, unknown>[] = await response.json();

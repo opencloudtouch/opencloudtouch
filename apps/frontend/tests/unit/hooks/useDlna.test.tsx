@@ -82,6 +82,39 @@ describe("useDlnaServers", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("refresh waits for a fresh scan, the first load and the follow-up use the cache", async () => {
+    fetchMock.mockResolvedValue(json([]));
+    const { result } = renderHook(() => useDlnaServers(), { wrapper: wrapper() });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(fetchMock.mock.calls[0][0]).not.toContain("refresh=true");
+
+    act(() => result.current.refresh());
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(fetchMock.mock.calls[1][0]).toContain("refresh=true");
+  });
+
+  it("silently picks up servers found by the background scan, without a loading state", async () => {
+    vi.useFakeTimers();
+    fetchMock.mockResolvedValueOnce(json([{ id: "a", name: "A" }])).mockResolvedValueOnce(
+      json([
+        { id: "a", name: "A" },
+        { id: "b", name: "B" },
+      ])
+    );
+    const { result } = renderHook(() => useDlnaServers(), { wrapper: wrapper() });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.servers).toHaveLength(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6000);
+      await vi.advanceTimersByTimeAsync(10);
+    });
+    expect(result.current.servers).toHaveLength(2);
+    expect(result.current.status).toBe("ready");
+  });
+
   it("reports a failed scan as error", async () => {
     fetchMock.mockResolvedValue(json({ detail: "boom" }, 500));
     const { result } = renderHook(() => useDlnaServers(), { wrapper: wrapper() });

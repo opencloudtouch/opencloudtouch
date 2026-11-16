@@ -31,9 +31,12 @@ class DlnaBrowseResponse(BaseModel):
 
 
 @router.get("/servers")
-async def get_dlna_servers(service: DlnaServiceDep) -> list[dict]:
-    """Discover DLNA media servers."""
-    servers = await service.get_servers()
+async def get_dlna_servers(service: DlnaServiceDep, refresh: bool = False) -> list[dict]:
+    """List DLNA media servers: known ones at once, a new scan runs in the background.
+
+    ``refresh=true`` waits for a fresh scan instead.
+    """
+    servers = await (service.get_servers() if refresh else service.list_servers())
     return [asdict(server) for server in servers]
 
 

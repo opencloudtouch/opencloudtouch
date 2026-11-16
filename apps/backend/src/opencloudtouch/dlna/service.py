@@ -113,6 +113,16 @@ class DlnaService:
         except Exception:  # noqa: BLE001 - a failed scan must never surface to a caller
             logger.warning("Background DLNA discovery failed")
 
+    async def list_servers(self) -> list[DlnaServer]:
+        """Known servers at once, refreshed by a background scan.
+
+        Waits for a scan only while no server is known yet.
+        """
+        if not self._servers:
+            return await self.get_servers()
+        self.schedule_refresh()
+        return list(self._servers.values())
+
     async def get_servers(self) -> list[DlnaServer]:
         """Explicitly refresh the list of available DLNA media servers."""
         async with self._discovery_lock:
