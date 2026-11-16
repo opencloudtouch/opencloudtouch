@@ -47,5 +47,25 @@ The speaker applies a rename or a preset write only after OCT answered 2xx; on a
 In `/full` every preset must carry a `<source>` the speaker knows; a preset without it is silently dropped from the speaker's `/presets`.
 OCT therefore announces presets of an unknown source (for example `INTERNET_RADIO` imported earlier) as `LOCAL_INTERNET_RADIO`, which is how they play anyway.
 
+## Media servers as STORED_MUSIC sources
+
+A speaker lists a DLNA media server as a native `STORED_MUSIC` source when OCT announces provider id **7** and the server as an account source in `/full` (spike on a SoundTouch 20, firmware 27.0.6). No registration call to the speaker is needed.
+OCT used the invented id 50 before; 50 is still accepted as **input** (recents, preset writes) and mapped to `STORED_MUSIC`, but OCT never emits it.
+
+| Speaker request | OCT |
+|---|---|
+| `POST /streaming/account/{account}/device/` (also without the trailing slash), body `<device deviceid="..">`: first step of the handshake a speaker runs after `setMargeAccount` | 201 `<device deviceid=".."><createdOn/><ipaddress/><name/><updatedOn/></device>`; nothing is stored. The account must be known and the `deviceid` must belong to it (else 404), invalid XML is 400, bodies above 4 KiB 413 |
+
+After that answer the speaker reads `/streaming/sourceproviders` and `/full` itself, which makes a stale speaker pick up provider 7 and the listed servers without a restart (measured on a SoundTouch 20: about 1 s).
+The route logs only the status and the body size.
+Source ids are allocated by OCT in the database, start at 20000000 and are never reused.
+
+`/streaming/account/{account}/full` lists every media server enabled for the device as
+`<source id="N" type="Audio"><credential type="token"/><name><uuid>/0</name><sourceproviderid>7</sourceproviderid><sourcename>Mediaserver</sourcename><sourceSettings/><username><uuid>/0</username></source>`
+and drops the generic `STORED_MUSIC` entry only while at least one server is enabled.
+A preset OCT holds for such a server (`native_type` set) is announced as `STORED_MUSIC` with the object id as location, `<contentItemType>` dir/track and a `<sourceid>`; without an enabled server it keeps the Orion location.
+A numeric `<sourceid>` in a preset write is mapped to the enabled server only if the account in the path resolves to the device in the path (otherwise 404).
+Whether the speaker needs the added `<sourceid>` in `/presets` and what it echoes in recents is not verified yet.
+
 Other routes the firmware knows but that were not triggered: `/streaming/support/customersupport`, `/streaming/software/update/account/...`,
 `/streaming/music/account/...`, `/streaming/efe/environments`, `/requestToken`, `/navigate`.

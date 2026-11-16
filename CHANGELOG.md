@@ -23,7 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GET /api/dlna/servers` answers at once with the servers already known and rescans in the background (`?refresh=true` waits for a fresh scan); the DLNA dialog shows the list immediately, picks up newly found servers a few seconds later and "Search again" waits for a fresh scan
 - The preset dialog has a DLNA mode next to TuneIn and RadioBrowser: pick a media server, browse its folders (breadcrumb, paged "Load more", filter over the loaded entries) and put a track or a folder on the preset button; the last folder is remembered for the browser session, and DLNA presets are marked with a DLNA label in the preset list
 
+- The Marge emulation lists enabled DLNA media servers as native `STORED_MUSIC` sources: per-server sources in `/full` (provider id 7), the new handshake route `POST /streaming/account/{id}/device/` used when a speaker is re-paired, and the speaker's numeric source ids are mapped back to `STORED_MUSIC` when it reports presets and recents; a new table `media_server_sources` and a `presets.native_type` column are added by migration (downgrade is not supported)
+
 ### Changed
+- `STORED_MUSIC` is announced with the real provider id 7 instead of 50 in `/streaming/sourceproviders` and `/full` (50 is still accepted from speakers that cached the old list)
 - DLNA browse returns 50 entries per request by default instead of the whole folder; DLNA errors carry the codes `dlna_server_not_found`, `dlna_object_not_found`, `dlna_upstream_error` and `dlna_server_timeout` (a slow server now answers 504 instead of 502)
 
 ### Fixed

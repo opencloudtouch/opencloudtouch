@@ -30,6 +30,7 @@ from opencloudtouch.devices.interfaces import (
 )
 from opencloudtouch.devices.models import KEY_MAPPING, KeyType, SyncResult
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT, DiscoveredDevice
+from opencloudtouch.marge.source_repository import MargeSourceRepository
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,7 @@ class DeviceService:
         repository: IDeviceRepository,
         sync_service: IDeviceSyncService,
         discovery_adapter: IDiscoveryAdapter,
+        media_server_sources: Optional[MargeSourceRepository] = None,
     ):
         """Initialize device service.
 
@@ -65,10 +67,13 @@ class DeviceService:
             repository: IDeviceRepository for data persistence
             sync_service: IDeviceSyncService for sync operations
             discovery_adapter: IDiscoveryAdapter for discovery
+            media_server_sources: optional store of media server registrations,
+                cleaned up together with the device
         """
         self.repository = repository
         self.sync_service = sync_service
         self.discovery_adapter = discovery_adapter
+        self._media_server_sources = media_server_sources
         self._on_device_synced: OnDeviceSynced = None
 
     def set_on_device_synced(self, callback) -> None:
@@ -369,6 +374,8 @@ class DeviceService:
         logger.warning("Deleting all devices from database")
 
         await self.repository.delete_all()
+        if self._media_server_sources:
+            await self._media_server_sources.delete_all()
 
         logger.info("All devices deleted")
 
@@ -380,6 +387,8 @@ class DeviceService:
         """
 
         await self.repository.delete_by_device_id(device_id)
+        if self._media_server_sources:
+            await self._media_server_sources.delete_for_device(device_id)
 
         logger.info("Successfully deleted device with id %s", device_id)
 

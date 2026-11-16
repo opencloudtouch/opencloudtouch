@@ -11,19 +11,34 @@ from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
 from opencloudtouch.core.dlna_reference import (
+    DlnaReference,
     from_station_url,
     parse_orion_data,
     to_station_url,
 )
 from opencloudtouch.core.dlna_reference import station_uuid as dlna_station_uuid
-from opencloudtouch.core.source_types import BASE_SOURCES
+from opencloudtouch.core.source_types import source_type_for_streaming_id
 from opencloudtouch.devices.repository import DeviceRepository
+from opencloudtouch.marge.source_repository import (
+    MargeSourceRepository,
+    MediaServerSource,
+)
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.repository import PresetRepository
 from opencloudtouch.recents.models import RecentPlay
 from opencloudtouch.recents.repository import RecentsRepository
 
 logger = logging.getLogger(__name__)
+
+_NATIVE_TYPES = ("dir", "track")
+
+
+class UnknownAccountError(Exception):
+    """The account id does not resolve to a known device."""
+
+
+class AccountMismatchError(Exception):
+    """The account of a speaker call does not belong to the device it names."""
 
 
 def _station_from_location(source: str, location: str, name: str) -> tuple[str, str]:
@@ -57,10 +72,12 @@ class MargeService:
         preset_repo: PresetRepository,
         recents_repo: RecentsRepository,
         device_repo: Optional[DeviceRepository] = None,
+        source_repo: Optional[MargeSourceRepository] = None,
     ) -> None:
         self._preset_repo = preset_repo
         self._recents_repo = recents_repo
         self._device_repo = device_repo
+        self._source_repo = source_repo
 
     async def resolve_device_id_for_account(self, account_id: str) -> Optional[str]:
         """Resolve account_id (margeAccountUUID) to device_id (MAC).
@@ -81,21 +98,20 @@ class MargeService:
         device = await self._device_repo.get_by_account_uuid(account_id)
         if device:
             logger.info(  # NOSONAR — internal device mapping
-                "[MARGE] Resolved account %s -> device %s (%s)",
+                "[MARGE] Resolved account %s -> device %s",
                 account_id,
                 device.device_id,
-                device.name,
             )
+            logger.debug("[MARGE] Resolved device name: %s", device.name)
             return device.device_id
 
         # Fallback: account_id might be the device_id itself (MAC address)
         device = await self._device_repo.get_by_device_id(account_id)
         if device:
             logger.info(  # NOSONAR
-                "[MARGE] Fallback: account_id %s is device_id (%s)",
-                account_id,
-                device.name,
+                "[MARGE] Fallback: account_id %s is device_id", account_id
             )
+            logger.debug("[MARGE] Fallback device name: %s", device.name)
             return device.device_id
 
         logger.warning(  # NOSONAR
@@ -139,17 +155,60 @@ class MargeService:
             return False
         return await self._device_repo.update_name(device_id, name)
 
+    async def get_active_sources(self, device_id: str) -> list[MediaServerSource]:
+        """Media servers OpenCloudTouch lists as sources for a device."""
+        if not self._source_repo:
+            return []
+        return await self._source_repo.list_active(device_id)
+
+    async def is_known_device(self, account_id: str, device_id: str) -> bool:
+        """True when the account resolves to exactly this device."""
+        resolved = await self.resolve_device_id_for_account(account_id)
+        return resolved is not None and resolved.casefold() == device_id.casefold()
+
+    async def _registered_source(
+        self, device_id: str, account_id: str, source_id: str
+    ) -> Optional[MediaServerSource]:
+        """Row behind a numeric source id; the account must resolve to its device."""
+        if not (self._source_repo and source_id.isdigit()):
+            return None
+        row = await self._source_repo.get_by_id(int(source_id))
+        if row is None:
+            return None
+        if (
+            row.device_id != device_id
+            or await self.resolve_device_id_for_account(account_id) != device_id
+        ):
+            raise AccountMismatchError
+        return row
+
     async def store_preset(
-        self, device_id: str, slot: int, source_id: str, name: str, location: str
+        self,
+        device_id: str,
+        slot: int,
+        source_id: str,
+        name: str,
+        location: str,
+        content_item_type: str = "",
+        account_id: str = "",
     ) -> Preset:
         """Store a preset the speaker wrote (upsert; keeps uuid and homepage of the slot)."""
-        source = next(
-            (s.source_type for s in BASE_SOURCES if s.streaming_id == source_id),
-            source_id,
-        )
-        station_url, art = _station_from_location(source, location, name)
+        source = source_type_for_streaming_id(source_id) or source_id
+        row = None
+        if source == source_id:
+            row = await self._registered_source(device_id, account_id, source_id)
+        native_type = None
+        if row:
+            native_ref = DlnaReference(row.server_id, location)
+            dlna_ref: Optional[DlnaReference] = native_ref
+            station_url, art = to_station_url(native_ref), ""
+            native_type = (
+                content_item_type if content_item_type in _NATIVE_TYPES else "dir"
+            )
+        else:
+            station_url, art = _station_from_location(source, location, name)
+            dlna_ref = from_station_url(station_url)
         existing = await self._preset_repo.get_preset(device_id, slot)
-        dlna_ref = from_station_url(station_url)
         if dlna_ref is not None:
             source = "DLNA"
         return await self._preset_repo.set_preset(
@@ -166,6 +225,7 @@ class MargeService:
                 station_homepage=existing.station_homepage if existing else None,
                 station_favicon=art or (existing.station_favicon if existing else None),
                 source=source,
+                native_type=native_type,
             )
         )
 

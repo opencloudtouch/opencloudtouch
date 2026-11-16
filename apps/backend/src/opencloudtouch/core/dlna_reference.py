@@ -8,6 +8,7 @@ import base64
 import binascii
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from urllib.parse import quote, unquote
 
@@ -16,6 +17,18 @@ DLNA_OBJECT_ID_MAX = 512
 DLNA_NAME_MAX = 200
 _SCHEME = "dlna://"
 ORION_PATH = "/core02/svc-bmx-adapter-orion/prod/orion/station"
+
+
+# Account of a media server on the speaker: the UPnP UUID plus ``/0``.
+_SERVER_ACCOUNT = re.compile(
+    r"^([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})/0$"
+)
+
+
+def server_id_from_account(account: str) -> str | None:
+    """Lower-case server UUID of a ``<uuid>/0`` account; ``None`` for anything else."""
+    match = _SERVER_ACCOUNT.match(account)
+    return match.group(1).lower() if match else None
 
 
 class DlnaReferenceTooLongError(ValueError):

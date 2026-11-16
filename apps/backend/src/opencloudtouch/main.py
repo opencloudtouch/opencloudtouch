@@ -52,6 +52,7 @@ from opencloudtouch.devices.services.sync_service import DeviceSyncService
 from opencloudtouch.devices.startup_check import StartupCheck
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.marge.routes import router as marge_router
+from opencloudtouch.marge.source_repository import MargeSourceRepository
 from opencloudtouch.marge.service import MargeService
 from opencloudtouch.presets.api.playlist_routes import router as playlist_router
 from opencloudtouch.presets.api.routes import router as presets_router
@@ -144,6 +145,7 @@ async def _init_repositories(app: FastAPI, cfg, logger: logging.Logger) -> dict:
         ("settings_repo", SettingsRepository, db_path),
         ("preset_repo", PresetRepository, cfg.effective_db_path),
         ("recents_repo", RecentsRepository, cfg.effective_db_path),
+        ("marge_source_repo", MargeSourceRepository, cfg.effective_db_path),
         ("wizard_audit_repo", WizardAuditRepository, cfg.effective_db_path),
         ("zone_repo", ZoneRepository, cfg.effective_db_path),
         ("stereo_pair_repo", StereoPairRepository, cfg.effective_db_path),
@@ -174,7 +176,9 @@ async def _init_services(
     logger.info("RecentsService initialized")
 
     # Marge service (account sync orchestration)
-    app.state.marge_service = MargeService(preset_repo, recents_repo, device_repo)
+    app.state.marge_service = MargeService(
+        preset_repo, recents_repo, device_repo, repos["marge_source_repo"]
+    )
     logger.info("MargeService initialized")
 
     # Preset service
@@ -193,6 +197,7 @@ async def _init_services(
         repository=device_repo,
         sync_service=sync_service,
         discovery_adapter=get_discovery_adapter(),
+        media_server_sources=repos["marge_source_repo"],
     )
     app.state.device_service = device_service
     logger.info("DeviceService initialized")

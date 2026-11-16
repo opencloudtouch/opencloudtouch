@@ -15,8 +15,12 @@ from opencloudtouch.core.dependencies import (
     get_stereo_pair_service,
 )
 from opencloudtouch.core.logging import clip_for_log
+from opencloudtouch.core.request_body import RequestBodyTooLarge, read_limited_body
 from opencloudtouch.core.source_types import BASE_SOURCES
-from opencloudtouch.marge.service import MargeService
+from opencloudtouch.marge.service import (
+    AccountMismatchError,
+    MargeService,
+)
 from opencloudtouch.recents.models import RecentPlay
 from opencloudtouch.stereo_pairs.repository import DeviceAlreadyPairedError
 from opencloudtouch.stereo_pairs.service import StereoPairService, UnknownDeviceError
@@ -296,6 +300,7 @@ async def streaming_full_account(
         )
 
     presets, recents = await marge.get_full_account(device_id)
+    sources = await marge.get_active_sources(device_id)
     logger.info(
         "[MARGE/STREAMING] Returning %d presets, %d recents for device %s (account %s)",
         len(presets),
@@ -304,7 +309,7 @@ async def streaming_full_account(
         account_id,
     )
     return _xml_response(
-        build_streaming_account_xml(account_id, device_id, presets, recents),
+        build_streaming_account_xml(account_id, device_id, presets, recents, sources),
         _MEDIA_STREAMING_XML,
     )
 
@@ -495,10 +500,22 @@ async def put_device_preset(
     name = (root.findtext("name") or root.findtext("username") or "").strip()
     if root.tag != "preset" or not location or not 1 <= slot <= 6:
         return Response(status_code=400)
-    stored = await marge.store_preset(
-        device_id, slot, (root.findtext("sourceid") or "").strip(), name, location
+    try:
+        stored = await marge.store_preset(
+            device_id,
+            slot,
+            (root.findtext("sourceid") or "").strip(),
+            name,
+            location,
+            content_item_type=(root.findtext("contentItemType") or "").strip(),
+            account_id=account_id,
+        )
+    except AccountMismatchError:
+        return Response(status_code=404)
+    return _xml_response(
+        build_preset_response_xml(stored, await marge.get_active_sources(device_id)),
+        _MEDIA_STREAMING_XML,
     )
-    return _xml_response(build_preset_response_xml(stored), _MEDIA_STREAMING_XML)
 
 
 @router.delete(
@@ -527,7 +544,10 @@ async def get_device_recents(
 ) -> Response:
     """The speaker reads its recents back after reporting one."""
     recents = await marge.get_recents(device_id)
-    return _xml_response(build_recents_response_xml(recents), _MEDIA_STREAMING_XML)
+    sources = await marge.get_active_sources(device_id)
+    return _xml_response(
+        build_recents_response_xml(recents, sources), _MEDIA_STREAMING_XML
+    )
 
 
 @router.post(
@@ -570,8 +590,48 @@ async def add_device_recent(
         )
     )
     return _xml_response(
-        build_recent_response_xml(stored), _MEDIA_STREAMING_XML, status_code=201
+        build_recent_response_xml(stored, await marge.get_active_sources(device_id)),
+        _MEDIA_STREAMING_XML,
+        status_code=201,
     )
+
+
+def _log_device_call(request: Request, status_code: int, size: int = 0) -> None:
+    # Speaker input: status and size only, never the body.
+    logger.info("[MARGE/DEVICE] %s -> %d (%d bytes)", request.method, status_code, size)
+
+
+@router.post("/streaming/account/{account_id}/device/", include_in_schema=False)
+@router.post("/streaming/account/{account_id}/device", include_in_schema=False)
+async def add_account_device(
+    account_id: str, request: Request, marge: MargeServiceDep
+) -> Response:
+    """Pairing handshake (after ``setMargeAccount``): acknowledge the speaker.
+
+    Nothing is stored; the speaker then reads sourceproviders and the account.
+    """
+    try:
+        body = await read_limited_body(request)
+    except RequestBodyTooLarge:
+        _log_device_call(request, 413)
+        return Response(status_code=413)
+    try:
+        root = parse_xml_string(body)
+    except (ParseError, ValueError):
+        _log_device_call(request, 400, len(body))
+        return Response(status_code=400)
+    device_id = (root.get("deviceid") or "").strip()
+    if root.tag != "device" or not device_id:
+        _log_device_call(request, 400, len(body))
+        return Response(status_code=400)
+    if not await marge.is_known_device(account_id, device_id):
+        _log_device_call(request, 404, len(body))
+        return Response(status_code=404)
+    _log_device_call(request, 201, len(body))
+    device = ET.Element("device", {"deviceid": device_id})
+    for tag in ("createdOn", "ipaddress", "name", "updatedOn"):
+        ET.SubElement(device, tag)
+    return _xml_response(device, _MEDIA_STREAMING_XML, status_code=201)
 
 
 @router.post("/streaming/account/{account_id}/group/")
