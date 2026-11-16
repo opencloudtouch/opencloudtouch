@@ -8,7 +8,9 @@ import { MemoryRouter } from "react-router";
 import React from "react";
 import { i18next } from "../../src/i18n";
 import Navigation from "../../src/components/Navigation";
-import ProgressTracker, { type WizardStep as TrackerStep } from "../../src/components/wizard/ProgressTracker";
+import ProgressTracker, {
+  type WizardStep as TrackerStep,
+} from "../../src/components/wizard/ProgressTracker";
 
 const mockRestore = vi.fn();
 let mockRestoreData: unknown = null;
@@ -115,9 +117,8 @@ describe("RestoreExecution status icons", () => {
         { name: "ntp", status: "failed", message: "boom", error: "boom", duration_seconds: 1 },
       ],
     };
-    const { default: RestoreExecution } = await import(
-      "../../src/components/wizard/RestoreExecution"
-    );
+    const { default: RestoreExecution } =
+      await import("../../src/components/wizard/RestoreExecution");
     const { container } = render(
       <RestoreExecution
         stepNumber={3}
@@ -185,5 +186,71 @@ describe("DLNA browser in the preset dialog", () => {
     );
 
     vi.unstubAllGlobals();
+  });
+});
+
+describe("DLNA media server setup", () => {
+  it("has no axe violations in any panel state, the removal dialog and the orphan list", async () => {
+    const { default: axe } = await import("axe-core");
+    const { default: DlnaSetupPanel } = await import("../../src/components/dlna/DlnaSetupPanel");
+    const { default: DlnaOrphanList } = await import("../../src/components/dlna/DlnaOrphanList");
+    const { fireEvent } = await import("@testing-library/react");
+    const mk = (over: Record<string, unknown> = {}) => ({
+      servers: [{ server_id: "s1", name: "NAS", state: "ready", server_known: true, source_id: 1 }],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+      setup: vi.fn(),
+      slots: vi.fn().mockResolvedValue([{ preset_number: 1, name: "Album" }]),
+      remove: vi.fn().mockResolvedValue(undefined),
+      ...over,
+    });
+    // jsdom has no layout: colour contrast is covered by the Cypress audit
+    const run = () => axe.run(document.body, { rules: { "color-contrast": { enabled: false } } });
+    const states: [Record<string, unknown>, Record<string, unknown>][] = [
+      [{}, {}],
+      [
+        { servers: [{ server_id: "s1", name: "NAS", state: "not_enabled", server_known: true }] },
+        {},
+      ],
+      [{}, { busy: "setup" }],
+      [{}, { busy: "setup", long: true }],
+      [
+        { servers: [{ server_id: "s1", name: "NAS", state: "unavailable", server_known: true }] },
+        {},
+      ],
+      [{ error: "unreachable", servers: undefined }, {}],
+      [{ error: "network", servers: undefined }, {}],
+      [{ isLoading: true, servers: undefined }, {}],
+    ];
+    for (const [apiOver, props] of states) {
+      const { unmount } = render(
+        <DlnaSetupPanel
+          api={mk(apiOver) as never}
+          serverId="s1"
+          serverName="NAS"
+          onRetrySetup={vi.fn()}
+          {...props}
+        />
+      );
+      expect((await run()).violations).toEqual([]);
+      unmount();
+    }
+
+    render(
+      <>
+        <DlnaSetupPanel api={mk() as never} serverId="s1" serverName="NAS" onRetrySetup={vi.fn()} />
+        <DlnaOrphanList
+          api={
+            mk({
+              servers: [{ server_id: "o", name: "Old", state: "ready", server_known: false }],
+            }) as never
+          }
+        />
+      </>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Remove: NAS" }));
+    await screen.findByText("Preset 1: Album");
+    expect((await run()).violations).toEqual([]);
   });
 });

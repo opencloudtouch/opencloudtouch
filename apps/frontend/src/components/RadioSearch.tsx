@@ -1,15 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HAS_TUNEIN_SUPPORT } from "../config/capabilities";
-import { getErrorMessage, isApiErrorInstance, parseApiError } from "../api/types";
-import type { DlnaItem } from "../api/dlna";
+import { getErrorMessage, parseApiError } from "../api/types";
 import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import StationDetail from "./StationDetail";
 import ConfirmDialog from "./ConfirmDialog";
 import Modal from "./Modal";
-import DlnaBanner from "./dlna/DlnaBanner";
-import DlnaBrowser, { type DlnaSession } from "./dlna/DlnaBrowser";
-import { loadDlnaSession, storeDlnaSession } from "./dlna/session";
+import DlnaPane from "./dlna/DlnaPane";
 import { Icon } from "./Icon";
 import "./RadioSearch.css";
 import { userErrorMessage } from "../utils/errorMessages";
@@ -44,6 +41,8 @@ interface RadioSearchProps {
   onStationSelect: (station: RadioStation) => void | Promise<void>;
   /** Saves a DLNA track or folder for the slot; a rejection is shown in the dialog (the dialog never sends a playback URL). */
   onDlnaSelect?: (ref: { server_id: string; object_id: string }) => Promise<void>;
+  /** Speaker the preset is for: enables the media server setup in DLNA mode. */
+  deviceId?: string;
   isOpen: boolean;
   onClose?: () => void;
   onDelete?: () => void | Promise<void>;
@@ -375,6 +374,7 @@ function SearchResults({
 export default function RadioSearch({
   onStationSelect,
   onDlnaSelect,
+  deviceId,
   isOpen,
   onClose,
   onDelete,
@@ -400,11 +400,6 @@ export default function RadioSearch({
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [dlnaSession, setDlnaSession] = useState<DlnaSession | null>(loadDlnaSession);
-  const [savingItemId, setSavingItemId] = useState<string | null>(null);
-  // `code` is undefined for a failure without a backend code (generic message)
-  const [dlnaError, setDlnaError] = useState<{ code?: string } | null>(null);
-  const lastDlnaItemRef = useRef<DlnaItem | null>(null);
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -417,7 +412,6 @@ export default function RadioSearch({
     setResults([]);
     setError(null);
     setSaveError(null);
-    setDlnaError(null);
     setDetailUuid(null);
     setOffset(0);
     setHasMore(false);
@@ -526,28 +520,6 @@ export default function RadioSearch({
       );
       console.error("Failed to save station:", err);
     }
-  };
-
-  const saveDlna = async (item: DlnaItem) => {
-    if (!dlnaSession || !onDlnaSelect) return;
-    lastDlnaItemRef.current = item;
-    setDlnaError(null);
-    setSavingItemId(item.id);
-    try {
-      await onDlnaSelect({ server_id: dlnaSession.serverId, object_id: item.id });
-      onClose?.();
-    } catch (err) {
-      setDlnaError({ code: isApiErrorInstance(err) ? err.code : undefined });
-      console.error("Failed to save DLNA preset:", err);
-    } finally {
-      setSavingItemId(null);
-    }
-  };
-
-  const changeDlnaSession = (next: DlnaSession | null) => {
-    setDlnaSession(next);
-    storeDlnaSession(next);
-    setDlnaError(null);
   };
 
   const urlInvalid = isInvalidUrlInput(manualUrl);
@@ -759,44 +731,12 @@ export default function RadioSearch({
           )}
 
           {searchMode === "dlna" && (
-            <div className="rs-dlna">
-              <DlnaBrowser
-                initialSession={dlnaSession}
-                onSessionChange={changeDlnaSession}
-                busyItemId={savingItemId}
-                busyLabel={t("presets.dlna.saving", { number: presetNumber })}
-                banner={
-                  dlnaError && (
-                    <DlnaBanner
-                      code={dlnaError.code}
-                      onRetry={() => lastDlnaItemRef.current && saveDlna(lastDlnaItemRef.current)}
-                      onDismiss={() => setDlnaError(null)}
-                    />
-                  )
-                }
-                renderRowAction={(item, { disabled, busy }) => (
-                  <button
-                    type="button"
-                    className="btn btn-outline btn-sm dl-slot"
-                    disabled={disabled}
-                    aria-busy={busy || undefined}
-                    aria-label={t("presets.dlna.useFor", {
-                      number: presetNumber,
-                      title: item.title,
-                    })}
-                    onClick={() => saveDlna(item)}
-                  >
-                    {busy ? <span className="spinner-small" aria-hidden="true" /> : Icon.Plus(18)}
-                    <span className="dl-slot-num" aria-hidden="true">
-                      {presetNumber}
-                    </span>
-                    <span className="dl-slot-text" aria-hidden="true">
-                      {t("presets.dlna.forPreset", { number: presetNumber })}
-                    </span>
-                  </button>
-                )}
-              />
-            </div>
+            <DlnaPane
+              presetNumber={presetNumber}
+              deviceId={deviceId}
+              onDlnaSelect={onDlnaSelect}
+              onClose={onClose}
+            />
           )}
 
           {hasExistingPreset && onDelete && (

@@ -733,6 +733,7 @@ export default function Devices({
         }}
         onStationSelect={handleStationSelect}
         onDlnaSelect={handleDlnaSelect}
+        deviceId={deviceId}
         onDelete={handleDeletePreset}
         presetNumber={assigningPreset}
         hasExistingPreset={assigningPreset !== null && !!presets[assigningPreset]}

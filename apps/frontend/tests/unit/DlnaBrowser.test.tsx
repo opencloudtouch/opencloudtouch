@@ -283,13 +283,13 @@ describe("DlnaBrowser: folders and breadcrumb", () => {
 describe("DlnaBrowser: rows and actions", () => {
   const session: DlnaSession = { serverId: "srv", serverName: "NAS", stack: [] };
 
-  it("folder rows offer open, the action and the first-track note; track rows have no open action", async () => {
+  it("folder rows offer open, the action and the folder note; track rows have no open action", async () => {
     serve(tree({ "0": [folder("a", "Albums"), track("t1")] }));
     renderBrowser({ initialSession: session });
 
     expect(
       await screen.findByRole("button", { name: "Open folder “Albums”" })
-    ).toHaveAccessibleDescription("Plays the first track only");
+    ).toHaveAccessibleDescription("Plays as a folder");
     expect(screen.getByRole("button", { name: "Use Albums" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Use Track t1" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Open folder “Track/ })).toBeNull();

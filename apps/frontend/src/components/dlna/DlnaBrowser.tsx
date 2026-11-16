@@ -29,6 +29,12 @@ interface DlnaBrowserProps {
   /** Where to start; only the top folder is browsed, a missing folder or server falls back with a notice. */
   readonly initialSession?: DlnaSession | null;
   readonly onSessionChange?: (session: DlnaSession | null) => void;
+  /** Shown directly under the heading of every folder (the media server setup panel). */
+  readonly folderHeader?: ReactNode;
+  /** Shown below the server list (media servers that are no longer found). */
+  readonly serversFooter?: ReactNode;
+  /** Announced in the polite live region instead of the browser's own message while it is set. */
+  readonly liveMessage?: string;
 }
 
 interface Notice {
@@ -43,6 +49,9 @@ export default function DlnaBrowser({
   banner,
   initialSession = null,
   onSessionChange,
+  folderHeader,
+  serversFooter,
+  liveMessage,
 }: DlnaBrowserProps) {
   const { t } = useTranslation();
   const [session, setSession] = useState<DlnaSession | null>(initialSession);
@@ -127,6 +136,7 @@ export default function DlnaBrowser({
           restoring={restoring}
           focus={focus}
           banner={banner}
+          header={folderHeader}
           notice={noticeBox}
           busyItemId={busyItemId}
           busyLabel={busyLabel}
@@ -153,12 +163,13 @@ export default function DlnaBrowser({
             </>
           }
           focus={focus}
+          footer={serversFooter}
           onOpen={(id, name) => go({ serverId: id, serverName: name, stack: [] }, "heading")}
           onLive={setLive}
         />
       )}
       <div className="dl-sr" role="status" aria-live="polite">
-        {live}
+        {liveMessage || live}
       </div>
     </div>
   );

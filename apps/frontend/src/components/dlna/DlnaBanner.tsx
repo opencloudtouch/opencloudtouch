@@ -10,6 +10,7 @@ const KNOWN_SAVE_ERRORS = new Set([
   "dlna_server_timeout",
   "dlna_not_playable",
   "dlna_reference_too_long",
+  "dlna_native_setup_failed",
   "device_not_found",
   "device_unreachable",
   "validation_error",

@@ -30,7 +30,7 @@ describe("DLNA in the preset dialog", () => {
 
   it("browses the mock server, loads more and puts a track on the preset button", () => {
     openDialog();
-    cy.get(".dl-row--server button").click();
+    cy.get(".dl-row--server button").first().click();
 
     // paging: the 120-entry folder offers "Load more" until has_more is false
     cy.contains(".dl-title", "Many Folders").click();
@@ -46,12 +46,28 @@ describe("DLNA in the preset dialog", () => {
 
   it("remembers the folder for the browser session", () => {
     openDialog();
-    cy.get(".dl-row--server button").click();
+    cy.get(".dl-row--server button").first().click();
     cy.get("button.dl-open").first().click();
     cy.get(".dl-crumb--current").should("exist");
     cy.get(".dlg-close").click();
     cy.get('[data-testid="preset-empty-1"]', { timeout: 15000 }).click();
     cy.get('[data-test="dlna-mode"]').click();
     cy.get(".dl-crumb--current").should("exist");
+  });
+
+  it("sets the UUID media server up when a folder is saved and shows it as ready", () => {
+    openDialog();
+    cy.contains(".dl-row--server button", "Mock Media Server (UUID)").click();
+    cy.get('[data-nd="not_enabled"]').should("exist"); // locale-independent
+
+    // mock mode enables the server at once: the dialog sets it up, then saves the folder
+    cy.contains(".dl-row", "Music").find(".dl-slot").click();
+    cy.get('[data-testid="preset-play-1"]', { timeout: 15000 }).should("exist");
+
+    cy.request(`${apiUrl}/dlna/native?device_id=${deviceId}`)
+      .its("body.servers")
+      .then((servers: { name: string; state: string }[]) => {
+        expect(servers.find((x) => x.name === "Mock Media Server (UUID)")?.state).to.equal("ready");
+      });
   });
 });
