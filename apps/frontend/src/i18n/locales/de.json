@@ -139,7 +139,7 @@
       "crumbsHidden_other": "{{count}} Zwischenordner anzeigen",
       "folderList": "Inhalt von „{{name}}“",
       "openFolder": "Ordner „{{title}}“ öffnen",
-      "folderHint": "Spielt nur den ersten Titel",
+      "folderHint": "Wird als Ordner abgespielt",
       "forPreset": "Für Preset {{number}}",
       "useFor": "Für Preset {{number}} verwenden: {{title}}",
       "filterLabel": "Geladene Einträge filtern",
@@ -177,7 +177,55 @@
       "saveRetry": "Erneut versuchen",
       "saveFailed": "Das Preset konnte nicht gespeichert werden. Versuche es erneut.",
       "badge": "DLNA",
-      "badgeLabel": "Von einem DLNA-Medienserver"
+      "badgeLabel": "Von einem DLNA-Medienserver",
+      "setup": {
+        "title": "Medienserver auf diesem Lautsprecher",
+        "panelLabel": "Medienserver auf diesem Lautsprecher: {{name}}",
+        "state": {
+          "loading": "Wird geprüft",
+          "settingUp": "Wird eingerichtet",
+          "removing": "Wird entfernt",
+          "notSetUp": "Nicht eingerichtet",
+          "ready": "Bereit",
+          "unavailable": "Nicht verfügbar",
+          "unknown": "Status unbekannt"
+        },
+        "loading": "Dieser Medienserver wird auf dem Lautsprecher geprüft …",
+        "notSetUp": "Noch nicht eingerichtet. Das passiert beim Speichern automatisch.",
+        "settingUp": "Wird eingerichtet …",
+        "settingUpLong": "Das dauert einen Moment. Bitte warten, es sind bis zu 15 Sekunden.",
+        "rowSettingUp": "Wird eingerichtet …",
+        "rowSettingUpLong": "Wird eingerichtet, das dauert einen Moment …",
+        "ready": "Der Lautsprecher kann Ordner und Titel von diesem Medienserver abspielen.",
+        "unavailableReason": "Der Lautsprecher sieht diesen Medienserver wahrscheinlich nicht. Prüfe, ob beide im selben Netzwerk sind.",
+        "retry": "Erneut versuchen",
+        "retryLabel": "Erneut versuchen: Einrichtung für {{name}}",
+        "unknownText": "Der Lautsprecher war nicht erreichbar. Speichern bleibt möglich.",
+        "net": "OpenCloudTouch hat den Status nicht geliefert. Prüfe die Verbindung und versuche es erneut.",
+        "recheck": "Erneut prüfen",
+        "recheckLabel": "Erneut prüfen: Status von {{name}}"
+      },
+      "remove": {
+        "action": "Entfernen",
+        "actionLabel": "Entfernen: {{name}}",
+        "title": "Medienserver für diesen Lautsprecher entfernen?",
+        "explain": "Der Lautsprecher vergisst diesen Medienserver. Beim nächsten Speichern eines Ordners wird er automatisch wieder eingerichtet.",
+        "loadingSlots": "Betroffene Presets werden geladen …",
+        "slotsTitle": "Diese Presets werden umgestellt:",
+        "slot": "Preset {{number}}: {{name}}",
+        "noSlots": "Kein Preset nutzt diesen Medienserver.",
+        "confirm": "Entfernen",
+        "confirmLabel": "Entfernen bestätigen: {{name}}",
+        "progress": "Wird entfernt …",
+        "leave": "Schließen, läuft weiter",
+        "done": "Entfernt.",
+        "orphanTitle": "Medienserver nicht gefunden",
+        "orphanText": "Dieser Medienserver ist gerade im Netzwerk nicht zu finden. Du kannst ihn für diesen Lautsprecher entfernen.",
+        "orphanList": "Medienserver, die nicht gefunden werden",
+        "failedTitle": "Aktion fehlgeschlagen",
+        "failedGeneric": "Das hat nicht geklappt. Bitte versuche es erneut.",
+        "close": "Fertig"
+      }
     }
   },
   "settings": {
@@ -763,7 +811,10 @@
       "dlna_upstream_error": "Der Medienserver hat nicht richtig geantwortet. Versuche es gleich noch einmal oder prüfe den Server.",
       "dlna_server_timeout": "Der Medienserver hat zu langsam geantwortet. Versuche es erneut.",
       "dlna_not_playable": "Dieser Eintrag kann vom Lautsprecher nicht abgespielt werden. Wähle einen anderen Titel oder Ordner.",
-      "dlna_reference_too_long": "Die Adresse des Eintrags ist zu lang. Wähle einen anderen Eintrag oder einen höheren Ordner."
+      "dlna_reference_too_long": "Die Adresse des Eintrags ist zu lang. Wähle einen anderen Eintrag oder einen höheren Ordner.",
+      "dlna_native_in_use": "Es gibt noch Presets, die diesen Medienserver nutzen. Prüfe die Liste und bestätige erneut.",
+      "dlna_native_remove_failed": "Der Medienserver konnte nicht entfernt werden. Es wurde nichts geändert. Versuche es erneut.",
+      "dlna_native_setup_failed": "Der Lautsprecher hat den Medienserver nicht angenommen. Versuche es gleich noch einmal."
     },
     "loadFailed": "Laden fehlgeschlagen. Bitte erneut versuchen.",
     "unknown": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",

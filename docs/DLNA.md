@@ -72,6 +72,13 @@ When the media server is `ready` on the speaker (see above), `POST /api/presets/
 - If the server is disabled or the server gets a new UUID, the native slot stops working; OpenCloudTouch shows the reference again while the row is gone. Assign the preset again.
 - Mock mode: the fake "Mock Media Server (UUID)" can be enabled on the mock speaker and then used for native folder presets without any hardware.
 
+## Setting up a media server in the preset dialog
+
+1. Open the preset dialog of a button, choose **DLNA** and pick your media server. Below the folder heading a panel shows the state of this server on the speaker: **Ready**, **Not set up**, **Not available** or **State unknown** (the speaker could not be read).
+2. Press **Use for preset N** on a folder or a track. If the server is not set up yet, the dialog sets it up first (the row shows "Setting up ...", after 4 seconds "this takes a moment"; up to 15 seconds), then saves. There is nothing to confirm and the speaker is not restarted. Servers that are already set up save directly.
+3. If setting up fails the server shows **Not available** and an error with **Try again**. Check that the speaker and the media server are in the same network. When the speaker cannot be read, the state is "unknown" and saving stays possible (the preset is then written the way it is without setup).
+4. To forget a media server on the speaker press **Remove** in the panel. The dialog lists the presets that will be switched (they keep working and play through OpenCloudTouch afterwards) and removes the server when you confirm. A server that was set up but is no longer found on the network appears in a list below the server list and can be removed from there.
+
 ## Timeouts
 
 Connecting times out after 3 s. `OCT_DLNA_TIMEOUT` (default 15 s, 1-60) is the read timeout and also the total deadline of one operation. See [CONFIGURATION.md](CONFIGURATION.md).

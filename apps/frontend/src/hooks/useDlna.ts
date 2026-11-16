@@ -5,8 +5,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { browseDlna, getDlnaServers, DLNA_PAGE_SIZE } from "../api/dlna";
+import {
+  browseDlna,
+  disableNativeServer,
+  enableNativeServer,
+  getDlnaServers,
+  getNativeServers,
+  getNativeSlots,
+  DLNA_PAGE_SIZE,
+} from "../api/dlna";
 import type { DlnaItem, DlnaServer } from "../api/dlna";
+import type { DlnaSetupApi } from "../components/dlna/dlnaSetupTypes";
 import { isApiErrorInstance } from "../api/types";
 
 export type DlnaStatus = "loading" | "slow" | "offline" | "timeout" | "gone" | "error" | "ready";
@@ -138,5 +147,50 @@ export function useDlnaBrowse(serverId: string | null, objectId: string) {
     loadMore,
     retry: () => void (data ? fetchNextPage() : query.refetch()),
     cancel: () => void queryClient.cancelQueries({ queryKey }),
+  };
+}
+
+/** Setup state of the media servers on one speaker; every action reloads the state. Disabled without a device id. */
+export function useDlnaSetup(deviceId: string | undefined): DlnaSetupApi {
+  const queryClient = useQueryClient();
+  const queryKey = ["dlna", "native", deviceId];
+  const query = useQuery({
+    queryKey,
+    queryFn: ({ signal }) => getNativeServers(deviceId ?? "", signal),
+    enabled: !!deviceId,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const { refetch } = query;
+  const reload = () => queryClient.invalidateQueries({ queryKey });
+  const id = deviceId ?? "";
+
+  let error: DlnaSetupApi["error"] = null;
+  if (query.isError) {
+    error =
+      isApiErrorInstance(query.error) && query.error.code === "device_unreachable"
+        ? "unreachable"
+        : "network";
+  }
+  return {
+    servers: query.data,
+    isLoading: !!deviceId && query.isPending,
+    error,
+    refetch: useCallback(async () => void (await refetch()), [refetch]),
+    setup: async (serverId) => {
+      try {
+        return await enableNativeServer(id, serverId);
+      } finally {
+        await reload();
+      }
+    },
+    slots: (serverId) => getNativeSlots(id, serverId),
+    remove: async (serverId, force) => {
+      try {
+        await disableNativeServer(id, serverId, force);
+      } finally {
+        await reload();
+      }
+    },
   };
 }

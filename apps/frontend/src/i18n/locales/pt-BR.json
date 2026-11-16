@@ -139,7 +139,7 @@
       "crumbsHidden_other": "Mostrar {{count}} pastas intermediárias",
       "folderList": "Conteúdo de “{{name}}”",
       "openFolder": "Abrir a pasta “{{title}}”",
-      "folderHint": "Toca apenas a primeira faixa",
+      "folderHint": "Reproduzido como pasta",
       "forPreset": "Para o preset {{number}}",
       "useFor": "Usar para o preset {{number}}: {{title}}",
       "filterLabel": "Filtrar os itens carregados",
@@ -177,7 +177,55 @@
       "saveRetry": "Tentar novamente",
       "saveFailed": "Não foi possível salvar o preset. Tente novamente.",
       "badge": "DLNA",
-      "badgeLabel": "De um servidor de mídia DLNA"
+      "badgeLabel": "De um servidor de mídia DLNA",
+      "setup": {
+        "title": "Servidor de mídia neste alto-falante",
+        "panelLabel": "Servidor de mídia neste alto-falante: {{name}}",
+        "state": {
+          "loading": "Verificando",
+          "settingUp": "Configurando",
+          "removing": "Removendo",
+          "notSetUp": "Não configurado",
+          "ready": "Pronto",
+          "unavailable": "Indisponível",
+          "unknown": "Estado desconhecido"
+        },
+        "loading": "Verificando este servidor de mídia no alto-falante …",
+        "notSetUp": "Ainda não configurado. Isso acontece automaticamente ao salvar.",
+        "settingUp": "Configurando …",
+        "settingUpLong": "Isso leva um momento. Aguarde, pode levar até 15 segundos.",
+        "rowSettingUp": "Configurando …",
+        "rowSettingUpLong": "Configurando, isso leva um momento …",
+        "ready": "O alto-falante pode reproduzir pastas e faixas deste servidor de mídia.",
+        "unavailableReason": "O alto-falante provavelmente não enxerga este servidor de mídia. Verifique se os dois estão na mesma rede.",
+        "retry": "Tentar novamente",
+        "retryLabel": "Tentar novamente: configuração de {{name}}",
+        "unknownText": "Não foi possível acessar o alto-falante. Ainda é possível salvar.",
+        "net": "O OpenCloudTouch não retornou o estado. Verifique a conexão e tente novamente.",
+        "recheck": "Verificar novamente",
+        "recheckLabel": "Verificar novamente: estado de {{name}}"
+      },
+      "remove": {
+        "action": "Remover",
+        "actionLabel": "Remover: {{name}}",
+        "title": "Remover o servidor de mídia deste alto-falante?",
+        "explain": "O alto-falante esquece este servidor de mídia. Ele é configurado de novo automaticamente na próxima vez que você salvar uma pasta.",
+        "loadingSlots": "Carregando os presets afetados …",
+        "slotsTitle": "Estes presets serão alterados:",
+        "slot": "Preset {{number}}: {{name}}",
+        "noSlots": "Nenhum preset usa este servidor de mídia.",
+        "confirm": "Remover",
+        "confirmLabel": "Confirmar a remoção: {{name}}",
+        "progress": "Removendo …",
+        "leave": "Fechar, continua em andamento",
+        "done": "Removido.",
+        "orphanTitle": "Servidor de mídia não encontrado",
+        "orphanText": "Este servidor de mídia não é encontrado na rede no momento. Você pode removê-lo deste alto-falante.",
+        "orphanList": "Servidores de mídia não encontrados",
+        "failedTitle": "Ação falhou",
+        "failedGeneric": "Não funcionou. Tente novamente.",
+        "close": "Concluído"
+      }
     }
   },
   "settings": {
@@ -763,7 +811,10 @@
       "dlna_upstream_error": "O servidor de mídia não respondeu corretamente. Tente novamente em instantes ou verifique o servidor.",
       "dlna_server_timeout": "O servidor de mídia respondeu devagar demais. Tente novamente.",
       "dlna_not_playable": "O alto-falante não consegue tocar este item. Escolha outra faixa ou pasta.",
-      "dlna_reference_too_long": "O endereço do item é longo demais. Escolha outro item ou uma pasta acima."
+      "dlna_reference_too_long": "O endereço do item é longo demais. Escolha outro item ou uma pasta acima.",
+      "dlna_native_in_use": "Ainda há presets que usam este servidor de mídia. Revise a lista e confirme novamente.",
+      "dlna_native_remove_failed": "Não foi possível remover o servidor de mídia. Nada foi alterado. Tente novamente.",
+      "dlna_native_setup_failed": "O alto-falante não aceitou o servidor de mídia. Tente novamente em instantes."
     },
     "loadFailed": "Carregamento falhou. Tente novamente.",
     "unknown": "Ocorreu um erro inesperado. Tente novamente.",

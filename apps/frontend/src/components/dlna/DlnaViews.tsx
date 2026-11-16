@@ -148,11 +148,12 @@ function RetryButton({ onClick }: Readonly<{ onClick: () => void }>) {
 interface ServersViewProps {
   readonly banner?: ReactNode;
   readonly focus: FocusTarget;
+  readonly footer?: ReactNode;
   readonly onOpen: (id: string, name: string) => void;
   readonly onLive: (message: string) => void;
 }
 
-export function ServersView({ banner, focus, onOpen, onLive }: ServersViewProps) {
+export function ServersView({ banner, focus, footer, onOpen, onLive }: ServersViewProps) {
   const { t } = useTranslation();
   const uniqueId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -263,6 +264,7 @@ export function ServersView({ banner, focus, onOpen, onLive }: ServersViewProps)
           {!loading && servers.length > 0 && refreshButton("btn-ghost btn-sm", 16)}
         </div>
         {body}
+        {footer}
       </section>
     </>
   );
@@ -346,6 +348,8 @@ export interface FolderViewProps {
   readonly focus: FocusTarget;
   readonly banner?: ReactNode;
   readonly notice?: ReactNode;
+  /** Under the heading, above the entries. */
+  readonly header?: ReactNode;
   readonly busyItemId: string | null;
   readonly busyLabel?: string;
   readonly renderRowAction: (item: DlnaItem, ctx: RowActionContext) => ReactNode;
@@ -666,6 +670,7 @@ export function FolderView(p: FolderViewProps) {
             {title}
           </h3>
         </div>
+        {p.header}
         {body}
       </section>
     </>
