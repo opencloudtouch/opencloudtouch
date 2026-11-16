@@ -261,9 +261,7 @@ async def test_press_budget_is_three_seconds_and_caps_the_operation():
     service, _ = _service(client)
     await service.get_servers()
     with pytest.raises(DlnaTimeoutError):
-        await service.resolve_playable(
-            "server-1", "t1", cache_only=True, deadline=0.05
-        )
+        await service.resolve_playable("server-1", "t1", cache_only=True, deadline=0.05)
 
 
 @pytest.mark.asyncio
