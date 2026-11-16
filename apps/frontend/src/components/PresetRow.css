@@ -213,3 +213,26 @@
     border-color: Mark;
   }
 }
+
+/* Delta for PresetRow.css (append). Source marker of a DLNA preset: icon + word "DLNA" in the state line, so no colour is needed.
+   The row stays 76 px high; the cover (or the placeholder) uses .pb-logo like a station logo. */
+.pr-dlna {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 18px;
+  padding: 0 6px;
+  border: 1px solid var(--ui-control-border);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--fs-xs);
+  line-height: 1;
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+}
+.pb-logo--ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
