@@ -7,3 +7,6 @@ dlna_server_not_found
 dlna_object_not_found
 dlna_upstream_error
 dlna_server_timeout
+dlna_not_playable
+dlna_reference_too_long
+dlna_preset_not_streamable

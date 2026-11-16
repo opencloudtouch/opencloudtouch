@@ -7,6 +7,7 @@ Provides deterministic responses that simulate device HTTP API.
 import logging
 from typing import Optional
 
+from opencloudtouch.core.dlna_reference import DlnaReference, build_orion_location
 from opencloudtouch.devices.client import (
     BassCapabilities,
     BassInfo,
@@ -260,8 +261,13 @@ class MockDeviceClient(DeviceClient):
         oct_backend_url: str,
         station_image_url: str = "",
         station_uuid: str = "",
+        dlna_reference: DlnaReference | None = None,
     ) -> None:
-        """Mock store preset (no-op for testing)."""
+        """Mock store preset (no-op for testing, but enforces the DLNA length cap)."""
+        if dlna_reference is not None:
+            build_orion_location(
+                oct_backend_url, dlna_reference, station_name, enforce_limit=True
+            )
         logger.info(  # NOSONAR — internal IDs for debug
             "[MOCK] store_preset(%d, %s) for device %s",
             preset_number,

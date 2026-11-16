@@ -653,6 +653,57 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/presets/dlna:
+    post:
+      tags:
+      - presets
+      summary: Set Dlna Preset
+      description: 'Assign a DLNA track (or the first track of a folder) to a preset
+        button.
+
+
+        Only the media server reference is stored; the playback URL is resolved from
+        the
+
+        server each time the button is pressed.'
+      operationId: set_dlna_preset_api_presets_dlna_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DlnaPresetRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresetResponse'
+        '404':
+          description: Device, server or object unknown
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '422':
+          description: Not playable or reference too long
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '502':
+          description: DLNA server failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '504':
+          description: DLNA server timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
   /api/presets/{device_id}:
     get:
       tags:
@@ -4386,6 +4437,53 @@ components:
       - is_container
       title: DlnaItem
       description: A DLNA ContentDirectory item or container.
+    DlnaPresetRequest:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+          description: Device identifier
+        preset_number:
+          type: integer
+          maximum: 6.0
+          minimum: 1.0
+          title: Preset Number
+          description: Preset number (1-6)
+        server_id:
+          type: string
+          minLength: 1
+          title: Server Id
+          description: Media server UDN
+        object_id:
+          type: string
+          maxLength: 512
+          minLength: 1
+          title: Object Id
+          description: Object id
+      additionalProperties: false
+      type: object
+      required:
+      - device_id
+      - preset_number
+      - server_id
+      - object_id
+      title: DlnaPresetRequest
+      description: 'Request model for a DLNA preset: a reference only, never a playback
+        URL.'
+    DlnaRef:
+      properties:
+        server_id:
+          type: string
+          title: Server Id
+        object_id:
+          type: string
+          title: Object Id
+      type: object
+      required:
+      - server_id
+      - object_id
+      title: DlnaRef
+      description: Reference to a DLNA object stored in a preset.
     EnablePermanentSSHRequest:
       properties:
         device_id:
@@ -4936,6 +5034,11 @@ components:
           - type: string
           - type: 'null'
           title: Source
+        dlna:
+          anyOf:
+          - $ref: '#/components/schemas/DlnaRef'
+          - type: 'null'
+          description: DLNA object of a DLNA preset, null otherwise
         created_at:
           type: string
           title: Created At

@@ -6,10 +6,10 @@ from dataclasses import asdict
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
-from opencloudtouch.core import error_codes
 from opencloudtouch.core.dependencies import DlnaServiceDep
 from opencloudtouch.core.exceptions import ErrorDetail, raise_coded
-from opencloudtouch.dlna.client import DlnaBrowseError, DlnaTimeoutError
+from opencloudtouch.dlna.client import DlnaBrowseError
+from opencloudtouch.dlna.errors import classify
 from opencloudtouch.dlna.models import DlnaItem, page_cursor
 
 logger = logging.getLogger(__name__)
@@ -28,21 +28,6 @@ class DlnaBrowseResponse(BaseModel):
     total_matches: int | None
     next_index: int
     has_more: bool
-
-
-def _classify(exc: LookupError | DlnaBrowseError) -> tuple[int, str, str]:
-    """Map a service error to (status, code, fixed detail)."""
-    if isinstance(exc, LookupError):
-        return 404, error_codes.DLNA_SERVER_NOT_FOUND, "DLNA server not found"
-    if isinstance(exc, DlnaTimeoutError):
-        return (
-            504,
-            error_codes.DLNA_SERVER_TIMEOUT,
-            "DLNA server did not answer in time",
-        )
-    if isinstance(exc, DlnaBrowseError) and exc.error_code == "701":
-        return 404, error_codes.DLNA_OBJECT_NOT_FOUND, "DLNA object not found"
-    return 502, error_codes.DLNA_UPSTREAM_ERROR, "DLNA server request failed"
 
 
 @router.get("/servers")
@@ -76,7 +61,7 @@ async def browse_dlna_server(
             server_id, object_id, starting_index, requested_count
         )
     except (LookupError, DlnaBrowseError) as exc:
-        failure = _classify(exc)
+        failure = classify(exc)
     if failure:
         # Raised outside the except block: the cause chain (with server URLs in its
         # message) must not reach the error logger.

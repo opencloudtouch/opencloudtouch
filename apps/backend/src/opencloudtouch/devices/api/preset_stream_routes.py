@@ -18,7 +18,9 @@ from fastapi import Path as FastAPIPath
 from fastapi.responses import Response, StreamingResponse
 
 from opencloudtouch.core.dependencies import DeviceStateManagerDep, get_preset_service
+from opencloudtouch.core.exceptions import CodedApiError
 from opencloudtouch.devices.state import DeviceStateManager
+from opencloudtouch.presets.api.dlna_guard import reject_dlna_preset
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.service import PresetService
 
@@ -129,6 +131,8 @@ async def stream_device_preset(
                 "protocol": "https→http_proxy",
             },
         )
+
+        reject_dlna_preset(preset)
 
         # SSRF protection: validate upstream URL
         try:
@@ -255,7 +259,7 @@ async def stream_device_preset(
             },
         )
 
-    except HTTPException:
+    except (HTTPException, CodedApiError):
         raise
     except Exception:
         logger.exception(  # NOSONAR — path params
@@ -327,6 +331,8 @@ async def get_preset_descriptor(
             status_code=404,
             detail=f"Preset {preset_id} not configured for device {device_id}",
         )
+
+    reject_dlna_preset(preset)
 
     # Keep the device redirect consistent with the proxy and preset-save checks.
     try:

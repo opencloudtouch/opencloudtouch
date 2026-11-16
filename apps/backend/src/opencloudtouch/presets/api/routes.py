@@ -5,10 +5,23 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Path as FastAPIPath
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from opencloudtouch.core.dependencies import get_preset_service
-from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
+from opencloudtouch.core import error_codes
+from opencloudtouch.core.dependencies import DlnaServiceDep, get_preset_service
+from opencloudtouch.core.dlna_reference import (
+    DLNA_OBJECT_ID_MAX,
+    DlnaReferenceTooLongError,
+)
+from opencloudtouch.core.exceptions import (
+    DeviceConnectionError,
+    DeviceNotFoundError,
+    ErrorDetail,
+    raise_coded,
+)
+from opencloudtouch.dlna.client import DlnaBrowseError
+from opencloudtouch.dlna.errors import classify
+from opencloudtouch.dlna.service import DlnaNotPlayableError
 from opencloudtouch.presets.service import PresetService
 
 logger = logging.getLogger(__name__)
@@ -29,6 +42,26 @@ class PresetSetRequest(BaseModel):
     station_favicon: Optional[str] = Field(None, description="Station favicon URL")
 
 
+class DlnaPresetRequest(BaseModel):
+    """Request model for a DLNA preset: a reference only, never a playback URL."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    device_id: str = Field(..., description="Device identifier")
+    preset_number: int = Field(..., ge=1, le=6, description="Preset number (1-6)")
+    server_id: str = Field(..., min_length=1, description="Media server UDN")
+    object_id: str = Field(
+        ..., min_length=1, max_length=DLNA_OBJECT_ID_MAX, description="Object id"
+    )
+
+
+class DlnaRef(BaseModel):
+    """Reference to a DLNA object stored in a preset."""
+
+    server_id: str
+    object_id: str
+
+
 class PresetResponse(BaseModel):
     """Response model for a preset."""
 
@@ -41,6 +74,9 @@ class PresetResponse(BaseModel):
     station_homepage: Optional[str]
     station_favicon: Optional[str]
     source: Optional[str]
+    dlna: Optional[DlnaRef] = Field(
+        None, description="DLNA object of a DLNA preset, null otherwise"
+    )
     created_at: str
     updated_at: str
 
@@ -84,6 +120,54 @@ async def set_preset(
     except Exception:
         logger.exception("Error setting preset")
         raise HTTPException(status_code=500, detail="Failed to set preset")
+
+
+@router.post(
+    "/dlna",
+    response_model=PresetResponse,
+    status_code=201,
+    responses={
+        404: {"model": ErrorDetail, "description": "Device, server or object unknown"},
+        422: {
+            "model": ErrorDetail,
+            "description": "Not playable or reference too long",
+        },
+        502: {"model": ErrorDetail, "description": "DLNA server failed"},
+        504: {"model": ErrorDetail, "description": "DLNA server timed out"},
+    },
+)
+async def set_dlna_preset(
+    request: DlnaPresetRequest,
+    dlna_service: DlnaServiceDep,
+    preset_service: PresetService = Depends(get_preset_service),
+) -> PresetResponse:
+    """Assign a DLNA track (or the first track of a folder) to a preset button.
+
+    Only the media server reference is stored; the playback URL is resolved from the
+    server each time the button is pressed.
+    """
+    failure: tuple[int, str, str] | None = None
+    try:
+        saved = await preset_service.set_dlna_preset(
+            request.device_id,
+            request.preset_number,
+            request.server_id,
+            request.object_id,
+            dlna_service,
+        )
+    except (LookupError, DlnaBrowseError, DlnaNotPlayableError) as exc:
+        failure = classify(exc)
+    except DlnaReferenceTooLongError:
+        failure = (
+            422,
+            error_codes.DLNA_REFERENCE_TOO_LONG,
+            "DLNA preset reference is too long",
+        )
+    if failure:
+        # Raised outside the except block: server URLs in the cause chain stay out of logs.
+        logger.warning("DLNA preset rejected: %s", failure[1])
+        raise_coded(*failure)
+    return PresetResponse(**saved.to_dict())
 
 
 @router.get("/{device_id}", response_model=List[PresetResponse])

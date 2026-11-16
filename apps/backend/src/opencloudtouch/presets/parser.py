@@ -14,6 +14,13 @@ from typing import Optional
 from urllib.parse import parse_qs, urlparse
 from xml.etree import ElementTree as ET
 
+from opencloudtouch.core.dlna_reference import (
+    parse_orion_data,
+    to_station_url,
+)
+from opencloudtouch.core.dlna_reference import (
+    station_uuid as dlna_station_uuid,
+)
 from opencloudtouch.presets.models import Preset
 
 logger = logging.getLogger(__name__)
@@ -171,6 +178,17 @@ class DevicePresetParser:
                     "Skipping preset %d: No data parameter in BMX URL", preset_number
                 )
                 return None
+
+            dlna = parse_orion_data(data_b64)
+            if dlna is not None:
+                ref, dlna_name = dlna
+                logger.info("Importing DLNA preset %d", preset_number)
+                return (
+                    dlna_station_uuid(ref),
+                    to_station_url(ref),
+                    "DLNA",
+                    dlna_name or station_name,
+                )
 
             data = json.loads(base64.urlsafe_b64decode(data_b64).decode("utf-8"))
             stream_url = data.get("streamUrl")

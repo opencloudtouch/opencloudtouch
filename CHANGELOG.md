@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A stereo pair shows as one device in the device list: the pair name, "2× model", the main speaker's IP, an "L/R Stereo" badge and both speakers in the footer; the second speaker is no longer listed there, and the pair is dissolved from its card (presets stay on the main speaker)
 - Group changes on a speaker (`groupUpdated`) are parsed and forwarded as a `group` event on the device event stream; the pair list refreshes on it
 
+- `POST /api/presets/dlna` assigns a DLNA track (or the first track of a folder) to a preset button; OpenCloudTouch stores a reference to the media server object, not a playback URL, and resolves the current URL when the button is pressed, so a new server IP does not break the preset. Preset responses gain a `dlna` field (`{server_id, object_id}` or `null`); new error codes `dlna_not_playable`, `dlna_reference_too_long` and `dlna_preset_not_streamable`
+- OpenCloudTouch looks for DLNA media servers once at startup so the first button press can find them
+
 ### Changed
 - DLNA browse returns 50 entries per request by default instead of the whole folder; DLNA errors carry the codes `dlna_server_not_found`, `dlna_object_not_found`, `dlna_upstream_error` and `dlna_server_timeout` (a slow server now answers 504 instead of 502)
 

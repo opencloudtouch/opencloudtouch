@@ -10,6 +10,12 @@ import logging
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
+from opencloudtouch.core.dlna_reference import (
+    from_station_url,
+    parse_orion_data,
+    to_station_url,
+)
+from opencloudtouch.core.dlna_reference import station_uuid as dlna_station_uuid
 from opencloudtouch.core.source_types import BASE_SOURCES
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.presets.models import Preset
@@ -29,8 +35,11 @@ def _station_from_location(source: str, location: str, name: str) -> tuple[str, 
     if source != "TUNEIN":
         data = parse_qs(urlparse(location).query).get("data")
         if data:
+            dlna = parse_orion_data(data[0])
+            if dlna is not None:
+                return to_station_url(dlna[0]), ""
             try:
-                decoded = json.loads(base64.b64decode(data[0]))
+                decoded = json.loads(base64.urlsafe_b64decode(data[0]))
                 return (
                     decoded.get("streamUrl") or location,
                     decoded.get("imageUrl") or "",
@@ -140,11 +149,18 @@ class MargeService:
         )
         station_url, art = _station_from_location(source, location, name)
         existing = await self._preset_repo.get_preset(device_id, slot)
+        dlna_ref = from_station_url(station_url)
+        if dlna_ref is not None:
+            source = "DLNA"
         return await self._preset_repo.set_preset(
             Preset(
                 device_id=device_id,
                 preset_number=slot,
-                station_uuid=(existing.station_uuid if existing else f"marge_{slot}"),
+                station_uuid=(
+                    dlna_station_uuid(dlna_ref)
+                    if dlna_ref
+                    else existing.station_uuid if existing else f"marge_{slot}"
+                ),
                 station_name=name,
                 station_url=station_url,
                 station_homepage=existing.station_homepage if existing else None,

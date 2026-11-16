@@ -521,6 +521,29 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/presets/dlna": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Set Dlna Preset
+     * @description Assign a DLNA track (or the first track of a folder) to a preset button.
+     *
+     *     Only the media server reference is stored; the playback URL is resolved from the
+     *     server each time the button is pressed.
+     */
+    post: operations["set_dlna_preset_api_presets_dlna_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/presets/{device_id}": {
     parameters: {
       query?: never;
@@ -3312,6 +3335,42 @@ export interface components {
       protocol_info?: string | null;
     };
     /**
+     * DlnaPresetRequest
+     * @description Request model for a DLNA preset: a reference only, never a playback URL.
+     */
+    DlnaPresetRequest: {
+      /**
+       * Device Id
+       * @description Device identifier
+       */
+      device_id: string;
+      /**
+       * Preset Number
+       * @description Preset number (1-6)
+       */
+      preset_number: number;
+      /**
+       * Server Id
+       * @description Media server UDN
+       */
+      server_id: string;
+      /**
+       * Object Id
+       * @description Object id
+       */
+      object_id: string;
+    };
+    /**
+     * DlnaRef
+     * @description Reference to a DLNA object stored in a preset.
+     */
+    DlnaRef: {
+      /** Server Id */
+      server_id: string;
+      /** Object Id */
+      object_id: string;
+    };
+    /**
      * EnablePermanentSSHRequest
      * @description Request to enable permanent SSH access on device.
      */
@@ -3768,6 +3827,8 @@ export interface components {
       station_favicon: string | null;
       /** Source */
       source: string | null;
+      /** @description DLNA object of a DLNA preset, null otherwise */
+      dlna?: components["schemas"]["DlnaRef"] | null;
       /** Created At */
       created_at: string;
       /** Updated At */
@@ -5055,6 +5116,66 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_dlna_preset_api_presets_dlna_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DlnaPresetRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PresetResponse"];
+        };
+      };
+      /** @description Device, server or object unknown */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+      /** @description Not playable or reference too long */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+      /** @description DLNA server failed */
+      502: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+      /** @description DLNA server timed out */
+      504: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
         };
       };
     };

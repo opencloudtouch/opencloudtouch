@@ -60,6 +60,9 @@ class StationDescriptorService:
             )
             return None
 
+        if preset.source == "DLNA":
+            return None  # no stream URL: the speaker resolves the reference itself
+
         descriptor = {
             "stationName": preset.station_name,
             "streamUrl": preset.station_url,

@@ -205,6 +205,8 @@ async def _init_services(
         )
     else:
         app.state.dlna_service = DlnaService(timeout=cfg.dlna_timeout)
+    # Warm the discovery cache so the first preset press can resolve (cache-only).
+    app.state.dlna_service.schedule_refresh()
     logger.info("DlnaService initialized")
 
     # Zone service (with injected client factory to avoid circular deps)
@@ -297,6 +299,8 @@ def _find_preset_value(presets, station_name: str, attr: str) -> str | None:
     """Value of ``attr`` of the first preset with this station name, if it has one."""
     station_lower = station_name.casefold()
     for preset in presets:
+        if attr == "station_url" and preset.source == "DLNA":
+            continue  # a ``dlna://`` reference is not a stream URL
         if preset.station_name and preset.station_name.casefold() == station_lower:
             value = getattr(preset, attr, None)
             if value:
