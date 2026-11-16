@@ -30,16 +30,11 @@ from opencloudtouch.recents.repository import RecentsRepository
 
 logger = logging.getLogger(__name__)
 
-MAX_SOURCES_PER_DEVICE = 20
 _NATIVE_TYPES = ("dir", "track")
 
 
 class UnknownAccountError(Exception):
     """The account id does not resolve to a known device."""
-
-
-class SourceConflictError(Exception):
-    """Registration refused: row cap reached or the row is pending removal."""
 
 
 class AccountMismatchError(Exception):
@@ -161,42 +156,15 @@ class MargeService:
         return await self._device_repo.update_name(device_id, name)
 
     async def get_active_sources(self, device_id: str) -> list[MediaServerSource]:
-        """Media server registrations of a device that are not pending removal."""
+        """Media servers OpenCloudTouch lists as sources for a device."""
         if not self._source_repo:
             return []
         return await self._source_repo.list_active(device_id)
 
-    async def register_source(
-        self, account_id: str, server_id: str, display_name: str, provider_id: int
-    ) -> MediaServerSource:
-        """Speaker registered a media server (idempotent per device and server)."""
-        if self._source_repo is None:
-            raise RuntimeError("Media server source store not configured")
-        device_id = await self.resolve_device_id_for_account(account_id)
-        if not device_id:
-            raise UnknownAccountError
-        existing = await self._source_repo.get_by_server(device_id, server_id)
-        if existing and existing.removal_pending:
-            raise SourceConflictError
-        if (
-            not existing
-            and await self._source_repo.count_for_device(device_id)
-            >= MAX_SOURCES_PER_DEVICE
-        ):
-            raise SourceConflictError
-        return await self._source_repo.upsert(
-            device_id, server_id, display_name, provider_id
-        )
-
-    async def remove_source(self, account_id: str, source_id: str) -> None:
-        """Speaker removed a registration: flag it (physical delete happens later)."""
-        if self._source_repo is None:
-            raise RuntimeError("Media server source store not configured")
-        device_id = await self.resolve_device_id_for_account(account_id)
-        if not device_id:
-            raise UnknownAccountError
-        if source_id.isdigit():
-            await self._source_repo.mark_removal_pending(device_id, int(source_id))
+    async def is_known_device(self, account_id: str, device_id: str) -> bool:
+        """True when the account resolves to exactly this device."""
+        resolved = await self.resolve_device_id_for_account(account_id)
+        return resolved is not None and resolved.casefold() == device_id.casefold()
 
     async def _registered_source(
         self, device_id: str, account_id: str, source_id: str
