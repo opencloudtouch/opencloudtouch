@@ -11,6 +11,7 @@ export function buildPresetsMap(devicePresets: PresetResponse[]): Record<number,
       station_url: p.station_url,
       station_favicon: p.station_favicon,
       source: p.source,
+      dlna: p.dlna,
     };
   });
   return map;

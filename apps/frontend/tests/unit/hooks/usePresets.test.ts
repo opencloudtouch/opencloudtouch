@@ -9,12 +9,14 @@ const mockGetDevicePresets = vi.fn();
 const mockSyncPresetsFromDevice = vi.fn();
 const mockSetPresetAPI = vi.fn();
 const mockClearPresetAPI = vi.fn();
+const mockSetDlnaPresetAPI = vi.fn();
 
 vi.mock("../../../src/api/presets", () => ({
   getDevicePresets: (...args: unknown[]) => mockGetDevicePresets(...args),
   syncPresetsFromDevice: (...args: unknown[]) => mockSyncPresetsFromDevice(...args),
   setPreset: (...args: unknown[]) => mockSetPresetAPI(...args),
   clearPreset: (...args: unknown[]) => mockClearPresetAPI(...args),
+  setDlnaPreset: (...args: unknown[]) => mockSetDlnaPresetAPI(...args),
 }));
 
 const mockIsDeviceOffline = vi.fn();
@@ -188,6 +190,48 @@ describe("usePresets", () => {
       );
     });
     expect(result.current.error).not.toBeNull();
+  });
+
+  it("assignDlna sends the reference, stores the DLNA preset and rethrows without a page error", async () => {
+    mockGetDevicePresets.mockResolvedValue([]);
+    const { result } = renderHook(() => usePresets("ST10-001"));
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+      await vi.runAllTimersAsync();
+    });
+
+    mockSetDlnaPresetAPI.mockResolvedValueOnce({
+      preset_number: 4,
+      station_uuid: "dlna:srv:o1",
+      station_name: "Album",
+      station_url: "",
+      station_favicon: "http://nas/cover.jpg",
+      source: "LOCAL_INTERNET_RADIO",
+      dlna: { server_id: "srv", object_id: "o1" },
+    });
+    await act(async () => {
+      await result.current.assignDlna(4, { server_id: "srv", object_id: "o1" }, "ST10-001");
+    });
+    expect(mockSetDlnaPresetAPI).toHaveBeenCalledWith({
+      device_id: "ST10-001",
+      preset_number: 4,
+      server_id: "srv",
+      object_id: "o1",
+    });
+    expect(result.current.presets[4]).toMatchObject({
+      station_name: "Album",
+      station_favicon: "http://nas/cover.jpg",
+      dlna: { server_id: "srv", object_id: "o1" },
+    });
+
+    mockSetDlnaPresetAPI.mockRejectedValueOnce(new Error("save failed"));
+    await act(async () => {
+      await expect(
+        result.current.assignDlna(5, { server_id: "srv", object_id: "o2" }, "ST10-001")
+      ).rejects.toThrow("save failed");
+    });
+    expect(result.current.error).toBeNull();
+    expect(result.current.presets[5]).toBeUndefined();
   });
 
   it("removePreset calls the API and deletes the slot locally", async () => {

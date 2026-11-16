@@ -25,6 +25,8 @@ OpenCloudTouch discovers UPnP/DLNA media servers (SSDP) and browses their Conten
 
 ## DLNA items as presets
 
+**In the web UI:** open the preset dialog for a button, choose **DLNA**, pick a media server, open folders and press **For preset N** on a track or a folder. The dialog lists only the entries loaded so far when you filter; use **Load more** to continue. A folder preset plays its first track only (the row says so). The last folder is remembered until the browser tab is closed; if it or the server is gone, the dialog falls back to the server root or the server list with a notice. Save failures are shown at the top of the list with a **Try again** button.
+
 `POST /api/presets/dlna` with `{"device_id", "preset_number", "server_id", "object_id"}` (no other fields are accepted) assigns an item to a preset button. The response is a normal preset with `source: "DLNA"` and `dlna: {server_id, object_id}`; the title (`station_name`) and the cover (`station_favicon`, only when it is on the media server's own host) come from the media server.
 
 - **What is stored is a reference, not a URL.** On every press OpenCloudTouch asks the media server for the object and returns its current resource URL to the speaker, so a new server IP address does not break the preset. Resource and cover URLs must be `http(s)` on the same host as the server's control URL.

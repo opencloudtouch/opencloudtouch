@@ -141,7 +141,9 @@ export interface paths {
     };
     /**
      * Get Dlna Servers
-     * @description Discover DLNA media servers.
+     * @description List DLNA media servers: known ones at once, a new scan runs in the background.
+     *
+     *     ``refresh=true`` waits for a fresh scan instead.
      */
     get: operations["get_dlna_servers_api_dlna_servers_get"];
     put?: never;
@@ -4504,7 +4506,9 @@ export interface operations {
   };
   get_dlna_servers_api_dlna_servers_get: {
     parameters: {
-      query?: never;
+      query?: {
+        refresh?: boolean;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -4520,6 +4524,15 @@ export interface operations {
           "application/json": {
             [key: string]: unknown;
           }[];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

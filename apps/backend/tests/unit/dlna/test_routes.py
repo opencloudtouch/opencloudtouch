@@ -24,7 +24,7 @@ async def test_get_dlna_servers():
     )
 
     service = AsyncMock()
-    service.get_servers.return_value = [server]
+    service.list_servers.return_value = [server]
 
     result = await routes.get_dlna_servers(service=service)
 
@@ -179,7 +179,7 @@ def test_dlna_route_dependency_override():
     app = FastAPI()
     app.include_router(routes.router)
     service = AsyncMock()
-    service.get_servers.return_value = []
+    service.list_servers.return_value = []
     app.dependency_overrides[get_dlna_service] = lambda: service
 
     with TestClient(app) as client:
@@ -187,4 +187,18 @@ def test_dlna_route_dependency_override():
 
     assert response.status_code == 200
     assert response.json() == []
+    service.list_servers.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_get_dlna_servers_uses_cache_unless_refresh_requested():
+    service = AsyncMock()
+    service.list_servers.return_value = []
+    service.get_servers.return_value = []
+
+    await routes.get_dlna_servers(service=service)
+    service.list_servers.assert_awaited_once()
+    service.get_servers.assert_not_awaited()
+
+    await routes.get_dlna_servers(service=service, refresh=True)
     service.get_servers.assert_awaited_once()

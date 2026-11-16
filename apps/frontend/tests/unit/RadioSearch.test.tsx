@@ -738,6 +738,7 @@ describe("RadioSearch Component", () => {
       const chipRows = container.querySelectorAll(".ui-chips");
       expect(chipRows.length).toBe(2);
       expect(container.textContent).toContain("RadioBrowser");
+      expect(container.querySelector('[data-test="dlna-mode"]')).not.toBeNull();
       expect(container.textContent).not.toContain("TuneIn");
 
       const manualButton = container.querySelector('[data-test="manual-stream-mode"]');
@@ -758,6 +759,7 @@ describe("RadioSearch Component", () => {
 
       expect(container.textContent).toContain("TuneIn");
       expect(container.textContent).toContain("RadioBrowser");
+      expect(container.textContent).toContain("DLNA");
     });
   });
 

@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import { Icon } from "./Icon";
+import { coverBlocked } from "./dlna/cover";
 import "./PresetRow.css";
 
 export interface Preset {
@@ -9,6 +11,8 @@ export interface Preset {
   station_url?: string;
   station_favicon?: string;
   source?: string; // TUNEIN, INTERNET_RADIO, LOCAL_INTERNET_RADIO, etc.
+  /** Set for a DLNA preset; the title is in `station_name`, the cover in `station_favicon`. */
+  dlna?: { server_id: string; object_id: string } | null;
 }
 
 export type PresetRowState = "idle" | "playing" | "paused" | "starting" | "failed";
@@ -32,6 +36,21 @@ function handleFaviconError(e: React.SyntheticEvent<HTMLImageElement>) {
     const fallback = parent.querySelector(".pb-avatar") as HTMLElement;
     if (fallback) fallback.style.display = "flex";
   }
+}
+
+/** Cover of a DLNA preset: the favicon, or a music placeholder (none, http: on https:, load error). */
+function DlnaLogo({ url }: Readonly<{ url?: string }>) {
+  const [failed, setFailed] = useState(false);
+  const blocked = coverBlocked(url) || failed;
+  return (
+    <div className={blocked ? "pb-logo pb-logo--ph" : "pb-logo"} aria-hidden="true">
+      {blocked ? (
+        Icon.Music(22)
+      ) : (
+        <img src={url} alt="" className="pb-favicon" onError={() => setFailed(true)} />
+      )}
+    </div>
+  );
 }
 
 /** One of the six preset rows: a toggle with a state line and its own small "change" button. */
@@ -98,25 +117,29 @@ export default function PresetRow({
         <span className="pr-num" aria-hidden="true">
           {number}
         </span>
-        <div className="pb-logo" aria-hidden="true">
-          {preset.station_favicon ? (
-            <img
-              src={preset.station_favicon}
-              alt=""
-              className="pb-favicon"
-              onError={handleFaviconError}
-            />
-          ) : null}
-          <span
-            className="pb-avatar"
-            style={{
-              backgroundColor: getAvatarColor(name),
-              display: preset.station_favicon ? "none" : "flex",
-            }}
-          >
-            {getStationInitials(name)}
-          </span>
-        </div>
+        {preset.dlna ? (
+          <DlnaLogo url={preset.station_favicon} />
+        ) : (
+          <div className="pb-logo" aria-hidden="true">
+            {preset.station_favicon ? (
+              <img
+                src={preset.station_favicon}
+                alt=""
+                className="pb-favicon"
+                onError={handleFaviconError}
+              />
+            ) : null}
+            <span
+              className="pb-avatar"
+              style={{
+                backgroundColor: getAvatarColor(name),
+                display: preset.station_favicon ? "none" : "flex",
+              }}
+            >
+              {getStationInitials(name)}
+            </span>
+          </div>
+        )}
         <span className="pr-txt">
           <span className="pr-name">{name}</span>
           <span className="pr-state" aria-hidden="true">
@@ -143,6 +166,12 @@ export default function PresetRow({
                 {Icon.CircleX(16)}
                 <span>{t("device.prFailed")}</span>
               </>
+            )}
+            {preset.dlna && (
+              <span className="pr-dlna" aria-label={t("presets.dlna.badgeLabel")} role="img">
+                {Icon.Server(12)}
+                <span>{t("presets.dlna.badge")}</span>
+              </span>
             )}
           </span>
         </span>

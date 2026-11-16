@@ -91,4 +91,73 @@ describe("PresetRow", () => {
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: /Change station/ })).not.toBeInTheDocument();
   });
+
+  describe("DLNA preset", () => {
+    const dlna = { server_id: "srv", object_id: "o1" };
+    const dlnaPreset = (favicon?: string) => ({
+      station_name: "Folk Songs",
+      station_favicon: favicon,
+      dlna,
+    });
+    const renderDlna = (favicon?: string, state: "idle" | "playing" = "idle") =>
+      render(
+        <PresetRow
+          number={2}
+          preset={dlnaPreset(favicon)}
+          state={state}
+          onToggle={vi.fn()}
+          onChange={vi.fn()}
+        />
+      );
+
+    it("marks the slot with an icon and the word DLNA, in every state", () => {
+      const { unmount } = renderDlna();
+      expect(screen.getByLabelText("From a DLNA media server")).toHaveTextContent("DLNA");
+      expect(screen.getByRole("button", { name: "Play preset 2: Folk Songs" })).toBeInTheDocument();
+      unmount();
+
+      renderDlna(undefined, "playing");
+      expect(screen.getByText("Playing")).toBeInTheDocument();
+      expect(screen.getByLabelText("From a DLNA media server")).toBeInTheDocument();
+    });
+
+    it("shows no marker for a radio preset", () => {
+      render(
+        <PresetRow number={1} preset={preset} state="idle" onToggle={vi.fn()} onChange={vi.fn()} />
+      );
+      expect(screen.queryByLabelText("From a DLNA media server")).not.toBeInTheDocument();
+    });
+
+    it("uses the favicon as cover and a music placeholder instead of initials when there is none", () => {
+      const { container, unmount } = renderDlna("http://nas.local/cover.jpg");
+      expect(container.querySelector("img.pb-favicon")).toHaveAttribute(
+        "src",
+        "http://nas.local/cover.jpg"
+      );
+      unmount();
+
+      const { container: c2 } = renderDlna();
+      expect(c2.querySelector("img")).toBeNull();
+      expect(c2.querySelector(".pb-logo--ph")).not.toBeNull();
+      expect(c2.querySelector(".pb-avatar")).toBeNull();
+    });
+
+    it("falls back to the placeholder when the cover fails to load", () => {
+      const { container } = renderDlna("http://nas.local/cover.jpg");
+      fireEvent.error(container.querySelector("img")!);
+      expect(container.querySelector("img")).toBeNull();
+      expect(container.querySelector(".pb-logo--ph")).not.toBeNull();
+    });
+
+    it("never requests an http cover on an https page", () => {
+      vi.stubGlobal("location", { protocol: "https:" });
+      try {
+        const { container } = renderDlna("http://nas.local/cover.jpg");
+        expect(container.querySelector("img")).toBeNull();
+        expect(container.querySelector(".pb-logo--ph")).not.toBeNull();
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+  });
 });

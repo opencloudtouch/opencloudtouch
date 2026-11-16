@@ -97,19 +97,37 @@ paths:
       tags:
       - dlna
       summary: Get Dlna Servers
-      description: Discover DLNA media servers.
+      description: 'List DLNA media servers: known ones at once, a new scan runs in
+        the background.
+
+
+        ``refresh=true`` waits for a fresh scan instead.'
       operationId: get_dlna_servers_api_dlna_servers_get
+      parameters:
+      - name: refresh
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Refresh
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                items:
-                  additionalProperties: true
-                  type: object
                 type: array
+                items:
+                  type: object
+                  additionalProperties: true
                 title: Response Get Dlna Servers Api Dlna Servers Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/dlna/servers/{server_id}/browse:
     get:
       tags:

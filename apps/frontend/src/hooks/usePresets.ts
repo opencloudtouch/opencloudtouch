@@ -12,6 +12,7 @@ import { Preset } from "../components/PresetRow";
 import { RadioStation } from "../components/RadioSearch";
 import {
   setPreset as setPresetAPI,
+  setDlnaPreset as setDlnaPresetAPI,
   clearPreset as clearPresetAPI,
   getDevicePresets,
   syncPresetsFromDevice,
@@ -24,6 +25,11 @@ import { octDebug } from "../utils/debug";
 // --------------------------------------------------------------------------
 // Helpers
 // --------------------------------------------------------------------------
+
+export interface DlnaRef {
+  server_id: string;
+  object_id: string;
+}
 
 const EMPTY_PRESETS: Record<number, Preset> = {};
 
@@ -40,6 +46,8 @@ export interface UsePresetsResult {
   /** Resolves to true when the presets were synced, false when the sync failed (the error is set). */
   syncPresets: () => Promise<boolean>;
   assignStation: (presetNumber: number, station: RadioStation, deviceId: string) => Promise<void>;
+  /** Saves a DLNA item for a slot; failures are rethrown for the caller (the dialog), no page-level error is set. */
+  assignDlna: (presetNumber: number, ref: DlnaRef, deviceId: string) => Promise<void>;
   removePreset: (presetNumber: number, deviceId: string) => Promise<void>;
 }
 
@@ -211,6 +219,18 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
   };
 
   // ------------------------------------------------------------------
+  // Assign a DLNA track or folder to a preset slot
+  // ------------------------------------------------------------------
+  const assignDlna = async (presetNumber: number, ref: DlnaRef, deviceId: string) => {
+    const saved = await setDlnaPresetAPI({
+      device_id: deviceId,
+      preset_number: presetNumber,
+      ...ref,
+    });
+    setPresets((prev) => ({ ...prev, ...buildPresetsMap([saved]) }));
+  };
+
+  // ------------------------------------------------------------------
   // Remove a preset slot
   // ------------------------------------------------------------------
   const removePreset = async (presetNumber: number, deviceId: string) => {
@@ -241,6 +261,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
     clearError: () => setError(null),
     syncPresets,
     assignStation,
+    assignDlna,
     removePreset,
   };
 }
