@@ -4,6 +4,7 @@
  * Provides methods to interact with the backend preset endpoints.
  */
 
+import type { components } from "./generated/schema";
 import { throwIfNotOk } from "./types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
@@ -28,6 +29,8 @@ export interface PresetResponse {
   source?: string;
   station_homepage?: string;
   station_favicon?: string;
+  /** DLNA object of a DLNA preset, null otherwise. */
+  dlna?: components["schemas"]["DlnaRef"] | null;
   created_at: string;
   updated_at: string;
 }
@@ -49,6 +52,25 @@ export async function setPreset(request: PresetSetRequest): Promise<PresetRespon
   });
 
   await throwIfNotOk(response, "Failed to set preset");
+
+  return response.json();
+}
+
+/**
+ * Assign a DLNA track (or the first track of a folder) to a preset: a reference only, no playback URL.
+ */
+export async function setDlnaPreset(
+  request: components["schemas"]["DlnaPresetRequest"]
+): Promise<PresetResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/presets/dlna`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  await throwIfNotOk(response, "Failed to set DLNA preset");
 
   return response.json();
 }

@@ -578,6 +578,25 @@ export const Icon = {
         <path d="M16 17H8" />
       </>
     ),
+  Server: (s = 20) =>
+    svg(
+      s,
+      <>
+        <rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
+        <rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
+        <line x1="6" x2="6.01" y1="6" y2="6" />
+        <line x1="6" x2="6.01" y1="18" y2="18" />
+      </>
+    ),
+  Ellipsis: (s = 20) =>
+    svg(
+      s,
+      <>
+        <circle cx="12" cy="12" r="1" />
+        <circle cx="19" cy="12" r="1" />
+        <circle cx="5" cy="12" r="1" />
+      </>
+    ),
   Github: (s = 20) =>
     svg(
       s,

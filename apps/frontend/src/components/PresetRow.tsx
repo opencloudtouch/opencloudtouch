@@ -9,6 +9,8 @@ export interface Preset {
   station_url?: string;
   station_favicon?: string;
   source?: string; // TUNEIN, INTERNET_RADIO, LOCAL_INTERNET_RADIO, etc.
+  /** Set for a DLNA preset; the title is in `station_name`, the cover in `station_favicon`. */
+  dlna?: { server_id: string; object_id: string } | null;
 }
 
 export type PresetRowState = "idle" | "playing" | "paused" | "starting" | "failed";
