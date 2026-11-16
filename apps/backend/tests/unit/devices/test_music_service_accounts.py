@@ -82,7 +82,9 @@ async def test_set_account_sends_credentials_and_escapes(adapter):
 
 @pytest.mark.parametrize("path", ["set", "remove"])
 async def test_account_command_error_carries_speaker_code(adapter, path):
-    answer = _response(400, '<errors><error value="1022" name="x" severity="Error"/></errors>')
+    answer = _response(
+        400, '<errors><error value="1022" name="x" severity="Error"/></errors>'
+    )
     cls, _ = _http(answer)
     method = getattr(adapter, f"{path}_music_service_account")
     try:
@@ -131,7 +133,9 @@ async def test_mock_registration_is_ready_without_reboot(mock):
 
     MockDeviceClient.on_register = on_register
     await mock.set_music_service_account("STORED_MUSIC", "Music", USER)
-    assert [(s.account, s.status) for s in await mock.get_source_list()] == [(USER, "READY")]
+    assert [(s.account, s.status) for s in await mock.get_source_list()] == [
+        (USER, "READY")
+    ]
     assert seen == [("AABBCC112233", USER.split("/")[0], "Music", 7)]
     # state is shared between client instances (a client is created per call)
     assert len(await MockDeviceClient("AABBCC112233").get_source_list()) == 1

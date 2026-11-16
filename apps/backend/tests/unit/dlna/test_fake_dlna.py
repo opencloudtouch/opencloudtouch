@@ -3,14 +3,19 @@
 import pytest
 
 from opencloudtouch.dlna.client import DlnaBrowseError
-from opencloudtouch.dlna.mock import MOCK_SERVER, MockDlnaClient, MockDlnaDiscovery
+from opencloudtouch.dlna.mock import (
+    MOCK_SERVER,
+    MOCK_UUID_SERVER,
+    MockDlnaClient,
+    MockDlnaDiscovery,
+)
 from opencloudtouch.dlna.models import is_audio_item
 from opencloudtouch.dlna.service import DlnaService
 
 
 @pytest.mark.asyncio
 async def test_discovery_finds_the_mock_server():
-    assert await MockDlnaDiscovery().discover() == [MOCK_SERVER]
+    assert await MockDlnaDiscovery().discover() == [MOCK_SERVER, MOCK_UUID_SERVER]
 
 
 @pytest.mark.asyncio

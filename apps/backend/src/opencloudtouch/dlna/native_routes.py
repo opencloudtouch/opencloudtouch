@@ -1,5 +1,7 @@
 """API routes for native (speaker-side) media server registrations."""
 
+from typing import Any
+
 from fastapi import APIRouter, Query, Response
 from pydantic import BaseModel
 
@@ -9,7 +11,7 @@ from opencloudtouch.dlna.native_service import NativeState
 
 router = APIRouter(prefix="/api/dlna/native", tags=["dlna"])
 
-_ERRORS = {
+_ERRORS: dict[int | str, dict[str, Any]] = {
     404: {"model": ErrorDetail, "description": "Device or media server not found"},
     503: {"model": ErrorDetail, "description": "Speaker unreachable"},
 }
@@ -58,16 +60,17 @@ async def list_native_servers(
     )
 
 
-@router.get(
-    "/{device_id}/servers/{server_id}/presets", response_model=NativeSlotList
-)
+@router.get("/{device_id}/servers/{server_id}/presets", response_model=NativeSlotList)
 async def list_native_slots(
     device_id: str, server_id: str, service: DlnaNativeServiceDep
 ) -> NativeSlotList:
     """Native presets of the speaker that use this media server."""
     slots = await service.affected_slots(device_id, server_id)
     return NativeSlotList(
-        slots=[NativeSlot(preset_number=p.preset_number, name=p.station_name) for p in slots]
+        slots=[
+            NativeSlot(preset_number=p.preset_number, name=p.station_name)
+            for p in slots
+        ]
     )
 
 
@@ -78,8 +81,14 @@ async def list_native_slots(
     responses={
         200: {"model": NativeEnableResponse, "description": "Already registered"},
         **_ERRORS,
-        409: {"model": ErrorDetail, "description": "Registered but not usable, or removal pending"},
-        502: {"model": ErrorDetail, "description": "The speaker did not register the server"},
+        409: {
+            "model": ErrorDetail,
+            "description": "Registered but not usable, or removal pending",
+        },
+        502: {
+            "model": ErrorDetail,
+            "description": "The speaker did not register the server",
+        },
     },
 )
 async def enable_native_server(
@@ -97,8 +106,14 @@ async def enable_native_server(
     response_model=NativeDisableResponse,
     responses={
         **_ERRORS,
-        409: {"model": ErrorDetail, "description": "Native presets use the registration"},
-        502: {"model": ErrorDetail, "description": "The speaker did not remove the server"},
+        409: {
+            "model": ErrorDetail,
+            "description": "Native presets use the registration",
+        },
+        502: {
+            "model": ErrorDetail,
+            "description": "The speaker did not remove the server",
+        },
     },
 )
 async def disable_native_server(

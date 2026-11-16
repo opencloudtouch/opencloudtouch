@@ -111,9 +111,7 @@ class MockDeviceClient(DeviceClient):
     _sources: ClassVar[dict[str, dict[str, str]]] = {}
     provider_id: ClassVar[int] = 7
     # Stands in for the speaker's call to Marge ``POST .../source`` (set by main.py).
-    on_register: ClassVar[
-        Callable[[str, str, str, int], Awaitable[None]] | None
-    ] = None
+    on_register: ClassVar[Callable[[str, str, str, int], Awaitable[None]] | None] = None
 
     @classmethod
     def reset_sources(cls) -> None:

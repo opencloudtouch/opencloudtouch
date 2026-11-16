@@ -105,7 +105,9 @@ class EnableResult:
 def _default_client(device: Any) -> DeviceClient:
     from opencloudtouch.devices.adapter import get_device_client
 
-    return get_device_client(f"http://{device.ip}:{SPEAKER_PORT}")  # NOSONAR - LAN speaker
+    return get_device_client(
+        f"http://{device.ip}:{SPEAKER_PORT}"
+    )  # NOSONAR - LAN speaker
 
 
 def _listed(sources: Sequence[SpeakerSource], server_id: str) -> SpeakerSource | None:
@@ -116,7 +118,9 @@ def _listed(sources: Sequence[SpeakerSource], server_id: str) -> SpeakerSource |
     return None
 
 
-def derive_state(row: NativeSourceRow | None, listed: SpeakerSource | None) -> NativeState:
+def derive_state(
+    row: NativeSourceRow | None, listed: SpeakerSource | None
+) -> NativeState:
     """State table of the spec (Decision 7) with Amendment 1."""
     if row is None:
         return NativeState.UNMANAGED if listed else NativeState.NOT_REGISTERED
@@ -192,14 +196,22 @@ class DlnaNativeService:
         for server_id in [*known, *(r for r in rows if r not in known)]:
             row = rows.get(server_id)
             state = derive_state(row, _listed(sources, server_id))
-            if row is not None and row.removal_pending and state is NativeState.NOT_REGISTERED:
+            if (
+                row is not None
+                and row.removal_pending
+                and state is NativeState.NOT_REGISTERED
+            ):
                 await self._store.delete(device_id, server_id)  # removal took effect
                 row = None
             server = known.get(server_id)
             result.append(
                 NativeServerState(
                     server_id=server_id,
-                    name=server.name if server else (row.display_name if row else server_id),
+                    name=(
+                        server.name
+                        if server
+                        else (row.display_name if row else server_id)
+                    ),
                     state=state,
                     server_known=server is not None,
                     source_id=row.source_id if row else None,
@@ -313,7 +325,9 @@ class DlnaNativeService:
     ) -> NativeState:
         """Poll the live source list until the account is READY (or the budget is used)."""
         if row.received_provider_id == STALE_PROVIDER_ID:
-            return NativeState.RESTART_REQUIRED  # needs the one-time restart, no polling
+            return (
+                NativeState.RESTART_REQUIRED
+            )  # needs the one-time restart, no polling
         loop = asyncio.get_running_loop()
         deadline = loop.time() + self._ready_timeout
         listed = None

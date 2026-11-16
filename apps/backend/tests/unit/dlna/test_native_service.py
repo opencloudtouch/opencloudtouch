@@ -37,7 +37,9 @@ class FakeSpeaker:
         self.unreachable = False
         self.callback = True  # speaker calls Marge during setMusicServiceAccount
         self.callback_after: float | None = None  # ... or this long after it returned
-        self.list_after_set = "READY"  # status the account shows afterwards (None: absent)
+        self.list_after_set = (
+            "READY"  # status the account shows afterwards (None: absent)
+        )
         self.remove_keeps_listed = False
         self.stored: list[dict] = []
         self.store_error = False
@@ -53,7 +55,9 @@ class FakeClient:
     async def get_source_list(self):
         if self.s.unreachable:
             raise DeviceConnectionError("dev", "down")
-        return [SpeakerSource("STORED_MUSIC", a, st) for a, st in self.s.sources.items()]
+        return [
+            SpeakerSource("STORED_MUSIC", a, st) for a, st in self.s.sources.items()
+        ]
 
     async def set_music_service_account(self, source, display_name, user):
         self.s.calls.append(("set", user))
@@ -66,7 +70,9 @@ class FakeClient:
 
             async def late():
                 await asyncio.sleep(self.s.callback_after)
-                await self.s.store.upsert(DEV, server_id, display_name, self.s.provider_id)
+                await self.s.store.upsert(
+                    DEV, server_id, display_name, self.s.provider_id
+                )
 
             self.s.late_task = asyncio.create_task(late())
         if self.s.list_after_set:
@@ -93,7 +99,9 @@ class FakeDevices:
         self.known = known
 
     async def get_by_device_id(self, device_id):
-        return SimpleNamespace(device_id=device_id, ip="10.0.0.9") if self.known else None
+        return (
+            SimpleNamespace(device_id=device_id, ip="10.0.0.9") if self.known else None
+        )
 
 
 class FakeDlna:
@@ -187,7 +195,9 @@ async def test_state_table(store, speaker, row, listed, expected):
     entry = states(report)[SID]
     assert entry.state is expected
     assert entry.server_known is True
-    assert (entry.source_id is not None) == bool(row and not (row == "pending" and not listed))
+    assert (entry.source_id is not None) == bool(
+        row and not (row == "pending" and not listed)
+    )
     if row == "pending" and not listed:
         assert await store.get_by_server(DEV, SID) is None  # deleted by the read
 
@@ -243,7 +253,10 @@ async def test_enable_check_order_without_speaker_write(store, speaker):
         await make(store, speaker, known=False).enable(DEV, SID)
     with pytest.raises(CodedApiError) as err:
         await make(store, speaker, servers=[]).enable(DEV, SID)
-    assert (err.value.status_code, err.value.code) == (404, error_codes.DLNA_SERVER_NOT_FOUND)
+    assert (err.value.status_code, err.value.code) == (
+        404,
+        error_codes.DLNA_SERVER_NOT_FOUND,
+    )
     speaker.unreachable = True
     with pytest.raises(DeviceConnectionError):
         await make(store, speaker).enable(DEV, SID)
@@ -251,7 +264,9 @@ async def test_enable_check_order_without_speaker_write(store, speaker):
 
 
 async def test_enable_rejects_a_server_id_that_is_not_a_uuid(store, speaker):
-    service = make(store, speaker, servers=[DlnaServer("mock-media-server", "M", "l", "c")])
+    service = make(
+        store, speaker, servers=[DlnaServer("mock-media-server", "M", "l", "c")]
+    )
     with pytest.raises(CodedApiError) as err:
         await service.enable(DEV, "mock-media-server")
     assert err.value.code == error_codes.VALIDATION_ERROR
@@ -407,11 +422,15 @@ async def test_disable_with_native_presets_needs_force(store, speaker):
     service = make(store, speaker, presets=[native_preset(2), native_preset(5, SID2)])
     with pytest.raises(CodedApiError) as err:
         await service.disable(DEV, SID)
-    assert (err.value.status_code, err.value.code) == (409, error_codes.DLNA_NATIVE_IN_USE)
+    assert (err.value.status_code, err.value.code) == (
+        409,
+        error_codes.DLNA_NATIVE_IN_USE,
+    )
     assert speaker.calls == [] and speaker.stored == []
-    assert [(p.preset_number, p.station_name) for p in await service.affected_slots(DEV, SID)] == [
-        (2, "Folder 2")
-    ]
+    assert [
+        (p.preset_number, p.station_name)
+        for p in await service.affected_slots(DEV, SID)
+    ] == [(2, "Folder 2")]
 
 
 async def test_disable_force_rewrites_slots_to_v1_first(store, speaker):

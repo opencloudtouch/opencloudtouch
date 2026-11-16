@@ -23,7 +23,11 @@ BASE = f"/api/dlna/native/{DEV}/servers/{SID}"
 
 class Devices:
     async def get_by_device_id(self, device_id):
-        return SimpleNamespace(device_id=device_id, ip="192.0.2.10") if device_id == DEV else None
+        return (
+            SimpleNamespace(device_id=device_id, ip="192.0.2.10")
+            if device_id == DEV
+            else None
+        )
 
 
 class Presets:
@@ -60,7 +64,9 @@ async def env(tmp_path):
     register_exception_handlers(app)
     app.include_router(native_routes.router)
     app.dependency_overrides[get_dlna_native_service] = lambda: service
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as http:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://t"
+    ) as http:
         yield http, presets, repo
     MockDeviceClient.on_register = None
     MockDeviceClient.reset_sources()
@@ -74,18 +80,18 @@ async def _state(client):
 
 async def test_lifecycle_without_network(env):
     client, _, _ = env
-    first = (await _state(client))
+    first = await _state(client)
     assert (first["state"], first["server_known"], first["source_id"]) == (
         "not_registered",
         True,
         None,
     )
 
-    put = (await client.put(BASE))
+    put = await client.put(BASE)
     assert (put.status_code, put.json()) == (202, {"server_id": SID, "state": "ready"})
     assert (await _state(client))["source_id"] >= 20000000
 
-    again = (await client.put(BASE))
+    again = await client.put(BASE)
     assert (again.status_code, again.json()["state"]) == (200, "ready")
 
     assert (await client.get(f"{BASE}/presets")).json() == {"slots": []}
@@ -96,7 +102,7 @@ async def test_lifecycle_without_network(env):
 async def test_stale_provider_needs_one_reboot(env):
     client, _, _ = env
     MockDeviceClient.provider_id = 50
-    put = (await client.put(BASE))
+    put = await client.put(BASE)
     assert (put.status_code, put.json()["state"]) == (202, "restart_required")
     assert (await _state(client))["state"] == "restart_required"
     await MockDeviceClient(DEV).reboot()
@@ -120,18 +126,24 @@ async def test_in_use_conflict_and_force(env):
     assert (await client.get(f"{BASE}/presets")).json() == {
         "slots": [{"preset_number": 3, "name": "Folder"}]
     }
-    conflict = (await client.delete(BASE))
-    assert (conflict.status_code, conflict.json()["code"]) == (409, "dlna_native_in_use")
-    forced = (await client.delete(f"{BASE}?force=true"))
+    conflict = await client.delete(BASE)
+    assert (conflict.status_code, conflict.json()["code"]) == (
+        409,
+        "dlna_native_in_use",
+    )
+    forced = await client.delete(f"{BASE}?force=true")
     assert (forced.status_code, forced.json()) == (200, {"affected_slots": [3]})
     assert presets.items[0].native_type is None
 
 
 async def test_error_codes_and_check_order(env):
     client, _, _ = env
-    unknown_device = (await client.put(f"/api/dlna/native/NOPE/servers/{SID}"))
-    assert (unknown_device.status_code, unknown_device.json()["code"]) == (404, "device_not_found")
-    unknown_server = (await client.put(f"/api/dlna/native/{DEV}/servers/nope"))
+    unknown_device = await client.put(f"/api/dlna/native/NOPE/servers/{SID}")
+    assert (unknown_device.status_code, unknown_device.json()["code"]) == (
+        404,
+        "device_not_found",
+    )
+    unknown_server = await client.put(f"/api/dlna/native/{DEV}/servers/nope")
     assert (unknown_server.status_code, unknown_server.json()["code"]) == (
         404,
         "dlna_server_not_found",
