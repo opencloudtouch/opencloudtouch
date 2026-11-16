@@ -27,7 +27,8 @@ init_config()
 @pytest.fixture(autouse=True)
 def _mock_mode_config(monkeypatch):
     """Force mock mode per test: the import-time setup above is lost when unit tests ran
-    first and cached a non-mock config, and the real app would then scan the real network."""
+    first and cached a non-mock config, and the real app would then scan the real network.
+    """
     from opencloudtouch.core.config import clear_config
 
     monkeypatch.setenv("OCT_MOCK_MODE", "true")
