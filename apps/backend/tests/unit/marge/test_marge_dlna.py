@@ -78,4 +78,7 @@ async def test_store_call_still_unwraps_radio_locations(repo):
     saved = await MargeService(repo, AsyncMock()).store_preset(
         "D", 1, "LOCAL_INTERNET_RADIO", "R", location
     )
-    assert (saved.source, saved.station_url) == ("LOCAL_INTERNET_RADIO", "http://r/s.mp3")
+    assert (saved.source, saved.station_url) == (
+        "LOCAL_INTERNET_RADIO",
+        "http://r/s.mp3",
+    )

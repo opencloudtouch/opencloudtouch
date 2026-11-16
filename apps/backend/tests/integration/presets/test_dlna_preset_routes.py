@@ -18,7 +18,12 @@ from opencloudtouch.presets.repository import PresetRepository
 from opencloudtouch.presets.service import PresetService
 
 SERVER = "mock-media-server"
-BODY = {"device_id": "D", "preset_number": 1, "server_id": SERVER, "object_id": "music-001"}
+BODY = {
+    "device_id": "D",
+    "preset_number": 1,
+    "server_id": SERVER,
+    "object_id": "music-001",
+}
 
 
 @pytest.fixture
@@ -36,7 +41,6 @@ async def speaker():
 
 @pytest.fixture
 async def api(speaker):
-
 
     with tempfile.TemporaryDirectory() as tmp:
         db = str(Path(tmp) / "t.db")

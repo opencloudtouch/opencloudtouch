@@ -141,5 +141,7 @@ def test_parser_recognises_dlna_preset():
 
 def test_parser_still_skips_payload_without_stream_or_dlna():
     data = base64.urlsafe_b64encode(json.dumps({"name": "x"}).encode()).decode()
-    location = f"http://oct:7777/core02/svc-bmx-adapter-orion/prod/orion/station?data={data}"
+    location = (
+        f"http://oct:7777/core02/svc-bmx-adapter-orion/prod/orion/station?data={data}"
+    )
     assert DevicePresetParser().parse_presets("D", _xml(location)) == []

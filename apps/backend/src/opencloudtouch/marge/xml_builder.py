@@ -56,9 +56,7 @@ def build_preset_xml(preset: Any) -> ET.Element:
         # RadioBrowser preset (real format)
         preset_id = str(preset.preset_number)
         source = getattr(preset, "source", None) or "LOCAL_INTERNET_RADIO"
-        dlna_ref = (
-            from_station_url(preset.station_url) if source == "DLNA" else None
-        )
+        dlna_ref = from_station_url(preset.station_url) if source == "DLNA" else None
         if source not in _sources_by_name():
             # e.g. INTERNET_RADIO imported from a speaker: without a known <source>
             # the speaker drops the preset; the Orion location plays it anyway.

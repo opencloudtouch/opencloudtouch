@@ -128,7 +128,10 @@ async def set_preset(
     status_code=201,
     responses={
         404: {"model": ErrorDetail, "description": "Device, server or object unknown"},
-        422: {"model": ErrorDetail, "description": "Not playable or reference too long"},
+        422: {
+            "model": ErrorDetail,
+            "description": "Not playable or reference too long",
+        },
         502: {"model": ErrorDetail, "description": "DLNA server failed"},
         504: {"model": ErrorDetail, "description": "DLNA server timed out"},
     },

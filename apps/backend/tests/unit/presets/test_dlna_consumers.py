@@ -76,7 +76,9 @@ def test_find_preset_value_ignores_dlna_stream_url():
 
 @pytest.mark.asyncio
 async def test_now_playing_skips_icy_for_dlna():
-    info = NowPlayingInfo(source="INTERNET_RADIO", state="PLAY_STATE", station_name="Song")
+    info = NowPlayingInfo(
+        source="INTERNET_RADIO", state="PLAY_STATE", station_name="Song"
+    )
     devices = MagicMock()
     devices.get_now_playing = AsyncMock(return_value=info)
     presets = AsyncMock()
