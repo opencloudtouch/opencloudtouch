@@ -82,3 +82,42 @@ async def test_store_call_still_unwraps_radio_locations(repo):
         "LOCAL_INTERNET_RADIO",
         "http://r/s.mp3",
     )
+
+
+def _dlna_row(native_type="dir") -> Preset:
+    row = _preset()
+    row.native_type = native_type
+    return row
+
+
+@pytest.mark.asyncio
+async def test_unknown_numeric_source_keeps_the_dlna_row(repo):
+    repo.get_preset = AsyncMock(return_value=_dlna_row())
+    saved = await MargeService(repo, AsyncMock()).store_preset(
+        "D", 2, "100001", "Renamed", "a/b&c", "dir"
+    )
+    assert (saved.source, saved.station_url, saved.native_type) == (
+        "DLNA",
+        to_station_url(REF),
+        "dir",
+    )
+    assert saved.station_name == "Renamed"
+    assert saved.station_favicon == "http://nas/c.jpg"
+
+
+@pytest.mark.asyncio
+async def test_unknown_numeric_source_keeps_a_track_row(repo):
+    repo.get_preset = AsyncMock(return_value=_dlna_row("track"))
+    saved = await MargeService(repo, AsyncMock()).store_preset(
+        "D", 2, "100001", "Song", "a/b&c TRACK", "track"
+    )
+    assert (saved.source, saved.native_type) == ("DLNA", "track")
+
+
+@pytest.mark.asyncio
+async def test_unknown_numeric_source_with_other_object_is_not_kept(repo):
+    repo.get_preset = AsyncMock(return_value=_dlna_row())
+    saved = await MargeService(repo, AsyncMock()).store_preset(
+        "D", 2, "100001", "Other", "x/y", "dir"
+    )
+    assert saved.source == "100001"

@@ -423,6 +423,15 @@ class PresetService:
         synced_count = 0
 
         for preset in parsed_presets:
+            existing = await self.repository.get_preset(device_id, preset.preset_number)
+            if existing and existing.station_uuid == preset.station_uuid:
+                # The speaker reports no art: keep the cover and homepage OCT knows.
+                preset.station_favicon = (
+                    preset.station_favicon or existing.station_favicon
+                )
+                preset.station_homepage = (
+                    preset.station_homepage or existing.station_homepage
+                )
             await self.repository.set_preset(preset)
             synced_count += 1
             logger.info(

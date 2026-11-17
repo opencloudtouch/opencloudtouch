@@ -991,3 +991,44 @@ class TestDeviceIsSourceOfTruth:
             await service.clear_all_presets("dev-001")
 
         assert [c.args[0] for c in client.remove_preset.await_args_list] == [1, 5]
+
+
+@pytest.mark.asyncio
+async def test_sync_keeps_cover_and_homepage_when_device_has_none(service, mock_repo):
+    mock_repo.get_preset = AsyncMock(
+        return_value=Preset(
+            device_id="dev-001",
+            preset_number=1,
+            station_uuid="internet_radio_1",
+            station_name="My Radio",
+            station_url="http://radio.example.com/stream.mp3",
+            station_favicon="http://img/logo.png",
+            station_homepage="http://radio.example.com",
+            source="INTERNET_RADIO",
+        )
+    )
+    xml = _build_presets_xml(
+        {"id": 1, "location": "http://radio.example.com/stream.mp3"}
+    )
+    with patch.object(service, "_fetch_device_presets", AsyncMock(return_value=xml)):
+        await service.sync_presets_from_device("dev-001")
+
+    saved: Preset = mock_repo.set_preset.call_args[0][0]
+    assert saved.station_favicon == "http://img/logo.png"
+    assert saved.station_homepage == "http://radio.example.com"
+
+
+@pytest.mark.asyncio
+async def test_sync_heals_a_damaged_row_from_the_native_entry(service, mock_repo):
+    server = "11111111-2222-3333-4444-555555555555"
+    xml = (
+        '<presets><preset id="1"><ContentItem source="STORED_MUSIC" type="dir" '
+        f'location="obj-7" sourceAccount="{server}/0"><itemName>Album</itemName>'
+        "</ContentItem></preset></presets>"
+    ).encode()
+    with patch.object(service, "_fetch_device_presets", AsyncMock(return_value=xml)):
+        await service.sync_presets_from_device("dev-001")
+
+    saved: Preset = mock_repo.set_preset.call_args[0][0]
+    assert (saved.source, saved.native_type) == ("DLNA", "dir")
+    assert saved.station_url == f"dlna://{server}/obj-7"

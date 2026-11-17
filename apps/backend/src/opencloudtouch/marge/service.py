@@ -7,6 +7,7 @@ account sync protocol. Keeps route handlers thin.
 import base64
 import json
 import logging
+from copy import copy
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
@@ -198,6 +199,20 @@ class MargeService:
         row = None
         if source == source_id:
             row = await self._registered_source(device_id, account_id, source_id)
+        existing = await self._preset_repo.get_preset(device_id, slot)
+        if row is None and source_id.isdigit() and existing:
+            # The speaker calls back only a numeric id it may have renumbered: the
+            # slot keeps its DLNA row when the object is the same.
+            ref = from_station_url(existing.station_url)
+            kept_type = existing.native_type or "dir"
+            if (
+                existing.source == "DLNA"
+                and ref
+                and ref.object_id == strip_native_location(location, kept_type)
+            ):
+                kept = copy(existing)
+                kept.station_name = name
+                return await self._preset_repo.set_preset(kept)
         native_type = None
         if row:
             native_type = (
@@ -211,7 +226,6 @@ class MargeService:
         else:
             station_url, art = _station_from_location(source, location, name)
             dlna_ref = from_station_url(station_url)
-        existing = await self._preset_repo.get_preset(device_id, slot)
         if dlna_ref is not None:
             source = "DLNA"
         return await self._preset_repo.set_preset(
