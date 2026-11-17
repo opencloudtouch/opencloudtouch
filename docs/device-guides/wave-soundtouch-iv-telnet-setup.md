@@ -1,6 +1,6 @@
 # Wave SoundTouch IV — Telnet Port 17000 Setup Guide
 
-**Status:** ✅ Community-Verified (SoundCork Issue #309)  
+**Status:** ✅ Verified on real hardware (SSH enabled and URLs set via Telnet 17000)  
 **Applies to:** Bose Wave SoundTouch IV (sm2 firmware 27.0.6, 15.x, 9.x)  
 **Alternative to:** USB provisioning (not supported on Wave IV)
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-The **Wave SoundTouch IV** does not support USB provisioning via the standard `remote_services` method. However, it provides **Telnet access on port 17000** with a sufficient command set to configure OpenCloudTouch server URLs.
+The **Wave SoundTouch IV** does not support USB provisioning via the standard `remote_services` method. However, it provides a **Telnet diagnostic console on port 17000** with enough commands to configure OpenCloudTouch server URLs. With the SSH unlock described below, the speaker can also be reached over SSH.
 
 This method is **simpler than the Service Port serial cable** and requires no hardware modification or device disassembly.
 
@@ -25,8 +25,8 @@ This method is **simpler than the Service Port serial cable** and requires no ha
 
 - Wave SoundTouch IV connected to your local network
 - IP address of your Wave device (check your router or Bose SoundTouch app)
-- OpenCloudTouch server running and reachable from Wave device
-- Telnet client (built-in on Windows 10+, macOS, Linux)
+- OpenCloudTouch server running and reachable from Wave device (default port **7777**)
+- Telnet client (built-in on Windows 10+, macOS, Linux) or PuTTY in **Raw** mode
 
 ---
 
@@ -39,13 +39,13 @@ If you're on **Windows 10/11**, Telnet might be disabled by default.
 2. Check **Telnet Client**
 3. Click **OK** and wait for installation
 
-**Alternative:** Use **PuTTY** (download from [putty.org](https://www.putty.org/))
+**Alternative:** Use **PuTTY** (download from [putty.org](https://www.putty.org/)) with connection type **Raw** and port **17000**.
 
 ---
 
 ## Step 2: Connect to Wave via Telnet
 
-Open a terminal (Command Prompt, PowerShell, macOS Terminal, or Linux shell) and connect:
+Open a terminal and connect:
 
 ```bash
 telnet <wave-ip-address> 17000
@@ -61,41 +61,36 @@ telnet 192.168.1.100 17000
 Trying 192.168.1.100...
 Connected to 192.168.1.100.
 Escape character is '^]'.
+->
 ```
 
-**⚠️ Note:** The prompt is invisible — just type commands and press Enter.
+**Note:** The console shows a `->` prompt. Type one command per line and press Enter. Wait for `->OK` before you send the next command.
 
 ---
 
 ## Step 3: Configure OpenCloudTouch URLs
 
-**⚠️ CRITICAL:** Type commands carefully. Telnet has **no prompt feedback** — just type and press Enter.
+**⚠️ CRITICAL:** Send the commands one at a time and wait for `OK` after each one.
 
-Copy-paste the commands below ONE BY ONE, replacing `<oct-server>` with your server's hostname or IP.
+**⚠️ If you get `Command not found`:** Send the same command again. In our tests the first command after connecting was sometimes rejected, and the repeated command worked.
 
-### Example: Using hostname `opencloudtouch.local`
-
-```bash
-sys configuration bmxRegistryUrl http://opencloudtouch.local:8080/bmx/registry/v1/services
-sys configuration margeServerUrl http://opencloudtouch.local:8080/marge
-sys configuration statsServerUrl http://opencloudtouch.local:8080
-sys configuration swUpdateUrl http://opencloudtouch.local:8080/updates/soundtouch
-envswitch boseurls set http://opencloudtouch.local:8080/marge http://opencloudtouch.local:8080/updates/soundtouch
-```
+Replace `<oct-server>` with your server's IP address or hostname. The default OCT port is **7777**.
 
 ### Example: Using IP address `192.168.1.50`
 
 ```bash
-sys configuration bmxRegistryUrl http://192.168.1.50:8080/bmx/registry/v1/services
-sys configuration margeServerUrl http://192.168.1.50:8080/marge
-sys configuration statsServerUrl http://192.168.1.50:8080
-sys configuration swUpdateUrl http://192.168.1.50:8080/updates/soundtouch
-envswitch boseurls set http://192.168.1.50:8080/marge http://192.168.1.50:8080/updates/soundtouch
+sys configuration bmxRegistryUrl http://192.168.1.50:7777/bmx/registry/v1/services
+sys configuration margeServerUrl http://192.168.1.50:7777/marge
+sys configuration statsServerUrl http://192.168.1.50:7777
+sys configuration swUpdateUrl http://192.168.1.50:7777/updates/soundtouch
+envswitch boseurls set http://192.168.1.50:7777/marge http://192.168.1.50:7777/updates/soundtouch
 ```
+
+Each command should answer with `OK`. `envswitch boseurls set` answers with `->OK`.
 
 **⚠️ Important Notes:**
 - Use **`http://`** (not `https://`)
-- Include the **port number** (default OCT: `8080`, default SoundCork: `8000`)
+- Include the **port number** (default OCT: `7777`)
 - Wave IV firmware does **NOT** support TLS/HTTPS on these endpoints
 - `.home` TLD may cause issues — prefer `.local` or IP addresses
 
@@ -109,17 +104,17 @@ Before rebooting, verify that URLs were applied correctly:
 getpdo CurrentSystemConfiguration
 ```
 
-**Expected output:**
-```xml
-<CurrentSystemConfiguration>
-  <bmxRegistryUrl>http://opencloudtouch.local:8080/bmx/registry/v1/services</bmxRegistryUrl>
-  <margeServerUrl>http://opencloudtouch.local:8080/marge</margeServerUrl>
-  ...
-</CurrentSystemConfiguration>
+**Expected output** (compact form; the console adds whitespace, which is omitted here):
+
+```
+margeServerUrl { text: "http://192.168.1.50:7777/marge" }
+statsServerUrl { text: "http://192.168.1.50:7777" }
+swUpdateUrl { text: "http://192.168.1.50:7777/updates/soundtouch" }
+bmxRegistryUrl { text: "http://192.168.1.50:7777/bmx/registry/v1/services" }
 ```
 
 **✅ If URLs match:** Proceed to reboot.  
-**❌ If URLs are wrong:** Re-run the `sys configuration` commands.
+**❌ If URLs are wrong:** Re-run the `sys configuration` commands and the `envswitch` command.
 
 ---
 
@@ -138,7 +133,7 @@ sys reboot
 
 ## Step 6: Verify in OpenCloudTouch
 
-1. Open OpenCloudTouch web interface: `http://<oct-server>:8080`
+1. Open OpenCloudTouch web interface: `http://<oct-server>:7777`
 2. Navigate to **Devices**
 3. Your Wave SoundTouch IV should appear with status **Online**
 
@@ -146,6 +141,34 @@ sys reboot
 - Check that OCT server is reachable from Wave's network
 - Check OCT logs: `docker logs opencloudtouch-backend -f`
 - Reconnect via Telnet and verify URLs with `getpdo CurrentSystemConfiguration`
+
+---
+
+## Optional: Enable SSH via Telnet (verified on Wave IV)
+
+This step is only needed if you want shell access (for example, to check or edit `/etc/hosts`). It uses the URL injection method from [gesellix/Bose-SoundTouch#471](https://github.com/gesellix/Bose-SoundTouch/issues/471), which is documented for other SoundTouch models there. It was verified on a Wave IV with firmware 27.0.6.
+
+**Procedure:**
+
+1. Connect via Telnet to port 17000 and send this command. Replace `<oct-server>` with your server IP. Send it once; if the answer is `Command not found`, send the same line again:
+   ```bash
+   envswitch boseurls set "http://<oct-server>:7777/marge;touch /tmp/remote_services;/etc/init.d/sshd start" "http://<oct-server>:7777/updates/soundtouch"
+   ```
+   The answer is `->OK`.
+2. **Wait about 60 to 90 seconds.** The speaker applies the URLs on its next check of the marge URL. Do not reboot during this time.
+3. Log in via SSH. Root login without a password worked on the tested unit:
+   ```bash
+   ssh -o "HostKeyAlgorithms=+ssh-rsa,ssh-dss" -o "PubkeyAcceptedAlgorithms=+ssh-rsa" root@<wave-ip>
+   ```
+4. **Restore the OCT URLs** over Telnet. Otherwise the speaker keeps the injected value:
+   ```bash
+   envswitch boseurls set "http://<oct-server>:7777/marge" "http://<oct-server>:7777/updates/soundtouch"
+   ```
+   Then check with `getpdo CurrentSystemConfiguration`.
+
+**Security note:** Port 17000 stays open, and root may have no password. Use this only on a trusted LAN. Set a root password and close port 17000 before you rely on it long-term.
+
+**Persistence:** `/tmp` is in RAM, so the marker `/tmp/remote_services` is lost on reboot. The OCT setup wizard writes the persistent marker `/mnt/nv/remote_services` and sets up the hosts entries. That is the verified path for a permanent setup.
 
 ---
 
@@ -165,23 +188,20 @@ sys reboot
 
 **Symptom:** `Command not found` or no response
 
-**Root Cause:** Limited command set in older firmware versions
-
 **Solutions:**
 
-1. **Check current firmware:**
+1. **Send the command again.** A repeated command was accepted when the first one returned `Command not found`.
+2. **Check current firmware:**
    - Bose SoundTouch app → Device Settings → About
    - Expected: **27.0.6** (latest official version)
-
-2. **Firmware update via Micro-USB:**
+3. **Firmware update via Micro-USB:**
    - Download Wave IV firmware from [archive.org/details/bose-soundtouch-software-and-firmware](https://archive.org/details/bose-soundtouch-software-and-firmware)
    - File: `bose-wave-soundtouch-27.0.6.bin`
    - Connect Wave via Micro-USB cable to computer
    - Open browser: `http://203.0.113.1:17008/update.html`
    - Upload `.bin` file
    - Wait 10-15 minutes (LED blinks during update)
-
-3. **Factory reset before firmware update (if needed):**
+4. **Factory reset before firmware update (if needed):**
    - Unplug power
    - Hold **Preset 1 + Volume Down**
    - Plug power while holding buttons
@@ -209,11 +229,11 @@ sys reboot
 - ✅ WebSocket updates
 - ✅ Device control via OCT web UI
 - ✅ Spotify Connect (if configured)
+- ✅ SSH access via the URL injection method above (verified)
 
 ### What does NOT work:
-- ❌ SSH access (Wave IV does not support SSH via USB or Telnet)
-- ❌ Advanced diagnostics (limited Telnet command set)
-- ❌ File system access (read-only via Telnet)
+- ❌ USB `remote_services` provisioning
+- ❌ File system writes without SSH (Telnet 17000 offers no file write command)
 
 ---
 
@@ -293,5 +313,5 @@ This setup method is **experimental**. If you encounter issues or have improveme
 
 ---
 
-**Last updated:** 2026-06-10  
+**Last updated:** 2026-11-17  
 **Tested on:** Wave SoundTouch IV (sm2), firmware 27.0.6

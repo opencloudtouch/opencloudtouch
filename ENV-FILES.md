@@ -83,38 +83,11 @@ The root `.env` contains both:
 
 The `deployment/local/.env` is loaded by `config.ps1` and takes precedence for deployment operations.
 
-## ⚙️ Available Variables
+## Available Settings
 
-### Backend (Runtime)
-```bash
-OCT_HOST=0.0.0.0
-OCT_PORT=7777
-OCT_LOG_LEVEL=INFO
-OCT_LOG_DIR=/logs
-OCT_DB_PATH=/data/oct.db
-OCT_MOCK_MODE=false
-OCT_DISCOVERY_ENABLED=true
-OCT_DISCOVERY_TIMEOUT=3
-OCT_DEVICE_POLLING_ENABLED=true
-OCT_STATION_DESCRIPTOR_BASE_URL=http://localhost:7777
-OCT_MANUAL_DEVICE_IPS=192.168.1.100,192.168.1.101
-OCT_DEVICE_HTTP_PORT=8090
-OCT_DEVICE_WS_PORT=8080
-```
+The [configuration reference](docs/CONFIGURATION.md) is the source of truth for application variables, defaults, and descriptions.
 
-### Deployment (deploy-to-server.ps1)
-```bash
-DEPLOY_HOST=192.168.1.11
-DEPLOY_USER=yourusername
-DEPLOY_USE_SUDO=false
-CONTAINER_NAME=opencloudtouch
-CONTAINER_TAG=opencloudtouch:latest
-CONTAINER_PORT=7777
-REMOTE_DATA_PATH=/mnt/tank/applications/opencloudtouch/data
-REMOTE_LOG_PATH=/mnt/tank/applications/opencloudtouch/logs
-REMOTE_IMAGE_PATH=/tmp
-LOCAL_DATA_PATH=./deployment/data-local
-```
+Deployment-specific variable names are listed in the [deployment environment template](deployment/local/.env.template); the root [`.env.template`](.env.template) provides local-development settings and fallback deployment values. Keeping the examples there avoids duplicating values that can drift.
 
 ## 🚀 Quick Start
 

@@ -41,15 +41,7 @@ body:
       label: Problem & Solution Overview
       description: "What problem are we solving? What's our approach? Why this solution?"
       placeholder: |
-        **Feature Example:** "Manual stream URL input allows users to add custom audio streams 
-        (e.g., from private radio stations) not available via TuneIn. Solves #123."
-        
-        **Bug Example:** "Multi-room zones lose 3rd/4th device after creation. 
-        Root cause: Zone member list truncated during persistence. 
-        Solution: Fix serialization logic in ZoneService."
-        
-        **Infrastructure Example:** "Current CI runs all tests serially (15min). 
-        Solution: Parallelize test suites by area (backend/frontend/e2e) to reduce to ~5min."
+        Describe the current situation, the problem or need, the intended outcome, and why the proposed approach is appropriate.
     validations:
       required: true
 
@@ -59,8 +51,7 @@ body:
       label: User Stories (Optional for Bugs/Infra)
       description: "Who needs this? What do they want to accomplish? (Skip for internal bugs/infra unless user-facing)"
       placeholder: |
-        - **As a** podcast listener, **I want to** add my favorite show's direct stream URL **so that** I can listen without searching TuneIn
-        - **As a** multi-room user, **I want to** all selected devices to remain in the zone **so that** I can control all speakers from OCT
+        - **As a** [user], **I want to** [capability] **so that** [benefit]
       value: |
         - **As a** [user type], **I want to** [action] **so that** [benefit]
     validations:
@@ -72,15 +63,7 @@ body:
       label: Acceptance Criteria
       description: "Concrete, testable conditions that define when this work is complete. Use Given/When/Then format."
       placeholder: |
-        **Feature:** 
-        - **Given** I am on the Create Preset page, **when** I select "Manual URL", **then** I see an input field
-        
-        **Bug:** 
-        - **Given** I select 4 devices for multi-room, **when** I create the zone, **then** all 4 devices remain in the zone (not just 2)
-        - **Given** the zone is created, **when** I refresh the UI, **then** all 4 devices are still shown as grouped
-        
-        **Infrastructure:** 
-        - **Given** CI runs tests, **when** all suites complete, **then** total time is ≤6 minutes (down from 15)
+        - **Given** [context], **when** [action], **then** [observable result]
       value: |
         - **Given** [context], **when** [action], **then** [expected outcome]
     validations:
@@ -90,58 +73,30 @@ body:
     id: tasks
     attributes:
       label: Implementation Tasks
-      description: "Break down the work into concrete tasks. Use checkboxes. Adapt sections to work type (Investigation/Backend/Frontend/DevOps/etc.)."
+      description: "Break down the work into concrete tasks. Use checkboxes and adapt the task groups to the work."
       placeholder: |
-        **Investigation (for bugs):**
-        - [ ] Reproduce issue in local environment
-        - [ ] Analyze zone creation flow in ZoneService
-        - [ ] Identify where member list gets truncated
-        - [ ] Write failing test that reproduces the bug
-        
-        **Backend:**
-        - [ ] Fix ZoneService.create_zone() to persist all members
-        - [ ] Add validation: zone must have ≥2 members
-        - [ ] Write unit tests for multi-device zones (2, 3, 4, 8 devices)
-        - [ ] Write integration test for zone persistence
-        
-        **Frontend:**
-        - [ ] Verify zone UI correctly displays all members
-        - [ ] Add E2E test: create 4-device zone, verify UI shows 4
-        
-        **DevOps:**
-        - [ ] Update API documentation if zone contract changed
-        - [ ] Add regression test to CI
+        Group tasks as appropriate for the work, for example:
+        - [ ] Investigation or design
+        - [ ] Implementation
+        - [ ] Validation
+        - [ ] Documentation or rollout
       value: |
-        Investigation:
-        - [ ] 
-
-        Backend:
-        - [ ] 
-
-        Frontend:
-        - [ ] 
-
-        DevOps:
-        - [ ] 
+        - [ ] [Investigation or design task]
+        - [ ] [Implementation task]
+        - [ ] [Validation task]
+        - [ ] [Documentation or rollout task, if applicable]
     validations:
       required: true
 
   - type: textarea
     id: api_changes
     attributes:
-      label: API Changes
-      description: "What changes to the API contract are required? Include endpoints, request/response schemas."
+      label: Interface Changes
+      description: "Describe any interface, data-format, or compatibility changes, if applicable."
       placeholder: |
-        **Modified Endpoints:**
-        - `POST /api/presets` — add optional field `manual_stream_url: string | null`
-        - `PUT /api/presets/{id}` — add optional field `manual_stream_url: string | null`
-
-        **New Validation Rules:**
-        - `manual_stream_url` must be valid HTTP/HTTPS URL
-        - If `manual_stream_url` is provided, `content_item` fields can be null
-
-        **Response Changes:**
-        - Preset object now includes `manual_stream_url: string | null`
+        - Existing interface or behavior:
+        - Proposed change:
+        - Compatibility or migration considerations:
     validations:
       required: false
 
@@ -149,27 +104,16 @@ body:
     id: test_strategy
     attributes:
       label: Test Strategy
-      description: "How will this feature be tested? What edge cases need coverage?"
+      description: "How will this work be validated? What failure and boundary cases need coverage?"
       placeholder: |
-        **Unit Tests:**
-        - URL validation (valid/invalid formats)
-        - Preset model with manual URL
-        - API endpoint handlers
+        **Automated checks:**
+        - [Checks and scenarios to run]
 
-        **Integration Tests:**
-        - End-to-end preset creation with manual URL
-        - Preset playback with manual URL
-        - Error handling for unreachable URLs
+        **Failure and boundary cases:**
+        - [Relevant cases]
 
-        **E2E Tests:**
-        - User flow: Create preset → Enter manual URL → Save → Play
-        - Error flow: Invalid URL → Validation message shown
-
-        **Edge Cases:**
-        - URL with special characters
-        - URL requiring authentication (should fail gracefully)
-        - Extremely long URLs
-        - Non-audio content types (403, 404, HTML pages)
+        **Manual verification (if applicable):**
+        - [Steps and expected results]
     validations:
       required: false
 
@@ -177,20 +121,9 @@ body:
     id: affected_components
     attributes:
       label: Affected Components
-      description: "Which parts of the codebase will change?"
+      description: "Which areas or materials are expected to change?"
       placeholder: |
-        Backend:
-        - `apps/backend/src/opencloudtouch/presets/` (models, service, repository)
-        - `apps/backend/src/opencloudtouch/api/routes.py` (preset endpoints)
-        - `apps/backend/openapi.yaml`
-
-        Frontend:
-        - `apps/frontend/src/components/PresetForm.tsx`
-        - `apps/frontend/src/api/presets.ts`
-        - `apps/frontend/src/types/preset.ts`
-
-        Docs:
-        - `doc/03-preset-management.md`
+        List affected areas, modules, files, users, or external dependencies, as applicable.
     validations:
       required: false
 
@@ -198,29 +131,21 @@ body:
     id: definition_of_done
     attributes:
       label: Definition of Done
-      description: "What must be true before this work can be marked complete? Start from docs/DEFINITION_OF_DONE.md and make every item that applies verifiable here (test levels, docs, OpenAPI, i18n, migrations, hardware verification). Mark items that cannot apply as n/a with a reason."
+      description: "List verifiable completion conditions that apply to this work. Use the repository Definition of Done as a baseline; mark inapplicable items as n/a with a reason."
       placeholder: |
         - [ ] All tasks completed
         - [ ] All acceptance criteria met
-        - [ ] Unit test coverage ≥80% for new/modified code
-        - [ ] Integration tests passing
-        - [ ] E2E tests passing
-        - [ ] API documentation updated (openapi.yaml)
-        - [ ] User-facing documentation updated
-        - [ ] Code reviewed and approved
-        - [ ] No regressions in existing tests
-        - [ ] Feature tested on real SoundTouch device (if applicable)
+        - [ ] Relevant validation completed and evidence recorded
+        - [ ] Documentation updated where needed
+        - [ ] Changes reviewed and accepted
+        - [ ] Follow-up work recorded, if any
       value: |
         - [ ] All tasks completed
         - [ ] All acceptance criteria met
-        - [ ] Unit test coverage ≥80% for new/modified code
-        - [ ] Integration tests passing
-        - [ ] E2E tests passing
-        - [ ] API documentation updated
-        - [ ] User-facing documentation updated
-        - [ ] Code reviewed and approved
-        - [ ] No regressions in existing tests
-        - [ ] Everything in docs/DEFINITION_OF_DONE.md that applies is covered by a criterion above
+        - [ ] Relevant validation completed and evidence recorded
+        - [ ] Documentation updated where needed
+        - [ ] Changes reviewed and accepted
+        - [ ] Follow-up work recorded, if any
     validations:
       required: true
 
@@ -228,23 +153,23 @@ body:
     id: definition_of_ready
     attributes:
       label: Definition of Ready
-      description: "Confirm that this spec can be implemented without questions. Full criteria: docs/DEFINITION_OF_READY.md. A second reviewer re-checks these before implementation starts; a pull request re-verifies them for its linked spec. Issues created without this form must contain the same checklist as a '## Definition of Ready' section."
+      description: "Confirm that this spec can be implemented without open questions. Use the repository Definition of Ready as the full criteria; a reviewer re-checks it before implementation."
       options:
         - label: "Problem, user story and originating issue/discussion are described; scope and out of scope are explicit"
           required: true
-        - label: "Affected modules are named and the work is split into reviewable PRs where needed; the label `spec` is set"
+        - label: "Affected areas are identified and the work is split into reviewable parts where needed"
           required: true
-        - label: "Acceptance criteria are testable (Given/When/Then), cover error paths and edge cases, and backend and frontend have separate, matching criteria"
+        - label: "Acceptance criteria are testable (Given/When/Then), cover relevant failure cases and edge cases, and are consistent across affected areas"
           required: true
-        - label: "API contract, data model, configuration, mock-mode behaviour and claims about existing code are specified and verified"
+        - label: "Relevant interfaces, data, configuration, compatibility, and claims about existing behavior are specified and verified"
           required: true
-        - label: "Frontend part states functional requirements only (loading/empty/error/offline states, i18n, accessibility); visual design is not blocking"
+        - label: "User-facing behavior, accessibility, and localization are considered where relevant"
           required: true
-        - label: "Test strategy is defined; hardware-dependent items are listed as assumptions with a named verifier"
+        - label: "Validation strategy and any external dependencies or assumptions are defined"
           required: true
-        - label: "Security, privacy and risks are considered (trusted-LAN model, no secrets in logs)"
+        - label: "Security, privacy, risks, and trade-offs are considered where relevant"
           required: true
-        - label: "Dependencies and ordering are stated; no open questions or TBD remain; documentation impact is identified"
+        - label: "Dependencies, ordering, documentation impact, and open questions are addressed"
           required: true
         - label: "The spec was reviewed by someone other than the author (or independent reviewers) and the findings are incorporated"
           required: true
@@ -255,9 +180,9 @@ body:
       label: Dependencies & Blockers
       description: "What needs to happen before this can be implemented? Any external dependencies?"
       placeholder: |
-        - Depends on #456 (API refactor) being merged first
-        - Blocked by upstream library bug: https://github.com/...
-        - Requires decision on: should we validate URL accessibility on save or on play?
+        - Depends on [work item] being completed first
+        - Blocked by [external dependency or decision]
+        - Requires a decision on [open question]
     validations:
       required: false
 
@@ -267,10 +192,9 @@ body:
       label: Risks & Considerations
       description: "What could go wrong? What trade-offs are we making?"
       placeholder: |
-        - Security: User-provided URLs could point to malicious content → need URL validation
-        - Performance: Checking URL accessibility on save could be slow → consider async validation
-        - UX: Users might expect auto-metadata extraction from URL → document limitation
-        - Compatibility: Some streams require authentication → clarify scope (only public URLs)
+        - [Risk and likelihood]
+        - [Potential impact and mitigation]
+        - [Trade-off or limitation]
     validations:
       required: false
 

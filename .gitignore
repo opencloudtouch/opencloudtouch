@@ -78,6 +78,9 @@ docs/*
 !docs/AGENT_PRS.md
 !docs/AGENTS.md
 !docs/CLAUDE.md
+!docs/device-guides/
+# Confidential, unpublished SoundTouch device interface documentation.
+/docs/soundtouch-device-reference/
 .specify/
 specs/
 
@@ -90,7 +93,6 @@ bugs/
 .serena/
 
 # === SECRET Files ===
-doc
 memories
 
 # Playwright MCP browser snapshots
