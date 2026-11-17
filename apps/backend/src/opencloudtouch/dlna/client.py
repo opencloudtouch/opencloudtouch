@@ -28,6 +28,10 @@ class DlnaTimeoutError(DlnaBrowseError):
     """Raised when a DLNA server does not answer within the time limit."""
 
 
+class DlnaEmptyMetadataError(DlnaBrowseError):
+    """BrowseMetadata answered without an object."""
+
+
 class DlnaClient:
     """Browse a DLNA MediaServer ContentDirectory."""
 
@@ -55,7 +59,7 @@ class DlnaClient:
         body = self._build_browse_request(object_id, 0, 1, browse_flag="BrowseMetadata")
         page = await self._browse(server, body)
         if not page.items:
-            raise DlnaBrowseError(f"Empty metadata response from: {server.name}")
+            raise DlnaEmptyMetadataError(f"Empty metadata response from: {server.name}")
         return page.items[0]
 
     async def _browse(self, server: DlnaServer, body: str) -> BrowsePage:

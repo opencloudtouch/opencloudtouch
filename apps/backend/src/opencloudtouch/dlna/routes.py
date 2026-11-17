@@ -35,6 +35,24 @@ class DlnaBrowseResponse(BaseModel):
     revalidating: bool = False
 
 
+class DlnaPathEntry(BaseModel):
+    """One ancestor folder of an object."""
+
+    object_id: str
+    title: str
+
+
+class DlnaObjectPath(BaseModel):
+    """An object and its ancestor folders (root and the object itself excluded)."""
+
+    server_id: str
+    server_name: str
+    object_id: str
+    title: str
+    is_container: bool
+    path: list[DlnaPathEntry]
+
+
 @router.get("/servers")
 async def get_dlna_servers(
     service: DlnaServiceDep, refresh: bool = False
@@ -96,4 +114,39 @@ async def browse_dlna_server(
         cached_at=page.cached_at,
         stale=page.stale,
         revalidating=page.revalidating,
+    )
+
+
+@router.get(
+    "/servers/{server_id}/objects/path",
+    response_model=DlnaObjectPath,
+    responses={
+        404: {"model": ErrorDetail, "description": "Server or object not found"},
+        502: {"model": ErrorDetail, "description": "DLNA server failed"},
+        504: {"model": ErrorDetail, "description": "DLNA server timed out"},
+    },
+)
+async def get_dlna_object_path(
+    server_id: str,
+    service: DlnaServiceDep,
+    object_id: str = Query(min_length=1, max_length=512),
+) -> DlnaObjectPath:
+    """Ancestor folders of a saved object, read live (the browse cache is not used)."""
+    failure: tuple[int, str, str] | None = None
+    try:
+        found = await service.get_object_path(server_id, object_id)
+    except (LookupError, DlnaBrowseError) as exc:
+        failure = classify(exc)
+    if failure:
+        logger.warning("DLNA object path failed: %s", failure[1])
+        logger.debug("DLNA object path failed on server %s", server_id)
+        raise_coded(*failure)
+
+    return DlnaObjectPath(
+        server_id=server_id,
+        server_name=found.server_name,
+        object_id=found.item.id,
+        title=found.item.title,
+        is_container=found.item.is_container,
+        path=[DlnaPathEntry(object_id=a.id, title=a.title) for a in found.ancestors],
     )

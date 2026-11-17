@@ -11,7 +11,12 @@ from typing import TypeVar
 from urllib.parse import urlsplit
 
 from opencloudtouch.dlna.browse_cache import BrowseCache, CacheKey
-from opencloudtouch.dlna.client import DlnaBrowseError, DlnaClient, DlnaTimeoutError
+from opencloudtouch.dlna.client import (
+    DlnaBrowseError,
+    DlnaClient,
+    DlnaEmptyMetadataError,
+    DlnaTimeoutError,
+)
 from opencloudtouch.dlna.discovery import DlnaDiscovery
 from opencloudtouch.dlna.models import (
     BrowsePage,
@@ -30,6 +35,7 @@ CONTAINER_PAGE_SIZE = 50
 CONTAINER_MAX_PAGES = 5  # 250 entries
 REVALIDATION_BACKOFF = 30.0  # seconds before a failed key is revalidated again
 REFRESH_MIN_INTERVAL = 2.0  # seconds between two forced refreshes of one key
+MAX_PATH_DEPTH = 16  # ancestor levels resolved for one object
 
 
 class DlnaNotPlayableError(Exception):
@@ -44,6 +50,15 @@ class ResolvedDlnaItem:
     resource_url: str
     album_art_url: str | None
     is_container: bool = False
+
+
+@dataclass(frozen=True)
+class ObjectPath:
+    """An object with its ancestor folders, top first (root and object excluded)."""
+
+    server_name: str
+    item: DlnaItem
+    ancestors: list[DlnaItem]
 
 
 def _host_key(url: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address | str | None:
@@ -313,6 +328,36 @@ class DlnaService:
         """Fetch the metadata of one object."""
         item = await self._run(self._get_object(server_id, object_id), deadline)
         return self._sanitize(item)
+
+    async def get_object_path(self, server_id: str, object_id: str) -> ObjectPath:
+        """Object plus its ancestors; one deadline covers the whole live walk."""
+        return await self._run(self._object_path(server_id, object_id), None)
+
+    async def _object_path(self, server_id: str, object_id: str) -> ObjectPath:
+        try:
+            return await self._walk_path(server_id, object_id)
+        except DlnaEmptyMetadataError:
+            # an empty answer means the object is gone (only here, not on the press path)
+            raise DlnaBrowseError("No Such Object", error_code="701") from None
+
+    async def _walk_path(self, server_id: str, object_id: str) -> ObjectPath:
+        server = await self._lookup_server(server_id)
+        if object_id == "0":
+            root = DlnaItem("0", "-1", server.name, True)
+            return ObjectPath(server.name, root, [])
+        item = await self.client.get_object(server, object_id)
+        seen = {object_id}
+        ancestors: list[DlnaItem] = []
+        parent_id = item.parent_id
+        while parent_id not in ("0", "-1"):
+            if not parent_id or parent_id in seen or len(ancestors) >= MAX_PATH_DEPTH:
+                raise DlnaBrowseError("DLNA object path is not resolvable")
+            seen.add(parent_id)
+            parent = await self.client.get_object(server, parent_id)
+            ancestors.append(parent)
+            parent_id = parent.parent_id
+        ancestors.reverse()
+        return ObjectPath(server.name, item, ancestors)
 
     async def resolve_playable(
         self,
