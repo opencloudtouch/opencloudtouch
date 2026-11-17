@@ -94,7 +94,9 @@ class PresetRepository(BaseRepository):
         """
         db = self._ensure_initialized()
 
-        cursor = await db.execute(
+        # execute_fetchall consumes the RETURNING statement in one worker job; a lone
+        # fetchone() leaves it in progress and a concurrent commit fails.
+        rows = await db.execute_fetchall(
             """
             INSERT INTO presets (
                 device_id, preset_number, station_uuid, station_name, station_url,
@@ -128,7 +130,7 @@ class PresetRepository(BaseRepository):
             ),
         )
 
-        row = await cursor.fetchone()
+        row = rows[0] if rows else None
         preset.id = row[0] if row else None
 
         await db.commit()

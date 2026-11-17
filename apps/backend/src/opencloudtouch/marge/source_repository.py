@@ -82,7 +82,9 @@ class MargeSourceRepository(BaseRepository):
         """Create the row or refresh it; the database decides the id (idempotent)."""
         db = self._ensure_initialized()
         now = datetime.now(UTC).isoformat()
-        cursor = await db.execute(
+        # execute_fetchall consumes the RETURNING statement in one worker job; a lone
+        # fetchone() leaves it in progress and a concurrent commit fails.
+        rows = await db.execute_fetchall(
             f"""
             INSERT INTO media_server_sources (
                 device_id, server_id, display_name, created_at, updated_at
@@ -94,7 +96,7 @@ class MargeSourceRepository(BaseRepository):
             """,  # nosec B608 - constant column list
             (device_id, server_id, display_name, now, now),
         )
-        row = await cursor.fetchone()
+        row = rows[0] if rows else None
         await db.commit()
         if row is None:
             raise RuntimeError("upsert returned no row")

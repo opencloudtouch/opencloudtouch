@@ -194,7 +194,7 @@ class DeviceRepository(BaseRepository):
                 )
                 incoming_uuid = None
 
-        cursor = await db.execute(
+        rows = await db.execute_fetchall(
             """
             INSERT INTO devices (device_id, ip, name, model, mac_address, firmware_version, schema_version, last_seen, marge_account_uuid, capabilities_json)
             VALUES (
@@ -262,7 +262,7 @@ class DeviceRepository(BaseRepository):
             ),
         )
 
-        row = await cursor.fetchone()
+        row = rows[0] if rows else None
         device.id = row[0] if row else None
 
         if (
