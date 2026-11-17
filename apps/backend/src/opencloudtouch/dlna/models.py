@@ -1,6 +1,7 @@
 """Models for DLNA media servers and browse results."""
 
 from dataclasses import dataclass
+from datetime import datetime
 
 
 @dataclass(frozen=True)
@@ -50,6 +51,12 @@ class BrowsePage:
     items: list[DlnaItem]
     number_returned: int
     total_matches: int | None
+
+    # Provenance, set by the browse cache (a live answer keeps the defaults).
+    cached: bool = False
+    cached_at: datetime | None = None
+    stale: bool = False
+    revalidating: bool = False
 
 
 def is_audio_item(item: DlnaItem) -> bool:
