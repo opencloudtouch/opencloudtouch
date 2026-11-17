@@ -30,6 +30,14 @@ Listings are cached in memory and served **stale-while-revalidate**, because a s
 - The press path (`resolve_playable`, `get_object`, saving a DLNA preset) always reads the server live and never touches the cache.
 - `GET /api/diagnostics` has a `dlna_cache` section with counters and the effective limits (no ids or titles).
 
+### Folder browser: prefetch and cached listings
+
+- Opening a server (also from a restored session) requests the root like any other page; a cached answer is shown at once. A `stale` answer shows a quiet "updating" note, and while `revalidating` is `true` the browser asks again silently for page 1 after 3 s and after 8 s (without `refresh`, never overlapping a slow request). If the answer is still stale after that, or `revalidating` is `false`, a calm "may be outdated" note with the refresh action is shown. A failing follow-up changes nothing.
+- The refresh action in the folder view requests all loaded pages with `refresh=true`, one after the other. The old list stays until the new one arrives; on an error the list stays and the action becomes "Try again". Nothing else sends `refresh=true`.
+- Listings stay in the client query cache for 2 minutes and count as fresh for 45 s, so going back to a folder just opened needs no request. Items that appear on two pages (the library changed between two pages) are shown once.
+- **Prefetch on intent:** the first page of a folder is requested speculatively after a mouse hover of 200 ms, at pointer down, or after 450 ms of keyboard focus that matches `:focus-visible`. Touch and pen hover, audio rows, folders that are fresh on the client, and mere visibility never trigger it. At most one speculative request runs, two wait (a new trigger replaces the oldest), and at most 4 start per 10 s. Speculative requests are not aborted (the backend keeps running them anyway); waiting ones are dropped when another folder is opened or the dialog closes. It is off with `navigator.connection.saveData` and while offline; a missing `navigator.connection` counts as allowed. Errors of speculation are never shown.
+- A debug console line per navigation carries the counters `prefetch_started`, `prefetch_used`, `prefetch_unused`, `real_opens` and `prefetch_rate_limited` (no titles, ids or URLs).
+
 ## Errors
 
 | `code` | Status | When |

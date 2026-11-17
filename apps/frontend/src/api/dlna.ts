@@ -45,18 +45,21 @@ export async function getDlnaServers(signal?: AbortSignal, refresh = false): Pro
   );
 }
 
-/** Browse one page of a folder (`objectId` "0" is the server root). */
+/** Browse one page of a folder (`objectId` "0" is the server root); `refresh` bypasses the backend cache. */
 export async function browseDlna(
   serverId: string,
   objectId: string,
   startingIndex: number,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  refresh = false
 ): Promise<DlnaBrowsePage> {
   const query = new URLSearchParams({
     object_id: objectId,
     starting_index: String(startingIndex),
     requested_count: String(DLNA_PAGE_SIZE),
   });
+  // Only the manual refresh action skips the backend cache.
+  if (refresh) query.set("refresh", "true");
   const response = await fetch(
     `${API_BASE_URL}/api/dlna/servers/${encodeURIComponent(serverId)}/browse?${query}`,
     { signal }

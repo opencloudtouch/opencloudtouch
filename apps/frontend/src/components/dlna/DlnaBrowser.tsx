@@ -2,10 +2,12 @@
  * DLNA media browser: server list, folder navigation with breadcrumb, paging and a filter over the
  * loaded entries. Reusable: it knows nothing about presets; the per-row action comes in as a render prop.
  */
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../Icon";
 import type { DlnaItem } from "../../api/dlna";
+import { PrefetchContext, PrefetchScheduler } from "../../hooks/dlnaPrefetch";
 import {
   FolderView,
   ServersView,
@@ -69,6 +71,18 @@ export default function DlnaBrowser({
     onSessionChange?.(next);
   };
 
+  // One scheduler per browser view and server, not per row; disposing is idempotent (StrictMode).
+  const queryClient = useQueryClient();
+  const serverId = session?.serverId ?? null;
+  const scheduler = useMemo(
+    () => (serverId === null ? null : new PrefetchScheduler(queryClient, serverId)),
+    [queryClient, serverId]
+  );
+  useEffect(() => {
+    scheduler?.start();
+    return () => scheduler?.dispose();
+  }, [scheduler]);
+
   const stack = session?.stack ?? [];
   const up = () => {
     if (!session) return;
@@ -129,45 +143,47 @@ export default function DlnaBrowser({
 
   return (
     <div className="dl">
-      {session ? (
-        <FolderView
-          key={`${session.serverId}/${stack.at(-1)?.object_id ?? "0"}`}
-          session={session}
-          restoring={restoring}
-          focus={focus}
-          banner={banner}
-          header={folderHeader}
-          notice={noticeBox}
-          busyItemId={busyItemId}
-          busyLabel={busyLabel}
-          renderRowAction={renderRowAction}
-          onUp={up}
-          onServers={() => go(null, session.serverId)}
-          onCrumb={toCrumb}
-          onOpenFolder={(item) =>
-            go(
-              { ...session, stack: [...stack, { object_id: item.id, title: item.title }] },
-              "heading"
-            )
-          }
-          onFail={onFail}
-          onResolved={onResolved}
-          onLive={setLive}
-        />
-      ) : (
-        <ServersView
-          banner={
-            <>
-              {banner}
-              {noticeBox}
-            </>
-          }
-          focus={focus}
-          footer={serversFooter}
-          onOpen={(id, name) => go({ serverId: id, serverName: name, stack: [] }, "heading")}
-          onLive={setLive}
-        />
-      )}
+      <PrefetchContext value={scheduler}>
+        {session ? (
+          <FolderView
+            key={`${session.serverId}/${stack.at(-1)?.object_id ?? "0"}`}
+            session={session}
+            restoring={restoring}
+            focus={focus}
+            banner={banner}
+            header={folderHeader}
+            notice={noticeBox}
+            busyItemId={busyItemId}
+            busyLabel={busyLabel}
+            renderRowAction={renderRowAction}
+            onUp={up}
+            onServers={() => go(null, session.serverId)}
+            onCrumb={toCrumb}
+            onOpenFolder={(item) =>
+              go(
+                { ...session, stack: [...stack, { object_id: item.id, title: item.title }] },
+                "heading"
+              )
+            }
+            onFail={onFail}
+            onResolved={onResolved}
+            onLive={setLive}
+          />
+        ) : (
+          <ServersView
+            banner={
+              <>
+                {banner}
+                {noticeBox}
+              </>
+            }
+            focus={focus}
+            footer={serversFooter}
+            onOpen={(id, name) => go({ serverId: id, serverName: name, stack: [] }, "heading")}
+            onLive={setLive}
+          />
+        )}
+      </PrefetchContext>
       <div className="dl-sr" role="status" aria-live="polite">
         {liveMessage || live}
       </div>

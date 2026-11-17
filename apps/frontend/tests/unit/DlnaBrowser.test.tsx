@@ -190,7 +190,8 @@ describe("DlnaBrowser: folders and breadcrumb", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^Back$/ }));
     await screen.findByRole("heading", { name: "Albums" });
-    expect(browseCalls().length).toBe(before + 1);
+    // the listing is younger than the 45 s stale time: answered by the query cache
+    expect(browseCalls().length).toBe(before);
     // focus returns to the row that was opened
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Open folder “Rock”" })).toHaveFocus()
