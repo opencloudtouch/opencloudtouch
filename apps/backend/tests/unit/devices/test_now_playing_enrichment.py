@@ -418,6 +418,11 @@ class TestIsImageUrl:
 
         assert is_image_url("https://radio.de/sender/swr3.html") is False
 
+    def test_rejects_html_page_with_logo_segment(self):
+        from opencloudtouch.core.image_url import is_image_url
+
+        assert is_image_url("https://radio.de/logo-station.html") is False
+
 
 class TestArtworkFiltering:
     """Test that non-image artwork_url from device gets filtered to null."""

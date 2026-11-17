@@ -10,6 +10,10 @@ def is_image_url(url: str) -> bool:
     parsed = urlparse(url)
     path_lower = parsed.path.lower().rstrip("/")
 
+    # A web page is never a logo, even if its path looks like one
+    if path_lower.endswith((".html", ".htm")):
+        return False
+
     # Check file extension
     for ext in _IMAGE_EXTENSIONS:
         if path_lower.endswith(ext):
