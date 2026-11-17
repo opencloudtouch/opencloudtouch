@@ -1,5 +1,7 @@
 """Deterministic fake DLNA server for ``OCT_MOCK_MODE`` and tests."""
 
+import asyncio
+
 from opencloudtouch.dlna.client import DlnaBrowseError, DlnaClient
 from opencloudtouch.dlna.discovery import DlnaDiscovery
 from opencloudtouch.dlna.models import BrowsePage, DlnaItem, DlnaServer
@@ -97,7 +99,9 @@ class MockDlnaDiscovery(DlnaDiscovery):
 class MockDlnaClient(DlnaClient):
     """Client serving the fake content tree (no network)."""
 
-    def __init__(self) -> None:
+    def __init__(self, latency: float = 0.0) -> None:
+        self.latency = latency  # simulated NAS answer time (seconds)
+        self.browse_calls = 0
         self._tree = _build()
         self._by_id = {i.id: i for items in self._tree.values() for i in items}
         self._by_id["0"] = _folder("0", "-1", "Root")
@@ -109,6 +113,9 @@ class MockDlnaClient(DlnaClient):
         starting_index: int = 0,
         requested_count: int = 50,
     ) -> BrowsePage:
+        self.browse_calls += 1
+        if self.latency:
+            await asyncio.sleep(self.latency)
         children = self._tree.get(object_id)
         if children is None:
             if object_id in self._by_id:

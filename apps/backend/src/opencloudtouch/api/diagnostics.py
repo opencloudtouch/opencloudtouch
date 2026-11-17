@@ -73,10 +73,15 @@ async def get_diagnostics(request: Request):
     except Exception:
         logger.debug("Could not collect preset count for diagnostics")
 
+    # DLNA browse cache: counters and limits only (no keys, ids or content)
+    dlna_service = getattr(request.app.state, "dlna_service", None)
+    dlna_cache = dlna_service.browse_cache_stats() if dlna_service else {}
+
     return {
         "server": server_info,
         "devices": devices,
         "db_stats": db_stats,
+        "dlna_cache": dlna_cache,
     }
 
 

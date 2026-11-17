@@ -252,3 +252,48 @@ def test_dlna_timeout_default_and_bounds(monkeypatch):
         monkeypatch.setenv("OCT_DLNA_TIMEOUT", bad)
         with pytest.raises(ValidationError):
             AppConfig()
+
+
+def test_dlna_cache_defaults_and_bounds(monkeypatch):
+    from pydantic import ValidationError
+
+    for name in (
+        "OCT_DLNA_CACHE_TTL",
+        "OCT_DLNA_CACHE_STALE_TTL",
+        "OCT_DLNA_CACHE_MAX_ITEMS",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    config = AppConfig(_env_file=None)
+    assert (
+        config.dlna_cache_ttl,
+        config.dlna_cache_stale_ttl,
+        config.dlna_cache_max_items,
+    ) == (900, 604800, 20000)
+
+    monkeypatch.setenv("OCT_DLNA_CACHE_TTL", "0")
+    assert AppConfig(_env_file=None).dlna_cache_ttl == 0  # 0 disables the cache
+    monkeypatch.delenv("OCT_DLNA_CACHE_TTL")
+
+    for name, bad in (
+        ("OCT_DLNA_CACHE_TTL", "86401"),
+        ("OCT_DLNA_CACHE_TTL", "-1"),
+        ("OCT_DLNA_CACHE_STALE_TTL", "59"),
+        ("OCT_DLNA_CACHE_STALE_TTL", "2592001"),
+        ("OCT_DLNA_CACHE_MAX_ITEMS", "999"),
+        ("OCT_DLNA_CACHE_MAX_ITEMS", "200001"),
+    ):
+        monkeypatch.setenv(name, bad)
+        with pytest.raises(ValidationError):
+            AppConfig(_env_file=None)
+        monkeypatch.delenv(name)
+
+
+def test_dlna_cache_stale_window_must_cover_fresh_window(monkeypatch):
+    from pydantic import ValidationError
+
+    monkeypatch.setenv("OCT_DLNA_CACHE_TTL", "1000")
+    monkeypatch.setenv("OCT_DLNA_CACHE_STALE_TTL", "600")
+    with pytest.raises(ValidationError):
+        AppConfig(_env_file=None)
+    monkeypatch.setenv("OCT_DLNA_CACHE_STALE_TTL", "1000")
+    assert AppConfig(_env_file=None).dlna_cache_stale_ttl == 1000

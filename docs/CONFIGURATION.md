@@ -44,6 +44,9 @@ OpenCloudTouch is configured via `OCT_`-prefixed environment variables (case-ins
 | `OCT_DEVICE_WS_PORT` | `8080` | SoundTouch device WebSocket port |
 | `OCT_STATE_CACHE_MAX_AGE` | `10.0` | Max age (seconds) for WebSocket-fed state cache before falling back to an HTTP poll |
 | `OCT_DLNA_TIMEOUT` | `15.0` | DLNA media server read timeout and total deadline per browse operation (seconds, 1-60). Connecting always times out after 3 s. Raise it for a slow NAS. |
+| `OCT_DLNA_CACHE_TTL` | `900` | Seconds a cached DLNA browse page is fresh and answered without asking the media server (0-86400). `0` disables the browse cache. See [DLNA.md](DLNA.md#browse-cache). |
+| `OCT_DLNA_CACHE_STALE_TTL` | `604800` | Seconds (60-2592000, at least `OCT_DLNA_CACHE_TTL`) a cached page is still served while it is refreshed in the background. A smaller value than the fresh window fails at startup. |
+| `OCT_DLNA_CACHE_MAX_ITEMS` | `20000` | Maximum cached DLNA items over all pages (1000-200000; least recently used pages are evicted). A cached item needs about 0.9 KB (measured), so the default is about 18 MB; lower it on small arm/v7 hosts such as a Raspberry Pi. |
 | `OCT_STATION_DESCRIPTOR_BASE_URL` | `http://localhost:7777` | Base URL OCT advertises to devices for preset programming. If left as `localhost`, it's automatically replaced with `content.api.bose.io:<port>` (devices resolve this via `/etc/hosts` redirect) since devices can't reach the server's own `localhost`. |
 
 ## Bug Reports & Production Safety

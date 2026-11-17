@@ -203,3 +203,50 @@ class TestGetDiagnostics:
         # last_seen defaults to datetime.now(UTC) in Device.__init__,
         # so it won't be None. But setup_completed_at should be null.
         assert device["setup_completed_at"] is None
+
+
+class TestDlnaCacheSection:
+    """The additive ``dlna_cache`` section carries counters and limits only."""
+
+    @patch("opencloudtouch.api.diagnostics.get_config")
+    def test_dlna_cache_section_has_counters_and_limits_only(
+        self, mock_config, client, mock_repos
+    ):
+        import asyncio
+
+        from opencloudtouch.dlna.browse_cache import BrowseCache
+        from opencloudtouch.dlna.models import BrowsePage, DlnaItem
+        from opencloudtouch.dlna.service import DlnaService
+
+        cfg = MagicMock()
+        cfg.manual_device_ips = []
+        mock_config.return_value = cfg
+        cache = BrowseCache(900, 604800, 20000)
+        cache.put(
+            ("secret-server", "secret-object", 0, 50),
+            BrowsePage([DlnaItem("i", "0", "Secret Title", True)], 1, 1),
+            0,
+        )
+        service = DlnaService(browse_cache=cache)
+        app.state.dlna_service = service
+        try:
+            data = client.get("/api/diagnostics").json()
+        finally:
+            del app.state.dlna_service
+            asyncio.run(service.aclose())
+
+        section = data["dlna_cache"]
+        assert section["entries"] == 1 and section["items"] == 1
+        assert {"ttl", "stale_ttl", "max_items", "hits_fresh", "misses"} <= set(section)
+        assert all(isinstance(v, int) for v in section.values())
+        text = str(section)
+        assert "secret" not in text.lower()
+
+    @patch("opencloudtouch.api.diagnostics.get_config")
+    def test_section_is_empty_without_a_dlna_service(
+        self, mock_config, client, mock_repos
+    ):
+        cfg = MagicMock()
+        cfg.manual_device_ips = []
+        mock_config.return_value = cfg
+        assert client.get("/api/diagnostics").json()["dlna_cache"] == {}
