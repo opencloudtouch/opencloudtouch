@@ -816,7 +816,7 @@
       "dlna_object_not_found": "Pozycja już nie istnieje, być może biblioteka została ponownie przeskanowana. Wybierz pozycję ponownie.",
       "dlna_upstream_error": "Serwer multimediów nie odpowiedział prawidłowo. Spróbuj ponownie za chwilę lub sprawdź serwer.",
       "dlna_server_timeout": "Serwer multimediów odpowiedział zbyt wolno. Spróbuj ponownie.",
-      "dlna_not_playable": "Głośnik nie może odtworzyć tej pozycji. Wybierz inny utwór lub folder.",
+      "dlna_not_playable": "Głośnik nie może odtworzyć tej pozycji. Folderu, który zawiera tylko inne foldery, nie można zapisać: otwórz folder z utworami, na przykład album lub „Wszystkie utwory”. W przeciwnym razie wybierz inny utwór lub folder.",
       "dlna_reference_too_long": "Adres pozycji jest zbyt długi. Wybierz inną pozycję lub folder wyżej.",
       "dlna_native_in_use": "Nadal są presety używające tego serwera multimediów. Sprawdź listę i potwierdź ponownie.",
       "dlna_native_remove_failed": "Nie udało się usunąć serwera multimediów. Nic nie zmieniono. Spróbuj ponownie.",

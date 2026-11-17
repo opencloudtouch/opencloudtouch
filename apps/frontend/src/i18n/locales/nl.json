@@ -816,7 +816,7 @@
       "dlna_object_not_found": "Het item bestaat niet meer, misschien is de bibliotheek opnieuw gescand. Kies het item opnieuw.",
       "dlna_upstream_error": "De mediaserver antwoordde niet goed. Probeer het zo meteen opnieuw of controleer de server.",
       "dlna_server_timeout": "De mediaserver antwoordde te langzaam. Probeer het opnieuw.",
-      "dlna_not_playable": "De speaker kan dit item niet afspelen. Kies een ander nummer of een andere map.",
+      "dlna_not_playable": "De speaker kan dit item niet afspelen. Een map die alleen andere mappen bevat, kan niet worden opgeslagen: open een map met nummers, bijvoorbeeld een album of \"Alle nummers\". Kies anders een ander nummer of een andere map.",
       "dlna_reference_too_long": "Het adres van het item is te lang. Kies een ander item of een map hoger op.",
       "dlna_native_in_use": "Er zijn nog presets die deze mediaserver gebruiken. Controleer de lijst en bevestig opnieuw.",
       "dlna_native_remove_failed": "De mediaserver kon niet worden verwijderd. Er is niets gewijzigd. Probeer het opnieuw.",

@@ -816,7 +816,7 @@
       "dlna_object_not_found": "The item no longer exists, the library may have been rescanned. Pick the item again.",
       "dlna_upstream_error": "The media server did not answer properly. Try again in a moment or check the server.",
       "dlna_server_timeout": "The media server answered too slowly. Try again.",
-      "dlna_not_playable": "The speaker cannot play this item. Pick another track or folder.",
+      "dlna_not_playable": "The speaker cannot play this item. A folder that only contains other folders cannot be saved: open one with tracks, for example an album or \"All songs\". Otherwise pick another track or folder.",
       "dlna_reference_too_long": "The item's address is too long. Pick another item or a higher folder.",
       "dlna_native_in_use": "Presets still use this media server. Review the list and confirm again.",
       "dlna_native_remove_failed": "The media server could not be removed. Nothing was changed. Try again.",

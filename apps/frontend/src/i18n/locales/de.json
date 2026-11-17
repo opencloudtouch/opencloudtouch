@@ -816,7 +816,7 @@
       "dlna_object_not_found": "Der Eintrag existiert nicht mehr, vielleicht wurde die Bibliothek neu eingelesen. Wähle den Eintrag erneut aus.",
       "dlna_upstream_error": "Der Medienserver hat nicht richtig geantwortet. Versuche es gleich noch einmal oder prüfe den Server.",
       "dlna_server_timeout": "Der Medienserver hat zu langsam geantwortet. Versuche es erneut.",
-      "dlna_not_playable": "Dieser Eintrag kann vom Lautsprecher nicht abgespielt werden. Wähle einen anderen Titel oder Ordner.",
+      "dlna_not_playable": "Dieser Eintrag kann vom Lautsprecher nicht abgespielt werden. Ein Ordner, der nur weitere Ordner enthält, lässt sich nicht speichern: Öffne einen Ordner mit Titeln, zum Beispiel ein Album oder „Alle Titel“. Sonst wähle einen anderen Titel oder Ordner.",
       "dlna_reference_too_long": "Die Adresse des Eintrags ist zu lang. Wähle einen anderen Eintrag oder einen höheren Ordner.",
       "dlna_native_in_use": "Es gibt noch Presets, die diesen Medienserver nutzen. Prüfe die Liste und bestätige erneut.",
       "dlna_native_remove_failed": "Der Medienserver konnte nicht entfernt werden. Es wurde nichts geändert. Versuche es erneut.",

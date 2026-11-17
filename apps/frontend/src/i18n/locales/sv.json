@@ -816,7 +816,7 @@
       "dlna_object_not_found": "Posten finns inte längre, kanske har biblioteket lästs in på nytt. Välj posten igen.",
       "dlna_upstream_error": "Mediaservern svarade inte som den skulle. Försök igen om en stund eller kontrollera servern.",
       "dlna_server_timeout": "Mediaservern svarade för långsamt. Försök igen.",
-      "dlna_not_playable": "Högtalaren kan inte spela upp den här posten. Välj ett annat spår eller en annan mapp.",
+      "dlna_not_playable": "Högtalaren kan inte spela upp den här posten. En mapp som bara innehåller andra mappar kan inte sparas: öppna en mapp med spår, till exempel ett album eller ”Alla låtar”. Annars välj ett annat spår eller en annan mapp.",
       "dlna_reference_too_long": "Postens adress är för lång. Välj en annan post eller en mapp högre upp.",
       "dlna_native_in_use": "Det finns fortfarande presetar som använder den här mediaservern. Granska listan och bekräfta igen.",
       "dlna_native_remove_failed": "Mediaservern kunde inte tas bort. Inget ändrades. Försök igen.",

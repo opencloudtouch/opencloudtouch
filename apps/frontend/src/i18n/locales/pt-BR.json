@@ -816,7 +816,7 @@
       "dlna_object_not_found": "O item não existe mais, talvez a biblioteca tenha sido reescaneada. Escolha o item novamente.",
       "dlna_upstream_error": "O servidor de mídia não respondeu corretamente. Tente novamente em instantes ou verifique o servidor.",
       "dlna_server_timeout": "O servidor de mídia respondeu devagar demais. Tente novamente.",
-      "dlna_not_playable": "O alto-falante não consegue tocar este item. Escolha outra faixa ou pasta.",
+      "dlna_not_playable": "O alto-falante não consegue tocar este item. Uma pasta que contém apenas outras pastas não pode ser salva: abra uma com faixas, por exemplo um álbum ou \"Todas as músicas\". Caso contrário, escolha outra faixa ou pasta.",
       "dlna_reference_too_long": "O endereço do item é longo demais. Escolha outro item ou uma pasta acima.",
       "dlna_native_in_use": "Ainda há presets que usam este servidor de mídia. Revise a lista e confirme novamente.",
       "dlna_native_remove_failed": "Não foi possível remover o servidor de mídia. Nada foi alterado. Tente novamente.",

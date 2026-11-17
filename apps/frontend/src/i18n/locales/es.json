@@ -816,7 +816,7 @@
       "dlna_object_not_found": "La entrada ya no existe, quizá se volvió a escanear la biblioteca. Elige la entrada de nuevo.",
       "dlna_upstream_error": "El servidor multimedia no respondió correctamente. Inténtalo de nuevo en un momento o revisa el servidor.",
       "dlna_server_timeout": "El servidor multimedia respondió demasiado despacio. Inténtalo de nuevo.",
-      "dlna_not_playable": "El altavoz no puede reproducir esta entrada. Elige otra pista u otra carpeta.",
+      "dlna_not_playable": "El altavoz no puede reproducir esta entrada. Una carpeta que solo contiene otras carpetas no se puede guardar: abre una con pistas, por ejemplo un álbum o «Todas las canciones». Si no, elige otra pista u otra carpeta.",
       "dlna_reference_too_long": "La dirección de la entrada es demasiado larga. Elige otra entrada o una carpeta superior.",
       "dlna_native_in_use": "Todavía hay presets que usan este servidor multimedia. Revisa la lista y confirma de nuevo.",
       "dlna_native_remove_failed": "No se pudo quitar el servidor multimedia. No se ha cambiado nada. Inténtalo de nuevo.",

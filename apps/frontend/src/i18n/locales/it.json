@@ -816,7 +816,7 @@
       "dlna_object_not_found": "La voce non esiste più, forse la libreria è stata riscansionata. Scegli di nuovo la voce.",
       "dlna_upstream_error": "Il server multimediale non ha risposto correttamente. Riprova tra poco o controlla il server.",
       "dlna_server_timeout": "Il server multimediale ha risposto troppo lentamente. Riprova.",
-      "dlna_not_playable": "Il diffusore non può riprodurre questa voce. Scegli un altro brano o un’altra cartella.",
+      "dlna_not_playable": "Il diffusore non può riprodurre questa voce. Una cartella che contiene solo altre cartelle non può essere salvata: apri una cartella con dei brani, per esempio un album o «Tutti i brani». Altrimenti scegli un altro brano o un’altra cartella.",
       "dlna_reference_too_long": "L’indirizzo della voce è troppo lungo. Scegli un’altra voce o una cartella di livello superiore.",
       "dlna_native_in_use": "Ci sono ancora preset che usano questo server multimediale. Controlla l'elenco e conferma di nuovo.",
       "dlna_native_remove_failed": "Non è stato possibile rimuovere il server multimediale. Non è cambiato nulla. Riprova.",
