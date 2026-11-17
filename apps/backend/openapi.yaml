@@ -147,6 +147,7 @@ paths:
         required: false
         schema:
           type: string
+          maxLength: 512
           default: '0'
           title: Object Id
       - name: starting_index
@@ -166,6 +167,15 @@ paths:
           minimum: 1
           default: 50
           title: Requested Count
+      - name: refresh
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Skip the cache read and re-fetch from the server
+          default: false
+          title: Refresh
+        description: Skip the cache read and re-fetch from the server
       responses:
         '200':
           description: Successful Response
@@ -4555,6 +4565,24 @@ components:
         has_more:
           type: boolean
           title: Has More
+        cached:
+          type: boolean
+          title: Cached
+          default: false
+        cached_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Cached At
+        stale:
+          type: boolean
+          title: Stale
+          default: false
+        revalidating:
+          type: boolean
+          title: Revalidating
+          default: false
       type: object
       required:
       - server_id

@@ -3364,6 +3364,23 @@ export interface components {
       next_index: number;
       /** Has More */
       has_more: boolean;
+      /**
+       * Cached
+       * @default false
+       */
+      cached: boolean;
+      /** Cached At */
+      cached_at?: string | null;
+      /**
+       * Stale
+       * @default false
+       */
+      stale: boolean;
+      /**
+       * Revalidating
+       * @default false
+       */
+      revalidating: boolean;
     };
     /**
      * DlnaItem
@@ -4664,6 +4681,8 @@ export interface operations {
         object_id?: string;
         starting_index?: number;
         requested_count?: number;
+        /** @description Skip the cache read and re-fetch from the server */
+        refresh?: boolean;
       };
       header?: never;
       path: {
