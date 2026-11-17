@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "./Icon";
 
-export type TransportKey = "PREV_TRACK" | "PLAY_PAUSE" | "NEXT_TRACK";
+export type TransportKey = "PREV_TRACK" | "PLAY_PAUSE" | "NEXT_TRACK" | "SHUFFLE" | "REPEAT";
 
 interface TransportKeysProps {
   playing: boolean;

@@ -244,6 +244,30 @@ export interface NowPlayingState {
   skip_enabled?: boolean | null;
   /** False when the device is unreachable; fields above are then the last known state. */
   online?: boolean;
+  /** Raw speaker values (e.g. "SHUFFLE_ON"); absent when the speaker does not report them. */
+  shuffle_setting?: string | null;
+  repeat_setting?: string | null;
+}
+
+export type ShuffleMode = "off" | "on";
+export type RepeatMode = "off" | "all" | "one";
+
+const SHUFFLE_MODES = new Map<string, ShuffleMode>([
+  ["SHUFFLE_OFF", "off"],
+  ["SHUFFLE_ON", "on"],
+]);
+const REPEAT_MODES = new Map<string, RepeatMode>([
+  ["REPEAT_OFF", "off"],
+  ["REPEAT_ALL", "all"],
+  ["REPEAT_ONE", "one"],
+]);
+
+export function toShuffleMode(raw: string | null | undefined): ShuffleMode | null {
+  return SHUFFLE_MODES.get(raw ?? "") ?? null;
+}
+
+export function toRepeatMode(raw: string | null | undefined): RepeatMode | null {
+  return REPEAT_MODES.get(raw ?? "") ?? null;
 }
 
 export async function getNowPlaying(deviceId: string): Promise<NowPlayingState> {

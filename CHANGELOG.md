@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The speaker's shuffle and repeat settings are read from its now-playing state (`shuffle_setting` and `repeat_setting`, raw values such as `SHUFFLE_ON` or `REPEAT_ALL`, `null` when not reported)
 - The shuffle and repeat settings are kept when the metadata is enriched (preset favicon and ICY station data), so the speaker's values are not dropped from the now-playing state
 - The generated frontend API types describe the typed `NowPlayingResponse` and `KeyPressResponse` responses, including the shuffle and repeat fields
+- The frontend maps the speaker's shuffle and repeat values to `ShuffleMode` and `RepeatMode`, and the transport key type accepts `SHUFFLE` and `REPEAT`
 - The shuffle and repeat keys (`SHUFFLE_ON`, `SHUFFLE_OFF`, `REPEAT_OFF`, `REPEAT_ALL`, `REPEAT_ONE`) answer with the settings the speaker reports after the press, and the state cache is updated with them
 - The now-playing endpoint, the SSE now-playing event and its snapshot carry `shuffle_setting` and `repeat_setting`; a change of only these settings is published without starting a new playback generation, and the offline answer has `null` for both
 - The OpenAPI contract documents `NowPlayingResponse` and `KeyPressResponse` as the response schemas of `GET /api/devices/{device_id}/now-playing` and `POST /api/devices/{device_id}/key`; the change is additive (new `shuffle_setting` and `repeat_setting` fields, nullable)
