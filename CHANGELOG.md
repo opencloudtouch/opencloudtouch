@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- DLNA folder listings are cached in memory and served stale-while-revalidate: a listing answers at once, is refreshed in the background when it is older than `OCT_DLNA_CACHE_TTL` (default 900 s) and is still served up to `OCT_DLNA_CACHE_STALE_TTL` (default 7 days); equal simultaneous requests share one media server request and the cache survives a media server leaving discovery. `GET /api/dlna/servers/{server_id}/browse` gains `refresh` and the response fields `cached`, `cached_at`, `stale` and `revalidating`; `object_id` is limited to 512 characters; `OCT_DLNA_CACHE_MAX_ITEMS` (default 20000) bounds the memory, `OCT_DLNA_CACHE_TTL=0` disables the cache, and `GET /api/diagnostics` shows a `dlna_cache` section with counters and limits
 - DLNA browsing is paged: `GET /api/dlna/servers/{server_id}/browse` takes `starting_index` and `requested_count` and returns `number_returned`, `total_matches`, `next_index` and `has_more`; only folders and audio items are listed, and cover URLs that are not absolute http(s) are dropped
 - `OCT_DLNA_TIMEOUT` (default 15 s, 1-60) sets the DLNA read timeout and the total deadline per operation; connecting times out after 3 s
 - With `OCT_MOCK_MODE=true` a fake "Mock Media Server" (120 tracks, nested folders, mixed content) answers DLNA browsing without network access
@@ -33,8 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `STORED_MUSIC` is announced with the real provider id 7 instead of 50 in `/streaming/sourceproviders` and `/full` (50 is still accepted from speakers that cached the old list)
 - DLNA browse returns 50 entries per request by default instead of the whole folder; DLNA errors carry the codes `dlna_server_not_found`, `dlna_object_not_found`, `dlna_upstream_error` and `dlna_server_timeout` (a slow server now answers 504 instead of 502)
+- The failure log line of a DLNA browse request no longer carries the media server id at WARNING level (it reads `DLNA browse failed: <fixed text>`); the server id appears only in a separate DEBUG line
 
 ### Fixed
+- Saving a DLNA preset could fail once with HTTP 500 (`cannot commit transaction - SQL statements in progress`) when it raced a write of the speaker; upserts that return a row now read it in one step
 - SSDP discovery (speakers and DLNA media servers) no longer misses servers that run on the same host as OpenCloudTouch (for example a Gerbera container): the search now sends from a private source port instead of the shared port 1900, where the kernel handed unicast replies to an arbitrary socket
 - Renaming a stereo pair works: the speaker answers `PUT /updateGroup` with 405, so the rename is sent as `POST /updateGroup` with the whole group
 - Every action sent to a speaker (rename, volume, mute, source, key, bass, reboot, preset save/delete, preset load) answers HTTP 503 with code `device_unreachable` and a fixed, readable text (no IP address, no client library text; the details go to the log) when the speaker is offline and changes nothing in OCT; saving a preset no longer succeeds in OCT alone

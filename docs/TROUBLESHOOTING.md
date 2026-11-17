@@ -148,6 +148,10 @@ An app is also a clean place for the hook: it shows up under Apps, where you can
 
 Browsing a media server answers `504` with code `dlna_server_timeout` when the server does not answer within `OCT_DLNA_TIMEOUT` (default 15 s). A large library on a slow NAS may need a higher value (maximum 60 s); folders load page by page, so it rarely needs more. `502` with `dlna_upstream_error` means the server refused the connection or sent an invalid answer. See [DLNA.md](DLNA.md).
 
+## A new album does not show in the DLNA folder list
+
+Folder listings are cached (15 minutes fresh, up to 7 days served while refreshed in the background), so a new album can be missing until the next refresh. Open the folder again after a moment, use `refresh=true` on the browse call (the refresh action of the web UI), or lower `OCT_DLNA_CACHE_TTL` (`0` switches the cache off). See [DLNA.md](DLNA.md#browse-cache).
+
 ## DLNA preset does not play
 
 The preset button asks OpenCloudTouch for the current URL of the stored media server object, so the server must be reachable and known to OpenCloudTouch when you press it.

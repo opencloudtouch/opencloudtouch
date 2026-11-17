@@ -109,6 +109,8 @@ A DLNA preset never stores a playback URL. `core/dlna_reference.py` is the only 
 
 **Native variant** (ADR 011): `set_dlna_preset` asks `DlnaNativeService.native_ready` for the speaker's live state. A container or track whose server is `ready` is programmed as `<ContentItem source="STORED_MUSIC" sourceAccount="<uuid>/0" location="<object id>" type="dir">` (a track: `type="track"`, location `<object id> TRACK`; no Orion URL) and stored with the same identity plus `native_type='dir'` or `'track'`; every other case follows the reference flow above. The Marge builders, the preset parser and the Marge store call map the native item and the speaker's numeric source id back to the same row; consumers that need a stream URL ignore it like any DLNA preset.
 
+**Browse cache:** `dlna/browse_cache.py` (`BrowseCache`) is a small synchronous in-memory cache of filtered browse pages (weighted LRU, per-server generation counter, injected clocks) used only by `DlnaService.browse`. The service coalesces equal requests into one shielded task per key, revalidates stale pages in the background (tracked tasks, cancelled by `DlnaService.aclose()` at shutdown) and looks the cache up before the discovery lookup, so it is independent of SSDP eviction. The press path (`resolve_playable`, `get_object`) never uses it. No ADR: it is a localised in-memory cache without new dependency or persistence, reversible with `OCT_DLNA_CACHE_TTL=0`.
+
 See [DLNA.md](DLNA.md) for behaviour and limits.
 
 ## Real-Time Architecture

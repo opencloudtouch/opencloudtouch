@@ -4,14 +4,31 @@ OpenCloudTouch discovers UPnP/DLNA media servers (SSDP) and browses their Conten
 
 ## Browsing
 
-`GET /api/dlna/servers/{server_id}/browse?object_id=0&starting_index=0&requested_count=50`
+`GET /api/dlna/servers/{server_id}/browse?object_id=0&starting_index=0&requested_count=50[&refresh=true]`
 
 - `server_id` is the server UDN without `uuid:`. An empty `object_id` means the root `0`.
-- `starting_index` is 0 or more; `requested_count` is 1-200 (default 50).
+- `starting_index` is 0 or more; `requested_count` is 1-200 (default 50); `object_id` is at most 512 characters.
 - The response keeps `server_id`, `object_id` and `items` and adds `starting_index`, `number_returned`, `total_matches` (`null` if the server does not report it), `next_index` and `has_more`.
 - **Always use `has_more` to decide whether to load another page, never the length of `items`.** `number_returned` is what the server reported before filtering; `next_index` is `starting_index + number_returned`.
 - `items` contains only folders and audio items (UPnP class `object.item.audioItem...` or an `audio/*` protocolInfo). Other items are dropped but still count in `number_returned`, so a page can hold fewer entries than requested (even none) while `has_more` is `true`. Load the next page.
 - Server order is kept. `album_art_url` is only returned when it is an absolute `http(s)` URL, otherwise `null`; OpenCloudTouch does not fetch or proxy covers.
+
+## Browse cache
+
+Listings are cached in memory and served **stale-while-revalidate**, because a small NAS needs 1-5 s per `Browse` call.
+
+- The cache key is server id, object id, `starting_index` and `requested_count`. A page younger than `OCT_DLNA_CACHE_TTL` (default 15 min) is **fresh** and answered without asking the media server. A page older than that but younger than `OCT_DLNA_CACHE_STALE_TTL` (default 7 days) is **stale**: it is answered at once and refreshed in the background. Older pages are dropped and fetched again. `OCT_DLNA_CACHE_TTL=0` switches the cache off.
+- Additive response fields: `cached` (served from the cache), `cached_at` (UTC time the page was fetched, `null` when not cached), `stale` (older than the fresh window) and `revalidating` (a background refresh of this page is running; `stale: true` with `revalidating: false` means it is waiting after a failure or cannot reach the server).
+- `refresh=true` skips the cache read and fetches again (it joins a running fetch of the same page). A second `refresh=true` for the same page within 2 s is answered from the cache. A refresh for a server that is not discovered answers `404` as before.
+- Equal simultaneous requests share one request to the media server. A client that leaves (timeout, closed tab) does not cancel it; the result still fills the cache.
+- Only the filtered page is stored. Errors are never cached. After a failed refresh the stale page keeps being served and is not retried for 30 s; UPnP error 701 drops the page.
+- Revalidation happens only because someone browsed: at most one per server at a time, no timer. It may wake a sleeping NAS.
+- The cache is **independent of discovery**: a server that disappears from discovery (a sleeping NAS) keeps its pages, and they are answered stale; a server that returns with a new IP keeps them, too. Playing needs the server anyway.
+- Memory is bounded by items (`OCT_DLNA_CACHE_MAX_ITEMS`, default 20000; an empty page counts 1): the least recently used pages are evicted first. A page of 200 items with typical metadata holds about 180 KB (measured with `tracemalloc`, roughly 0.9 KB per item), so the default is about 18 MB at most.
+- Pages are cached independently, so after a library rescan page 1 can be newer than page 2. The cache is empty after every restart.
+- A new album can be missing for up to the fresh window plus one refresh. `SystemUpdateID` / `ContainerUpdateIDs` are not used yet. Use `refresh=true` (or lower `OCT_DLNA_CACHE_TTL`) to see changes at once.
+- The press path (`resolve_playable`, `get_object`, saving a DLNA preset) always reads the server live and never touches the cache.
+- `GET /api/diagnostics` has a `dlna_cache` section with counters and the effective limits (no ids or titles).
 
 ## Errors
 
@@ -21,7 +38,7 @@ OpenCloudTouch discovers UPnP/DLNA media servers (SSDP) and browses their Conten
 | `dlna_object_not_found` | 404 | UPnP error 701 (object removed or renumbered) |
 | `dlna_upstream_error` | 502 | connection refused, HTTP/SOAP failure, invalid response |
 | `dlna_server_timeout` | 504 | read timeout or total deadline exceeded |
-| `validation_error` | 422 | paging values out of range |
+| `validation_error` | 422 | paging values out of range, `object_id` longer than 512 characters, invalid `refresh` |
 
 ## DLNA items as presets
 
