@@ -43,6 +43,9 @@ def _event_to_sse(event: DeviceEvent) -> str:
                 "track": event.now_playing.track,
                 "album": event.now_playing.album,
                 "artwork_url": event.now_playing.artwork_url,
+                "content_location": event.now_playing.content_location,
+                "item_name": event.now_playing.item_name,
+                "skip_enabled": event.now_playing.skip_enabled,
             }
         )
 
@@ -76,6 +79,9 @@ def _snapshot_to_sse(device_id: str, state) -> str:
             "track": np.track,
             "album": np.album,
             "artwork_url": np.artwork_url,
+            "content_location": np.content_location,
+            "item_name": np.item_name,
+            "skip_enabled": np.skip_enabled,
         }
         messages += f"event: now_playing\ndata: {json.dumps(data)}\n\n"
 

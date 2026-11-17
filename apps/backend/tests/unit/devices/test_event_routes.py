@@ -356,3 +356,32 @@ class TestSSEIntegration:
         joined = "".join(messages)
         assert "event: now_playing" in joined
         assert "Test Song" in joined
+
+
+class TestStoredMusicPayload:
+    def _np(self):
+        return NowPlayingInfo(
+            source="STORED_MUSIC",
+            state="PLAY_STATE",
+            content_location="64$7$3",
+            item_name="Example Album",
+            skip_enabled=True,
+        )
+
+    def test_event_carries_content_item_and_skip(self):
+        event = DeviceEvent(
+            device_id="D1", event_type=EventType.NOW_PLAYING, now_playing=self._np()
+        )
+        data = json.loads(_event_to_sse(event).split("data: ")[1].strip())
+        assert data["content_location"] == "64$7$3"
+        assert data["item_name"] == "Example Album"
+        assert data["skip_enabled"] is True
+
+    def test_snapshot_carries_content_item_and_skip(self):
+        state = DeviceState(device_id="D1", now_playing=self._np())
+        data = json.loads(
+            _snapshot_to_sse("D1", state).split("data: ")[1].split("\n")[0]
+        )
+        assert data["content_location"] == "64$7$3"
+        assert data["item_name"] == "Example Album"
+        assert data["skip_enabled"] is True

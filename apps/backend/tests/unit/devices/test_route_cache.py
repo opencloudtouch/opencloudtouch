@@ -121,6 +121,9 @@ class TestNowPlayingCacheFirst:
             "track",
             "album",
             "artwork_url",
+            "content_location",
+            "item_name",
+            "skip_enabled",
             "online",
         }
         assert set(data.keys()) == expected_keys

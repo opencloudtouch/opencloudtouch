@@ -237,6 +237,11 @@ export interface NowPlayingState {
   track?: string;
   album?: string;
   artwork_url?: string;
+  /** DLNA (STORED_MUSIC): the played item (ContentItem location and name); there is no station name. */
+  content_location?: string | null;
+  item_name?: string | null;
+  /** Whether the speaker accepts next/previous (false for a single DLNA track). */
+  skip_enabled?: boolean | null;
   /** False when the device is unreachable; fields above are then the last known state. */
   online?: boolean;
 }

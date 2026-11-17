@@ -456,7 +456,9 @@ describe("Devices Page", () => {
       fireEvent.click(screen.getByTestId("preset-1-assign"));
       fireEvent.click(screen.getByTestId("select-dlna"));
 
-      await waitFor(() => expect(screen.getByTestId("preset-1-name")).toHaveTextContent("Folk Songs"));
+      await waitFor(() =>
+        expect(screen.getByTestId("preset-1-name")).toHaveTextContent("Folk Songs")
+      );
       expect(presetsApi.setDlnaPreset).toHaveBeenCalledWith({
         device_id: "AABBCC123456",
         preset_number: 1,
@@ -1571,7 +1573,10 @@ describe("Devices Page", () => {
       it("keeps every control usable, including AUX and the transport keys", async () => {
         await renderPair();
 
-        expect(screen.getByRole("button", { name: "AUX" })).not.toHaveAttribute("aria-disabled", "true");
+        expect(screen.getByRole("button", { name: "AUX" })).not.toHaveAttribute(
+          "aria-disabled",
+          "true"
+        );
         expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled();
         expect(document.getElementById("dv-slave-hint")).toBeNull();
       });
@@ -1629,6 +1634,104 @@ describe("Devices Page", () => {
       expect(screen.queryByTestId("now-playing")).not.toBeInTheDocument();
       expect(screen.queryByTestId("preset-list")).not.toBeInTheDocument();
       expect(screen.queryByTestId("volume-slider")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Devices – DLNA playback state", () => {
+    beforeEach(() => {
+      _resetOfflineStore();
+    });
+
+    const dlnaPreset = (number: number, name: string, objectId: string) => ({
+      id: number,
+      device_id: "AABBCC123456",
+      preset_number: number,
+      station_uuid: `dlna:srv:${objectId}`,
+      station_name: name,
+      station_url: "",
+      source: "DLNA",
+      dlna: { server_id: "srv", object_id: objectId },
+      created_at: "2024-01-01T00:00:00Z",
+      updated_at: "2024-01-01T00:00:00Z",
+    });
+    const dlnaPlaying = (extra: Record<string, unknown> = {}) => ({
+      source: "STORED_MUSIC",
+      state: "PLAY_STATE",
+      station_name: null,
+      content_location: "obj-7",
+      item_name: "Folk Songs",
+      skip_enabled: true,
+      ...extra,
+    });
+    const renderWithPresets = async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([
+        dlnaPreset(1, "Folk Songs", "obj-7"),
+        dlnaPreset(2, "Jazz", "obj-9"),
+      ] as never);
+      await act(async () => {
+        render(<Devices devices={mockDevices} />);
+      });
+      await waitFor(() => expect(screen.getByTestId("preset-2-name")).toBeInTheDocument());
+    };
+
+    it("marks only the slot of the playing DLNA item as playing", async () => {
+      mockNowPlayingState = dlnaPlaying();
+      await renderWithPresets();
+
+      expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "playing");
+      expect(screen.getByTestId("preset-2-play")).not.toHaveAttribute("data-state", "playing");
+    });
+
+    it("marks the slot as paused while the DLNA item is paused", async () => {
+      mockNowPlayingState = dlnaPlaying({ state: "PAUSE_STATE" });
+      await renderWithPresets();
+
+      expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "paused");
+    });
+
+    it("matches a slot by the item name when the speaker reports another location", async () => {
+      mockNowPlayingState = dlnaPlaying({ content_location: "track-in-queue" });
+      await renderWithPresets();
+
+      expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "playing");
+      expect(screen.getByTestId("preset-2-play")).not.toHaveAttribute("data-state", "playing");
+    });
+
+    it("marks no slot when another item plays", async () => {
+      mockNowPlayingState = dlnaPlaying({ content_location: "other", item_name: "Other" });
+      await renderWithPresets();
+
+      expect(screen.getByTestId("preset-1-play")).not.toHaveAttribute("data-state", "playing");
+      expect(screen.getByTestId("preset-2-play")).not.toHaveAttribute("data-state", "playing");
+    });
+
+    it("shows pause while DLNA plays", async () => {
+      mockNowPlayingState = dlnaPlaying();
+      await renderWithPresets();
+      expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
+    });
+
+    it("shows play while DLNA is paused", async () => {
+      mockNowPlayingState = dlnaPlaying({ state: "PAUSE_STATE" });
+      await renderWithPresets();
+      expect(document.querySelector('[data-test="dv-PLAY_PAUSE"]')).toHaveAttribute(
+        "aria-label",
+        "Play"
+      );
+    });
+
+    it("enables previous and next when the speaker reports a queue", async () => {
+      mockNowPlayingState = dlnaPlaying({ skip_enabled: true });
+      await renderWithPresets();
+      expect(screen.getByRole("button", { name: "Next track" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Previous track" })).toBeEnabled();
+    });
+
+    it("disables previous and next when the speaker reports no skip", async () => {
+      mockNowPlayingState = dlnaPlaying({ skip_enabled: false });
+      await renderWithPresets();
+      expect(screen.getByRole("button", { name: "Next track" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Previous track" })).toBeDisabled();
     });
   });
 });

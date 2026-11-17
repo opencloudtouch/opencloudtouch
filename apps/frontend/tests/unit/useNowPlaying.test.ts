@@ -619,3 +619,86 @@ describe("useNowPlaying – SSE push events", () => {
     expect(result.current.nowPlaying?.track).toBe("Untouched");
   });
 });
+
+describe("useNowPlaying – DLNA playback (STORED_MUSIC)", () => {
+  const mockFetch = vi.fn();
+
+  beforeEach(() => {
+    _resetOfflineStore();
+    mockFetch.mockReset();
+    mockSubscribe.mockClear();
+    mockUnsubFns = [];
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("follows play and pause events and keeps the played item", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          source: "STORED_MUSIC",
+          state: "PLAY_STATE",
+          station_name: null,
+          content_location: "obj-7",
+          item_name: "Folk Songs",
+          skip_enabled: true,
+        }),
+    });
+    const { result } = renderHook(() => useNowPlaying("device-42"));
+    await waitFor(() => expect(result.current.nowPlaying).toBeTruthy());
+    const emit = mockSubscribe.mock.calls.find((c: unknown[]) => c[0] === "now_playing")![2] as (
+      data: Record<string, unknown>
+    ) => void;
+    const event = (state: string) => ({
+      device_id: "device-42",
+      source: "STORED_MUSIC",
+      state,
+      station_name: null,
+      content_location: "obj-7",
+      item_name: "Folk Songs",
+      skip_enabled: true,
+    });
+
+    act(() => emit(event("PAUSE_STATE")));
+    expect(result.current.nowPlaying?.state).toBe("PAUSE_STATE");
+    act(() => emit(event("PLAY_STATE")));
+    expect(result.current.nowPlaying?.state).toBe("PLAY_STATE");
+    expect(result.current.nowPlaying?.content_location).toBe("obj-7");
+    expect(result.current.nowPlaying?.skip_enabled).toBe(true);
+  });
+
+  it("replaces the played item when the next track of the queue starts", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          source: "STORED_MUSIC",
+          state: "PLAY_STATE",
+          track: "One",
+          content_location: "obj-7",
+          item_name: "Folk Songs",
+        }),
+    });
+    const { result } = renderHook(() => useNowPlaying("device-42"));
+    await waitFor(() => expect(result.current.nowPlaying).toBeTruthy());
+    const emit = mockSubscribe.mock.calls.find((c: unknown[]) => c[0] === "now_playing")![2] as (
+      data: Record<string, unknown>
+    ) => void;
+
+    act(() =>
+      emit({
+        device_id: "device-42",
+        source: "STORED_MUSIC",
+        state: "PLAY_STATE",
+        track: "Two",
+        content_location: "obj-8",
+        item_name: "Folk Songs",
+      })
+    );
+    expect(result.current.nowPlaying?.content_location).toBe("obj-8");
+  });
+});

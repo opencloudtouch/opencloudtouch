@@ -49,6 +49,11 @@ class NowPlayingInfo:
     track: Optional[str] = None
     album: Optional[str] = None
     artwork_url: Optional[str] = None
+    # STORED_MUSIC (DLNA) has no station: the played item is the ContentItem
+    content_location: Optional[str] = None
+    item_name: Optional[str] = None
+    # Whether the speaker accepts next/previous (a single track does not)
+    skip_enabled: Optional[bool] = None
 
 
 @dataclass

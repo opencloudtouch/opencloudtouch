@@ -51,3 +51,13 @@ describe("TransportKeys", () => {
     expect(screen.getByRole("button", { name: "Play" })).toBeDisabled();
   });
 });
+
+describe("TransportKeys – skip unavailable", () => {
+  it("disables previous and next but keeps play/pause when the speaker does not skip", () => {
+    render(<TransportKeys {...base} skipEnabled={false} />);
+
+    expect(screen.getByRole("button", { name: "Previous track" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next track" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Play" })).toBeEnabled();
+  });
+});

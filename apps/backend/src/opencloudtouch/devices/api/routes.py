@@ -5,6 +5,7 @@ CRUD endpoints for device management. Discovery endpoints extracted to discovery
 
 import logging
 from collections.abc import Awaitable
+from dataclasses import replace
 from typing import Annotated, Literal, TypeVar
 
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -541,6 +542,9 @@ def _now_playing_to_dict(info: NowPlayingInfo, *, online: bool) -> dict[str, obj
         "track": info.track,
         "album": info.album,
         "artwork_url": info.artwork_url,
+        "content_location": info.content_location,
+        "item_name": info.item_name,
+        "skip_enabled": info.skip_enabled,
         "online": online,
     }
 
@@ -556,13 +560,10 @@ def _sync_enriched_state(
     Keeps SSE snapshots (which read from the cache) in sync with what
     _enrich_from_presets/_enrich_from_icy just added to *result*.
     """
-    enriched_info = NowPlayingInfo(
-        source=info.source,
-        state=info.state,
-        station_name=info.station_name,
+    enriched_info = replace(
+        info,
         artist=str(result["artist"]) if result.get("artist") else info.artist,
         track=str(result["track"]) if result.get("track") else info.track,
-        album=info.album,
         artwork_url=(
             str(result["artwork_url"])
             if result.get("artwork_url")

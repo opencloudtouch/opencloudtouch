@@ -328,3 +328,37 @@ def test_group_updated_is_a_group_event():
     assert event is not None
     assert event.event_type == EventType.GROUP
     assert event.device_id == "AABB"
+
+
+STORED_MUSIC_XML = """\
+<updates deviceID="AABBCCDDEEFF">
+    <nowPlayingUpdated deviceID="AABBCCDDEEFF">
+        <nowPlaying deviceID="AABBCCDDEEFF" source="STORED_MUSIC">
+            <ContentItem source="STORED_MUSIC" type="dir" location="64$7$3" \
+sourceAccount="aaaa/0" isPresetable="true">
+                <itemName>Example Album</itemName>
+            </ContentItem>
+            <track>Song</track>
+            <playStatus>PLAY_STATE</playStatus>
+            <skipEnabled />
+        </nowPlaying>
+    </nowPlayingUpdated>
+</updates>"""
+
+
+class TestStoredMusicNowPlaying:
+    """A DLNA item is identified by its ContentItem, not by a station name."""
+
+    def test_content_item_and_skip_are_parsed(self):
+        event = parse_event(STORED_MUSIC_XML)
+        assert event is not None and event.now_playing is not None
+        np = event.now_playing
+        assert np.station_name is None
+        assert np.content_location == "64$7$3"
+        assert np.item_name == "Example Album"
+        assert np.skip_enabled is True
+
+    def test_single_track_reports_no_skip(self):
+        event = parse_event(STORED_MUSIC_XML.replace("<skipEnabled />", ""))
+        assert event is not None and event.now_playing is not None
+        assert event.now_playing.skip_enabled is False

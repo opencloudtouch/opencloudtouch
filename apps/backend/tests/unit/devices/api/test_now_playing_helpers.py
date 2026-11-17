@@ -229,3 +229,19 @@ class TestEnrichFromIcy:
             mock_cache.get.return_value = None
             await _enrich_from_icy(result, "http://stream", None, None, None)
         assert result["artist"] is None
+
+
+def test_now_playing_dict_carries_stored_music_content_item():
+    from opencloudtouch.devices.api.routes import _now_playing_to_dict
+
+    info = NowPlayingInfo(
+        source="STORED_MUSIC",
+        state="PLAY_STATE",
+        content_location="64$7$3",
+        item_name="Example Album",
+        skip_enabled=False,
+    )
+    result = _now_playing_to_dict(info, online=True)
+    assert result["content_location"] == "64$7$3"
+    assert result["item_name"] == "Example Album"
+    assert result["skip_enabled"] is False

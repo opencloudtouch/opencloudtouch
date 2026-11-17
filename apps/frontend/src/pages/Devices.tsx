@@ -235,7 +235,15 @@ export default function Devices({
     if (num === startingPreset) return "starting";
     if (num === failedPreset) return "failed";
     const preset = presets[num];
-    if (!preset || !isRadio || npState?.station_name !== preset.station_name) return "idle";
+    if (!preset || !npState) return "idle";
+    // A radio preset matches by the station name; a DLNA preset by what the speaker plays (object id or item name)
+    const matches = isRadio
+      ? npState.station_name === preset.station_name
+      : source === "STORED_MUSIC" &&
+        !!preset.dlna &&
+        (npState.content_location === preset.dlna.object_id ||
+          (!!npState.item_name && npState.item_name === preset.station_name));
+    if (!matches) return "idle";
     if (npState?.state === "PLAY_STATE") return "playing";
     // A radio stream cannot really pause: many devices report STOP_STATE with the station still selected
     if (npState?.state === "PAUSE_STATE" || npState?.state === "STOP_STATE") return "paused";
@@ -567,6 +575,7 @@ export default function Devices({
                   </div>
                   <TransportKeys
                     playing={isPlaying}
+                    skipEnabled={source !== "STORED_MUSIC" || npState?.skip_enabled !== false}
                     showSkip={!!source && !isRadio && !isStandby && source !== "AUX"}
                     noControl={source === "AUX"}
                     disabled={controlsLocked || switching !== null}

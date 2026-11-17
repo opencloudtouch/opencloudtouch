@@ -165,6 +165,7 @@ def _parse_now_playing(element: Element) -> NowPlayingInfo:
         return el.text if el is not None and el.text else None
 
     state = _text("playStatus") or "STOP_STATE"
+    content = np.find("ContentItem")
     artwork_url = None
     art_el = np.find("art")
     if art_el is not None and art_el.text:
@@ -178,6 +179,11 @@ def _parse_now_playing(element: Element) -> NowPlayingInfo:
         track=_text("track"),
         album=_text("album"),
         artwork_url=artwork_url,
+        content_location=content.get("location") if content is not None else None,
+        item_name=(
+            content.findtext("itemName") or None if content is not None else None
+        ),
+        skip_enabled=np.find("skipEnabled") is not None,
     )
 
 

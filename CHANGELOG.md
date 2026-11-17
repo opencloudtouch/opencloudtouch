@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The failure log line of a DLNA browse request no longer carries the media server id at WARNING level (it reads `DLNA browse failed: <fixed text>`); the server id appears only in a separate DEBUG line
 
 ### Fixed
+- A DLNA preset slot shows "Playing" or "Paused" while the speaker plays that item: the now-playing response and event stream carry the played item (`content_location`, `item_name`) and `skip_enabled`; previous/next are disabled when the speaker reports no skip (a single track)
 - Saving a DLNA preset could fail once with HTTP 500 (`cannot commit transaction - SQL statements in progress`) when it raced a write of the speaker; upserts that return a row now read it in one step
 - SSDP discovery (speakers and DLNA media servers) no longer misses servers that run on the same host as OpenCloudTouch (for example a Gerbera container): the search now sends from a private source port instead of the shared port 1900, where the kernel handed unicast replies to an arbitrary socket
 - Renaming a stereo pair works: the speaker answers `PUT /updateGroup` with 405, so the rename is sent as `POST /updateGroup` with the whole group

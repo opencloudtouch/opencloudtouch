@@ -8,6 +8,8 @@ interface TransportKeysProps {
   playing: boolean;
   /** Previous/next only exist for sources that know tracks (Bluetooth, AirPlay, streaming). */
   showSkip: boolean;
+  /** The speaker accepts next/previous (false for a single DLNA track): the keys stay but are disabled. */
+  skipEnabled?: boolean;
   /** AUX: the playback is controlled on the connected device. */
   noControl: boolean;
   disabled: boolean;
@@ -19,6 +21,7 @@ interface TransportKeysProps {
 export default function TransportKeys({
   playing,
   showSkip,
+  skipEnabled = true,
   noControl,
   disabled,
   busyKey,
@@ -39,13 +42,14 @@ export default function TransportKeys({
     icon: ReactElement,
     spinner: ReactElement,
     label: string,
-    primary = false
+    primary = false,
+    unavailable = false
   ) => (
     <button
       type="button"
       className={`lc-key${primary ? " lc-key--primary" : ""}`}
       onClick={() => onKey(id)}
-      disabled={disabled || busyKey !== null}
+      disabled={disabled || unavailable || busyKey !== null}
       aria-busy={busyKey === id || undefined}
       aria-label={label}
       data-test={`dv-${id}`}
@@ -61,7 +65,15 @@ export default function TransportKeys({
       aria-label={t("player.playbackTitle")}
       data-test="dv-keys"
     >
-      {showSkip && key("PREV_TRACK", Icon.SkipBack(24), Icon.Loader(24), t("player.prevTrack"))}
+      {showSkip &&
+        key(
+          "PREV_TRACK",
+          Icon.SkipBack(24),
+          Icon.Loader(24),
+          t("player.prevTrack"),
+          false,
+          !skipEnabled
+        )}
       {key(
         "PLAY_PAUSE",
         playing ? Icon.Pause(32) : Icon.Play(32),
@@ -69,7 +81,15 @@ export default function TransportKeys({
         playing ? t("player.pause") : t("player.play"),
         true
       )}
-      {showSkip && key("NEXT_TRACK", Icon.SkipForward(24), Icon.Loader(24), t("player.nextTrack"))}
+      {showSkip &&
+        key(
+          "NEXT_TRACK",
+          Icon.SkipForward(24),
+          Icon.Loader(24),
+          t("player.nextTrack"),
+          false,
+          !skipEnabled
+        )}
     </div>
   );
 }
