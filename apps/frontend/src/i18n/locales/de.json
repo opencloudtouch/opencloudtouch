@@ -51,7 +51,11 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "Mediathek"
-    }
+    },
+    "shuffle": "Zufällige Wiedergabe",
+    "repeat": "Wiederholen",
+    "repeatAll": "Alle wiederholen",
+    "repeatOne": "Titel wiederholen"
   },
   "presets": {
     "presetSaved": "Preset {{number}} gespeichert.",

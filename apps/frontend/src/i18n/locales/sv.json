@@ -51,7 +51,11 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "Mediebibliotek"
-    }
+    },
+    "shuffle": "Slumpmässig uppspelning",
+    "repeat": "Upprepa",
+    "repeatAll": "Upprepa alla",
+    "repeatOne": "Upprepa spår"
   },
   "presets": {
     "presetSaved": "Förinställning {{number}} sparad.",

@@ -51,7 +51,11 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "メディアライブラリ"
-    }
+    },
+    "shuffle": "シャッフル再生",
+    "repeat": "リピート",
+    "repeatAll": "すべてリピート",
+    "repeatOne": "1曲リピート"
   },
   "presets": {
     "presetSaved": "プリセット{{number}}を保存しました。",

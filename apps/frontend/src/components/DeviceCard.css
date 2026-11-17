@@ -260,3 +260,155 @@
     color: HighlightText;
   }
 }
+
+/* Stage 12 additions for DeviceCard.css (append after the .lc-* block). Prefix tp-. Existing tokens only. */
+
+/* Sources with tracks: second row. The space is reserved whether or not the speaker reports shuffle/repeat,
+   so the card does not jump when the controls appear or disappear. 76 (keys) + 12 (gap) + 44 (second row) = 132.
+   Radio, standby and AUX do not get the modifier: their card stays exactly as today. */
+.dv-keys--tp {
+  flex-wrap: wrap;
+  align-content: flex-start;
+  row-gap: 12px;
+  min-height: 132px;
+}
+.tp-row {
+  flex: 0 0 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  min-width: 0;
+  min-height: 44px; /* stays 44px high with 0 controls */
+}
+
+/* shuffle / repeat: 44px, hollow when off, tinted + ring + dot when on (shape cue, not colour alone) */
+.tp-key {
+  position: relative;
+  box-sizing: border-box;
+  flex: none;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--ui-control-border);
+  color: var(--text-primary);
+  transition:
+    background var(--motion-base),
+    color var(--motion-base),
+    border-color var(--motion-base);
+}
+.tp-key svg {
+  fill: none;
+}
+.tp-key:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+.tp-key:active:not(:disabled) {
+  background: var(--pressed-bg);
+}
+.tp-key[aria-pressed="true"] {
+  background: var(--primary-bg-strong);
+  border-color: var(--primary-color);
+  box-shadow: inset 0 0 0 1px var(--primary-color); /* 2px ring without moving the icon */
+  color: var(--primary-text);
+}
+.tp-key[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: currentColor;
+  pointer-events: none;
+}
+.tp-key[aria-pressed="true"]:hover:not(:disabled) {
+  background: var(--primary-bg-strong);
+  box-shadow:
+    inset 0 0 0 1px var(--primary-color),
+    inset 0 0 0 40px var(--hover-bg);
+}
+.tp-key:focus-visible {
+  outline-offset: 3px;
+}
+
+/* locked device / running source switch: like the other keys; an active setting stays readable (dot + ring) */
+.tp-key:disabled:not([aria-busy="true"]) {
+  background: transparent;
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+.tp-key[aria-pressed="true"]:disabled:not([aria-busy="true"]) {
+  background: var(--subtle-bg);
+  box-shadow: inset 0 0 0 1px var(--border-control);
+  border-color: var(--border-control);
+}
+/* busy: this control shows the spinner, the others are disabled; the pending value is already drawn */
+.tp-key[aria-busy="true"]:disabled {
+  cursor: progress;
+  opacity: 1;
+}
+
+/* repeat one: badge "1" (decorative, aria-hidden; never catches a tap) */
+.tp-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  box-sizing: border-box;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--primary-solid);
+  color: var(--solid-text);
+  box-shadow: 0 0 0 2px var(--surface-card);
+  font-size: var(--fs-xs);
+  font-weight: var(--font-weight-bold);
+  line-height: 18px;
+  text-align: center;
+  pointer-events: none;
+}
+.tp-key:disabled .tp-badge {
+  background: var(--text-secondary);
+  color: var(--surface-card);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tp-key {
+    transition: none;
+  }
+}
+@media (forced-colors: active) {
+  .tp-key {
+    border: 1px solid ButtonText;
+    box-shadow: none;
+    background: ButtonFace;
+    color: ButtonText;
+  }
+  .tp-key[aria-pressed="true"],
+  .tp-key[aria-pressed="true"]:hover:not(:disabled) {
+    background: Highlight;
+    color: HighlightText;
+    border-color: Highlight;
+    box-shadow: none;
+  }
+  .tp-key:disabled:not([aria-busy="true"]) {
+    color: GrayText;
+    border-color: GrayText;
+    background: ButtonFace;
+  }
+  .tp-badge,
+  .tp-key:disabled .tp-badge {
+    background: HighlightText;
+    color: Highlight;
+    border: 1px solid Highlight;
+    box-shadow: none;
+  }
+}
