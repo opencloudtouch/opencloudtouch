@@ -6,9 +6,11 @@ import logging
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, replace
+from functools import partial
 from typing import TypeVar
 from urllib.parse import urlsplit
 
+from opencloudtouch.dlna.browse_cache import BrowseCache, CacheKey
 from opencloudtouch.dlna.client import DlnaBrowseError, DlnaClient, DlnaTimeoutError
 from opencloudtouch.dlna.discovery import DlnaDiscovery
 from opencloudtouch.dlna.models import (
@@ -26,6 +28,8 @@ logger = logging.getLogger(__name__)
 PRESS_RESOLVE_BUDGET = 3.0  # seconds the speaker may wait for a preset press
 CONTAINER_PAGE_SIZE = 50
 CONTAINER_MAX_PAGES = 5  # 250 entries
+REVALIDATION_BACKOFF = 30.0  # seconds before a failed key is revalidated again
+REFRESH_MIN_INTERVAL = 2.0  # seconds between two forced refreshes of one key
 
 
 class DlnaNotPlayableError(Exception):
@@ -82,6 +86,7 @@ class DlnaService:
         missing_ttl: float = 3.0,
         clock: Callable[[], float] = time.monotonic,
         timeout: float = 15.0,
+        browse_cache: BrowseCache | None = None,
     ):
         self.discovery = discovery or DlnaDiscovery()
         self.client = client or DlnaClient(timeout)
@@ -97,6 +102,25 @@ class DlnaService:
         self._discovery_lock = asyncio.Lock()
         self._missing_ids: dict[str, float] = {}
         self._refresh_task: asyncio.Task[None] | None = None
+        # Without an injected cache the service browses live (cache disabled).
+        self._browse_cache = browse_cache or BrowseCache(0, 0, 1, clock=clock)
+        self._tasks: set[asyncio.Task[BrowsePage]] = set()
+        self._inflight: dict[CacheKey, asyncio.Task[BrowsePage]] = {}
+        self._revalidating: dict[str, CacheKey] = {}  # server id -> running key
+
+    def browse_cache_stats(self) -> dict[str, int]:
+        """Browse cache counters and limits (no keys, ids or content)."""
+        return self._browse_cache.stats()
+
+    async def aclose(self) -> None:
+        """Cancel and await every background task (shutdown)."""
+        tasks: list[asyncio.Task] = list(self._tasks)
+        if self._refresh_task:
+            tasks.append(self._refresh_task)
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        self._refresh_task = None
 
     def get_cached_server(self, server_id: str) -> DlnaServer | None:
         """Discovery-cache lookup only: never scans the network."""
@@ -170,18 +194,118 @@ class DlnaService:
         starting_index: int = 0,
         requested_count: int = 50,
         deadline: float | None = None,
+        refresh: bool = False,
     ) -> BrowsePage:
-        """Browse one page: containers and audio items only, covers sanitised."""
-        page = await self._run(
-            self._browse(server_id, object_id, starting_index, requested_count),
-            deadline,
-        )
+        """Browse one page: containers and audio items only, covers sanitised.
+
+        Served from the browse cache first (stale-while-revalidate); ``refresh``
+        skips the cache read. The press path never goes through here.
+        """
+        cache = self._browse_cache
+        key = (server_id, object_id, starting_index, requested_count)
+        if not cache.enabled:
+            return self._filter(await self._run(self._browse(*key), deadline))
+        if refresh:
+            return await self._refresh(key, deadline)
+        hit = cache.get(key)
+        if hit is None:
+            cache.count("misses")
+            return await self._shared(key, deadline, revalidate=False)
+        if not hit.stale:
+            cache.count("hits_fresh")
+            return hit
+        cache.count("hits_stale")
+        return replace(hit, revalidating=self._revalidate(key))
+
+    def _filter(self, page: BrowsePage) -> BrowsePage:
         items = [
             self._sanitize(item)
             for item in page.items
             if item.is_container or is_audio_item(item)
         ]
         return BrowsePage(items, page.number_returned, page.total_matches)
+
+    async def _refresh(self, key: CacheKey, deadline: float | None) -> BrowsePage:
+        cache = self._browse_cache
+        if key[0] in self._servers and cache.refreshed_within(
+            key, REFRESH_MIN_INTERVAL
+        ):
+            hit = cache.get(key)
+            if hit is not None:
+                cache.count("refresh_throttled")
+                return replace(hit, revalidating=key in self._inflight)
+        cache.count("forced_refreshes")
+        page = await self._shared(key, deadline, revalidate=False)
+        cache.stamp_refresh(key)
+        return page
+
+    async def _shared(
+        self, key: CacheKey, deadline: float | None, *, revalidate: bool
+    ) -> BrowsePage:
+        """Await the one fetch per key; a leaving waiter never cancels it."""
+        task = self._inflight.get(key)
+        if task is None:
+            task = self._spawn(key, revalidate)
+        else:
+            self._browse_cache.count("coalesced")
+        page = await self._run(asyncio.shield(task), deadline)
+        return replace(page, items=list(page.items))  # waiters never share a list
+
+    def _revalidate(self, key: CacheKey) -> bool:
+        """Start a background revalidation; True while one runs for *key*."""
+        if key in self._inflight:
+            return True
+        if self._browse_cache.in_backoff(key) or key[0] in self._revalidating:
+            return False
+        self._spawn(key, True)
+        return True
+
+    def _spawn(self, key: CacheKey, revalidate: bool) -> asyncio.Task[BrowsePage]:
+        task = asyncio.create_task(self._load(key, revalidate))
+        self._tasks.add(task)
+        self._inflight[key] = task
+        if revalidate:
+            self._revalidating[key[0]] = key
+        task.add_done_callback(partial(self._task_done, key, revalidate))
+        return task
+
+    def _task_done(
+        self, key: CacheKey, revalidate: bool, task: asyncio.Task[BrowsePage]
+    ) -> None:
+        self._tasks.discard(task)
+        if self._inflight.get(key) is task:
+            del self._inflight[key]
+        if revalidate and self._revalidating.get(key[0]) == key:
+            del self._revalidating[key[0]]
+        if not task.cancelled():
+            task.exception()  # retrieved: never "exception was never retrieved"
+
+    async def _load(self, key: CacheKey, revalidate: bool) -> BrowsePage:
+        cache = self._browse_cache
+        token = cache.generation(key[0])
+        started = self._clock()
+        try:
+            page = self._filter(await self._run(self._browse(*key), None))
+        except Exception as exc:
+            if getattr(exc, "error_code", None) == "701":
+                cache.drop(key)
+            elif revalidate:
+                cache.mark_failed(key, REVALIDATION_BACKOFF)
+            if revalidate:
+                cache.count("revalidations_failed")
+                logger.debug(
+                    "DLNA revalidation failed after %.2f s", self._clock() - started
+                )
+            raise
+        cache.put(key, page, token)
+        if revalidate:
+            cache.count("revalidations_ok")
+            logger.debug(
+                "DLNA revalidation ok after %.2f s (%d items)",
+                self._clock() - started,
+                len(page.items),
+            )
+        return page
 
     async def get_object(
         self, server_id: str, object_id: str, deadline: float | None = None

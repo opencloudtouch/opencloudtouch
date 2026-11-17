@@ -92,8 +92,15 @@ class BrowseCache:
         self._counters[name] += 1
 
     def stats(self) -> dict[str, int]:
-        """Counters plus current size; no keys, ids or content."""
-        return {**self._counters, "entries": len(self._entries), "items": self._items}
+        """Counters, current size and limits; no keys, ids or content."""
+        return {
+            **self._counters,
+            "entries": len(self._entries),
+            "items": self._items,
+            "ttl": int(self.ttl),
+            "stale_ttl": int(self.stale_ttl),
+            "max_items": self.max_items,
+        }
 
     def generation(self, server_id: str) -> int:
         """Token a fetch records at start; unchanged means writing back is safe."""
