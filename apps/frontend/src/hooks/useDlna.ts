@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { listingQueryOptions } from "./dlnaPrefetch";
 import {
   browseDlna,
   disableNativeServer,
@@ -98,24 +99,92 @@ export function useDlnaServers() {
   };
 }
 
+/** Silent follow-ups of page 1 while the backend revalidates a stale answer (ms after the first answer). */
+const FOLLOW_UP_AT_MS = [3000, 8000];
+
 export function useDlnaBrowse(serverId: string | null, objectId: string) {
   const queryClient = useQueryClient();
-  const queryKey = ["dlna", "browse", serverId, objectId];
+  const options = listingQueryOptions(serverId ?? "", objectId);
+  const { queryKey } = options;
+  // Read by the query function: true only while the manual refresh runs (backend cache bypass).
+  const forceRef = useRef(false);
   const query = useInfiniteQuery({
-    queryKey,
-    queryFn: ({ pageParam, signal }) => browseDlna(serverId ?? "", objectId, pageParam, signal),
-    initialPageParam: 0,
-    getNextPageParam: (last) => (last.has_more ? last.next_index : undefined),
+    ...options,
+    queryFn: ({ pageParam, signal }) =>
+      browseDlna(serverId ?? "", objectId, pageParam, signal, forceRef.current),
     enabled: serverId !== null,
-    retry: false,
-    gcTime: 0,
-    refetchOnWindowFocus: false,
   });
-  const { data, hasNextPage, isFetchingNextPage, isError, fetchNextPage } = query;
+  const { data, hasNextPage, isFetchingNextPage, isError, fetchNextPage, refetch } = query;
 
-  const items = useMemo<DlnaItem[]>(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
+  // A rescan can shift offsets so one item shows on two pages: keep the first.
+  const items = useMemo<DlnaItem[]>(() => {
+    const seen = new Set<string>();
+    return (data?.pages.flatMap((p) => p.items) ?? []).filter(
+      (i) => !seen.has(i.id) && !!seen.add(i.id)
+    );
+  }, [data]);
   const loading = query.isFetching && !data;
   const slow = useSlow(loading);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshFailed, setRefreshFailed] = useState(false);
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    setRefreshFailed(false);
+    forceRef.current = true;
+    try {
+      const result = await refetch();
+      setRefreshFailed(result.isError);
+    } finally {
+      forceRef.current = false;
+      setRefreshing(false);
+    }
+  }, [refetch]);
+
+  // Stale answer from the backend cache: follow up silently at 3 s and 8 s, never more.
+  const first = data?.pages[0];
+  const staleFirst = !!first?.stale;
+  const revalidating = !!first?.revalidating;
+  const cachedAt = first?.cached_at;
+  const [exhausted, setExhausted] = useState(false);
+  const [tick, setTick] = useState(0);
+  const seqRef = useRef({ key: "", start: 0, done: 0, running: false });
+  useEffect(() => {
+    if (!staleFirst || !revalidating || serverId === null) return;
+    const seq = seqRef.current;
+    const key = `${serverId}/${objectId}`;
+    if (seq.key !== key) Object.assign(seq, { key, start: Date.now(), done: 0 });
+    if (seq.done >= FOLLOW_UP_AT_MS.length) return setExhausted(true);
+    const timer = setTimeout(
+      async () => {
+        seq.done += 1;
+        // A slow NAS answer is still applied, but never overlaps the next follow-up.
+        if (!seq.running) {
+          seq.running = true;
+          try {
+            const page = await browseDlna(serverId, objectId, 0);
+            queryClient.setQueryData<typeof data>(
+              listingQueryOptions(serverId, objectId).queryKey,
+              (old) => (old ? { ...old, pages: [page, ...old.pages.slice(1)] } : old)
+            );
+          } catch {
+            // silent: the cached list stays
+          } finally {
+            seq.running = false;
+          }
+        }
+        setTick((n) => n + 1);
+      },
+      Math.max(0, seq.start + (FOLLOW_UP_AT_MS[seq.done] ?? 0) - Date.now())
+    );
+    return () => clearTimeout(timer);
+  }, [staleFirst, revalidating, cachedAt, tick, serverId, objectId, queryClient]);
+
+  const listNote: "updating" | "outdated" | "updateFailed" | null = (() => {
+    if (refreshFailed) return "updateFailed";
+    if (!staleFirst) return null;
+    return revalidating && !exhausted ? "updating" : "outdated";
+  })();
 
   const autoPagesRef = useRef(0);
   useEffect(() => {
@@ -136,7 +205,7 @@ export function useDlnaBrowse(serverId: string | null, objectId: string) {
 
   let status: DlnaStatus = "ready";
   if (loading) status = slow ? "slow" : "loading";
-  else if (isError) status = statusOfError(query.error);
+  else if (isError && !(refreshFailed && data)) status = statusOfError(query.error);
   else if (query.isPending) status = "loading";
 
   return {
@@ -147,6 +216,9 @@ export function useDlnaBrowse(serverId: string | null, objectId: string) {
     loadMore,
     retry: () => void (data ? fetchNextPage() : query.refetch()),
     cancel: () => void queryClient.cancelQueries({ queryKey }),
+    refresh,
+    refreshing,
+    listNote,
   };
 }
 
