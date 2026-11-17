@@ -5,7 +5,7 @@ import type { DlnaItem } from "../../api/dlna";
 import { isApiErrorInstance } from "../../api/types";
 import { useDlnaSetup } from "../../hooks/useDlna";
 import DlnaBanner from "./DlnaBanner";
-import DlnaBrowser, { type DlnaSession } from "./DlnaBrowser";
+import DlnaBrowser, { type DlnaNotice, type DlnaSession } from "./DlnaBrowser";
 import DlnaOrphanList from "./DlnaOrphanList";
 import DlnaSetupPanel from "./DlnaSetupPanel";
 import type { SetupBusy } from "./dlnaSetupTypes";
@@ -21,10 +21,20 @@ interface DlnaPaneProps {
   readonly deviceId?: string;
   readonly onDlnaSelect?: (ref: { server_id: string; object_id: string }) => Promise<void>;
   readonly onClose?: () => void;
+  /** Preset edit: row to focus and notice to show on the first render. */
+  readonly initialFocus?: string | null;
+  readonly initialNotice?: DlnaNotice | null;
 }
 
 /** The DLNA mode of the preset dialog: browser, setup panel, removal and the save order (set up first, then save). */
-export default function DlnaPane({ presetNumber, deviceId, onDlnaSelect, onClose }: DlnaPaneProps) {
+export default function DlnaPane({
+  presetNumber,
+  deviceId,
+  onDlnaSelect,
+  onClose,
+  initialFocus,
+  initialNotice,
+}: DlnaPaneProps) {
   const { t } = useTranslation();
   const setupApi = useDlnaSetup(deviceId);
   const [session, setSession] = useState<DlnaSession | null>(loadDlnaSession);
@@ -118,6 +128,8 @@ export default function DlnaPane({ presetNumber, deviceId, onDlnaSelect, onClose
     <div className="rs-dlna">
       <DlnaBrowser
         initialSession={session}
+        initialFocus={initialFocus}
+        initialNotice={initialNotice}
         onSessionChange={changeSession}
         busyItemId={savingItemId}
         busyLabel={busyLabel}

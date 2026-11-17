@@ -30,6 +30,10 @@ interface DlnaBrowserProps {
   readonly banner?: ReactNode;
   /** Where to start; only the top folder is browsed, a missing folder or server falls back with a notice. */
   readonly initialSession?: DlnaSession | null;
+  /** Row id to focus once the first folder is listed (heading focus when the row is not in the listing). */
+  readonly initialFocus?: string | null;
+  /** Notice shown on the first render (`presets.dlna.<key>`). */
+  readonly initialNotice?: DlnaNotice | null;
   readonly onSessionChange?: (session: DlnaSession | null) => void;
   /** Shown directly under the heading of every folder (the media server setup panel). */
   readonly folderHeader?: ReactNode;
@@ -39,10 +43,11 @@ interface DlnaBrowserProps {
   readonly liveMessage?: string;
 }
 
-interface Notice {
+export interface DlnaNotice {
   key: string;
   vars?: Record<string, string>;
 }
+type Notice = DlnaNotice;
 
 export default function DlnaBrowser({
   renderRowAction,
@@ -50,6 +55,8 @@ export default function DlnaBrowser({
   busyLabel,
   banner,
   initialSession = null,
+  initialFocus = null,
+  initialNotice = null,
   onSessionChange,
   folderHeader,
   serversFooter,
@@ -59,8 +66,8 @@ export default function DlnaBrowser({
   const [session, setSession] = useState<DlnaSession | null>(initialSession);
   // True until the restored top folder answered; only then a gone folder or an offline server means "fall back".
   const [restoring, setRestoring] = useState(initialSession !== null);
-  const [notice, setNotice] = useState<Notice | null>(null);
-  const [focus, setFocus] = useState<FocusTarget>(null);
+  const [notice, setNotice] = useState<Notice | null>(initialNotice);
+  const [focus, setFocus] = useState<FocusTarget>(initialFocus);
   const [live, setLive] = useState("");
 
   const go = (next: DlnaSession | null, to: FocusTarget, message: Notice | null = null) => {

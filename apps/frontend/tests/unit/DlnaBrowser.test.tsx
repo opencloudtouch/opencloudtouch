@@ -583,3 +583,37 @@ describe("cover URLs", () => {
     expect(coverBlocked("https://nas/c.jpg")).toBe(false);
   });
 });
+
+describe("DlnaBrowser: initialFocus and initialNotice", () => {
+  const session: DlnaSession = {
+    serverId: "srv",
+    serverName: "Living Room NAS",
+    stack: [{ object_id: "f1", title: "Folder f1" }],
+  };
+
+  it("focuses the given row once the first folder is listed", async () => {
+    serve(tree({ f1: [track("a"), track("b")] }));
+    renderBrowser({ initialSession: session, initialFocus: "b" });
+    await screen.findByText("Track b");
+    await waitFor(() => expect(document.querySelector('[data-rid="b"]')).toHaveFocus());
+  });
+
+  it("falls back to the heading when the row is not in the listing", async () => {
+    serve(tree({ f1: [track("a")] }));
+    renderBrowser({ initialSession: session, initialFocus: "missing" });
+    await screen.findByText("Track a");
+    await waitFor(() => expect(screen.getByRole("heading", { level: 3 })).toHaveFocus());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows the initial notice on the first render", async () => {
+    serve(tree({ "0": [track("a")] }));
+    renderBrowser({
+      initialSession: { ...session, stack: [] },
+      initialNotice: { key: "editFolderGone", vars: { server: "Living Room NAS" } },
+    });
+    expect(screen.getByText(/item is no longer available/)).toBeInTheDocument();
+    await screen.findByText("Track a");
+    expect(screen.getByText(/item is no longer available/)).toBeInTheDocument();
+  });
+});
