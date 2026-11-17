@@ -133,8 +133,11 @@ export function useNowPlaying(deviceId: string | undefined): UseNowPlayingResult
         // Real content change: source or station changed → full replace
         // NOTE: state transitions (BUFFERING → PLAY_STATE) are NOT content
         // changes — they must preserve metadata from metadata_enriched.
+        // An event without a station name (buffering, a track update) does not name another station:
+        // replacing the state then would drop the logo until the next enrichment event.
         const stationChanged =
-          incoming.source !== prev.source || incoming.station_name !== prev.station_name;
+          incoming.source !== prev.source ||
+          (!!incoming.station_name && incoming.station_name !== prev.station_name);
         if (stationChanged) {
           octDebug("NowPlaying", "station changed → full replace", {
             from: prev.station_name,
@@ -168,6 +171,7 @@ export function useNowPlaying(deviceId: string | undefined): UseNowPlayingResult
         return {
           ...prev,
           ...incoming,
+          station_name: incoming.station_name || prev.station_name,
           artist: incoming.artist || prev.artist,
           track: incoming.track || prev.track,
           album: incoming.album || prev.album,

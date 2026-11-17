@@ -702,3 +702,74 @@ describe("useNowPlaying – DLNA playback (STORED_MUSIC)", () => {
     expect(result.current.nowPlaying?.content_location).toBe("obj-8");
   });
 });
+
+describe("useNowPlaying – station logo stays while the station plays", () => {
+  const mockFetch = vi.fn();
+  const LOGO = "https://example.com/logo.png";
+
+  beforeEach(() => {
+    _resetOfflineStore();
+    mockFetch.mockReset();
+    mockSubscribe.mockClear();
+    mockUnsubFns = [];
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps the logo over events without artwork, also when they carry no station name", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          source: "INTERNET_RADIO",
+          state: "PLAY_STATE",
+          station_name: "Example Radio",
+          artwork_url: LOGO,
+        }),
+    });
+    const { result } = renderHook(() => useNowPlaying("device-42"));
+    await waitFor(() => expect(result.current.nowPlaying).toBeTruthy());
+    const emit = mockSubscribe.mock.calls.find((c: unknown[]) => c[0] === "now_playing")![2] as (
+      data: Record<string, unknown>
+    ) => void;
+    const base = { device_id: "device-42", source: "INTERNET_RADIO", artwork_url: null };
+
+    act(() => emit({ ...base, state: "BUFFERING_STATE", station_name: null }));
+    expect(result.current.nowPlaying?.artwork_url).toBe(LOGO);
+    act(() => emit({ ...base, state: "PLAY_STATE", station_name: "Example Radio" }));
+    expect(result.current.nowPlaying?.artwork_url).toBe(LOGO);
+    expect(result.current.nowPlaying?.station_name).toBe("Example Radio");
+  });
+
+  it("drops the logo when another station starts", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          source: "INTERNET_RADIO",
+          state: "PLAY_STATE",
+          station_name: "Example Radio",
+          artwork_url: LOGO,
+        }),
+    });
+    const { result } = renderHook(() => useNowPlaying("device-42"));
+    await waitFor(() => expect(result.current.nowPlaying).toBeTruthy());
+    const emit = mockSubscribe.mock.calls.find((c: unknown[]) => c[0] === "now_playing")![2] as (
+      data: Record<string, unknown>
+    ) => void;
+
+    act(() =>
+      emit({
+        device_id: "device-42",
+        source: "INTERNET_RADIO",
+        state: "PLAY_STATE",
+        station_name: "Other Radio",
+        artwork_url: null,
+      })
+    );
+    expect(result.current.nowPlaying?.artwork_url).toBeFalsy();
+  });
+});
