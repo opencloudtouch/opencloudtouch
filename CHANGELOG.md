@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `metadata_enriched` event no longer replaces the station artwork with an ICY station URL that is not an image (for example a web page); the logo stays instead of switching to the default image. The image-URL check now lives in `core/image_url.py`
 - The REST now-playing response no longer takes a non-image ICY station URL as artwork when the speaker reports none
 - A web page whose path looks like a logo (for example `/logo-station.html`) is no longer accepted as artwork
+- The artwork URL check matches whole path segments, so a path such as `/logout` is no longer taken for a logo
 - A DLNA preset keeps its "DLNA" marker, folder/track type and cover when the speaker calls back a preset write with a renumbered media server source id for the same object; "Load from device" keeps the cover and homepage OCT already has when the speaker reports none
 - A media server is "ready" (and selectable for presets) only when the speaker lists it as READY and can browse its root through its own `/navigate` (probe cached 60 s, failures 10 s); otherwise it is "unavailable". Before, the READY flag alone was trusted, which showed servers the speaker cannot browse as ready
 

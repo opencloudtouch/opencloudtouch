@@ -27,10 +27,9 @@ def is_image_url(url: str) -> bool:
     ):
         return True
 
-    # URL path contains typical image path segments
-    if any(
-        seg in path_lower for seg in ("/images/", "/img/", "/logo", "/favicon", "/icon")
-    ):
+    # URL path contains a typical image path segment (whole segment, not a prefix)
+    segments = set(path_lower.split("/"))
+    if segments & {"images", "img", "logo", "favicon", "icon"}:
         return True
 
     return False

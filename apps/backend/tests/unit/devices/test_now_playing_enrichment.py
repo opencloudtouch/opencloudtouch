@@ -423,6 +423,11 @@ class TestIsImageUrl:
 
         assert is_image_url("https://radio.de/logo-station.html") is False
 
+    def test_rejects_path_that_only_starts_like_a_logo_segment(self):
+        from opencloudtouch.core.image_url import is_image_url
+
+        assert is_image_url("https://example.com/logout") is False
+
 
 class TestArtworkFiltering:
     """Test that non-image artwork_url from device gets filtered to null."""
