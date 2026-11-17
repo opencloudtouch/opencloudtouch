@@ -112,12 +112,15 @@ class MockDeviceClient(DeviceClient):
     # until ``pair_with_account`` ran. Empty by default: enabling is READY at once.
     stale_devices: ClassVar[set[str]] = set()
     pair_calls: ClassVar[list[str]] = []
+    # Server ids the mock speaker cannot browse (tests toggle this; empty by default).
+    unbrowsable_servers: ClassVar[set[str]] = set()
 
     @classmethod
     def reset_sources(cls) -> None:
         cls.listed_accounts = None
         cls.stale_devices = set()
         cls.pair_calls = []
+        cls.unbrowsable_servers = set()
 
     def __init__(self, device_id: str, ip_address: Optional[str] = None):
         """
@@ -368,6 +371,9 @@ class MockDeviceClient(DeviceClient):
             SpeakerSource("STORED_MUSIC", a, "READY")
             for a in await hook(self.device_id)
         ]
+
+    async def can_browse_stored_music(self, server_id: str) -> bool:
+        return server_id.lower() not in self.unbrowsable_servers
 
     async def pair_with_account(self, account_id: str) -> None:
         """Mock re-pairing: the speaker now reads the account document."""

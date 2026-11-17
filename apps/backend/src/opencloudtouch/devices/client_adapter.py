@@ -776,6 +776,24 @@ class BoseDeviceClientAdapter(DeviceClient):
             for item in root.iter("sourceItem")
         ]
 
+    async def can_browse_stored_music(self, server_id: str) -> bool:
+        """``POST /navigate`` of the server root; any ``<error>`` answer is a failure."""
+        body = (
+            f'<navigate source="STORED_MUSIC" sourceAccount="{xml_escape(server_id)}/0">'
+            "<startItem>1</startItem><numItems>1</numItems></navigate>"
+        )
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}/navigate",
+                    content=body.encode("utf-8"),
+                    headers={"Content-Type": "application/xml"},
+                )
+        except Exception:
+            logger.warning("Navigate request failed on %s", self.ip)
+            return False
+        return response.status_code < 400 and "<error" not in response.text
+
     async def pair_with_account(self, account_id: str) -> None:
         """``POST /setMargeAccount``; answers 200 with an ``<info>`` body on success."""
         body = (

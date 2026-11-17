@@ -43,6 +43,8 @@ class FakeSpeaker:
         self.unreachable = False
         self.stored: list[dict] = []
         self.store_error = False
+        self.unbrowsable: set[str] = set()  # server ids the speaker cannot browse
+        self.browse_calls: list[str] = []
 
     def client(self):
         return FakeClient(self)
@@ -60,6 +62,10 @@ class FakeClient:
             for row in await self.s.store.list_active(DEV):
                 listed[f"{row.server_id}/0"] = "READY"
         return [SpeakerSource("STORED_MUSIC", a, st) for a, st in listed.items()]
+
+    async def can_browse_stored_music(self, server_id):
+        self.s.browse_calls.append(server_id)
+        return server_id not in self.s.unbrowsable
 
     async def pair_with_account(self, account_id):
         self.s.calls.append(("pair", account_id))
@@ -384,3 +390,49 @@ async def test_native_ready_needs_a_row_and_a_ready_listing(store, speaker):
     speaker.unreachable = True
     with pytest.raises(DeviceConnectionError):
         await service.native_ready(DEV, SID)
+
+
+# ---- combined state: READY listing AND the speaker can browse the server -----------
+
+
+async def test_listed_ready_but_browse_fails_is_unavailable(store, speaker):
+    await store.upsert(DEV, SID, "Music")
+    speaker.unbrowsable.add(SID)
+    service = make(store, speaker)
+    assert states(await service.state(DEV))[SID].state is NativeState.UNAVAILABLE
+    assert await service.native_ready(DEV, SID) is False
+
+
+async def test_listed_ready_and_browse_ok_is_ready(store, speaker):
+    await store.upsert(DEV, SID, "Music")
+    assert states(await make(store, speaker).state(DEV))[SID].state is NativeState.READY
+
+
+async def test_not_listed_is_not_probed(store, speaker):
+    speaker.sees_servers = False
+    await store.upsert(DEV, SID, "Music")
+    entry = states(await make(store, speaker).state(DEV))[SID]
+    assert entry.state is NativeState.UNAVAILABLE
+    assert speaker.browse_calls == []
+
+
+async def test_enable_with_failing_browse_is_unavailable(store, speaker):
+    speaker.unbrowsable.add(SID)
+    assert await make(store, speaker).enable(DEV, SID) is NativeState.UNAVAILABLE
+
+
+async def test_probe_is_cached_and_failure_expires_sooner(store, speaker):
+    from opencloudtouch.dlna import native_service as ns
+
+    await store.upsert(DEV, SID, "Music")
+    service = make(store, speaker)
+    await service.state(DEV)
+    await service.state(DEV)
+    assert speaker.browse_calls == [SID]  # second poll served from the cache
+    assert ns.PROBE_FAIL_TTL < ns.PROBE_OK_TTL
+
+    key = (DEV, SID)
+    ok, expiry = service._probes[key]
+    service._probes[key] = (ok, 0.0)  # expired
+    await service.state(DEV)
+    assert speaker.browse_calls == [SID, SID]

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- A media server is "ready" (and selectable for presets) only when the speaker lists it as READY and can browse its root through its own `/navigate` (probe cached 60 s, failures 10 s); otherwise it is "unavailable". Before, the READY flag alone was trusted, which showed servers the speaker cannot browse as ready
+
 ### Added
 - The preset dialog opens pre-filled from the saved preset: provider presets show their station name in the search field and search once, manual presets their URL, DLNA presets open the browser in the saved item's folder with the item focused (or the server root / list with a notice when the item or server is gone); stream filters are not restored
 - `GET /api/dlna/servers/{server_id}/objects/path?object_id=...` returns the ancestor folders of a saved DLNA object (breadcrumb from the root down to its parent, with `server_name`, `title` and `is_container`), read live in at most 16 levels under one deadline; the preset dialog can use it to open at the saved item

@@ -40,6 +40,9 @@ logger = logging.getLogger(__name__)
 SOURCE = "STORED_MUSIC"
 DISPLAY_NAME_MAX = 64
 SPEAKER_PORT = 8090
+PROBE_TIMEOUT = 5.0
+PROBE_OK_TTL = 60.0
+PROBE_FAIL_TTL = 10.0  # shorter: a recovered server shows up soon
 
 
 class NativeState(str, Enum):
@@ -136,6 +139,8 @@ class DlnaNativeService:
         self._client_factory = client_factory
         self._poll_interval = poll_interval
         self._ready_timeout = ready_timeout
+        # (device, server) -> (browsable, expiry on the loop clock)
+        self._probes: dict[tuple[str, str], tuple[bool, float]] = {}
         # shortcut: one process only (single backend), a distributed lock is not needed
         self._locks: dict[tuple[str, str], asyncio.Lock] = {}
 
@@ -154,6 +159,41 @@ class DlnaNativeService:
                 return server
         return None
 
+    async def _browsable(
+        self, client: DeviceClient, device_id: str, sid: str, fresh: bool = False
+    ) -> bool:
+        """Can the speaker browse the server root? Cached briefly per (device, server)."""
+        now = asyncio.get_running_loop().time()
+        cached = self._probes.get((device_id, sid))
+        if cached and not fresh and cached[1] > now:
+            return cached[0]
+        try:
+            ok = await asyncio.wait_for(
+                client.can_browse_stored_music(sid), PROBE_TIMEOUT
+            )
+        except Exception:  # timeout or any client failure: the server is not browsable
+            ok = False
+        ttl = PROBE_OK_TTL if ok else PROBE_FAIL_TTL
+        self._probes[(device_id, sid)] = (ok, now + ttl)
+        return ok
+
+    async def _state_of(
+        self,
+        client: DeviceClient,
+        device_id: str,
+        sid: str,
+        row: NativeSourceRow | None,
+        sources: Sequence[SpeakerSource],
+        fresh: bool = False,
+    ) -> NativeState:
+        """Row + READY listing, and the speaker really browses the server."""
+        state = derive_state(row, _listed(sources, sid))
+        if state is NativeState.READY and not await self._browsable(
+            client, device_id, sid, fresh
+        ):
+            return NativeState.UNAVAILABLE
+        return state
+
     # ---- read -----------------------------------------------------------------------
 
     async def state(self, device_id: str) -> list[NativeServerState]:
@@ -162,12 +202,19 @@ class DlnaNativeService:
         client = self._client_factory(device)
         try:
             sources = await client.get_source_list()  # DeviceConnectionError -> 503
+            rows = {r.server_id: r for r in await self._store.list_active(device_id)}
+            known = {s.id.lower(): s for s in await self._dlna.list_servers()}
+            ids = [*known, *(r for r in rows if r not in known)]
+            states = await asyncio.gather(
+                *(
+                    self._state_of(client, device_id, i, rows.get(i), sources)
+                    for i in ids
+                )
+            )
         finally:
             await client.close()
-        rows = {r.server_id: r for r in await self._store.list_active(device_id)}
-        known = {s.id.lower(): s for s in await self._dlna.list_servers()}
         result = []
-        for server_id in [*known, *(r for r in rows if r not in known)]:
+        for server_id, state in zip(ids, states):
             row = rows.get(server_id)
             server = known.get(server_id)
             result.append(
@@ -178,7 +225,7 @@ class DlnaNativeService:
                         if server
                         else (row.display_name if row else server_id)
                     ),
-                    state=derive_state(row, _listed(sources, server_id)),
+                    state=state,
                     server_known=server is not None,
                     source_id=row.source_id if row else None,
                 )
@@ -189,13 +236,14 @@ class DlnaNativeService:
         """True when the server is enabled here and READY on the speaker's live list."""
         device = await self._device(device_id)
         client = self._client_factory(device)
+        sid = server_id.lower()
         try:
             sources = await client.get_source_list()  # DeviceConnectionError -> caller
+            row = await self._store.get_by_server(device_id, sid)
+            state = await self._state_of(client, device_id, sid, row, sources)
         finally:
             await client.close()
-        sid = server_id.lower()
-        row = await self._store.get_by_server(device_id, sid)
-        return derive_state(row, _listed(sources, sid)) is NativeState.READY
+        return state is NativeState.READY
 
     async def affected_slots(self, device_id: str, server_id: str) -> "list[Preset]":
         """Native presets of the device that use the server."""
@@ -243,7 +291,7 @@ class DlnaNativeService:
         )
         try:
             if _is_ready(await client.get_source_list(), sid):
-                return NativeState.READY
+                return await self._probed(client, device_id, sid)
             # Not listed yet: one re-pairing makes the speaker read the account document.
             account_id = getattr(device, "marge_account_uuid", None) or device_id
             await client.pair_with_account(account_id)
@@ -257,16 +305,25 @@ class DlnaNativeService:
                 error_codes.DLNA_NATIVE_SETUP_FAILED,
                 "The speaker did not accept the pairing",
             )
-        return await self._await_ready(client, sid)
+        return await self._await_ready(client, device_id, sid)
 
-    async def _await_ready(self, client: DeviceClient, sid: str) -> NativeState:
+    async def _probed(
+        self, client: DeviceClient, device_id: str, sid: str
+    ) -> NativeState:
+        """A READY listing counts only when the speaker can browse the server."""
+        ok = await self._browsable(client, device_id, sid, fresh=True)
+        return NativeState.READY if ok else NativeState.UNAVAILABLE
+
+    async def _await_ready(
+        self, client: DeviceClient, device_id: str, sid: str
+    ) -> NativeState:
         """Poll the live source list until the account is READY or the budget is used."""
         loop = asyncio.get_running_loop()
         deadline = loop.time() + self._ready_timeout
         while True:
             try:
                 if _is_ready(await client.get_source_list(), sid):
-                    return NativeState.READY
+                    return await self._probed(client, device_id, sid)
             except DeviceConnectionError:
                 logger.debug("Source list not readable while waiting for %s", sid)
             if loop.time() >= deadline:

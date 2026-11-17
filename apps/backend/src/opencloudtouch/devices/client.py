@@ -280,6 +280,15 @@ class DeviceClient(ABC):
         pass
 
     @abstractmethod
+    async def can_browse_stored_music(self, server_id: str) -> bool:
+        """True when the speaker's own ``/navigate`` browses the server root.
+
+        Asks STORED_MUSIC / ``<server_id>/0`` for one item; an error answer or an
+        unreachable speaker is False.
+        """
+        pass
+
+    @abstractmethod
     async def pair_with_account(self, account_id: str) -> None:
         """Pair the speaker with its Marge account again (``POST /setMargeAccount``).
 

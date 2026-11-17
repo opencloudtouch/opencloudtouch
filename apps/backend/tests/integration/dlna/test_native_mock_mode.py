@@ -147,3 +147,11 @@ async def test_error_codes_and_check_order(env):
         "dlna_server_not_found",
     )
     assert (await client.get("/api/dlna/native?device_id=NOPE")).status_code == 404
+
+
+async def test_unbrowsable_server_is_unavailable(env):
+    client, _, _ = env
+    MockDeviceClient.unbrowsable_servers.add(SID.lower())
+    put = await client.put(BASE)
+    assert (put.status_code, put.json()["state"]) == (200, "unavailable")
+    assert (await _state(client))["state"] == "unavailable"
