@@ -38,6 +38,15 @@ Listings are cached in memory and served **stale-while-revalidate**, because a s
 - **Prefetch on intent:** the first page of a folder is requested speculatively after a mouse hover of 200 ms, at pointer down, or after 450 ms of keyboard focus that matches `:focus-visible`. Touch and pen hover, audio rows, folders that are fresh on the client, and mere visibility never trigger it. At most one speculative request runs, two wait (a new trigger replaces the oldest), and at most 4 start per 10 s. Speculative requests are not aborted (the backend keeps running them anyway); waiting ones are dropped when another folder is opened or the dialog closes. It is off with `navigator.connection.saveData` and while offline; a missing `navigator.connection` counts as allowed. Errors of speculation are never shown.
 - A debug console line per navigation carries the counters `prefetch_started`, `prefetch_used`, `prefetch_unused`, `real_opens` and `prefetch_rate_limited` (no titles, ids or URLs).
 
+## Path of an object
+
+`GET /api/dlna/servers/{server_id}/objects/path?object_id=<id>`
+
+- Returns `server_id`, `server_name`, `object_id`, `title`, `is_container` and `path`: the ancestor folders (`object_id`, `title`) from just below the root down to the parent, root and object excluded. An object directly below the root has `path: []`; `object_id=0` answers with the server name as `title`.
+- `object_id` is required, 1-512 characters (an empty value is a `validation_error`, the root is requested as `0`).
+- The path is read live, one `BrowseMetadata` call per level, at most 16 levels, under one deadline (`OCT_DLNA_TIMEOUT`) for the whole walk. The browse cache is neither read nor filled.
+- Unknown server `404 dlna_server_not_found`; unknown object (error 701 or an empty answer) `404 dlna_object_not_found`; deeper than 16 levels, a parent loop or an empty parent id `502 dlna_upstream_error`; deadline `504 dlna_server_timeout`.
+
 ## Errors
 
 | `code` | Status | When |
