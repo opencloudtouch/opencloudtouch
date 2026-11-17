@@ -436,7 +436,11 @@ def _apply_icy_metadata(
         result["artist"] = icy.artist
     if not track and icy.track:
         result["track"] = icy.track
-    if not result["artwork_url"] and icy.station_logo_url:
+    if (
+        not result["artwork_url"]
+        and icy.station_logo_url
+        and is_image_url(icy.station_logo_url)
+    ):
         result["artwork_url"] = icy.station_logo_url
 
 

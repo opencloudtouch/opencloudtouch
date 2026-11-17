@@ -58,10 +58,24 @@ class TestApplyIcyMetadata:
     def test_fills_missing_artwork(self):
         result: dict[str, object] = {"artist": "A", "track": "T", "artwork_url": None}
         icy = IcyMetadata(
-            artist="A", track="T", raw_title="t", station_logo_url="http://logo"
+            artist="A",
+            track="T",
+            raw_title="t",
+            station_logo_url="http://example.com/logo.png",
         )
         _apply_icy_metadata(result, icy, "A", "T")
-        assert result["artwork_url"] == "http://logo"
+        assert result["artwork_url"] == "http://example.com/logo.png"
+
+    def test_ignores_non_image_station_logo(self):
+        result: dict[str, object] = {"artist": "A", "track": "T", "artwork_url": None}
+        icy = IcyMetadata(
+            artist="A",
+            track="T",
+            raw_title="t",
+            station_logo_url="https://absolutradio.de/relax",
+        )
+        _apply_icy_metadata(result, icy, "A", "T")
+        assert result["artwork_url"] is None
 
     def test_does_not_overwrite_existing_artwork(self):
         result: dict[str, object] = {
