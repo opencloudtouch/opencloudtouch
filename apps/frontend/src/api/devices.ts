@@ -294,6 +294,19 @@ export async function sendKey(deviceId: string, key: string): Promise<void> {
   await throwIfNotOk(response, `Failed to send key ${key}`);
 }
 
+/** Shuffle and repeat keys: the answer carries the value the speaker reports after the press. */
+export async function sendSettingKey(
+  deviceId: string,
+  key: string
+): Promise<Pick<NowPlayingState, "shuffle_setting" | "repeat_setting">> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/devices/${deviceId}/key?key=${encodeURIComponent(key)}&state=both`,
+    { method: "POST" }
+  );
+  await throwIfNotOk(response, `Failed to send key ${key}`);
+  return response.json();
+}
+
 export async function nextTrack(deviceId: string): Promise<void> {
   return sendKey(deviceId, "NEXT_TRACK");
 }

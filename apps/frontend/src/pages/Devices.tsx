@@ -6,7 +6,11 @@ import DeviceSwiper, { Device } from "../components/DeviceSwiper";
 import NowPlaying from "../components/NowPlaying";
 import PresetRow, { type PresetRowState } from "../components/PresetRow";
 import SourceSwitch, { type DeviceSource } from "../components/SourceSwitch";
-import TransportKeys, { type TransportKey } from "../components/TransportKeys";
+import TransportKeys, {
+  type RepeatMode,
+  type ShuffleMode,
+  type TransportKey,
+} from "../components/TransportKeys";
 import SetupBadge from "../components/SetupBadge";
 import DeviceOfflineBanner from "../components/DeviceOfflineBanner";
 import RadioSearch, { RadioStation } from "../components/RadioSearch";
@@ -21,6 +25,9 @@ import {
   prevTrack,
   selectSource,
   power,
+  sendSettingKey,
+  toRepeatMode,
+  toShuffleMode,
 } from "../api/devices";
 import { isDeviceOffline } from "../api/offlineDeviceStore";
 import { usePresets, type DlnaRef } from "../hooks/usePresets";
@@ -46,6 +53,12 @@ interface DevicesProps {
 }
 
 const RADIO_SOURCES = new Set(["INTERNET_RADIO", "LOCAL_INTERNET_RADIO", "TUNEIN"]);
+const NEXT_REPEAT: Record<RepeatMode, RepeatMode> = { off: "all", all: "one", one: "off" };
+const REPEAT_ANNOUNCE_KEYS: Record<RepeatMode, string> = {
+  off: "player.repeatOffAnnounced",
+  all: "player.repeatAllAnnounced",
+  one: "player.repeatOneAnnounced",
+};
 const PRESET_NUMBERS = [1, 2, 3, 4, 5, 6];
 const SOURCE_LABEL_KEYS: Record<DeviceSource, string> = {
   presets: "device.src.presets",
@@ -126,6 +139,14 @@ export default function Devices({
   const [switchFailed, setSwitchFailed] = useState<DeviceSource | null>(null);
   const [keyBusy, setKeyBusy] = useState<TransportKey | null>(null);
   const [announcement, setAnnouncement] = useState("");
+  // Raw speaker value of a shuffle or repeat press that is still running (shown until the press answers)
+  const [pendingSetting, setPendingSetting] = useState<{
+    key: "SHUFFLE" | "REPEAT";
+    raw: string;
+  } | null>(null);
+  const prevSettingsRef = useRef<{ shuffle: ShuffleMode | null; repeat: RepeatMode | null } | null>(
+    null
+  );
 
   const source = npState?.source;
   const isStandby = source === "STANDBY";
@@ -151,6 +172,14 @@ export default function Devices({
   const controlsLocked = isStandby || isZoneMember;
 
   const sourceName = (id: DeviceSource) => t(SOURCE_LABEL_KEYS[id]);
+
+  const showSkip = !!source && !isRadio && !isStandby && source !== "AUX";
+  const shuffleValue = toShuffleMode(npState?.shuffle_setting);
+  const repeatValue = toRepeatMode(npState?.repeat_setting);
+  const shuffleShown =
+    pendingSetting?.key === "SHUFFLE" ? toShuffleMode(pendingSetting.raw) : shuffleValue;
+  const repeatShown =
+    pendingSetting?.key === "REPEAT" ? toRepeatMode(pendingSetting.raw) : repeatValue;
 
   const nowPlaying = npState
     ? {
@@ -213,12 +242,27 @@ export default function Devices({
 
   // The state of a card never leaks into the next device
   useEffect(() => {
+    prevSettingsRef.current = null;
+    setPendingSetting(null);
     setStartingPreset(null);
     setFailedPreset(null);
     setSwitching(null);
     setSwitchFailed(null);
     setAnnouncement("");
   }, [deviceId]);
+
+  // Announces a changed speaker value (own press or speaker side), never the first value of a card
+  useEffect(() => {
+    if (shuffleValue === null && repeatValue === null) return;
+    const prev = prevSettingsRef.current;
+    prevSettingsRef.current = { shuffle: shuffleValue, repeat: repeatValue };
+    if (!prev) return;
+    if (shuffleValue !== null && shuffleValue !== prev.shuffle) {
+      setAnnouncement(t(shuffleValue === "on" ? "player.shuffleOn" : "player.shuffleOff"));
+    } else if (repeatValue !== null && repeatValue !== prev.repeat) {
+      setAnnouncement(t(REPEAT_ANNOUNCE_KEYS[repeatValue]));
+    }
+  }, [shuffleValue, repeatValue, t]);
 
   const handleDeviceChange = useCallback(
     (index: number) => {
@@ -414,7 +458,33 @@ export default function Devices({
     }
   };
 
+  // Shuffle toggles; repeat goes off -> all -> one -> off. The speaker answer decides what is shown.
+  const handleSettingKey = async (key: "SHUFFLE" | "REPEAT") => {
+    if (!deviceId || keyBusy) return;
+    const raw =
+      key === "SHUFFLE"
+        ? shuffleValue === "on"
+          ? "SHUFFLE_OFF"
+          : "SHUFFLE_ON"
+        : `REPEAT_${NEXT_REPEAT[repeatValue ?? "off"].toUpperCase()}`;
+    setKeyBusy(key);
+    setPendingSetting({ key, raw });
+    try {
+      const answer = await sendSettingKey(deviceId, raw);
+      const reported = key === "SHUFFLE" ? answer.shuffle_setting : answer.repeat_setting;
+      if (reported !== raw) setAnnouncement(t("player.settingFailed"));
+      await refreshNowPlaying();
+    } catch (err) {
+      console.error(`[Devices] Key ${key} failed:`, err);
+      showToast(getDeviceActionError(t, err, "errors.unknown"), "error");
+    } finally {
+      setPendingSetting(null);
+      setKeyBusy(null);
+    }
+  };
+
   const handleKey = async (key: TransportKey) => {
+    if (key === "SHUFFLE" || key === "REPEAT") return handleSettingKey(key);
     if (!deviceId || keyBusy) return;
     setKeyBusy(key);
     try {
@@ -576,11 +646,13 @@ export default function Devices({
                   <TransportKeys
                     playing={isPlaying}
                     skipEnabled={source !== "STORED_MUSIC" || npState?.skip_enabled !== false}
-                    showSkip={!!source && !isRadio && !isStandby && source !== "AUX"}
+                    showSkip={showSkip}
                     noControl={source === "AUX"}
                     disabled={controlsLocked || switching !== null}
                     busyKey={keyBusy}
                     onKey={handleKey}
+                    shuffle={showSkip ? shuffleShown : null}
+                    repeat={showSkip ? repeatShown : null}
                   />
 
                   <div

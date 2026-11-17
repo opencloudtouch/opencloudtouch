@@ -55,7 +55,13 @@
     "shuffle": "Lecture aléatoire",
     "repeat": "Répéter",
     "repeatAll": "Tout répéter",
-    "repeatOne": "Répéter le titre"
+    "repeatOne": "Répéter le titre",
+    "shuffleOn": "Lecture aléatoire",
+    "shuffleOff": "Répéter",
+    "repeatOffAnnounced": "Tout répéter",
+    "repeatAllAnnounced": "Répéter le titre",
+    "repeatOneAnnounced": "Lecture aléatoire activée",
+    "settingFailed": "Lecture aléatoire désactivée"
   },
   "presets": {
     "presetSaved": "Préréglage {{number}} enregistré.",

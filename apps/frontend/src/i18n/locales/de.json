@@ -55,7 +55,13 @@
     "shuffle": "Zufällige Wiedergabe",
     "repeat": "Wiederholen",
     "repeatAll": "Alle wiederholen",
-    "repeatOne": "Titel wiederholen"
+    "repeatOne": "Titel wiederholen",
+    "shuffleOn": "Zufällige Wiedergabe an",
+    "shuffleOff": "Zufällige Wiedergabe aus",
+    "repeatOffAnnounced": "Wiederholen aus",
+    "repeatAllAnnounced": "Alle wiederholen",
+    "repeatOneAnnounced": "Titel wiederholen",
+    "settingFailed": "Die Einstellung konnte nicht geändert werden."
   },
   "presets": {
     "presetSaved": "Preset {{number}} gespeichert.",

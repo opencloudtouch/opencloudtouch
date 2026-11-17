@@ -55,7 +55,13 @@
     "shuffle": "Willekeurige volgorde",
     "repeat": "Herhalen",
     "repeatAll": "Alles herhalen",
-    "repeatOne": "Nummer herhalen"
+    "repeatOne": "Nummer herhalen",
+    "shuffleOn": "Willekeurige volgorde",
+    "shuffleOff": "Herhalen",
+    "repeatOffAnnounced": "Alles herhalen",
+    "repeatAllAnnounced": "Nummer herhalen",
+    "repeatOneAnnounced": "Willekeurige volgorde aan",
+    "settingFailed": "Willekeurige volgorde uit"
   },
   "presets": {
     "presetSaved": "Preset {{number}} opgeslagen.",

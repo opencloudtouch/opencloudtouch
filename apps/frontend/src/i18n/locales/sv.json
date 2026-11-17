@@ -55,7 +55,13 @@
     "shuffle": "Slumpmässig uppspelning",
     "repeat": "Upprepa",
     "repeatAll": "Upprepa alla",
-    "repeatOne": "Upprepa spår"
+    "repeatOne": "Upprepa spår",
+    "shuffleOn": "Slumpmässig uppspelning",
+    "shuffleOff": "Upprepa",
+    "repeatOffAnnounced": "Upprepa alla",
+    "repeatAllAnnounced": "Upprepa spår",
+    "repeatOneAnnounced": "Slumpmässig uppspelning på",
+    "settingFailed": "Slumpmässig uppspelning av"
   },
   "presets": {
     "presetSaved": "Förinställning {{number}} sparad.",

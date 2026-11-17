@@ -55,7 +55,13 @@
     "shuffle": "Shuffle",
     "repeat": "Repeat",
     "repeatAll": "Repeat all",
-    "repeatOne": "Repeat one"
+    "repeatOne": "Repeat one",
+    "shuffleOn": "Shuffle on",
+    "shuffleOff": "Shuffle off",
+    "repeatOffAnnounced": "Repeat off",
+    "repeatAllAnnounced": "Repeat all",
+    "repeatOneAnnounced": "Repeat one",
+    "settingFailed": "The setting could not be changed."
   },
   "presets": {
     "presetSaved": "Preset {{number}} saved.",

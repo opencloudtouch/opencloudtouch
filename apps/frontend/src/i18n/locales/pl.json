@@ -55,7 +55,13 @@
     "shuffle": "Odtwarzanie losowe",
     "repeat": "Powtarzaj",
     "repeatAll": "Powtarzaj wszystko",
-    "repeatOne": "Powtarzaj utwór"
+    "repeatOne": "Powtarzaj utwór",
+    "shuffleOn": "Odtwarzanie losowe",
+    "shuffleOff": "Powtarzaj",
+    "repeatOffAnnounced": "Powtarzaj wszystko",
+    "repeatAllAnnounced": "Powtarzaj utwór",
+    "repeatOneAnnounced": "Odtwarzanie losowe włączone",
+    "settingFailed": "Odtwarzanie losowe wyłączone"
   },
   "presets": {
     "presetSaved": "Preset {{number}} zapisany.",

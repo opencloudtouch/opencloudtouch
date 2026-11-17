@@ -53,6 +53,7 @@ vi.mock("../../src/api/devices", async (importOriginal) => {
     togglePlayPause: vi.fn().mockResolvedValue(undefined),
     nextTrack: vi.fn().mockResolvedValue(undefined),
     prevTrack: vi.fn().mockResolvedValue(undefined),
+    sendSettingKey: vi.fn().mockResolvedValue({ shuffle_setting: null, repeat_setting: null }),
   };
 });
 
@@ -1634,6 +1635,146 @@ describe("Devices Page", () => {
       expect(screen.queryByTestId("now-playing")).not.toBeInTheDocument();
       expect(screen.queryByTestId("preset-list")).not.toBeInTheDocument();
       expect(screen.queryByTestId("volume-slider")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Shuffle and repeat", () => {
+    beforeEach(() => {
+      _resetOfflineStore();
+    });
+
+    const settings = (extra: Record<string, unknown>) => ({
+      source: "BLUETOOTH",
+      state: "PLAY_STATE",
+      station_name: "iPhone",
+      ...extra,
+    });
+    const announced = () =>
+      Array.from(document.querySelectorAll("[role='status']"), (el) => el.textContent).join(" | ");
+    const renderDevices = () => act(async () => render(<Devices devices={mockDevices} />));
+
+    it("shows shuffle and repeat for a source with tracks that reports them", async () => {
+      mockNowPlayingState = settings({
+        shuffle_setting: "SHUFFLE_OFF",
+        repeat_setting: "REPEAT_OFF",
+      });
+      await renderDevices();
+
+      expect(screen.getByRole("button", { name: "Shuffle" })).toHaveAttribute(
+        "aria-pressed",
+        "false"
+      );
+      expect(screen.getByRole("button", { name: "Repeat" })).toHaveAttribute(
+        "aria-pressed",
+        "false"
+      );
+    });
+
+    it("hides shuffle and repeat for radio and when the speaker does not report them", async () => {
+      mockNowPlayingState = settings({ source: "INTERNET_RADIO", shuffle_setting: "SHUFFLE_ON" });
+      const first = await renderDevices();
+      expect(screen.queryByRole("button", { name: "Shuffle" })).not.toBeInTheDocument();
+      first.unmount();
+
+      mockNowPlayingState = settings({});
+      await renderDevices();
+      expect(screen.queryByRole("button", { name: "Shuffle" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Repeat" })).not.toBeInTheDocument();
+    });
+
+    it("sends the opposite shuffle key, shows the pending value while it runs and refreshes", async () => {
+      mockNowPlayingState = settings({
+        shuffle_setting: "SHUFFLE_OFF",
+        repeat_setting: "REPEAT_OFF",
+      });
+      let finish: () => void = () => {};
+      vi.mocked(devicesApi.sendSettingKey).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = () => resolve({ shuffle_setting: "SHUFFLE_ON", repeat_setting: "REPEAT_OFF" });
+          })
+      );
+      await renderDevices();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Shuffle" }));
+      });
+      expect(devicesApi.sendSettingKey).toHaveBeenCalledWith("AABBCC123456", "SHUFFLE_ON");
+      expect(screen.getByRole("button", { name: "Shuffle" })).toHaveAttribute(
+        "aria-pressed",
+        "true"
+      );
+
+      await act(async () => {
+        finish();
+      });
+      expect(mockRefreshNowPlaying).toHaveBeenCalled();
+    });
+
+    it("restores the previous shuffle value and shows the error toast when the press fails", async () => {
+      mockNowPlayingState = settings({
+        shuffle_setting: "SHUFFLE_OFF",
+        repeat_setting: "REPEAT_OFF",
+      });
+      vi.mocked(devicesApi.sendSettingKey).mockRejectedValueOnce(new Error("offline"));
+      await renderDevices();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Shuffle" }));
+      });
+      expect(screen.getByRole("button", { name: "Shuffle" })).toHaveAttribute(
+        "aria-pressed",
+        "false"
+      );
+      expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), "error");
+    });
+
+    it("cycles the repeat mode from all to one", async () => {
+      mockNowPlayingState = settings({
+        shuffle_setting: "SHUFFLE_OFF",
+        repeat_setting: "REPEAT_ALL",
+      });
+      await renderDevices();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Repeat" }));
+      });
+      expect(devicesApi.sendSettingKey).toHaveBeenCalledWith("AABBCC123456", "REPEAT_ONE");
+    });
+
+    it("announces a changed setting, but not the first load", async () => {
+      mockNowPlayingState = settings({
+        shuffle_setting: "SHUFFLE_OFF",
+        repeat_setting: "REPEAT_OFF",
+      });
+      const view = await renderDevices();
+      expect(announced()).not.toContain("Shuffle");
+
+      mockNowPlayingState = settings({
+        shuffle_setting: "SHUFFLE_ON",
+        repeat_setting: "REPEAT_OFF",
+      });
+      await act(async () => {
+        view.rerender(<Devices devices={mockDevices} />);
+      });
+      expect(announced()).toContain("Shuffle on");
+    });
+
+    it("announces that the setting could not be changed when the speaker keeps the old value", async () => {
+      mockNowPlayingState = settings({
+        shuffle_setting: "SHUFFLE_OFF",
+        repeat_setting: "REPEAT_OFF",
+      });
+      vi.mocked(devicesApi.sendSettingKey).mockResolvedValueOnce({
+        shuffle_setting: "SHUFFLE_OFF",
+        repeat_setting: "REPEAT_OFF",
+      });
+      await renderDevices();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Shuffle" }));
+      });
+      expect(announced()).toContain("The setting could not be changed.");
     });
   });
 

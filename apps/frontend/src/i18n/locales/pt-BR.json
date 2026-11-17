@@ -55,7 +55,13 @@
     "shuffle": "Reprodução aleatória",
     "repeat": "Repetir",
     "repeatAll": "Repetir tudo",
-    "repeatOne": "Repetir faixa"
+    "repeatOne": "Repetir faixa",
+    "shuffleOn": "Reprodução aleatória",
+    "shuffleOff": "Repetir",
+    "repeatOffAnnounced": "Repetir tudo",
+    "repeatAllAnnounced": "Repetir faixa",
+    "repeatOneAnnounced": "Reprodução aleatória ativada",
+    "settingFailed": "Reprodução aleatória desativada"
   },
   "presets": {
     "presetSaved": "Preset {{number}} salvo.",

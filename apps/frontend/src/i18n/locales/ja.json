@@ -55,7 +55,13 @@
     "shuffle": "シャッフル再生",
     "repeat": "リピート",
     "repeatAll": "すべてリピート",
-    "repeatOne": "1曲リピート"
+    "repeatOne": "1曲リピート",
+    "shuffleOn": "シャッフル再生",
+    "shuffleOff": "リピート",
+    "repeatOffAnnounced": "すべてリピート",
+    "repeatAllAnnounced": "1曲リピート",
+    "repeatOneAnnounced": "シャッフル再生オン",
+    "settingFailed": "シャッフル再生オフ"
   },
   "presets": {
     "presetSaved": "プリセット{{number}}を保存しました。",

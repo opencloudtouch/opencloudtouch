@@ -55,7 +55,13 @@
     "shuffle": "Riproduzione casuale",
     "repeat": "Ripeti",
     "repeatAll": "Ripeti tutto",
-    "repeatOne": "Ripeti brano"
+    "repeatOne": "Ripeti brano",
+    "shuffleOn": "Riproduzione casuale",
+    "shuffleOff": "Ripeti",
+    "repeatOffAnnounced": "Ripeti tutto",
+    "repeatAllAnnounced": "Ripeti brano",
+    "repeatOneAnnounced": "Riproduzione casuale attiva",
+    "settingFailed": "Riproduzione casuale disattiva"
   },
   "presets": {
     "presetSaved": "Preset {{number}} salvato.",

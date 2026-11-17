@@ -94,7 +94,8 @@ vi.mock("../../src/components/LoadingSkeleton", () => ({
   PresetSkeleton: () => <div data-testid="skeleton" />,
 }));
 
-vi.mock("../../src/api/devices", () => ({
+vi.mock("../../src/api/devices", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/api/devices")>()),
   playPreset: vi.fn(),
   togglePlayPause: vi.fn(),
   power: vi.fn(),
