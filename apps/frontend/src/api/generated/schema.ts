@@ -3781,6 +3781,17 @@ export interface components {
        */
       diff: string;
     };
+    /** KeyPressResponse */
+    KeyPressResponse: {
+      /** Message */
+      message: string;
+      /** Device Id */
+      device_id: string;
+      /** Shuffle Setting */
+      shuffle_setting?: string | null;
+      /** Repeat Setting */
+      repeat_setting?: string | null;
+    };
     /**
      * LogDownloadRequest
      * @description Optional body for POST /api/logs/backend with frontend logs.
@@ -3881,6 +3892,35 @@ export interface components {
      * @enum {string}
      */
     NativeState: "not_enabled" | "ready" | "unavailable";
+    /** NowPlayingResponse */
+    NowPlayingResponse: {
+      /** Source */
+      source: string;
+      /** State */
+      state: string;
+      /** Station Name */
+      station_name?: string | null;
+      /** Artist */
+      artist?: string | null;
+      /** Track */
+      track?: string | null;
+      /** Album */
+      album?: string | null;
+      /** Artwork Url */
+      artwork_url?: string | null;
+      /** Content Location */
+      content_location?: string | null;
+      /** Item Name */
+      item_name?: string | null;
+      /** Skip Enabled */
+      skip_enabled?: boolean | null;
+      /** Online */
+      online: boolean;
+      /** Shuffle Setting */
+      shuffle_setting?: string | null;
+      /** Repeat Setting */
+      repeat_setting?: string | null;
+    };
     /**
      * NtpPatchRequest
      * @description Request to patch the NTP server on device.
@@ -5274,7 +5314,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["KeyPressResponse"];
         };
       };
       /** @description Validation Error */
@@ -5347,9 +5387,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": {
-            [key: string]: unknown;
-          };
+          "application/json": components["schemas"]["NowPlayingResponse"];
         };
       };
       /** @description Validation Error */
