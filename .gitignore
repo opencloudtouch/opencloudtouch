@@ -73,6 +73,7 @@ docs/*
 !docs/UI_QUALITY_CHECKLIST.md
 !docs/MARGE-SPEAKER-CALLS.md
 !docs/DLNA.md
+!docs/AGENT_DEVOPS.md
 !docs/AGENT_ISSUES.md
 !docs/AGENT_PRS.md
 !docs/AGENTS.md
