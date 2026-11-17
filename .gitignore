@@ -71,9 +71,6 @@ test-output.txt
 test*.txt
 test_full.txt
 apps/backend/result.txt
-AGENTS.md
-.github/copilot-instructions.md
-.github/prompts/
 .github/agents/
 .github/CHEATSHEET.md
 Debugging/
@@ -91,6 +88,8 @@ docs/*
 !docs/DLNA.md
 !docs/AGENT_ISSUES.md
 !docs/AGENT_PRS.md
+!docs/AGENTS.md
+!docs/CLAUDE.md
 .specify/
 specs/
 
