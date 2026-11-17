@@ -174,6 +174,8 @@ class BoseDeviceClientAdapter(DeviceClient):
                 content_location=getattr(content, "Location", None),
                 item_name=getattr(content, "Name", None),
                 skip_enabled=getattr(now_playing, "IsSkipEnabled", None),
+                shuffle_setting=getattr(now_playing, "ShuffleSetting", None),
+                repeat_setting=getattr(now_playing, "RepeatSetting", None),
             )
 
         except Exception as e:

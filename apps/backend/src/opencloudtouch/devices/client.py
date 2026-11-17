@@ -54,6 +54,9 @@ class NowPlayingInfo:
     item_name: Optional[str] = None
     # Whether the speaker accepts next/previous (a single track does not)
     skip_enabled: Optional[bool] = None
+    # Raw speaker values, e.g. "SHUFFLE_ON" and "REPEAT_ALL"; None if not reported
+    shuffle_setting: str | None = None
+    repeat_setting: str | None = None
 
 
 @dataclass

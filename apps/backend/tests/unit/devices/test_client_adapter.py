@@ -176,6 +176,21 @@ class TestGetNowPlaying:
         assert result.source == "INTERNET_RADIO"
 
     @pytest.mark.asyncio
+    async def test_maps_shuffle_and_repeat_settings(self):
+        client = _make_client()
+        mock_status = MagicMock()
+        mock_status.PlayStatus = "PLAY_STATE"
+        mock_status.Source = "STORED_MUSIC"
+        mock_status.ShuffleSetting = "SHUFFLE_OFF"
+        mock_status.RepeatSetting = "REPEAT_ALL"
+        client._client.GetNowPlayingStatus.return_value = mock_status
+
+        result = await client.get_now_playing()
+
+        assert result.shuffle_setting == "SHUFFLE_OFF"
+        assert result.repeat_setting == "REPEAT_ALL"
+
+    @pytest.mark.asyncio
     async def test_raises_on_failure(self):
         client = _make_client()
         client._client.GetNowPlayingStatus.side_effect = RuntimeError("conn error")

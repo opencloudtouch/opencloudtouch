@@ -362,3 +362,24 @@ class TestStoredMusicNowPlaying:
         event = parse_event(STORED_MUSIC_XML.replace("<skipEnabled />", ""))
         assert event is not None and event.now_playing is not None
         assert event.now_playing.skip_enabled is False
+
+
+class TestShuffleAndRepeatSettings:
+    """The speaker reports shuffle and repeat inside nowPlaying; absent means None."""
+
+    def test_settings_are_parsed(self):
+        xml = STORED_MUSIC_XML.replace(
+            "<skipEnabled />",
+            "<skipEnabled /><shuffleSetting>SHUFFLE_ON</shuffleSetting>"
+            "<repeatSetting>REPEAT_ONE</repeatSetting>",
+        )
+        event = parse_event(xml)
+        assert event is not None and event.now_playing is not None
+        assert event.now_playing.shuffle_setting == "SHUFFLE_ON"
+        assert event.now_playing.repeat_setting == "REPEAT_ONE"
+
+    def test_missing_settings_are_none(self):
+        event = parse_event(STORED_MUSIC_XML)
+        assert event is not None and event.now_playing is not None
+        assert event.now_playing.shuffle_setting is None
+        assert event.now_playing.repeat_setting is None

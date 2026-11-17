@@ -184,6 +184,8 @@ def _parse_now_playing(element: Element) -> NowPlayingInfo:
             content.findtext("itemName") or None if content is not None else None
         ),
         skip_enabled=np.find("skipEnabled") is not None,
+        shuffle_setting=_text("shuffleSetting"),
+        repeat_setting=_text("repeatSetting"),
     )
 
 
