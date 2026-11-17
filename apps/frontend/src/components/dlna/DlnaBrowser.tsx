@@ -110,7 +110,9 @@ export default function DlnaBrowser({
         onSessionChange?.(next);
       };
       const serverGone = { key: "sessionServerGone" };
-      if (status === "offline" || session.stack.length === 0) return fallback(null, serverGone);
+      if (status === "offline") return fallback(null, serverGone);
+      // at the top there is no parent to show: the server list, with the folder notice
+      if (session.stack.length === 0) return fallback(null, { key: "sessionRootGone" });
       if (restoring) {
         return fallback(
           { ...session, stack: [] },

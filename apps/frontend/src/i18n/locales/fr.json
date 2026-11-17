@@ -186,6 +186,7 @@
       "goneRoot": "Le dossier n’existe plus, la bibliothèque du serveur a peut-être été réanalysée. Vous voyez maintenant le début du serveur.",
       "sessionFolderGone": "Le dernier dossier ouvert n’est plus disponible. Vous voyez le début de « {{server}} ».",
       "sessionServerGone": "Le dernier serveur multimédia utilisé n’est plus joignable. Choisissez un serveur dans la liste.",
+      "sessionRootGone": "Le dossier que vous avez ouvert en dernier n’est plus disponible. Choisissez un serveur dans la liste.",
       "editServerGone": "Le serveur multimédia de ce préréglage n’est pas joignable. Choisissez un serveur dans la liste.",
       "editFolderGone": "L’élément de ce préréglage n’est plus disponible. Vous voyez le début de « {{server}} ».",
       "editPathFailed": "L’emplacement de ce préréglage n’a pas pu être lu à temps. Vous voyez le début de « {{server}} ».",

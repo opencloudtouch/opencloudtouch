@@ -186,6 +186,7 @@
       "goneRoot": "De map bestaat niet meer, misschien is de bibliotheek van de server opnieuw gescand. Je ziet nu het begin van de server.",
       "sessionFolderGone": "De laatst geopende map is niet meer beschikbaar. Je ziet het begin van “{{server}}”.",
       "sessionServerGone": "De laatst gebruikte mediaserver is niet meer bereikbaar. Kies een server uit de lijst.",
+      "sessionRootGone": "De map die je als laatste opende is niet meer beschikbaar. Kies een server uit de lijst.",
       "editServerGone": "De mediaserver van deze preset is niet bereikbaar. Kies een server uit de lijst.",
       "editFolderGone": "Het item van deze preset is niet meer beschikbaar. Je ziet het begin van “{{server}}”.",
       "editPathFailed": "De locatie van deze preset kon niet op tijd worden gelezen. Je ziet het begin van “{{server}}”.",

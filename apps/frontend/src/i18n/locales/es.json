@@ -186,6 +186,7 @@
       "goneRoot": "La carpeta ya no existe, quizá se volvió a escanear la biblioteca del servidor. Ahora ves el inicio del servidor.",
       "sessionFolderGone": "La última carpeta abierta ya no está disponible. Ves el inicio de «{{server}}».",
       "sessionServerGone": "El último servidor multimedia usado ya no es accesible. Elige un servidor de la lista.",
+      "sessionRootGone": "La carpeta que abriste por última vez ya no está disponible. Elige un servidor de la lista.",
       "editServerGone": "El servidor multimedia de este preset no está disponible. Elige un servidor de la lista.",
       "editFolderGone": "El elemento de este preset ya no está disponible. Ves el inicio de «{{server}}».",
       "editPathFailed": "No se pudo leer a tiempo la ubicación de este preset. Ves el inicio de «{{server}}».",

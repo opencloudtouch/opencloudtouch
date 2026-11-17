@@ -446,6 +446,20 @@ describe("DlnaBrowser: error and slow states", () => {
     }
   );
 
+  it("says the folder is missing, not the server, when the saved folder is gone and the path is empty", async () => {
+    serve(() => apiError(404, "dlna_object_not_found"));
+    const onSessionChange = vi.fn();
+    renderBrowser({ initialSession: { ...session, stack: [] }, onSessionChange });
+
+    expect(
+      await screen.findByText(
+        "The folder you opened last is no longer available. Pick a server from the list."
+      )
+    ).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain("no longer reachable");
+    expect(onSessionChange).toHaveBeenLastCalledWith(null);
+  });
+
   it("shows offline with retry and back to servers when it happens after navigating", async () => {
     let fail = false;
     serve((url) =>

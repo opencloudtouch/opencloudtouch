@@ -186,6 +186,7 @@
       "goneRoot": "A pasta não existe mais, talvez a biblioteca do servidor tenha sido reescaneada. Agora você vê o início do servidor.",
       "sessionFolderGone": "A última pasta aberta não está mais disponível. Você vê o início de “{{server}}”.",
       "sessionServerGone": "O último servidor de mídia usado não está mais acessível. Escolha um servidor da lista.",
+      "sessionRootGone": "A pasta que você abriu por último não está mais disponível. Escolha um servidor na lista.",
       "editServerGone": "O servidor de mídia desta predefinição não está acessível. Escolha um servidor da lista.",
       "editFolderGone": "O item desta predefinição não está mais disponível. Você vê o início de “{{server}}”.",
       "editPathFailed": "Não foi possível ler a tempo o local desta predefinição. Você vê o início de “{{server}}”.",
