@@ -378,45 +378,45 @@ class TestIsImageUrl:
     """Tests for _is_image_url heuristic that filters non-image artwork URLs."""
 
     def test_accepts_png_extension(self):
-        from opencloudtouch.devices.api.routes import _is_image_url
+        from opencloudtouch.core.image_url import is_image_url
 
-        assert _is_image_url("https://example.com/logo.png") is True
+        assert is_image_url("https://example.com/logo.png") is True
 
     def test_accepts_jpg_extension(self):
-        from opencloudtouch.devices.api.routes import _is_image_url
+        from opencloudtouch.core.image_url import is_image_url
 
-        assert _is_image_url("https://example.com/art.jpg") is True
+        assert is_image_url("https://example.com/art.jpg") is True
 
     def test_accepts_tunein_cdn(self):
-        from opencloudtouch.devices.api.routes import _is_image_url
+        from opencloudtouch.core.image_url import is_image_url
 
         url = "https://cdn-profiles.tunein.com/s158432/images/logoq.png?t=123"
-        assert _is_image_url(url) is True
+        assert is_image_url(url) is True
 
     def test_accepts_path_with_images_segment(self):
-        from opencloudtouch.devices.api.routes import _is_image_url
+        from opencloudtouch.core.image_url import is_image_url
 
-        assert _is_image_url("https://example.com/images/logo") is True
+        assert is_image_url("https://example.com/images/logo") is True
 
     def test_accepts_favicon_path(self):
-        from opencloudtouch.devices.api.routes import _is_image_url
+        from opencloudtouch.core.image_url import is_image_url
 
-        assert _is_image_url("https://example.com/favicon") is True
+        assert is_image_url("https://example.com/favicon") is True
 
     def test_rejects_homepage_url(self):
-        from opencloudtouch.devices.api.routes import _is_image_url
+        from opencloudtouch.core.image_url import is_image_url
 
-        assert _is_image_url("https://absolutradio.de/relax") is False
+        assert is_image_url("https://absolutradio.de/relax") is False
 
     def test_rejects_plain_domain(self):
-        from opencloudtouch.devices.api.routes import _is_image_url
+        from opencloudtouch.core.image_url import is_image_url
 
-        assert _is_image_url("https://example.com/") is False
+        assert is_image_url("https://example.com/") is False
 
     def test_rejects_html_page(self):
-        from opencloudtouch.devices.api.routes import _is_image_url
+        from opencloudtouch.core.image_url import is_image_url
 
-        assert _is_image_url("https://radio.de/sender/swr3.html") is False
+        assert is_image_url("https://radio.de/sender/swr3.html") is False
 
 
 class TestArtworkFiltering:

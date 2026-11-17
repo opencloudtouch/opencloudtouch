@@ -19,6 +19,7 @@ import time
 from collections import OrderedDict
 from typing import Awaitable, Callable
 
+from opencloudtouch.core.image_url import is_image_url
 from opencloudtouch.devices.client import NowPlayingInfo
 from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
 from opencloudtouch.streaming.icy_metadata import IcyMetadata, probe_stream
@@ -31,6 +32,12 @@ _MAX_PROBE_HISTORY = 100  # Max entries for _last_probe and _last_metadata
 
 # Callback type: (device_id, station_name) -> stream_url | None
 GetStreamUrl = Callable[[str, str], Awaitable[str | None]]
+
+
+def _logo_or(icy: IcyMetadata, info: NowPlayingInfo) -> str | None:
+    """Use the ICY station logo only if it is an image URL, else keep the artwork."""
+    logo = icy.station_logo_url
+    return logo if logo and is_image_url(logo) else info.artwork_url
 
 
 class IcyWorker:
@@ -163,7 +170,7 @@ class IcyWorker:
             artist=icy.artist or info.artist,
             track=icy.track or info.track,
             album=info.album,
-            artwork_url=icy.station_logo_url or info.artwork_url,
+            artwork_url=_logo_or(icy, info),
         )
 
         return DeviceEvent(
@@ -229,7 +236,7 @@ class IcyWorker:
             artist=icy.artist or info.artist,
             track=icy.track or info.track,
             album=info.album,
-            artwork_url=icy.station_logo_url or info.artwork_url,
+            artwork_url=_logo_or(icy, info),
         )
 
         return DeviceEvent(

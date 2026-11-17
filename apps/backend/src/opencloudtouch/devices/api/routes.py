@@ -24,6 +24,7 @@ from opencloudtouch.core.exceptions import (
     DeviceNotFoundError,
     DomainValidationError,
 )
+from opencloudtouch.core.image_url import is_image_url
 from opencloudtouch.devices.client import NowPlayingInfo
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.state import DeviceStateManager
@@ -424,38 +425,6 @@ async def rename_device(
     }
 
 
-_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".bmp"}
-
-
-def _is_image_url(url: str) -> bool:
-    """Heuristic check whether a URL likely points to an image."""
-    from urllib.parse import urlparse
-
-    parsed = urlparse(url)
-    path_lower = parsed.path.lower().rstrip("/")
-
-    # Check file extension
-    for ext in _IMAGE_EXTENSIONS:
-        if path_lower.endswith(ext):
-            return True
-
-    # Known image CDN patterns
-    host = parsed.hostname or ""
-    if any(
-        pattern in host
-        for pattern in ("cdn-profiles.tunein.com", "cdn-radiotime", "cloudfront.net")
-    ):
-        return True
-
-    # URL path contains typical image path segments
-    if any(
-        seg in path_lower for seg in ("/images/", "/img/", "/logo", "/favicon", "/icon")
-    ):
-        return True
-
-    return False
-
-
 def _apply_icy_metadata(
     result: dict[str, object],
     icy: IcyMetadata,
@@ -611,7 +580,7 @@ async def get_now_playing(
 
     # Filter out non-image artwork URLs (e.g. station homepages)
     artwork_url = result["artwork_url"]
-    if isinstance(artwork_url, str) and not _is_image_url(artwork_url):
+    if isinstance(artwork_url, str) and not is_image_url(artwork_url):
         logger.debug(
             "[NowPlaying] Filtered non-image artwork_url: %s", result["artwork_url"]
         )

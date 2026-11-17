@@ -116,7 +116,7 @@ class TestIcyWorkerOnEvent:
             artist="Test Artist",
             track="Test Track",
             raw_title="Test Artist - Test Track",
-            station_logo_url="http://logo.png",
+            station_logo_url="http://example.com/logo.png",
         )
         with patch(
             "opencloudtouch.devices.websocket.icy_worker.probe_stream",
@@ -131,7 +131,7 @@ class TestIcyWorkerOnEvent:
         assert result.device_id == "D1"
         assert result.now_playing.artist == "Test Artist"
         assert result.now_playing.track == "Test Track"
-        assert result.now_playing.artwork_url == "http://logo.png"
+        assert result.now_playing.artwork_url == "http://example.com/logo.png"
 
     @pytest.mark.asyncio
     async def test_probe_exception_returns_none(self):
@@ -339,7 +339,7 @@ class TestIcyWorkerPollStream:
             artist="New Artist",
             track="New Track",
             raw_title="New Artist - New Track",
-            station_logo_url="http://logo.png",
+            station_logo_url="http://example.com/logo.png",
         )
         with patch(
             "opencloudtouch.devices.websocket.icy_worker.probe_stream",
@@ -384,7 +384,7 @@ class TestIcyWorkerTuneInSource:
             artist="Artist",
             track="Track",
             raw_title="Artist - Track",
-            station_logo_url="http://logo.png",
+            station_logo_url="http://example.com/logo.png",
         )
         with patch(
             "opencloudtouch.devices.websocket.icy_worker.probe_stream",
@@ -396,7 +396,7 @@ class TestIcyWorkerTuneInSource:
 
         assert result is not None
         assert result.event_type == EventType.METADATA_ENRICHED
-        assert result.now_playing.artwork_url == "http://logo.png"
+        assert result.now_playing.artwork_url == "http://example.com/logo.png"
 
     @pytest.mark.asyncio
     async def test_tunein_source_with_existing_artwork_skipped(self):
@@ -414,7 +414,7 @@ class TestIcyWorkerTuneInSource:
             artist="A",
             track="T",
             raw_title="A - T",
-            station_logo_url="http://logo.png",
+            station_logo_url="http://example.com/logo.png",
         )
         with patch(
             "opencloudtouch.devices.websocket.icy_worker.probe_stream",
@@ -426,3 +426,27 @@ class TestIcyWorkerTuneInSource:
 
         assert result is not None
         assert result.event_type == EventType.METADATA_ENRICHED
+
+
+class TestNonImageStationLogo:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "logo,expected",
+        [
+            ("https://absolutradio.de/relax", None),
+            ("https://example.com/logo.png", "https://example.com/logo.png"),
+        ],
+    )
+    async def test_logo_must_be_image_url(self, logo, expected):
+        get_url = AsyncMock(return_value="http://stream.example.com/radio")
+        worker = IcyWorker(get_stream_url=get_url)
+        icy = IcyMetadata(
+            artist="A", track="T", raw_title="A - T", station_logo_url=logo
+        )
+        with patch(
+            "opencloudtouch.devices.websocket.icy_worker.probe_stream",
+            new_callable=AsyncMock,
+            return_value=icy,
+        ):
+            result = await worker.on_event(_event(np=_np()))
+        assert result.now_playing.artwork_url == expected
