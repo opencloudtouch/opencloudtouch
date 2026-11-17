@@ -213,7 +213,13 @@ def test_browse_response_carries_cache_provenance_and_refresh_flag():
     service = AsyncMock()
     cached_at = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
     service.browse.return_value = BrowsePage(
-        [_track(1)], 1, 1, cached=True, cached_at=cached_at, stale=True, revalidating=True
+        [_track(1)],
+        1,
+        1,
+        cached=True,
+        cached_at=cached_at,
+        stale=True,
+        revalidating=True,
     )
 
     body = _client(service).get("/api/dlna/servers/s/browse?refresh=true").json()

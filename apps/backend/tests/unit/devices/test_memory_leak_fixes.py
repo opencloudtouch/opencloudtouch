@@ -557,3 +557,21 @@ class TestIcyPollLoopCleanup:
 
         assert removed == 1
         assert mgr.get_state("stale_dev") is None
+
+
+class TestShutdownDlnaService:
+    """_shutdown() cancels the DLNA background tasks."""
+
+    @pytest.mark.asyncio
+    async def test_shutdown_closes_the_dlna_service(self):
+        import logging
+
+        from opencloudtouch.main import _shutdown
+
+        dlna = AsyncMock()
+        mock_app = MagicMock()
+        mock_app.state = SimpleNamespace(health_check=AsyncMock(), dlna_service=dlna)
+
+        await _shutdown(mock_app, {}, logging.getLogger("test"))
+
+        dlna.aclose.assert_awaited_once()

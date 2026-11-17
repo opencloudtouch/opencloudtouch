@@ -145,6 +145,25 @@ class AppConfig(BaseSettings):
         le=60,
         description="DLNA read timeout and total deadline per operation (seconds)",
     )
+    dlna_cache_ttl: int = Field(
+        default=900,
+        ge=0,
+        le=86400,
+        description="Seconds a cached DLNA browse page is fresh (0 disables the cache)",
+    )
+    dlna_cache_stale_ttl: int = Field(
+        default=604800,
+        ge=60,
+        le=2592000,
+        description="Seconds a cached DLNA browse page is still served while it is "
+        "refreshed in the background",
+    )
+    dlna_cache_max_items: int = Field(
+        default=20000,
+        ge=1000,
+        le=200000,
+        description="Maximum cached DLNA browse items over all pages (weighted LRU)",
+    )
 
     # Station Descriptor
     station_descriptor_base_url: str = Field(
@@ -152,6 +171,12 @@ class AppConfig(BaseSettings):
         description="Base URL for OCT backend (used in Bose preset programming). "
         "If set to localhost, auto-detected host IP is substituted at startup.",
     )
+
+    @model_validator(mode="after")
+    def _stale_window_covers_fresh_window(self) -> "AppConfig":
+        if self.dlna_cache_stale_ttl < self.dlna_cache_ttl:
+            raise ValueError("OCT_DLNA_CACHE_STALE_TTL must be >= OCT_DLNA_CACHE_TTL")
+        return self
 
     @model_validator(mode="after")
     def _ensure_cors_includes_port(self) -> "AppConfig":

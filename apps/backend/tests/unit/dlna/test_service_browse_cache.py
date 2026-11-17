@@ -148,7 +148,9 @@ async def test_coalescing_shares_one_call_and_survives_cancelled_waiter(env):
     results = await asyncio.gather(*tasks[1:], other)
     assert env.client.calls == 2
     assert all(r.items[0].id == "A" for r in results)
-    assert (await env.service.browse("srv")).cached  # the cancelled waiter's fetch filled it
+    assert (
+        await env.service.browse("srv")
+    ).cached  # the cancelled waiter's fetch filled it
     assert env.cache.stats()["coalesced"] == 3
     await env.drain()
     assert not env.service._tasks and not env.service._inflight

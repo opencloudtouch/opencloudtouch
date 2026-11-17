@@ -35,6 +35,7 @@ from opencloudtouch.core.static_files import (
     mount_static_files,
 )
 from opencloudtouch.db import DeviceRepository
+from opencloudtouch.dlna.browse_cache import BrowseCache
 from opencloudtouch.dlna.service import DlnaService
 from opencloudtouch.devices.adapter import get_discovery_adapter
 from opencloudtouch.dlna.native_routes import router as dlna_native_router
@@ -204,14 +205,22 @@ async def _init_services(
     app.state.device_service = device_service
     logger.info("DeviceService initialized")
 
+    browse_cache = BrowseCache(
+        cfg.dlna_cache_ttl, cfg.dlna_cache_stale_ttl, cfg.dlna_cache_max_items
+    )
     if cfg.mock_mode:
         from opencloudtouch.dlna.mock import MockDlnaClient, MockDlnaDiscovery
 
         app.state.dlna_service = DlnaService(
-            MockDlnaDiscovery(), MockDlnaClient(), timeout=cfg.dlna_timeout
+            MockDlnaDiscovery(),
+            MockDlnaClient(),
+            timeout=cfg.dlna_timeout,
+            browse_cache=browse_cache,
         )
     else:
-        app.state.dlna_service = DlnaService(timeout=cfg.dlna_timeout)
+        app.state.dlna_service = DlnaService(
+            timeout=cfg.dlna_timeout, browse_cache=browse_cache
+        )
     # Warm the discovery cache so the first preset press can resolve (cache-only).
     app.state.dlna_service.schedule_refresh()
     logger.info("DlnaService initialized")
@@ -411,6 +420,12 @@ async def _shutdown(app: FastAPI, repos: dict, logger: logging.Logger) -> None:
 
     await app.state.health_check.stop()
     logger.info("Device health-check stopped")
+
+    # Cancel DLNA discovery and browse-cache background tasks
+    dlna_service = getattr(app.state, "dlna_service", None)
+    if dlna_service:
+        await dlna_service.aclose()
+        logger.info("DlnaService closed")
 
     # Close radio adapters stored in app.state (#366 memory leak fix)
     radio_adapter = getattr(app.state, "radio_adapter", None)
