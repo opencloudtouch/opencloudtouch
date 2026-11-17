@@ -259,3 +259,25 @@ def test_now_playing_dict_carries_stored_music_content_item():
     assert result["content_location"] == "64$7$3"
     assert result["item_name"] == "Example Album"
     assert result["skip_enabled"] is False
+
+
+class TestSyncEnrichedStateKeepsShuffleRepeat:
+    def test_write_back_keeps_shuffle_and_repeat(self):
+        from unittest.mock import MagicMock
+
+        from opencloudtouch.devices.api.routes import _sync_enriched_state
+
+        state_manager = MagicMock()
+        info = NowPlayingInfo(
+            source="INTERNET_RADIO",
+            state="PLAY_STATE",
+            station_name="WDR 2",
+            shuffle_setting="SHUFFLE_ON",
+            repeat_setting="REPEAT_ALL",
+        )
+        _sync_enriched_state(state_manager, "D1", info, {"artist": "New Artist"})
+
+        written = state_manager.update_now_playing.call_args.args[1]
+        assert written.artist == "New Artist"
+        assert written.shuffle_setting == "SHUFFLE_ON"
+        assert written.repeat_setting == "REPEAT_ALL"

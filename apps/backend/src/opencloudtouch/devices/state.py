@@ -363,6 +363,8 @@ class DeviceStateManager:
             track=info.track,
             album=info.album,
             artwork_url=favicon_url,
+            shuffle_setting=info.shuffle_setting,
+            repeat_setting=info.repeat_setting,
         )
         enriched_event = DeviceEvent(
             device_id=event.device_id,

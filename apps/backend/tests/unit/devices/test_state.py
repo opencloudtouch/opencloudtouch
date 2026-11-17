@@ -973,3 +973,36 @@ class TestPresetFaviconEnrichment:
         # Should not raise
         await mgr.on_event(np_event)
         await asyncio.sleep(0.1)
+
+
+class TestPresetFaviconKeepsShuffleRepeat:
+    @pytest.mark.asyncio
+    async def test_favicon_enrichment_keeps_shuffle_and_repeat(self):
+        from unittest.mock import AsyncMock
+
+        favicon_cb = AsyncMock(return_value="https://cdn.example.com/logo.png")
+        mgr = DeviceStateManager()
+        mgr.set_preset_favicon_callback(favicon_cb)
+        queue = mgr.subscribe()
+
+        await mgr.on_event(
+            DeviceEvent(
+                device_id="D1",
+                event_type=EventType.NOW_PLAYING,
+                now_playing=NowPlayingInfo(
+                    source="INTERNET_RADIO",
+                    state="PLAY_STATE",
+                    station_name="WDR 2",
+                    shuffle_setting="SHUFFLE_ON",
+                    repeat_setting="REPEAT_ALL",
+                ),
+            )
+        )
+        await asyncio.sleep(0.1)
+
+        events = []
+        while not queue.empty():
+            events.append(await queue.get())
+        enriched = [e for e in events if e.event_type == EventType.METADATA_ENRICHED]
+        assert enriched[0].now_playing.shuffle_setting == "SHUFFLE_ON"
+        assert enriched[0].now_playing.repeat_setting == "REPEAT_ALL"

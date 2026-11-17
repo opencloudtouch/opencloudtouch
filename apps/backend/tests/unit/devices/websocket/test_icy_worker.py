@@ -450,3 +450,53 @@ class TestNonImageStationLogo:
         ):
             result = await worker.on_event(_event(np=_np()))
         assert result.now_playing.artwork_url == expected
+
+
+class TestIcyWorkerKeepsShuffleRepeat:
+    @pytest.mark.asyncio
+    async def test_on_event_keeps_shuffle_and_repeat(self):
+        worker = IcyWorker(
+            get_stream_url=AsyncMock(return_value="http://stream.example.com/radio")
+        )
+        icy = IcyMetadata(artist="A", track="T", raw_title="A - T")
+        np = NowPlayingInfo(
+            source="INTERNET_RADIO",
+            state="PLAY_STATE",
+            station_name="WDR 2",
+            shuffle_setting="SHUFFLE_OFF",
+            repeat_setting="REPEAT_ONE",
+        )
+        with patch(
+            "opencloudtouch.devices.websocket.icy_worker.probe_stream",
+            new_callable=AsyncMock,
+            return_value=icy,
+        ):
+            result = await worker.on_event(_event(np=np))
+
+        assert result is not None
+        assert result.now_playing.shuffle_setting == "SHUFFLE_OFF"
+        assert result.now_playing.repeat_setting == "REPEAT_ONE"
+
+    @pytest.mark.asyncio
+    async def test_poll_stream_keeps_shuffle_and_repeat(self):
+        worker = IcyWorker(
+            get_stream_url=AsyncMock(return_value="http://stream.example.com/radio")
+        )
+        icy = IcyMetadata(artist="A", track="T", raw_title="A - T")
+        np = NowPlayingInfo(
+            source="INTERNET_RADIO",
+            state="PLAY_STATE",
+            station_name="WDR 2",
+            shuffle_setting="SHUFFLE_OFF",
+            repeat_setting="REPEAT_ONE",
+        )
+        with patch(
+            "opencloudtouch.devices.websocket.icy_worker.probe_stream",
+            new_callable=AsyncMock,
+            return_value=icy,
+        ):
+            result = await worker.poll_stream(_event(np=np))
+
+        assert result is not None
+        assert result.now_playing.shuffle_setting == "SHUFFLE_OFF"
+        assert result.now_playing.repeat_setting == "REPEAT_ONE"

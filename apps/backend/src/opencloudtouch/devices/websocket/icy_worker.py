@@ -171,6 +171,8 @@ class IcyWorker:
             track=icy.track or info.track,
             album=info.album,
             artwork_url=_logo_or(icy, info),
+            shuffle_setting=info.shuffle_setting,
+            repeat_setting=info.repeat_setting,
         )
 
         return DeviceEvent(
@@ -237,6 +239,8 @@ class IcyWorker:
             track=icy.track or info.track,
             album=info.album,
             artwork_url=_logo_or(icy, info),
+            shuffle_setting=info.shuffle_setting,
+            repeat_setting=info.repeat_setting,
         )
 
         return DeviceEvent(
