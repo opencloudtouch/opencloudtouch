@@ -2,6 +2,8 @@
 Tests for MockDeviceClient.
 """
 
+import logging
+
 import pytest
 
 from opencloudtouch.devices.client import (
@@ -222,3 +224,66 @@ class TestMockDeviceClientBass:
         client = MockDeviceClient(device_id="AABBCC112233")
         with pytest.raises(ValueError, match="between -9 and 0"):
             await client.set_bass(-10)
+
+
+class TestMockShuffleRepeat:
+    """BLUETOOTH mock stores shuffle and repeat; other mocks report None (AC-B9)."""
+
+    @pytest.fixture(autouse=True)
+    def _reset_settings(self):
+        MockDeviceClient.reset_settings()
+        yield
+        MockDeviceClient.reset_settings()
+
+    @pytest.mark.asyncio
+    async def test_bluetooth_reports_keys_across_clients(self):
+        await MockDeviceClient("DDEEFF445566").press_key("SHUFFLE_ON")
+        await MockDeviceClient("DDEEFF445566").press_key("REPEAT_ONE")
+
+        now = await MockDeviceClient("DDEEFF445566").get_now_playing()
+
+        assert now.shuffle_setting == "SHUFFLE_ON"
+        assert now.repeat_setting == "REPEAT_ONE"
+
+    @pytest.mark.asyncio
+    async def test_other_devices_report_none(self):
+        await MockDeviceClient("DDEEFF445566").press_key("SHUFFLE_ON")
+
+        for device_id in ("AABBCC112233", "112233445566"):
+            now = await MockDeviceClient(device_id).get_now_playing()
+            assert now.shuffle_setting is None
+            assert now.repeat_setting is None
+
+    @pytest.mark.asyncio
+    async def test_reset_restores_defaults(self):
+        await MockDeviceClient("DDEEFF445566").press_key("SHUFFLE_ON")
+        MockDeviceClient.reset_settings()
+
+        now = await MockDeviceClient("DDEEFF445566").get_now_playing()
+
+        assert now.shuffle_setting == "SHUFFLE_OFF"
+        assert now.repeat_setting == "REPEAT_OFF"
+
+    @pytest.mark.asyncio
+    async def test_module_defaults_not_mutated(self):
+        await MockDeviceClient("DDEEFF445566").press_key("REPEAT_ONE")
+
+        now = await MockDeviceClient("DDEEFF445566").get_now_playing()
+
+        assert now is not MockDeviceClient.MOCK_DEVICES["DDEEFF445566"]["now_playing"]
+        assert (
+            MockDeviceClient.MOCK_DEVICES["DDEEFF445566"]["now_playing"].repeat_setting
+            is None
+        )
+
+    @pytest.mark.asyncio
+    async def test_key_and_now_playing_logs_show_no_titles(self, caplog):
+        caplog.set_level(logging.DEBUG)
+        client = MockDeviceClient("DDEEFF445566")
+
+        await client.press_key("SHUFFLE_ON")
+        await client.get_now_playing()
+
+        assert "Here Comes The Sun" not in caplog.text
+        assert "The Beatles" not in caplog.text
+        assert "Abbey Road" not in caplog.text

@@ -6,6 +6,7 @@ Provides deterministic responses that simulate device HTTP API.
 
 import logging
 from collections.abc import Awaitable, Callable
+from dataclasses import replace
 from typing import ClassVar, Optional
 
 from opencloudtouch.core.dlna_reference import DlnaReference, build_orion_location
@@ -114,6 +115,9 @@ class MockDeviceClient(DeviceClient):
     pair_calls: ClassVar[list[str]] = []
     # Server ids the mock speaker cannot browse (tests toggle this; empty by default).
     unbrowsable_servers: ClassVar[set[str]] = set()
+    # Shuffle and repeat set by key presses; reported by the BLUETOOTH mock only.
+    shuffle_setting: ClassVar[str] = "SHUFFLE_OFF"
+    repeat_setting: ClassVar[str] = "REPEAT_OFF"
 
     @classmethod
     def reset_sources(cls) -> None:
@@ -121,6 +125,11 @@ class MockDeviceClient(DeviceClient):
         cls.stale_devices = set()
         cls.pair_calls = []
         cls.unbrowsable_servers = set()
+
+    @classmethod
+    def reset_settings(cls) -> None:
+        cls.shuffle_setting = "SHUFFLE_OFF"
+        cls.repeat_setting = "REPEAT_OFF"
 
     def __init__(self, device_id: str, ip_address: Optional[str] = None):
         """
@@ -170,7 +179,13 @@ class MockDeviceClient(DeviceClient):
         logger.debug("[MOCK] get_now_playing() for device %s", self.device_id)
         now_playing = self.MOCK_DEVICES[self.device_id]["now_playing"]
         assert isinstance(now_playing, NowPlayingInfo)
-        return now_playing
+        if now_playing.source != "BLUETOOTH":
+            return now_playing
+        return replace(
+            now_playing,
+            shuffle_setting=self.shuffle_setting,
+            repeat_setting=self.repeat_setting,
+        )
 
     async def press_key(self, key: str, state: str = "both") -> None:
         """
@@ -190,6 +205,11 @@ class MockDeviceClient(DeviceClient):
             "PLAY",
             "PAUSE",
             "POWER",
+            "SHUFFLE_ON",
+            "SHUFFLE_OFF",
+            "REPEAT_OFF",
+            "REPEAT_ALL",
+            "REPEAT_ONE",
         ]
         valid_states = ["press", "release", "both"]
 
@@ -200,6 +220,11 @@ class MockDeviceClient(DeviceClient):
             raise ValueError(
                 f"Invalid state: {state}. Must be 'press', 'release', or 'both'"
             )
+
+        if key.startswith("SHUFFLE_"):
+            type(self).shuffle_setting = key
+        elif key.startswith("REPEAT_"):
+            type(self).repeat_setting = key
 
         logger.info(
             "[MOCK] press_key(%s, %s) for device %s",
