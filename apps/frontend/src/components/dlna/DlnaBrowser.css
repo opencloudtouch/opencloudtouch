@@ -305,6 +305,11 @@ button.dl-open:disabled {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* the folder hint must stay readable on narrow screens: wrap instead of an ellipsis */
+.dl-sub--wrap {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .dl-chev {
   flex: none;
   display: flex;

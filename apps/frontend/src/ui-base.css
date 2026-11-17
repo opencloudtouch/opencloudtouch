@@ -649,6 +649,9 @@ fieldset.ui-chips {
     color: HighlightText;
     border-color: Highlight;
   }
+  .ui-chip[aria-pressed="true"]::before {
+    background: HighlightText;
+  }
   :focus-visible {
     outline-color: Highlight;
   }

@@ -54,6 +54,13 @@ export default function Modal({
     const dialog = dialogRef.current;
     if (!open || !dialog) return;
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // The opener can be re-created while the dialog is open (a list that reloads): find its successor by test id or id
+    const testId = opener?.getAttribute("data-testid");
+    const openerSelector = testId
+      ? `[data-testid="${CSS.escape(testId)}"]`
+      : opener?.id
+        ? `#${CSS.escape(opener.id)}`
+        : null;
     // jsdom has no showModal(): fall back to the open attribute
     if (typeof dialog.showModal === "function") {
       if (!dialog.open) dialog.showModal();
@@ -67,7 +74,12 @@ export default function Modal({
       if (typeof dialog.close === "function") dialog.close();
       else dialog.removeAttribute("open");
       // return focus to the opener; if it is gone (e.g. an empty preset became assigned) fall back to <main>
-      if (opener?.isConnected) opener.focus();
+      const target = opener?.isConnected
+        ? opener
+        : openerSelector
+          ? document.querySelector<HTMLElement>(openerSelector)
+          : null;
+      if (target) target.focus();
       else document.getElementById("main-content")?.focus();
     };
   }, [open]);

@@ -527,7 +527,10 @@ export function FolderView(p: FolderViewProps) {
           {item.title}
         </span>
         {sub && (
-          <span className="dl-sub" id={`${uniqueId}-h${index}`}>
+          <span
+            className={`dl-sub${item.is_container ? " dl-sub--wrap" : ""}`}
+            id={`${uniqueId}-h${index}`}
+          >
             {sub}
           </span>
         )}

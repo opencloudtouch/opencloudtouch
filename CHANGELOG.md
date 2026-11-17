@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The failure log line of a DLNA browse request no longer carries the media server id at WARNING level (it reads `DLNA browse failed: <fixed text>`); the server id appears only in a separate DEBUG line
 
 ### Fixed
+- Dialog accessibility and narrow screens: the active chip keeps a readable check mark in forced-colors (high contrast) mode, the removal dialog starts with the focus on "Cancel", every dialog returns the focus to its opener even when the opener was re-created while the dialog was open, and the "Plays as a folder" hint wraps instead of being cut off at 320 px
 - The station logo on the now-playing card no longer falls back to the default image while the station plays: a stream event without a station name (buffering, track update) keeps the current station and its logo
 - A DLNA preset slot shows "Playing" or "Paused" while the speaker plays that item: the now-playing response and event stream carry the played item (`content_location`, `item_name`) and `skip_enabled`; previous/next are disabled when the speaker reports no skip (a single track)
 - Saving a DLNA preset could fail once with HTTP 500 (`cannot commit transaction - SQL statements in progress`) when it raced a write of the speaker; upserts that return a row now read it in one step

@@ -104,7 +104,7 @@ export default function DlnaRemoveDialog({
     </p>
   );
   const cancel = (
-    <button type="button" className="btn btn-secondary" onClick={onClose}>
+    <button type="button" className="btn btn-secondary" data-autofocus onClick={onClose}>
       {t("common.cancel")}
     </button>
   );
@@ -120,7 +120,7 @@ export default function DlnaRemoveDialog({
         </div>
       </>
     );
-    actions = cancel;
+    actions = <>{cancel}</>;
   } else if (step === "explain") {
     body = (
       <>
