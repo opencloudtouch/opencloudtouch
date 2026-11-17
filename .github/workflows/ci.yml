@@ -398,7 +398,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install linting tools
-        run: pip install ruff mypy
+        run: pip install ruff==0.15.0 mypy
 
       - name: Lint GitHub Actions workflow
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 -shellcheck= .github/workflows/ci.yml
