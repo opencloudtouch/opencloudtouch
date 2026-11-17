@@ -7,6 +7,13 @@ import StationDetail from "./StationDetail";
 import ConfirmDialog from "./ConfirmDialog";
 import Modal from "./Modal";
 import DlnaPane from "./dlna/DlnaPane";
+import { resolveDlnaPrefill, type DlnaPrefill } from "./dlna/resolveDlnaPrefill";
+import {
+  presetEditState,
+  type EditablePreset,
+  type RadioProviderType,
+  type SearchMode,
+} from "./presetEditState";
 import { Icon } from "./Icon";
 import "./RadioSearch.css";
 import { userErrorMessage } from "../utils/errorMessages";
@@ -30,12 +37,7 @@ interface RawStationData {
   favicon?: string;
 }
 
-interface ExistingPreset {
-  station_uuid?: string;
-  station_name: string;
-  station_url?: string;
-  station_favicon?: string;
-}
+type ExistingPreset = EditablePreset;
 
 interface RadioSearchProps {
   onStationSelect: (station: RadioStation) => void | Promise<void>;
@@ -66,8 +68,6 @@ function getApiBaseUrl(): string {
 }
 
 type SearchType = "name" | "country" | "tag";
-type RadioProviderType = "radiobrowser" | "tunein";
-type SearchMode = "provider" | "manual" | "dlna";
 
 function isValidHttpUrl(value: string): boolean {
   try {
@@ -159,16 +159,6 @@ function isInvalidUrlInput(value: string): boolean {
 /** Keeps the id of an existing manual preset so editing it replaces the entry instead of adding one. */
 function getManualStationUuid(preset: RadioSearchProps["existingPreset"]): string {
   return preset?.station_uuid?.startsWith("manual-") ? preset.station_uuid : `manual-${Date.now()}`;
-}
-
-/** Returns the editable fields of a manually entered preset, or null for provider stations. */
-function getManualPresetFields(preset: RadioSearchProps["existingPreset"]) {
-  if (!preset?.station_uuid?.startsWith("manual-")) return null;
-  return {
-    url: preset.station_url ?? "",
-    name: preset.station_name,
-    favicon: preset.station_favicon ?? "",
-  };
 }
 
 interface SearchChipsProps {
@@ -402,11 +392,28 @@ export default function RadioSearch({
   const [loadingMore, setLoadingMore] = useState(false);
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const resolveRef = useRef<AbortController | null>(null);
+  // null while the saved DLNA location is resolved (the pane reads the session once at mount)
+  const [dlnaPrefill, setDlnaPrefill] = useState<DlnaPrefill | null>({ focus: null, notice: null });
+
+  // Keyed by the saved values, not the object identity: a background reload must not reset the dialog.
+  const p = existingPreset;
+  const presetKey = JSON.stringify([
+    presetNumber,
+    p?.station_uuid,
+    p?.source,
+    p?.station_url,
+    p?.station_name,
+    p?.station_favicon,
+    p?.dlna?.server_id,
+    p?.dlna?.object_id,
+  ]);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    const manualFields = getManualPresetFields(existingPreset);
+    const edit = presetEditState(existingPreset, HAS_TUNEIN_SUPPORT);
+    const manualFields = edit.manual;
 
     setQuery("");
     setResults([]);
@@ -416,11 +423,33 @@ export default function RadioSearch({
     setOffset(0);
     setHasMore(false);
 
-    setSearchMode(manualFields ? "manual" : "provider");
+    setSearchMode(edit.mode);
+    setSearchType("name");
+    setRadioProvider(edit.provider);
     setManualUrl(manualFields?.url ?? "");
     setManualName(manualFields?.name ?? "");
     setManualFavicon(manualFields?.favicon ?? "");
-  }, [isOpen, existingPreset]);
+    if (edit.term) void handleSearch(edit.term, edit.provider, "name");
+
+    if (edit.mode !== "dlna") {
+      setDlnaPrefill({ focus: null, notice: null });
+      return;
+    }
+    const controller = new AbortController();
+    resolveRef.current = controller;
+    setDlnaPrefill(null);
+    resolveDlnaPrefill(edit.dlna, controller.signal).then(setDlnaPrefill, () => {
+      // aborted: a late answer changes nothing
+    });
+    return () => controller.abort();
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- reset once per open and saved preset (presetKey), see above
+  }, [isOpen, presetKey]);
+
+  /** Leaving DLNA mode while the saved location is still resolved cancels it. */
+  const cancelResolve = () => {
+    resolveRef.current?.abort();
+    setDlnaPrefill((v) => v ?? { focus: null, notice: null });
+  };
 
   const handleSearch = async (
     searchQuery: string,
@@ -592,10 +621,14 @@ export default function RadioSearch({
             radioProvider={radioProvider}
             onSearch={handleSearch}
             onSearchTypeChange={setSearchType}
-            onModeChange={setSearchMode}
+            onModeChange={(mode) => {
+              cancelResolve();
+              setSearchMode(mode);
+            }}
             onProviderChange={setRadioProvider}
             onManualMode={() => {
               // Keep the query and its results: switching back to a provider shows them again
+              cancelResolve();
               setSearchMode("manual");
               setError(null);
               setDetailUuid(null);
@@ -730,8 +763,17 @@ export default function RadioSearch({
             />
           )}
 
-          {searchMode === "dlna" && (
+          {searchMode === "dlna" && !dlnaPrefill && (
+            <output className="rs-note">
+              <span className="spinner-small rs-spinner" aria-hidden="true" />
+              {t("presets.dlna.loadingFolder")}
+            </output>
+          )}
+
+          {searchMode === "dlna" && dlnaPrefill && (
             <DlnaPane
+              initialFocus={dlnaPrefill.focus}
+              initialNotice={dlnaPrefill.notice}
               presetNumber={presetNumber}
               deviceId={deviceId}
               onDlnaSelect={onDlnaSelect}

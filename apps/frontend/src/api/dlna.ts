@@ -10,6 +10,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 export type DlnaItem = components["schemas"]["DlnaItem"];
 export type DlnaBrowsePage = components["schemas"]["DlnaBrowseResponse"];
+export type DlnaObjectPath = components["schemas"]["DlnaObjectPath"];
 export type NativeServer = components["schemas"]["NativeServer"];
 export type NativeSlot = components["schemas"]["NativeSlot"];
 export type NativeState = components["schemas"]["NativeState"];
@@ -66,6 +67,20 @@ export async function browseDlna(
   );
   await throwIfNotOk(response, "Failed to browse media server");
 
+  return response.json();
+}
+
+/** Ancestor folders of a saved object, read live (404 `dlna_server_not_found` / `dlna_object_not_found`, 502/504 on trouble). */
+export async function getDlnaObjectPath(
+  serverId: string,
+  objectId: string,
+  signal?: AbortSignal
+): Promise<DlnaObjectPath> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/dlna/servers/${encodeURIComponent(serverId)}/objects/path?${new URLSearchParams({ object_id: objectId })}`,
+    { signal }
+  );
+  await throwIfNotOk(response, "Failed to resolve media server path");
   return response.json();
 }
 
