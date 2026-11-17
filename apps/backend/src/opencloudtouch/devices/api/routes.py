@@ -124,6 +124,15 @@ class NowPlayingResponse(BaseModel):
     repeat_setting: str | None = None
 
 
+class KeyPressResponse(BaseModel):
+    """Result of a key press; the settings are set only for shuffle and repeat keys."""
+
+    message: str
+    device_id: str
+    shuffle_setting: str | None = None
+    repeat_setting: str | None = None
+
+
 class DeviceListResponse(BaseModel):
     """Response containing all stored devices."""
 
@@ -326,17 +335,29 @@ async def set_device_bass(
     }
 
 
-@router.post("/{device_id}/key")
+_SETTING_KEYS = frozenset(
+    {"SHUFFLE_ON", "SHUFFLE_OFF", "REPEAT_OFF", "REPEAT_ALL", "REPEAT_ONE"}
+)
+
+
+@router.post(
+    "/{device_id}/key",
+    response_model=KeyPressResponse,
+    response_model_exclude_none=True,
+)
 async def press_key(
     device_id: str,
     key: str,
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+    state_manager: Annotated[DeviceStateManager, Depends(get_device_state_manager)],
     state: str = "both",
-    device_service: DeviceService = Depends(get_device_service),
-):
+) -> dict[str, object]:
     """
     Simulate a key press on a device.
 
     Used for E2E testing to trigger preset playback without physical button press.
+    Shuffle and repeat keys always press with both states; `state` is ignored
+    for them, and the answer carries the settings read back from the speaker.
 
     Args:
         device_id: Device ID
@@ -344,7 +365,7 @@ async def press_key(
         state: Key state ("press", "release", or "both"). Default: "both"
 
     Returns:
-        Success message
+        Success message, plus shuffle and repeat settings for shuffle and repeat keys
 
     Raises:
         DeviceNotFoundError: If device does not exist
@@ -354,12 +375,28 @@ async def press_key(
     Example:
         POST /api/devices/AABBCC112233/key?key=PRESET_1&state=both
     """
-    await _device_op(
+    message = f"Key {key} pressed successfully"
+    if key not in _SETTING_KEYS:
+        await _device_op(
+            device_id,
+            "press key",
+            device_service.press_key(device_id, key, state),
+        )
+        return {"message": message, "device_id": device_id}
+
+    info = await _device_op(
         device_id,
         "press key",
-        device_service.press_key(device_id, key, state),
+        device_service.press_key_and_read(device_id, key),
+        state_manager,
     )
-    return {"message": f"Key {key} pressed successfully", "device_id": device_id}
+    state_manager.update_now_playing(device_id, info)
+    return {
+        "message": message,
+        "device_id": device_id,
+        "shuffle_setting": info.shuffle_setting,
+        "repeat_setting": info.repeat_setting,
+    }
 
 
 @router.put(

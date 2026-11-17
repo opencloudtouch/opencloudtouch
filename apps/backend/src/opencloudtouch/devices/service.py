@@ -348,6 +348,13 @@ class DeviceService:
             "Successfully pressed key %s on device %s", key, device_id
         )
 
+    async def press_key_and_read(self, device_id: str, key: str) -> NowPlayingInfo:
+        """Press a key with both states, then read the speaker's playback state back."""
+        logger.info("Pressing key %s on device %s and reading back", key, device_id)  # NOSONAR
+        async with self._device_client(device_id) as client:
+            await client.press_key(key, "both")
+            return await client.get_now_playing()
+
     async def select_source(self, device_id: str, source: str) -> None:
         """Switch a device to an input source (BLUETOOTH, AUX, AIRPLAY)."""
         logger.info("Selecting source %s on device %s", source, device_id)  # NOSONAR

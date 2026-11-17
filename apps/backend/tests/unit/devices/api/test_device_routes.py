@@ -816,6 +816,78 @@ class TestKeyPressEndpoint:
         assert "Failed to press key" in detail
 
 
+class TestKeyPressSettingsReadBack:
+    """Shuffle and repeat keys answer with the settings read back from the speaker."""
+
+    def test_setting_key_answers_with_read_back_settings(
+        self, client, mock_device_service
+    ):
+        mock_device_service.press_key_and_read = AsyncMock(
+            return_value=NowPlayingInfo(
+                source="BLUETOOTH",
+                state="PLAY_STATE",
+                shuffle_setting="SHUFFLE_ON",
+                repeat_setting="REPEAT_ALL",
+            )
+        )
+
+        response = client.post("/api/devices/AABBCC112233/key?key=SHUFFLE_ON")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["shuffle_setting"] == "SHUFFLE_ON"
+        assert data["repeat_setting"] == "REPEAT_ALL"
+        mock_device_service.press_key_and_read.assert_awaited_once_with(
+            "AABBCC112233", "SHUFFLE_ON"
+        )
+        mock_device_service.press_key.assert_not_awaited()
+
+    def test_setting_key_writes_read_back_to_state_cache(
+        self, client, mock_device_service
+    ):
+        mock_device_service.press_key_and_read = AsyncMock(
+            return_value=NowPlayingInfo(
+                source="BLUETOOTH",
+                state="PLAY_STATE",
+                shuffle_setting="SHUFFLE_OFF",
+            )
+        )
+
+        client.post("/api/devices/AABBCC112233/key?key=SHUFFLE_OFF")
+
+        state_manager = client.app.dependency_overrides[get_device_state_manager]()
+        cached = state_manager.get_state("AABBCC112233")
+        assert cached is not None
+        assert cached.now_playing is not None
+        assert cached.now_playing.shuffle_setting == "SHUFFLE_OFF"
+
+    def test_setting_key_omits_settings_the_speaker_did_not_report(
+        self, client, mock_device_service
+    ):
+        mock_device_service.press_key_and_read = AsyncMock(
+            return_value=NowPlayingInfo(source="BLUETOOTH", state="PLAY_STATE")
+        )
+
+        response = client.post("/api/devices/AABBCC112233/key?key=REPEAT_ONE")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "shuffle_setting" not in data
+        assert "repeat_setting" not in data
+
+    def test_other_key_keeps_plain_answer(self, client, mock_device_service):
+        mock_device_service.press_key = AsyncMock(return_value=None)
+
+        response = client.post("/api/devices/AABBCC112233/key?key=PRESET_1")
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "message": "Key PRESET_1 pressed successfully",
+            "device_id": "AABBCC112233",
+        }
+        mock_device_service.press_key_and_read.assert_not_awaited()
+
+
 class TestDeleteAllDevicesEndpoint:
     """Tests for DELETE /api/devices endpoint (testing/cleanup)."""
 

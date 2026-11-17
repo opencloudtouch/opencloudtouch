@@ -516,6 +516,36 @@ class TestDeviceServicePressKey:
         with pytest.raises(DeviceNotFoundError):
             await device_service.press_key("NONEXISTENT", "PRESET_1", "both")
 
+    @pytest.mark.asyncio
+    async def test_press_key_and_read_presses_both_then_reads_back(
+        self, device_service, mock_repository, sample_device
+    ):
+        """Setting keys are pressed with both states, then the speaker is read back."""
+        mock_repository.get_by_device_id.return_value = sample_device
+        now_playing = NowPlayingInfo(
+            source="BLUETOOTH",
+            state="PLAY_STATE",
+            shuffle_setting="SHUFFLE_ON",
+            repeat_setting="REPEAT_ALL",
+        )
+
+        mock_client = AsyncMock()
+        mock_client.get_now_playing = AsyncMock(return_value=now_playing)
+        mock_client.close = AsyncMock()
+
+        with patch(
+            "opencloudtouch.devices.service.get_device_client",
+            return_value=mock_client,
+        ):
+            result = await device_service.press_key_and_read(
+                "AABBCC112233", "SHUFFLE_ON"
+            )
+
+        mock_client.press_key.assert_awaited_once_with("SHUFFLE_ON", "both")
+        mock_client.get_now_playing.assert_awaited_once()
+        mock_client.close.assert_awaited_once()
+        assert result == now_playing
+
 
 class TestDeviceServiceDeletion:
     """Test device deletion operations."""
