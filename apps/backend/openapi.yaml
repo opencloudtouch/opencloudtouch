@@ -670,7 +670,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/KeyPressResponse'
         '422':
           description: Validation Error
           content:
@@ -735,10 +736,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Get Now Playing Api Devices  Device Id  Now Playing
-                  Get
+                $ref: '#/components/schemas/NowPlayingResponse'
         '422':
           description: Validation Error
           content:
@@ -5132,6 +5130,29 @@ components:
       - message
       title: HostsModifyResponse
       description: Response with hosts modification result.
+    KeyPressResponse:
+      properties:
+        message:
+          type: string
+          title: Message
+        device_id:
+          type: string
+          title: Device Id
+        shuffle_setting:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Shuffle Setting
+        repeat_setting:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Repeat Setting
+      type: object
+      required:
+      - message
+      - device_id
+      title: KeyPressResponse
     LogDownloadRequest:
       properties:
         frontend_logs:
@@ -5298,6 +5319,73 @@ components:
       - ready
       - unavailable
       title: NativeState
+    NowPlayingResponse:
+      properties:
+        source:
+          type: string
+          title: Source
+        state:
+          type: string
+          title: State
+        station_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Station Name
+        artist:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artist
+        track:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Track
+        album:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Album
+        artwork_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artwork Url
+        content_location:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Content Location
+        item_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Item Name
+        skip_enabled:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Skip Enabled
+        online:
+          type: boolean
+          title: Online
+        shuffle_setting:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Shuffle Setting
+        repeat_setting:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Repeat Setting
+      type: object
+      required:
+      - source
+      - state
+      - online
+      title: NowPlayingResponse
     NtpPatchRequest:
       properties:
         device_ip:
