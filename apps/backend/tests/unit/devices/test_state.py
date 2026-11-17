@@ -66,6 +66,22 @@ class TestStateManagerUpdates:
         assert state.now_playing is info
         assert state.is_fresh()
 
+    def test_setting_only_change_keeps_playback_generation(self):
+        mgr = DeviceStateManager()
+        mgr.update_now_playing("D1", _radio_info(station_name="WDR 2"))
+        generation = mgr.get_state("D1").playback_generation
+
+        mgr.update_now_playing(
+            "D1",
+            NowPlayingInfo(
+                source="INTERNET_RADIO",
+                state="PLAY_STATE",
+                station_name="WDR 2",
+                shuffle_setting="SHUFFLE_ON",
+            ),
+        )
+        assert mgr.get_state("D1").playback_generation == generation
+
     def test_playback_generation_changes_only_with_playback_context(self):
         mgr = DeviceStateManager()
 

@@ -1276,3 +1276,46 @@ class TestSelectSourceEndpoint:
         )
         response = client.put("/api/devices/X/source", json={"source": "AUX"})
         assert response.status_code == 404
+
+
+class TestNowPlayingShuffleRepeat:
+    """Shuffle and repeat settings in GET /now-playing (AC-B4)."""
+
+    def test_answers_settings(self, client, mock_device_service):
+        mock_device_service.get_now_playing = AsyncMock(
+            return_value=NowPlayingInfo(
+                source="BLUETOOTH",
+                state="PLAY_STATE",
+                shuffle_setting="SHUFFLE_OFF",
+                repeat_setting="REPEAT_ONE",
+            )
+        )
+
+        data = client.get("/api/devices/DEV123/now-playing").json()
+
+        assert data["shuffle_setting"] == "SHUFFLE_OFF"
+        assert data["repeat_setting"] == "REPEAT_ONE"
+
+    def test_offline_fallback_answers_null_settings(self, client, mock_device_service):
+        from opencloudtouch.core.dependencies import get_device_state_manager
+
+        state_manager = client.app.dependency_overrides[get_device_state_manager]()
+        state_manager.update_now_playing(
+            "DEV123",
+            NowPlayingInfo(
+                source="BLUETOOTH",
+                state="PLAY_STATE",
+                shuffle_setting="SHUFFLE_ON",
+                repeat_setting="REPEAT_ALL",
+            ),
+        )
+        state_manager.get_state("DEV123").last_update -= 999_999
+        mock_device_service.get_now_playing = AsyncMock(
+            side_effect=DeviceConnectionError("192.168.1.50", "Connection refused")
+        )
+
+        data = client.get("/api/devices/DEV123/now-playing").json()
+
+        assert data["online"] is False
+        assert data["shuffle_setting"] is None
+        assert data["repeat_setting"] is None

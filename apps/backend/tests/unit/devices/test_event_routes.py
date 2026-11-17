@@ -385,3 +385,29 @@ class TestStoredMusicPayload:
         assert data["content_location"] == "64$7$3"
         assert data["item_name"] == "Example Album"
         assert data["skip_enabled"] is True
+
+
+class TestShuffleRepeatSSEPayload:
+    def _np(self):
+        return NowPlayingInfo(
+            source="BLUETOOTH",
+            state="PLAY_STATE",
+            shuffle_setting="SHUFFLE_ON",
+            repeat_setting="REPEAT_ALL",
+        )
+
+    def test_event_carries_shuffle_and_repeat(self):
+        event = DeviceEvent(
+            device_id="D1", event_type=EventType.NOW_PLAYING, now_playing=self._np()
+        )
+        data = json.loads(_event_to_sse(event).split("data: ")[1].strip())
+        assert data["shuffle_setting"] == "SHUFFLE_ON"
+        assert data["repeat_setting"] == "REPEAT_ALL"
+
+    def test_snapshot_carries_shuffle_and_repeat(self):
+        state = DeviceState(device_id="D1", now_playing=self._np())
+        data = json.loads(
+            _snapshot_to_sse("D1", state).split("data: ")[1].split("\n")[0]
+        )
+        assert data["shuffle_setting"] == "SHUFFLE_ON"
+        assert data["repeat_setting"] == "REPEAT_ALL"

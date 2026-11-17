@@ -125,6 +125,8 @@ class TestNowPlayingCacheFirst:
             "item_name",
             "skip_enabled",
             "online",
+            "shuffle_setting",
+            "repeat_setting",
         }
         assert set(data.keys()) == expected_keys
 

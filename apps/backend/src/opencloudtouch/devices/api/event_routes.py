@@ -46,6 +46,8 @@ def _event_to_sse(event: DeviceEvent) -> str:
                 "content_location": event.now_playing.content_location,
                 "item_name": event.now_playing.item_name,
                 "skip_enabled": event.now_playing.skip_enabled,
+                "shuffle_setting": event.now_playing.shuffle_setting,
+                "repeat_setting": event.now_playing.repeat_setting,
             }
         )
 
@@ -82,6 +84,8 @@ def _snapshot_to_sse(device_id: str, state) -> str:
             "content_location": np.content_location,
             "item_name": np.item_name,
             "skip_enabled": np.skip_enabled,
+            "shuffle_setting": np.shuffle_setting,
+            "repeat_setting": np.repeat_setting,
         }
         messages += f"event: now_playing\ndata: {json.dumps(data)}\n\n"
 

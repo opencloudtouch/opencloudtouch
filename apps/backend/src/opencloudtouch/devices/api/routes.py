@@ -106,6 +106,24 @@ class DeviceResponse(BaseModel):
     stereo_pair_name: str | None = None
 
 
+class NowPlayingResponse(BaseModel):
+    """Playback status of a device; `online` is False for the offline fallback."""
+
+    source: str
+    state: str
+    station_name: str | None = None
+    artist: str | None = None
+    track: str | None = None
+    album: str | None = None
+    artwork_url: str | None = None
+    content_location: str | None = None
+    item_name: str | None = None
+    skip_enabled: bool | None = None
+    online: bool
+    shuffle_setting: str | None = None
+    repeat_setting: str | None = None
+
+
 class DeviceListResponse(BaseModel):
     """Response containing all stored devices."""
 
@@ -519,6 +537,8 @@ def _now_playing_to_dict(info: NowPlayingInfo, *, online: bool) -> dict[str, obj
         "item_name": info.item_name,
         "skip_enabled": info.skip_enabled,
         "online": online,
+        "shuffle_setting": info.shuffle_setting,
+        "repeat_setting": info.repeat_setting,
     }
 
 
@@ -550,7 +570,7 @@ def _sync_enriched_state(
         )
 
 
-@router.get("/{device_id}/now-playing")
+@router.get("/{device_id}/now-playing", response_model=NowPlayingResponse)
 async def get_now_playing(
     device_id: str,
     device_service: Annotated[DeviceService, Depends(get_device_service)],
@@ -579,6 +599,8 @@ async def get_now_playing(
                 if cached and cached.now_playing
                 else _OFFLINE_FALLBACK_INFO
             )
+            # Speaker settings are not live while offline (AC-B4).
+            fallback = replace(fallback, shuffle_setting=None, repeat_setting=None)
             return _now_playing_to_dict(fallback, online=False)
     result = _now_playing_to_dict(info, online=True)
 
