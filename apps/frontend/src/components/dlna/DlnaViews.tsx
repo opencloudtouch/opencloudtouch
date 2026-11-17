@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { use, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../Icon";
 import { useDlnaBrowse, useDlnaServers } from "../../hooks/useDlna";
+import { PrefetchContext } from "../../hooks/dlnaPrefetch";
 import type { DlnaItem } from "../../api/dlna";
 import { coverBlocked } from "./cover";
 import "./DlnaBrowser.css";
@@ -363,15 +364,32 @@ export interface FolderViewProps {
   readonly onLive: (message: string) => void;
 }
 
+function focusVisible(el: HTMLElement): boolean {
+  try {
+    return el.matches(":focus-visible");
+  } catch {
+    return false;
+  }
+}
+
 export function FolderView(p: FolderViewProps) {
   const { t } = useTranslation();
   const uniqueId = useId();
   const objectId = p.session.stack.at(-1)?.object_id ?? "0";
   const title = p.session.stack.at(-1)?.title ?? p.session.serverName;
-  const { status, items, hasMore, loadingMore, loadMore, retry, cancel } = useDlnaBrowse(
-    p.session.serverId,
-    objectId
-  );
+  const {
+    status,
+    items,
+    hasMore,
+    loadingMore,
+    loadMore,
+    retry,
+    cancel,
+    refresh,
+    refreshing,
+    listNote,
+  } = useDlnaBrowse(p.session.serverId, objectId);
+  const scheduler = use(PrefetchContext);
   const [filter, setFilter] = useState("");
   const headingRef = useRef<HTMLHeadingElement>(null);
   const scrollRef = useRef<HTMLElement>(null);
@@ -445,6 +463,11 @@ export function FolderView(p: FolderViewProps) {
     }
     onLive(message);
   }, [loading, status, loadingMore, items.length, hasMore, t, onLive]);
+
+  // Announced once per change of the note, not on every silent follow-up.
+  useEffect(() => {
+    if (listNote) onLive(T(t, listNote));
+  }, [listNote, t, onLive]);
 
   const needle = filter.trim().toLowerCase();
   const visible = needle ? items.filter((i) => i.title.toLowerCase().includes(needle)) : items;
@@ -522,7 +545,15 @@ export function FolderView(p: FolderViewProps) {
             disabled={p.busyItemId !== null}
             aria-label={T(t, "openFolder", { title: item.title })}
             aria-describedby={`${uniqueId}-h${index}`}
-            onClick={() => p.onOpenFolder(item)}
+            onPointerEnter={(e) => e.pointerType === "mouse" && scheduler?.hover(item.id)}
+            onPointerLeave={() => scheduler?.cancel(item.id)}
+            onPointerDown={() => scheduler?.down(item.id)}
+            onFocus={(e) => focusVisible(e.currentTarget) && scheduler?.focus(item.id)}
+            onBlur={() => scheduler?.cancel(item.id)}
+            onClick={() => {
+              scheduler?.open(item.id);
+              p.onOpenFolder(item);
+            }}
           >
             <Cover item={item} />
             {info}
@@ -669,7 +700,26 @@ export function FolderView(p: FolderViewProps) {
           <h3 className="dl-h" id={`${uniqueId}-title`} tabIndex={-1} ref={headingRef}>
             {title}
           </h3>
+          {ready && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm dl-refresh"
+              aria-disabled={refreshing || undefined}
+              onClick={() => !refreshing && void refresh()}
+            >
+              {Icon.RefreshCw(16)}{" "}
+              {T(
+                t,
+                refreshing
+                  ? "refreshing"
+                  : listNote === "updateFailed"
+                    ? "refreshRetry"
+                    : "refreshList"
+              )}
+            </button>
+          )}
         </div>
+        {ready && listNote && <p className={`dl-note dl-note--${listNote}`}>{T(t, listNote)}</p>}
         {p.header}
         {body}
       </section>
