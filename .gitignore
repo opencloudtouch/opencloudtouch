@@ -53,26 +53,13 @@ deployment/raspi-image/output/
 **/tests/e2e/screenshots/
 **/tests/e2e/reports/
 **/coverage.json
-cypress-output.txt
-e2e-result.txt
-e2e-job-out.txt
-e2e-out.txt
-e2e-tail.txt
 
 # === Generated ===
 apps/backend/openapi.yaml
 
 # === Temporary ===
 *_TEMP.md
-CONTEXT_TEMP.md
 *.log
-result.txt
-test-output.txt
-test*.txt
-test_full.txt
-apps/backend/result.txt
-.github/agents/
-.github/CHEATSHEET.md
 Debugging/
 docs/*
 !docs/ARCHITECTURE.md
@@ -97,7 +84,6 @@ specs/
 bugs/
 
 # === Local Tooling ===
-.worktrees/
 .claude/
 .mcp.json
 .serena/
