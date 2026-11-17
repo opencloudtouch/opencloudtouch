@@ -174,6 +174,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/dlna/servers/{server_id}/objects/path": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Dlna Object Path
+     * @description Ancestor folders of a saved object, read live (the browse cache is not used).
+     */
+    get: operations["get_dlna_object_path_api_dlna_servers__server_id__objects_path_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/dlna/native": {
     parameters: {
       query?: never;
@@ -3423,6 +3443,34 @@ export interface components {
       protocol_info?: string | null;
     };
     /**
+     * DlnaObjectPath
+     * @description An object and its ancestor folders (root and the object itself excluded).
+     */
+    DlnaObjectPath: {
+      /** Server Id */
+      server_id: string;
+      /** Server Name */
+      server_name: string;
+      /** Object Id */
+      object_id: string;
+      /** Title */
+      title: string;
+      /** Is Container */
+      is_container: boolean;
+      /** Path */
+      path: components["schemas"]["DlnaPathEntry"][];
+    };
+    /**
+     * DlnaPathEntry
+     * @description One ancestor folder of an object.
+     */
+    DlnaPathEntry: {
+      /** Object Id */
+      object_id: string;
+      /** Title */
+      title: string;
+    };
+    /**
      * DlnaPresetRequest
      * @description Request model for a DLNA preset: a reference only, never a playback URL.
      */
@@ -4699,6 +4747,66 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["DlnaBrowseResponse"];
+        };
+      };
+      /** @description Server or object not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description DLNA server failed */
+      502: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+      /** @description DLNA server timed out */
+      504: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetail"];
+        };
+      };
+    };
+  };
+  get_dlna_object_path_api_dlna_servers__server_id__objects_path_get: {
+    parameters: {
+      query: {
+        object_id: string;
+      };
+      header?: never;
+      path: {
+        server_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DlnaObjectPath"];
         };
       };
       /** @description Server or object not found */

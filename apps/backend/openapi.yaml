@@ -207,6 +207,60 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/servers/{server_id}/objects/path:
+    get:
+      tags:
+      - dlna
+      summary: Get Dlna Object Path
+      description: Ancestor folders of a saved object, read live (the browse cache
+        is not used).
+      operationId: get_dlna_object_path_api_dlna_servers__server_id__objects_path_get
+      parameters:
+      - name: server_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Server Id
+      - name: object_id
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 512
+          title: Object Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DlnaObjectPath'
+        '404':
+          description: Server or object not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '502':
+          description: DLNA server failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '504':
+          description: DLNA server timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/dlna/native:
     get:
       tags:
@@ -4683,6 +4737,53 @@ components:
       - is_container
       title: DlnaItem
       description: A DLNA ContentDirectory item or container.
+    DlnaObjectPath:
+      properties:
+        server_id:
+          type: string
+          title: Server Id
+        server_name:
+          type: string
+          title: Server Name
+        object_id:
+          type: string
+          title: Object Id
+        title:
+          type: string
+          title: Title
+        is_container:
+          type: boolean
+          title: Is Container
+        path:
+          items:
+            $ref: '#/components/schemas/DlnaPathEntry'
+          type: array
+          title: Path
+      type: object
+      required:
+      - server_id
+      - server_name
+      - object_id
+      - title
+      - is_container
+      - path
+      title: DlnaObjectPath
+      description: An object and its ancestor folders (root and the object itself
+        excluded).
+    DlnaPathEntry:
+      properties:
+        object_id:
+          type: string
+          title: Object Id
+        title:
+          type: string
+          title: Title
+      type: object
+      required:
+      - object_id
+      - title
+      title: DlnaPathEntry
+      description: One ancestor folder of an object.
     DlnaPresetRequest:
       properties:
         device_id:
