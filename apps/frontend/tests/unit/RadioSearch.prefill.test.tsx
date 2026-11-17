@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import RadioSearch from "../../src/components/RadioSearch";
@@ -218,6 +218,24 @@ describe("RadioSearch: DLNA preset", () => {
     renderSearch({ existingPreset: dlnaPreset });
     await screen.findByText(/media server of this preset is not reachable/);
     expect(loadDlnaSession()).toBeNull();
+  });
+
+  it("offers Cancel after 5 seconds while the saved location resolves, and Cancel opens the server list", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      fetchMock.mockImplementation(async (url: string) =>
+        String(url).includes("/objects/path") ? new Promise<Response>(() => {}) : json([NAS])
+      );
+      renderSearch({ existingPreset: dlnaPreset });
+      expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+      await act(() => vi.advanceTimersByTimeAsync(5000));
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      expect(
+        await screen.findByRole("button", { name: "Open server “Living Room NAS”" })
+      ).toBeVisible();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("switching mode while resolving aborts the request and a late answer writes nothing", async () => {

@@ -255,6 +255,27 @@ interface SearchResultsProps {
   readonly onLoadMore: () => void;
 }
 
+/** Waiting note for a saved DLNA location; offers Cancel after 5 seconds. */
+function PrefillWait({ onCancel }: { readonly onCancel: () => void }) {
+  const { t } = useTranslation();
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setSlow(true), 5000);
+    return () => window.clearTimeout(id);
+  }, []);
+  return (
+    <output className="rs-note">
+      <span className="spinner-small rs-spinner" aria-hidden="true" />
+      {t("presets.dlna.loadingFolder")}
+      {slow && (
+        <button type="button" className="btn btn-outline btn-sm" onClick={onCancel}>
+          {t("common.cancel")}
+        </button>
+      )}
+    </output>
+  );
+}
+
 /** Scrollable result list with loading, error and empty states. */
 function SearchResults({
   error,
@@ -763,12 +784,7 @@ export default function RadioSearch({
             />
           )}
 
-          {searchMode === "dlna" && !dlnaPrefill && (
-            <output className="rs-note">
-              <span className="spinner-small rs-spinner" aria-hidden="true" />
-              {t("presets.dlna.loadingFolder")}
-            </output>
-          )}
+          {searchMode === "dlna" && !dlnaPrefill && <PrefillWait onCancel={cancelResolve} />}
 
           {searchMode === "dlna" && dlnaPrefill && (
             <DlnaPane
