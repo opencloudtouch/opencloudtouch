@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A DLNA preset keeps its "DLNA" marker, folder/track type and cover when the speaker calls back a preset write with a renumbered media server source id for the same object; "Load from device" keeps the cover and homepage OCT already has when the speaker reports none
 - A media server is "ready" (and selectable for presets) only when the speaker lists it as READY and can browse its root through its own `/navigate` (probe cached 60 s, failures 10 s); otherwise it is "unavailable". Before, the READY flag alone was trusted, which showed servers the speaker cannot browse as ready
 - The preset dialog offers a "Cancel" action after 5 seconds while a saved DLNA location is still being resolved; Cancel opens the server list
+- A shuffle or repeat key press keeps the artwork, artist and track the cached now-playing already shows, instead of replacing them with the raw speaker state
 
 ### Added
 - The speaker's shuffle and repeat settings are read from its now-playing state (`shuffle_setting` and `repeat_setting`, raw values such as `SHUFFLE_ON` or `REPEAT_ALL`, `null` when not reported)

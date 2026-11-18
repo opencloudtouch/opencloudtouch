@@ -390,6 +390,16 @@ async def press_key(
         device_service.press_key_and_read(device_id, key),
         state_manager,
     )
+    cached = state_manager.get_state(device_id)
+    previous = cached.now_playing if cached else None
+    if previous and previous.source == info.source:
+        # Keep the enrichment (artwork, artist, track) the cache already shows.
+        info = replace(
+            info,
+            artist=previous.artist or info.artist,
+            track=previous.track or info.track,
+            artwork_url=previous.artwork_url or info.artwork_url,
+        )
     state_manager.update_now_playing(device_id, info)
     return {
         "message": message,

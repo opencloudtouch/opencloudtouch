@@ -842,6 +842,35 @@ class TestKeyPressSettingsReadBack:
         )
         mock_device_service.press_key.assert_not_awaited()
 
+    def test_setting_key_keeps_cached_enrichment(self, client, mock_device_service):
+        """The read-back must not drop the artwork and track the cache already shows."""
+        from opencloudtouch.core.dependencies import get_device_state_manager
+
+        state_manager = client.app.dependency_overrides[get_device_state_manager]()
+        state_manager.update_now_playing(
+            "AABBCC112233",
+            NowPlayingInfo(
+                source="BLUETOOTH",
+                state="PLAY_STATE",
+                artist="Artist",
+                track="Track",
+                artwork_url="http://example.test/logo.png",
+            ),
+        )
+        mock_device_service.press_key_and_read = AsyncMock(
+            return_value=NowPlayingInfo(
+                source="BLUETOOTH", state="PLAY_STATE", shuffle_setting="SHUFFLE_ON"
+            )
+        )
+
+        client.post("/api/devices/AABBCC112233/key?key=SHUFFLE_ON")
+
+        cached = state_manager.get_state("AABBCC112233").now_playing
+        assert cached.shuffle_setting == "SHUFFLE_ON"
+        assert cached.artwork_url == "http://example.test/logo.png"
+        assert cached.artist == "Artist"
+        assert cached.track == "Track"
+
     def test_setting_key_writes_read_back_to_state_cache(
         self, client, mock_device_service
     ):

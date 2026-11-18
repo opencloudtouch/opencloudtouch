@@ -6,11 +6,7 @@ import DeviceSwiper, { Device } from "../components/DeviceSwiper";
 import NowPlaying from "../components/NowPlaying";
 import PresetRow, { type PresetRowState } from "../components/PresetRow";
 import SourceSwitch, { type DeviceSource } from "../components/SourceSwitch";
-import TransportKeys, {
-  type RepeatMode,
-  type ShuffleMode,
-  type TransportKey,
-} from "../components/TransportKeys";
+import TransportKeys, { type TransportKey } from "../components/TransportKeys";
 import SetupBadge from "../components/SetupBadge";
 import DeviceOfflineBanner from "../components/DeviceOfflineBanner";
 import RadioSearch, { RadioStation } from "../components/RadioSearch";
@@ -28,6 +24,8 @@ import {
   sendSettingKey,
   toRepeatMode,
   toShuffleMode,
+  type RepeatMode,
+  type ShuffleMode,
 } from "../api/devices";
 import { isDeviceOffline } from "../api/offlineDeviceStore";
 import { usePresets, type DlnaRef } from "../hooks/usePresets";

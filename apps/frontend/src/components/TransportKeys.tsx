@@ -1,10 +1,9 @@
 import { useId, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+import type { RepeatMode, ShuffleMode } from "../api/devices";
 import { Icon } from "./Icon";
 
 export type TransportKey = "PREV_TRACK" | "PLAY_PAUSE" | "NEXT_TRACK" | "SHUFFLE" | "REPEAT";
-export type ShuffleMode = "off" | "on";
-export type RepeatMode = "off" | "all" | "one";
 
 interface TransportKeysProps {
   playing: boolean;
@@ -83,7 +82,14 @@ export default function TransportKeys({
       data-test="dv-keys"
     >
       {showSkip &&
-        key("PREV_TRACK", Icon.SkipBack(24), Icon.Loader(24), t("player.prevTrack"), false, !skipEnabled)}
+        key(
+          "PREV_TRACK",
+          Icon.SkipBack(24),
+          Icon.Loader(24),
+          t("player.prevTrack"),
+          false,
+          !skipEnabled
+        )}
       {key(
         "PLAY_PAUSE",
         playing ? Icon.Pause(32) : Icon.Play(32),
@@ -92,7 +98,14 @@ export default function TransportKeys({
         true
       )}
       {showSkip &&
-        key("NEXT_TRACK", Icon.SkipForward(24), Icon.Loader(24), t("player.nextTrack"), false, !skipEnabled)}
+        key(
+          "NEXT_TRACK",
+          Icon.SkipForward(24),
+          Icon.Loader(24),
+          t("player.nextTrack"),
+          false,
+          !skipEnabled
+        )}
 
       {showSkip && (
         <div className="tp-row" data-test="dv-settings">
