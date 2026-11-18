@@ -366,7 +366,7 @@
   height: 18px;
   padding: 0 4px;
   border-radius: 9px;
-  background: var(--primary-solid);
+  background: var(--color-accent);
   color: var(--solid-text);
   box-shadow: 0 0 0 2px var(--surface-card);
   font-size: var(--fs-xs);

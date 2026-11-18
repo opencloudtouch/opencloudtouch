@@ -24,6 +24,7 @@
   --primary-color: #4a90d9;
   --primary-rgb: 74, 144, 217;
   --primary-text: #8ab8f0; /* use for text/icons on dark surfaces (contrast >= 4.5:1) */
+  --solid-text: #ffffff; /* text on solid accent fills (same in both themes, design palette) */
   --color-success: #81c784;
   --color-danger: #ef5350;
 
