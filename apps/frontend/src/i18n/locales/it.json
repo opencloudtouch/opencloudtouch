@@ -694,7 +694,7 @@
       "unknown": "Qualcosa è andato storto.",
       "unknownWithCode": "Qualcosa è andato storto (codice: {{code}}).",
       "device_not_found": "Il dispositivo non è stato trovato.",
-      "device_unreachable": "Il dispositivo non è raggiungibile. Verifica che sia acceso e collegato alla rete.",
+      "device_unreachable": "Il dispositivo non è raggiungibile. Verifica che sia acceso e collegato alla rete. L'azione non è stata eseguita. Riprova quando torna online.",
       "not_found": "La risorsa richiesta non è stata trovata.",
       "validation_error": "La richiesta contiene dati non validi. Controlla i dati inseriti.",
       "internal_error": "Si è verificato un errore interno. Riprova più tardi."
@@ -906,5 +906,131 @@
     },
     "sourceUnreachable": "{{source}} non raggiungibile",
     "sourceFailedKey": "{{source}}, non raggiungibile. Riprova"
+  },
+  "stereo": {
+    "title": "Coppie stereo",
+    "lead": "Due SoundTouch 10 suonano come un unico lettore: uno a sinistra, uno a destra. La coppia resta attiva anche dopo un riavvio.",
+    "create": "Crea coppia stereo",
+    "createNeedTwo": "Per creare una coppia servono due SoundTouch 10 liberi.",
+    "createRunning": "È in corso la creazione di una coppia stereo.",
+    "loading": "Caricamento delle coppie stereo",
+    "errorLoading": "Impossibile caricare le coppie stereo",
+    "retry": "Ricarica",
+    "empty": {
+      "none": {
+        "title": "Nessun altoparlante per coppie stereo",
+        "text": "Le coppie stereo funzionano solo con il SoundTouch 10. Non ne è stato ancora trovato nessuno."
+      },
+      "one": {
+        "title": "Manca un secondo SoundTouch 10",
+        "text": "Una coppia stereo richiede due SoundTouch 10. Trovato: {{name}}."
+      },
+      "setup": {
+        "title": "Altoparlanti non ancora configurati",
+        "text": "Le coppie stereo richiedono altoparlanti configurati con OCT. Avvia la configurazione dei tuoi SoundTouch 10."
+      },
+      "ready": {
+        "title": "Ancora nessuna coppia stereo",
+        "text": "{{count}} SoundTouch 10 possono essere uniti in una coppia stereo. Uno suona a sinistra, l'altro a destra."
+      }
+    },
+    "openWizard": "Avvia la configurazione",
+    "status": {
+      "active": "Attiva",
+      "creating": "In creazione",
+      "degraded": "Interrotta"
+    },
+    "imported": "Importata",
+    "importedTitle": "Creata al di fuori di OCT",
+    "left": "Sinistra",
+    "right": "Destra",
+    "master": "Altoparlante principale",
+    "offline": "Offline",
+    "members": "Altoparlanti della coppia stereo",
+    "dissolve": "Scollega",
+    "repair": "Ripara",
+    "repairing": "Riparazione in corso",
+    "renameLabel": "Nome della coppia stereo",
+    "clickToEdit": "Clicca per rinominare",
+    "dissolveNeedsBoth": "Per sciogliere la coppia entrambi gli altoparlanti devono essere raggiungibili. {{name}} è offline.",
+    "degradedTitle": "Solo un altoparlante è accoppiato",
+    "degradedText": "La coppia non funziona correttamente. La riparazione riporta entrambi gli altoparlanti a uno stato pulito. Poi puoi ricreare la coppia stereo.",
+    "creatingText": "Creazione in corso.",
+    "showProgress": "Mostra avanzamento",
+    "background": "Continua in background",
+    "confirmDissolveTitle": "Sciogliere la coppia stereo?",
+    "confirmDissolveMessage": "«{{name}}» verrà sciolta. {{left}} e {{right}} suoneranno di nuovo singolarmente.",
+    "inPair": "In una coppia stereo",
+    "defaultName": "{{left}} + {{right}}",
+    "reason": {
+      "not_provisioned": "Non configurato con OCT",
+      "offline": "Offline",
+      "in_zone": "In una zona",
+      "in_pair": "In una coppia stereo"
+    },
+    "dlg": {
+      "step1": "Scegli gli altoparlanti",
+      "step2": "Assegna i lati",
+      "step3": "Crea",
+      "stepOf": "Passaggio {{current}} di 3",
+      "pickLegend": "Scegli due altoparlanti",
+      "pickHint": "Solo i SoundTouch 10 configurati con OCT possono formare una coppia.",
+      "pickCount": "{{count}} di 2 selezionati",
+      "next": "Avanti",
+      "back": "Indietro",
+      "sidesTitle": "Quale altoparlante sta dove?",
+      "sidesHint": "Sinistra e destra, come ti trovi davanti agli altoparlanti.",
+      "swap": "Scambia i lati",
+      "masterHint": "L'altoparlante sinistro è sempre quello principale. Riproduzione, sorgente e preset passano da lui.",
+      "firmwareWarn": "Le versioni del firmware sono diverse ({{left}} e {{right}}). Puoi comunque creare la coppia stereo.",
+      "nameLabel": "Nome (facoltativo)",
+      "nameHint": "Se lasci vuoto: {{name}}",
+      "runningTitle": "Creazione della coppia stereo",
+      "runningHint": "Tieni accesi entrambi gli altoparlanti.",
+      "backgroundHint": "Puoi chiudere questa finestra. La coppia comparirà con lo stato «In creazione».",
+      "stepAnn": "Passaggio {{n}} di 4: {{label}}",
+      "stepsLabel": "Passaggi",
+      "successTitle": "La coppia stereo «{{name}}» è attiva",
+      "successText": "{{left}} suona a sinistra, {{right}} a destra. Controlla la riproduzione tramite {{left}}.",
+      "failedTitle": "La coppia stereo non è stata creata",
+      "failedNothing": "Non è stato modificato nulla.",
+      "failedCode": "Codice errore: {{code}}",
+      "degradedText": "Ripara la coppia in modo che entrambi gli altoparlanti possano essere usati di nuovo singolarmente.",
+      "retry": "Riprova",
+      "done": "Fatto"
+    },
+    "step": {
+      "preflight": "Controllo degli altoparlanti",
+      "create_left": "Configurazione dell'altoparlante sinistro",
+      "create_right": "Configurazione dell'altoparlante destro",
+      "verify": "Verifica del risultato"
+    },
+    "stepState": {
+      "waiting": "In attesa",
+      "running": "In corso",
+      "done": "Fatto",
+      "failed": "Non riuscito"
+    },
+    "err": {
+      "stereo_pair_device_not_capable": "Un altoparlante non supporta le coppie stereo. Solo il SoundTouch 10 può formare una coppia.",
+      "stereo_pair_device_not_provisioned": "Almeno un altoparlante non è configurato con OCT. Avvia prima la configurazione.",
+      "stereo_pair_device_in_zone": "Almeno un altoparlante fa parte di una zona. Sciogli prima la zona.",
+      "stereo_pair_device_in_pair": "Almeno un altoparlante è già in una coppia stereo.",
+      "stereo_pair_device_unreachable": "Un altoparlante non risponde. Controlla alimentazione e Wi-Fi e riprova.",
+      "stereo_pair_marge_failed": "Gli altoparlanti non hanno accettato l'accoppiamento. Verifica che entrambi siano configurati con OCT.",
+      "stereo_pair_verification_failed": "Non è stato possibile confermare l'accoppiamento. Non è stato modificato nulla, oppure l'operazione è stata annullata.",
+      "stereo_pair_degraded": "L'accoppiamento non è riuscito e non è stato possibile annullarlo del tutto. Ripara la coppia.",
+      "stereo_pair_timeout": "Il server non ha terminato in tempo. Controlla l'elenco delle coppie stereo e riprova."
+    },
+    "toast": {
+      "created": "Coppia stereo creata",
+      "createFailed": "Impossibile creare la coppia stereo",
+      "details": "Dettagli"
+    },
+    "pairBadge": "Stereo L/R",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Sinistra: {{left}} · Destra: {{right}}",
+    "dissolved": "Coppia stereo «{{name}}» sciolta",
+    "dissolveFailed": "Impossibile sciogliere la coppia stereo"
   }
 }

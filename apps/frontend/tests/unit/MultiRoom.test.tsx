@@ -39,6 +39,10 @@ let mockZonesState: { zones: ZoneInfo[]; isLoading: boolean; error: string | nul
   error: null,
 };
 
+vi.mock("../../src/contexts/DeviceEventContext", () => ({
+  useDeviceEventContext: () => ({ subscribe: () => () => {}, connected: true }),
+}));
+
 vi.mock("../../src/hooks/useZones", () => ({
   useZones: () => ({
     ...mockZonesState,

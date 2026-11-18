@@ -694,7 +694,7 @@
       "unknown": "Une erreur s'est produite.",
       "unknownWithCode": "Une erreur s'est produite (code : {{code}}).",
       "device_not_found": "L'appareil est introuvable.",
-      "device_unreachable": "L'appareil est injoignable. Vérifiez qu'il est allumé et connecté au réseau.",
+      "device_unreachable": "L'appareil est injoignable. Vérifiez qu'il est allumé et connecté au réseau. L'action n'a pas été exécutée. Réessayez dès qu'il est de nouveau en ligne.",
       "not_found": "La ressource demandée est introuvable.",
       "validation_error": "La requête contient des données invalides. Veuillez vérifier vos saisies.",
       "internal_error": "Une erreur interne s'est produite. Veuillez réessayer plus tard."
@@ -906,5 +906,131 @@
     },
     "sourceUnreachable": "{{source}} injoignable",
     "sourceFailedKey": "{{source}}, injoignable. Réessayer"
+  },
+  "stereo": {
+    "title": "Paires stéréo",
+    "lead": "Deux SoundTouch 10 fonctionnent comme un seul lecteur : un à gauche, un à droite. La paire est conservée après un redémarrage.",
+    "create": "Créer une paire stéréo",
+    "createNeedTwo": "Il faut deux SoundTouch 10 libres pour créer une paire.",
+    "createRunning": "Une paire stéréo est en cours de création.",
+    "loading": "Chargement des paires stéréo",
+    "errorLoading": "Impossible de charger les paires stéréo",
+    "retry": "Recharger",
+    "empty": {
+      "none": {
+        "title": "Aucune enceinte pour les paires stéréo",
+        "text": "Les paires stéréo ne fonctionnent qu'avec le SoundTouch 10. Aucun n'a encore été trouvé."
+      },
+      "one": {
+        "title": "Un deuxième SoundTouch 10 manque",
+        "text": "Une paire stéréo nécessite deux SoundTouch 10. Trouvé : {{name}}."
+      },
+      "setup": {
+        "title": "Enceintes pas encore configurées",
+        "text": "Les paires stéréo nécessitent des enceintes configurées avec OCT. Lance la configuration de tes SoundTouch 10."
+      },
+      "ready": {
+        "title": "Pas encore de paire stéréo",
+        "text": "{{count}} SoundTouch 10 peuvent être réunis en une paire stéréo. L'un joue à gauche, l'autre à droite."
+      }
+    },
+    "openWizard": "Lancer la configuration",
+    "status": {
+      "active": "Active",
+      "creating": "En création",
+      "degraded": "Interrompue"
+    },
+    "imported": "Importée",
+    "importedTitle": "Créée en dehors d'OCT",
+    "left": "Gauche",
+    "right": "Droite",
+    "master": "Enceinte principale",
+    "offline": "Hors ligne",
+    "members": "Enceintes de la paire stéréo",
+    "dissolve": "Dissocier",
+    "repair": "Réparer",
+    "repairing": "Réparation en cours",
+    "renameLabel": "Nom de la paire stéréo",
+    "clickToEdit": "Cliquer pour renommer",
+    "dissolveNeedsBoth": "Les deux enceintes doivent être joignables pour dissocier la paire. {{name}} est hors ligne.",
+    "degradedTitle": "Une seule enceinte est couplée",
+    "degradedText": "La paire ne fonctionne pas correctement. La réparation remet les deux enceintes dans un état propre. Tu pourras ensuite recréer la paire stéréo.",
+    "creatingText": "Création en cours.",
+    "showProgress": "Afficher la progression",
+    "background": "Continuer en arrière-plan",
+    "confirmDissolveTitle": "Dissocier la paire stéréo ?",
+    "confirmDissolveMessage": "« {{name}} » va être dissociée. {{left}} et {{right}} rejoueront ensuite chacune de leur côté.",
+    "inPair": "Dans une paire stéréo",
+    "defaultName": "{{left}} + {{right}}",
+    "reason": {
+      "not_provisioned": "Non configurée avec OCT",
+      "offline": "Hors ligne",
+      "in_zone": "Dans une zone",
+      "in_pair": "Dans une paire stéréo"
+    },
+    "dlg": {
+      "step1": "Choisir les enceintes",
+      "step2": "Attribuer les côtés",
+      "step3": "Créer",
+      "stepOf": "Étape {{current}} sur 3",
+      "pickLegend": "Choisis deux enceintes",
+      "pickHint": "Seuls les SoundTouch 10 configurés avec OCT peuvent former une paire.",
+      "pickCount": "{{count}} sur 2 sélectionnées",
+      "next": "Suivant",
+      "back": "Retour",
+      "sidesTitle": "Quelle enceinte est où ?",
+      "sidesHint": "Gauche et droite, comme quand tu te places face aux enceintes.",
+      "swap": "Inverser les côtés",
+      "masterHint": "L'enceinte de gauche est toujours l'enceinte principale. La lecture, la source et les présélections passent par elle.",
+      "firmwareWarn": "Les versions du firmware diffèrent ({{left}} et {{right}}). Tu peux quand même créer la paire stéréo.",
+      "nameLabel": "Nom (facultatif)",
+      "nameHint": "Sans saisie : {{name}}",
+      "runningTitle": "Création de la paire stéréo",
+      "runningHint": "Laisse les deux enceintes allumées.",
+      "backgroundHint": "Tu peux fermer cette fenêtre. La paire apparaît alors avec le statut « En création ».",
+      "stepAnn": "Étape {{n}} sur 4 : {{label}}",
+      "stepsLabel": "Étapes",
+      "successTitle": "La paire stéréo « {{name}} » est active",
+      "successText": "{{left}} joue à gauche, {{right}} à droite. Commande la lecture via {{left}}.",
+      "failedTitle": "La paire stéréo n'a pas été créée",
+      "failedNothing": "Rien n'a été modifié.",
+      "failedCode": "Code d'erreur : {{code}}",
+      "degradedText": "Répare la paire pour que les deux enceintes puissent de nouveau être utilisées séparément.",
+      "retry": "Réessayer",
+      "done": "Terminé"
+    },
+    "step": {
+      "preflight": "Vérification des enceintes",
+      "create_left": "Configuration de l'enceinte gauche",
+      "create_right": "Configuration de l'enceinte droite",
+      "verify": "Vérification du résultat"
+    },
+    "stepState": {
+      "waiting": "En attente",
+      "running": "En cours",
+      "done": "Terminé",
+      "failed": "Échec"
+    },
+    "err": {
+      "stereo_pair_device_not_capable": "Une enceinte ne prend pas en charge les paires stéréo. Seul le SoundTouch 10 peut former une paire.",
+      "stereo_pair_device_not_provisioned": "Au moins une enceinte n'est pas configurée avec OCT. Lance d'abord la configuration.",
+      "stereo_pair_device_in_zone": "Au moins une enceinte fait partie d'une zone. Dissocie d'abord la zone.",
+      "stereo_pair_device_in_pair": "Au moins une enceinte est déjà dans une paire stéréo.",
+      "stereo_pair_device_unreachable": "Une enceinte ne répond pas. Vérifie l'alimentation et le Wi-Fi, puis réessaie.",
+      "stereo_pair_marge_failed": "Les enceintes n'ont pas accepté le couplage. Vérifie que les deux sont configurées avec OCT.",
+      "stereo_pair_verification_failed": "Le couplage n'a pas pu être confirmé. Rien n'a été modifié, ou l'opération a été annulée.",
+      "stereo_pair_degraded": "Le couplage a échoué et n'a pas pu être entièrement annulé. Répare la paire.",
+      "stereo_pair_timeout": "Le serveur n'a pas terminé à temps. Vérifie la liste des paires stéréo et réessaie."
+    },
+    "toast": {
+      "created": "Paire stéréo créée",
+      "createFailed": "Impossible de créer la paire stéréo",
+      "details": "Détails"
+    },
+    "pairBadge": "Stéréo G/D",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Gauche : {{left}} · Droite : {{right}}",
+    "dissolved": "Paire stéréo « {{name}} » dissoute",
+    "dissolveFailed": "La paire stéréo n’a pas pu être dissoute"
   }
 }

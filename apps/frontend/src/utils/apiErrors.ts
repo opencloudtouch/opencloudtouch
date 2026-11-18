@@ -23,6 +23,17 @@ export function getApiErrorMessage(t: TFunction, error: unknown, fallbackKey?: s
 }
 
 /**
+ * Message for a failed action on a device: the "not reachable, action not carried out"
+ * text when the server answered `device_unreachable`, otherwise `fallbackKey`.
+ */
+export function getDeviceActionError(t: TFunction, error: unknown, fallbackKey: string): string {
+  if (isApiErrorInstance(error) && error.code === "device_unreachable") {
+    return t("errors.api.device_unreachable");
+  }
+  return t(fallbackKey);
+}
+
+/**
  * Field-level messages keyed by input path (`port`, `config.url`).
  * Translated `errors.api.<code>` when the key exists, otherwise the server message;
  * the first error per path wins.

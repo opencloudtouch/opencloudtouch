@@ -694,7 +694,7 @@
       "unknown": "Coś poszło nie tak.",
       "unknownWithCode": "Coś poszło nie tak (kod: {{code}}).",
       "device_not_found": "Nie znaleziono urządzenia.",
-      "device_unreachable": "Urządzenie jest nieosiągalne. Sprawdź, czy jest włączone i połączone z siecią.",
+      "device_unreachable": "Urządzenie jest nieosiągalne. Sprawdź, czy jest włączone i połączone z siecią. Akcja nie została wykonana. Spróbuj ponownie, gdy urządzenie będzie znów online.",
       "not_found": "Nie znaleziono żądanego zasobu.",
       "validation_error": "Żądanie zawiera nieprawidłowe dane. Sprawdź wprowadzone wartości.",
       "internal_error": "Wystąpił błąd wewnętrzny. Spróbuj ponownie później."
@@ -906,5 +906,131 @@
     },
     "sourceUnreachable": "{{source}} niedostępne",
     "sourceFailedKey": "{{source}}, niedostępne. Spróbuj ponownie"
+  },
+  "stereo": {
+    "title": "Pary stereo",
+    "lead": "Dwa głośniki SoundTouch 10 grają jako jeden odtwarzacz: jeden po lewej, drugi po prawej. Para zostaje zachowana także po ponownym uruchomieniu.",
+    "create": "Utwórz parę stereo",
+    "createNeedTwo": "Do utworzenia pary potrzebne są dwa wolne głośniki SoundTouch 10.",
+    "createRunning": "Trwa tworzenie pary stereo.",
+    "loading": "Wczytywanie par stereo",
+    "errorLoading": "Nie udało się wczytać par stereo",
+    "retry": "Wczytaj ponownie",
+    "empty": {
+      "none": {
+        "title": "Brak głośnika dla par stereo",
+        "text": "Pary stereo działają tylko z SoundTouch 10. Nie znaleziono jeszcze żadnego."
+      },
+      "one": {
+        "title": "Brakuje drugiego SoundTouch 10",
+        "text": "Para stereo wymaga dwóch głośników SoundTouch 10. Znaleziono: {{name}}."
+      },
+      "setup": {
+        "title": "Głośniki nie są jeszcze skonfigurowane",
+        "text": "Pary stereo wymagają głośników skonfigurowanych w OCT. Uruchom konfigurację swoich SoundTouch 10."
+      },
+      "ready": {
+        "title": "Brak pary stereo",
+        "text": "Liczba głośników SoundTouch 10, które można połączyć w parę stereo: {{count}}. Jeden gra po lewej, drugi po prawej."
+      }
+    },
+    "openWizard": "Uruchom konfigurację",
+    "status": {
+      "active": "Aktywna",
+      "creating": "Tworzenie",
+      "degraded": "Przerwana"
+    },
+    "imported": "Zaimportowana",
+    "importedTitle": "Utworzona poza OCT",
+    "left": "Lewy",
+    "right": "Prawy",
+    "master": "Głośnik główny",
+    "offline": "Offline",
+    "members": "Głośniki pary stereo",
+    "dissolve": "Rozłącz",
+    "repair": "Napraw",
+    "repairing": "Naprawianie",
+    "renameLabel": "Nazwa pary stereo",
+    "clickToEdit": "Kliknij, aby zmienić nazwę",
+    "dissolveNeedsBoth": "Aby rozłączyć parę, oba głośniki muszą być osiągalne. {{name}} jest offline.",
+    "degradedTitle": "Połączony jest tylko jeden głośnik",
+    "degradedText": "Para nie działa prawidłowo. Naprawa przywraca oba głośniki do czystego stanu. Potem możesz utworzyć parę stereo od nowa.",
+    "creatingText": "Tworzenie.",
+    "showProgress": "Pokaż postęp",
+    "background": "Kontynuuj w tle",
+    "confirmDissolveTitle": "Rozłączyć parę stereo?",
+    "confirmDissolveMessage": "Para „{{name}}” zostanie rozłączona. {{left}} i {{right}} będą potem znowu grać osobno.",
+    "inPair": "W parze stereo",
+    "defaultName": "{{left}} + {{right}}",
+    "reason": {
+      "not_provisioned": "Nie skonfigurowano w OCT",
+      "offline": "Offline",
+      "in_zone": "W strefie",
+      "in_pair": "W parze stereo"
+    },
+    "dlg": {
+      "step1": "Wybierz głośniki",
+      "step2": "Przypisz strony",
+      "step3": "Utwórz",
+      "stepOf": "Krok {{current}} z 3",
+      "pickLegend": "Wybierz dwa głośniki",
+      "pickHint": "Parę mogą utworzyć tylko głośniki SoundTouch 10 skonfigurowane w OCT.",
+      "pickCount": "Wybrano {{count}} z 2",
+      "next": "Dalej",
+      "back": "Wstecz",
+      "sidesTitle": "Który głośnik stoi gdzie?",
+      "sidesHint": "Lewa i prawa strona, patrząc na głośniki.",
+      "swap": "Zamień strony",
+      "masterHint": "Lewy głośnik jest zawsze głośnikiem głównym. Odtwarzanie, źródło i zapisane stacje działają przez niego.",
+      "firmwareWarn": "Wersje oprogramowania sprzętowego się różnią ({{left}} i {{right}}). Parę stereo można mimo to utworzyć.",
+      "nameLabel": "Nazwa (opcjonalnie)",
+      "nameHint": "Jeśli puste: {{name}}",
+      "runningTitle": "Tworzenie pary stereo",
+      "runningHint": "Pozostaw oba głośniki włączone.",
+      "backgroundHint": "Możesz zamknąć to okno. Para pojawi się wtedy ze statusem „Tworzenie”.",
+      "stepAnn": "Krok {{n}} z 4: {{label}}",
+      "stepsLabel": "Kroki",
+      "successTitle": "Para stereo „{{name}}” jest aktywna",
+      "successText": "{{left}} gra po lewej, {{right}} po prawej. Steruj odtwarzaniem przez {{left}}.",
+      "failedTitle": "Nie utworzono pary stereo",
+      "failedNothing": "Nic nie zostało zmienione.",
+      "failedCode": "Kod błędu: {{code}}",
+      "degradedText": "Napraw parę, aby oba głośniki znów mogły działać osobno.",
+      "retry": "Spróbuj ponownie",
+      "done": "Gotowe"
+    },
+    "step": {
+      "preflight": "Sprawdzanie głośników",
+      "create_left": "Konfigurowanie lewego głośnika",
+      "create_right": "Konfigurowanie prawego głośnika",
+      "verify": "Sprawdzanie wyniku"
+    },
+    "stepState": {
+      "waiting": "Oczekuje",
+      "running": "W toku",
+      "done": "Gotowe",
+      "failed": "Niepowodzenie"
+    },
+    "err": {
+      "stereo_pair_device_not_capable": "Jeden z głośników nie obsługuje par stereo. Tylko SoundTouch 10 może utworzyć parę.",
+      "stereo_pair_device_not_provisioned": "Co najmniej jeden głośnik nie jest skonfigurowany w OCT. Najpierw uruchom konfigurację.",
+      "stereo_pair_device_in_zone": "Co najmniej jeden głośnik należy do strefy. Najpierw rozwiąż strefę.",
+      "stereo_pair_device_in_pair": "Co najmniej jeden głośnik jest już w parze stereo.",
+      "stereo_pair_device_unreachable": "Głośnik nie odpowiada. Sprawdź zasilanie i Wi-Fi i spróbuj ponownie.",
+      "stereo_pair_marge_failed": "Głośniki nie zaakceptowały parowania. Sprawdź, czy oba są skonfigurowane w OCT.",
+      "stereo_pair_verification_failed": "Nie udało się potwierdzić parowania. Nic nie zostało zmienione albo operację wycofano.",
+      "stereo_pair_degraded": "Parowanie się nie powiodło i nie udało się go w pełni cofnąć. Napraw parę.",
+      "stereo_pair_timeout": "Serwer nie zakończył na czas. Sprawdź listę par stereo i spróbuj ponownie."
+    },
+    "toast": {
+      "created": "Utworzono parę stereo",
+      "createFailed": "Nie udało się utworzyć pary stereo",
+      "details": "Szczegóły"
+    },
+    "pairBadge": "Stereo L/P",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Lewy: {{left}} · Prawy: {{right}}",
+    "dissolved": "Para stereo „{{name}}” rozwiązana",
+    "dissolveFailed": "Nie udało się rozwiązać pary stereo"
   }
 }

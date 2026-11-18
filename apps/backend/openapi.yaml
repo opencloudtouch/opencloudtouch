@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: OpenCloudTouch
   description: Open-Source replacement for discontinued streaming device cloud features
-  version: 2.0.1
+  version: 2.1.0
 paths:
   /api/devices/discover:
     get:
@@ -377,8 +377,8 @@ paths:
         \ rename.\n\nArgs:\n    device_id: Device ID (MAC address)\n    body: {\"\
         name\": \"New Name\"} — 1-30 characters\n\nReturns:\n    Updated device info\
         \ with previous name\n\nRaises:\n    DeviceNotFoundError: If device does not\
-        \ exist\n    HTTPException(422): If name validation fails\n    HTTPException(502):\
-        \ If the device does not accept the new name"
+        \ exist\n    HTTPException(422): If name validation fails\n    DeviceConnectionError:\
+        \ If the device is unreachable (503, nothing changed)"
       operationId: rename_device_api_devices__device_id__name_put
       parameters:
       - name: device_id
@@ -403,8 +403,8 @@ paths:
               schema: {}
         '422':
           description: Invalid name
-        '502':
-          description: The device did not accept the new name
+        '503':
+          description: The device is unreachable or rejected the new name
   /api/devices/{device_id}/now-playing:
     get:
       tags:
@@ -1850,11 +1850,13 @@ paths:
       tags:
       - marge
       summary: Streaming Full Account
-      description: "Get full account sync via streaming endpoint.\n\nThis is the streaming.bose.com\
-        \ version of the account sync endpoint.\nResolves the device_id from the account_id\
-        \ (margeAccountUUID) stored\nduring device discovery, then returns that device's\
-        \ presets.\n\nArgs:\n    account_id: Account ID (e.g., \"3784726\")\n    marge:\
-        \ Marge service dependency\n\nReturns:\n    XML Response with <account> structure"
+      description: 'Account sync of the speaker (every 60 s), answered in the ``<account>``
+        shape.
+
+
+        The device is resolved from the account id (margeAccountUUID stored during
+
+        discovery); an unknown account gets an account without devices.'
       operationId: streaming_full_account_streaming_account__account_id__full_get
       parameters:
       - name: account_id
@@ -2024,6 +2026,128 @@ paths:
           content:
             application/json:
               schema: {}
+  /streaming/account/{account_id}/group/:
+    post:
+      tags:
+      - marge
+      summary: Create Device Group
+      description: Create a speaker group (stereo pair); idempotent for the same composition.
+      operationId: create_device_group_streaming_account__account_id__group__post
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /streaming/account/{account_id}/device/{device_id}/group/:
+    get:
+      tags:
+      - marge
+      summary: Get Device Group
+      description: Return the group of a device, or an empty <group/> if it is not
+        in one.
+      operationId: get_device_group_streaming_account__account_id__device__device_id__group__get
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /streaming/account/{account_id}/group/{group_id}:
+    put:
+      tags:
+      - marge
+      summary: Update Device Group
+      description: Rename a group (the only field a speaker updates).
+      operationId: update_device_group_streaming_account__account_id__group__group_id__put
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Group Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - marge
+      summary: Delete Device Group
+      description: 'Dissolve a group. Idempotent: an unknown id is also a success.'
+      operationId: delete_device_group_streaming_account__account_id__group__group_id__delete
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Group Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /playlist/{device_id}/{preset_number}.m3u:
     get:
       tags:
@@ -3032,6 +3156,150 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/stereo-pairs:
+    get:
+      tags:
+      - Stereo pairs
+      summary: List Stereo Pairs
+      operationId: list_stereo_pairs_api_stereo_pairs_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/StereoPairOut'
+                type: array
+                title: Response List Stereo Pairs Api Stereo Pairs Get
+    post:
+      tags:
+      - Stereo pairs
+      summary: Create Stereo Pair
+      description: Start creating a pair. Poll the operation; it can take up to a
+        minute.
+      operationId: create_stereo_pair_api_stereo_pairs_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStereoPairRequest'
+        required: true
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationAccepted'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/stereo-pairs/operations/{operation_id}:
+    get:
+      tags:
+      - Stereo pairs
+      summary: Get Stereo Pair Operation
+      operationId: get_stereo_pair_operation_api_stereo_pairs_operations__operation_id__get
+      parameters:
+      - name: operation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Operation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/stereo-pairs/{pair_id}:
+    patch:
+      tags:
+      - Stereo pairs
+      summary: Rename Stereo Pair
+      operationId: rename_stereo_pair_api_stereo_pairs__pair_id__patch
+      parameters:
+      - name: pair_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pair Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameStereoPairRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StereoPairOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - Stereo pairs
+      summary: Dissolve Stereo Pair
+      operationId: dissolve_stereo_pair_api_stereo_pairs__pair_id__delete
+      parameters:
+      - name: pair_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pair Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/stereo-pairs/{pair_id}/repair:
+    post:
+      tags:
+      - Stereo pairs
+      summary: Repair Stereo Pair
+      description: Run the removal on both speakers again so the pair ends clean.
+      operationId: repair_stereo_pair_api_stereo_pairs__pair_id__repair_post
+      parameters:
+      - name: pair_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pair Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/devices/{device_id}/zone:
     get:
       tags:
@@ -3802,6 +4070,27 @@ components:
       - ip
       title: ConnectivityCheckRequest
       description: Request to check device connectivity.
+    CreateStereoPairRequest:
+      properties:
+        left_device_id:
+          type: string
+          minLength: 1
+          title: Left Device Id
+        right_device_id:
+          type: string
+          minLength: 1
+          title: Right Device Id
+        name:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Name
+      type: object
+      required:
+      - left_device_id
+      - right_device_id
+      title: CreateStereoPairRequest
     CreateZoneRequest:
       properties:
         master_id:
@@ -3906,6 +4195,48 @@ components:
         uuid_source:
           type: string
           title: Uuid Source
+        stereo_capable:
+          type: boolean
+          title: Stereo Capable
+          default: false
+        oct_provisioned:
+          type: boolean
+          title: Oct Provisioned
+          default: false
+        stereo_ineligible_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stereo Ineligible Reason
+        stereo_pair_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Stereo Pair Id
+        stereo_role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stereo Role
+        stereo_master:
+          type: boolean
+          title: Stereo Master
+          default: false
+        stereo_partner_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stereo Partner Name
+        stereo_master_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stereo Master Name
+        stereo_pair_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stereo Pair Name
       type: object
       required:
       - id
@@ -4258,6 +4589,72 @@ components:
       - message
       title: NtpPatchResponse
       description: Response with NTP patch result.
+    OperationAccepted:
+      properties:
+        operation_id:
+          type: string
+          title: Operation Id
+      type: object
+      required:
+      - operation_id
+      title: OperationAccepted
+    OperationError:
+      properties:
+        code:
+          type: string
+          title: Code
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - code
+      - message
+      title: OperationError
+    OperationOut:
+      properties:
+        state:
+          type: string
+          title: State
+          description: running, succeeded or failed
+        steps:
+          items:
+            $ref: '#/components/schemas/OperationStep'
+          type: array
+          title: Steps
+        pair:
+          anyOf:
+          - $ref: '#/components/schemas/StereoPairOut'
+          - type: 'null'
+        warnings:
+          items:
+            type: string
+          type: array
+          title: Warnings
+          default: []
+        error:
+          anyOf:
+          - $ref: '#/components/schemas/OperationError'
+          - type: 'null'
+      type: object
+      required:
+      - state
+      - steps
+      title: OperationOut
+    OperationStep:
+      properties:
+        key:
+          type: string
+          title: Key
+        state:
+          type: string
+          title: State
+          description: waiting, running, done or failed
+      type: object
+      required:
+      - key
+      - state
+      title: OperationStep
     PortCheckRequest:
       properties:
         device_ip:
@@ -4480,6 +4877,17 @@ components:
       - country
       title: RadioStationResponse
       description: Radio station response model (unified across all providers).
+    RenameStereoPairRequest:
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Name
+      type: object
+      required:
+      - name
+      title: RenameStereoPairRequest
     RestoreStepResponse:
       properties:
         name:
@@ -4796,6 +5204,63 @@ components:
       - message
       - current_version
       title: UpdateStatusResponse
+    StereoPairMemberOut:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+        name:
+          type: string
+          title: Name
+        role:
+          type: string
+          title: Role
+          description: LEFT or RIGHT
+        reachable:
+          type: boolean
+          title: Reachable
+      type: object
+      required:
+      - device_id
+      - name
+      - role
+      - reachable
+      title: StereoPairMemberOut
+    StereoPairOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        name:
+          type: string
+          title: Name
+        status:
+          type: string
+          title: Status
+          description: creating, active or degraded
+        source:
+          type: string
+          title: Source
+          description: oct, or device for pairs created outside OCT
+        members:
+          items:
+            $ref: '#/components/schemas/StereoPairMemberOut'
+          type: array
+          title: Members
+        warnings:
+          items:
+            type: string
+          type: array
+          title: Warnings
+          default: []
+      type: object
+      required:
+      - id
+      - name
+      - status
+      - source
+      - members
+      title: StereoPairOut
     ValidateHostnameRequest:
       properties:
         hostname:

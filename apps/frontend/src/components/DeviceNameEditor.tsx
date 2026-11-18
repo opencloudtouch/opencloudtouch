@@ -7,6 +7,7 @@ import {
   type CSSProperties,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { getDeviceActionError } from "../utils/apiErrors";
 import { useQueryClient } from "@tanstack/react-query";
 import { renameDevice } from "../api/devices";
 import { Icon } from "./Icon";
@@ -16,12 +17,17 @@ interface DeviceNameEditorProps {
   readonly deviceId: string;
   readonly name: string;
   readonly onRenamed?: (newName: string) => void;
+  /** Saves the name; default renames the speaker. A stereo pair passes its own rename. */
+  readonly rename?: (name: string) => Promise<{ name: string }>;
+  readonly maxLength?: number;
 }
 
 export default function DeviceNameEditor({
   deviceId,
   name,
   onRenamed,
+  rename,
+  maxLength = 30,
 }: Readonly<DeviceNameEditorProps>) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -77,7 +83,7 @@ export default function DeviceNameEditor({
       cancel();
       return;
     }
-    if (trimmed.length > 30) {
+    if (trimmed.length > maxLength) {
       setError(t("deviceRename.tooLong"));
       return;
     }
@@ -85,12 +91,12 @@ export default function DeviceNameEditor({
     setSaving(true);
     setError(null);
     try {
-      const result = await renameDevice(deviceId, trimmed);
+      const result = await (rename ?? ((n: string) => renameDevice(deviceId, n)))(trimmed);
       setEditing(false);
       onRenamed?.(result.name);
       queryClient.invalidateQueries({ queryKey: ["devices"] });
-    } catch {
-      setError(t("deviceRename.failed"));
+    } catch (err) {
+      setError(getDeviceActionError(t, err, "deviceRename.failed"));
     } finally {
       setSaving(false);
     }
@@ -128,7 +134,7 @@ export default function DeviceNameEditor({
               onChange={(e) => setEditValue(e.target.value)}
               onKeyDown={handleKeyDown}
               onBlur={handleBlur}
-              maxLength={30}
+              maxLength={maxLength}
               disabled={saving}
               aria-label={t("deviceRename.inputLabel")}
               aria-invalid={error ? true : undefined}

@@ -1,8 +1,13 @@
-import { afterEach, beforeAll, vi } from "vitest";
+import { afterEach, beforeAll, expect, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
+import * as jestDomMatchers from "@testing-library/jest-dom/matchers";
 import "../src/i18n";
 import { clearDeviceDataCache } from "../src/utils/deviceDataCache";
+
+// Extend the runner's own expect explicitly: the "/vitest" entry above can bind to a second
+// vitest instance (seen on Windows installs), which leaves the matchers missing.
+expect.extend(jestDomMatchers);
 
 // Mock EventSource (not available in jsdom) – use direct global assignment so
 // it survives vi.unstubAllGlobals() calls in individual test files.
@@ -15,11 +20,15 @@ class MockEventSource {
   addEventListener = vi.fn();
   removeEventListener = vi.fn();
   dispatchEvent = vi.fn();
-  close = vi.fn(() => { this.readyState = MockEventSource.CLOSED; });
+  close = vi.fn(() => {
+    this.readyState = MockEventSource.CLOSED;
+  });
   onopen: ((event: Event) => void) | null = null;
   onmessage: ((event: MessageEvent) => void) | null = null;
   onerror: ((event: Event) => void) | null = null;
-  constructor(url: string) { this.url = url; }
+  constructor(url: string) {
+    this.url = url;
+  }
 }
 (global as Record<string, unknown>).EventSource = MockEventSource;
 
@@ -46,15 +55,18 @@ vi.mock("react-router", async () => {
 
 // Mock fetch with base URL for API calls
 beforeAll(() => {
-  vi.stubGlobal("fetch", vi.fn(() => {
-    // Return mock response by default
-    return Promise.resolve({
-      ok: true,
-      status: 200,
-      json: async () => ({}),
-      text: async () => "",
-    });
-  }));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => {
+      // Return mock response by default
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({}),
+        text: async () => "",
+      });
+    })
+  );
 });
 
 // Cleanup after each test

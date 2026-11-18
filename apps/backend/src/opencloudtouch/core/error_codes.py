@@ -25,3 +25,17 @@ def validate_code(code: str) -> str:
             f"invalid error code {code!r}: must match {CODE_PATTERN.pattern}"
         )
     return code
+
+
+# Stereo pairs
+STEREO_PAIR_DEVICE_NOT_CAPABLE = "stereo_pair_device_not_capable"
+STEREO_PAIR_DEVICE_NOT_PROVISIONED = "stereo_pair_device_not_provisioned"
+STEREO_PAIR_DEVICE_IN_ZONE = "stereo_pair_device_in_zone"
+STEREO_PAIR_DEVICE_IN_PAIR = "stereo_pair_device_in_pair"
+STEREO_PAIR_DEVICE_UNREACHABLE = "stereo_pair_device_unreachable"
+STEREO_PAIR_MARGE_FAILED = "stereo_pair_marge_failed"
+STEREO_PAIR_VERIFICATION_FAILED = "stereo_pair_verification_failed"
+STEREO_PAIR_DEGRADED = "stereo_pair_degraded"
+STEREO_PAIR_NOT_FOUND = "stereo_pair_not_found"
+STEREO_PAIR_INVALID_REQUEST = "stereo_pair_invalid_request"
+STEREO_PAIR_OPERATION_NOT_FOUND = "stereo_pair_operation_not_found"

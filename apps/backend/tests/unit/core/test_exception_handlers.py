@@ -211,7 +211,7 @@ class TestDeviceNotFoundHandler:
 class TestDeviceConnectionErrorHandler:
     """Handler for DeviceConnectionError."""
 
-    def test_returns_503_with_ip_context(self):
+    def test_returns_503_without_ip_or_raw_text(self):
         exc = DeviceConnectionError("192.168.1.100", "Timeout")
         req = _make_request("/api/devices/dev-x/info")
         resp = asyncio.run(device_connection_error_handler(req, exc))
@@ -219,7 +219,8 @@ class TestDeviceConnectionErrorHandler:
         assert resp.status_code == 503
         data = _body(resp)
         assert data["type"] == "service_unavailable"
-        assert "192.168.1.100" in data["detail"]
+        assert "192.168.1.100" not in data["detail"]
+        assert "Timeout" not in data["detail"]
 
 
 # ---------------------------------------------------------------------------

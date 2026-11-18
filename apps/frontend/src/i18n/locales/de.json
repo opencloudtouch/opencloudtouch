@@ -694,7 +694,7 @@
       "unknown": "Etwas ist schiefgelaufen.",
       "unknownWithCode": "Etwas ist schiefgelaufen (Code: {{code}}).",
       "device_not_found": "Das Gerät wurde nicht gefunden.",
-      "device_unreachable": "Das Gerät ist nicht erreichbar. Prüfe, ob es eingeschaltet und mit dem Netzwerk verbunden ist.",
+      "device_unreachable": "Das Gerät ist nicht erreichbar. Prüfe, ob es eingeschaltet und mit dem Netzwerk verbunden ist. Die Aktion wurde nicht ausgeführt. Versuche es erneut, sobald es wieder online ist.",
       "not_found": "Die angeforderte Ressource wurde nicht gefunden.",
       "validation_error": "Die Anfrage enthält ungültige Daten. Bitte prüfe deine Eingaben.",
       "internal_error": "Ein interner Fehler ist aufgetreten. Bitte versuche es später erneut."
@@ -906,5 +906,131 @@
     },
     "sourceUnreachable": "{{source}} nicht erreichbar",
     "sourceFailedKey": "{{source}}, nicht erreichbar. Erneut versuchen"
+  },
+  "stereo": {
+    "title": "Stereopaare",
+    "lead": "Zwei SoundTouch 10 spielen als ein Player: einer links, einer rechts. Das Paar bleibt auch nach einem Neustart bestehen.",
+    "create": "Stereopaar erstellen",
+    "createNeedTwo": "Zum Erstellen werden zwei freie SoundTouch 10 benötigt.",
+    "createRunning": "Ein Stereopaar wird gerade erstellt.",
+    "loading": "Stereopaare werden geladen",
+    "errorLoading": "Stereopaare konnten nicht geladen werden",
+    "retry": "Erneut laden",
+    "empty": {
+      "none": {
+        "title": "Kein Lautsprecher für Stereopaare",
+        "text": "Stereopaare funktionieren nur mit dem SoundTouch 10. Es wurde noch keiner gefunden."
+      },
+      "one": {
+        "title": "Ein zweiter SoundTouch 10 fehlt",
+        "text": "Für ein Stereopaar werden zwei SoundTouch 10 benötigt. Gefunden wurde: {{name}}."
+      },
+      "setup": {
+        "title": "Lautsprecher noch nicht eingerichtet",
+        "text": "Stereopaare brauchen Lautsprecher, die mit OCT eingerichtet sind. Starte die Einrichtung für deine SoundTouch 10."
+      },
+      "ready": {
+        "title": "Noch kein Stereopaar",
+        "text": "{{count}} SoundTouch 10 können zu einem Stereopaar verbunden werden. Einer spielt links, der andere rechts."
+      }
+    },
+    "openWizard": "Einrichtung starten",
+    "status": {
+      "active": "Aktiv",
+      "creating": "Wird erstellt",
+      "degraded": "Unterbrochen"
+    },
+    "imported": "Importiert",
+    "importedTitle": "Außerhalb von OCT erstellt",
+    "left": "Links",
+    "right": "Rechts",
+    "master": "Hauptlautsprecher",
+    "offline": "Offline",
+    "members": "Lautsprecher des Stereopaars",
+    "dissolve": "Auflösen",
+    "repair": "Reparieren",
+    "repairing": "Wird repariert",
+    "renameLabel": "Name des Stereopaars",
+    "clickToEdit": "Zum Umbenennen anklicken",
+    "dissolveNeedsBoth": "Zum Auflösen müssen beide Lautsprecher erreichbar sein. {{name}} ist offline.",
+    "degradedTitle": "Nur ein Lautsprecher ist gekoppelt",
+    "degradedText": "Das Paar funktioniert nicht richtig. Beim Reparieren werden beide Lautsprecher auf einen sauberen Zustand zurückgesetzt. Danach kannst du das Stereopaar neu erstellen.",
+    "creatingText": "Wird erstellt.",
+    "showProgress": "Fortschritt anzeigen",
+    "background": "Im Hintergrund fortsetzen",
+    "confirmDissolveTitle": "Stereopaar auflösen?",
+    "confirmDissolveMessage": "„{{name}}“ wird aufgelöst. {{left}} und {{right}} spielen danach wieder einzeln.",
+    "inPair": "In einem Stereopaar",
+    "defaultName": "{{left}} + {{right}}",
+    "reason": {
+      "not_provisioned": "Nicht mit OCT eingerichtet",
+      "offline": "Offline",
+      "in_zone": "In einer Zone",
+      "in_pair": "In einem Stereopaar"
+    },
+    "dlg": {
+      "step1": "Lautsprecher wählen",
+      "step2": "Seiten zuweisen",
+      "step3": "Erstellen",
+      "stepOf": "Schritt {{current}} von 3",
+      "pickLegend": "Wähle zwei Lautsprecher",
+      "pickHint": "Nur SoundTouch 10, die mit OCT eingerichtet sind, können ein Paar bilden.",
+      "pickCount": "{{count}} von 2 ausgewählt",
+      "next": "Weiter",
+      "back": "Zurück",
+      "sidesTitle": "Welcher Lautsprecher steht wo?",
+      "sidesHint": "Links und rechts, wie du vor den Lautsprechern stehst.",
+      "swap": "Seiten tauschen",
+      "masterHint": "Der linke Lautsprecher ist immer der Hauptlautsprecher. Wiedergabe, Quelle und Voreinstellungen laufen darüber.",
+      "firmwareWarn": "Die Firmware-Versionen unterscheiden sich ({{left}} und {{right}}). Du kannst das Stereopaar trotzdem erstellen.",
+      "nameLabel": "Name (optional)",
+      "nameHint": "Ohne Eingabe: {{name}}",
+      "runningTitle": "Stereopaar wird erstellt",
+      "runningHint": "Lass beide Lautsprecher eingeschaltet.",
+      "backgroundHint": "Du kannst das Fenster schließen. Das Paar erscheint dann mit dem Status „Wird erstellt“.",
+      "stepAnn": "Schritt {{n}} von 4: {{label}}",
+      "stepsLabel": "Schritte",
+      "successTitle": "Stereopaar „{{name}}“ ist aktiv",
+      "successText": "{{left}} spielt links, {{right}} rechts. Steuere die Wiedergabe über {{left}}.",
+      "failedTitle": "Das Stereopaar wurde nicht erstellt",
+      "failedNothing": "Es wurde nichts geändert.",
+      "failedCode": "Fehlercode: {{code}}",
+      "degradedText": "Repariere das Paar, damit beide Lautsprecher wieder einzeln nutzbar sind.",
+      "retry": "Erneut versuchen",
+      "done": "Fertig"
+    },
+    "step": {
+      "preflight": "Lautsprecher prüfen",
+      "create_left": "Auf dem linken Lautsprecher einrichten",
+      "create_right": "Auf dem rechten Lautsprecher einrichten",
+      "verify": "Ergebnis prüfen"
+    },
+    "stepState": {
+      "waiting": "Wartet",
+      "running": "Läuft",
+      "done": "Fertig",
+      "failed": "Fehlgeschlagen"
+    },
+    "err": {
+      "stereo_pair_device_not_capable": "Ein Lautsprecher unterstützt keine Stereopaare. Nur der SoundTouch 10 kann ein Paar bilden.",
+      "stereo_pair_device_not_provisioned": "Mindestens ein Lautsprecher ist nicht mit OCT eingerichtet. Starte zuerst die Einrichtung.",
+      "stereo_pair_device_in_zone": "Mindestens ein Lautsprecher ist Teil einer Zone. Löse die Zone zuerst auf.",
+      "stereo_pair_device_in_pair": "Mindestens ein Lautsprecher ist schon in einem Stereopaar.",
+      "stereo_pair_device_unreachable": "Ein Lautsprecher antwortet nicht. Prüfe Strom und WLAN und versuche es erneut.",
+      "stereo_pair_marge_failed": "Die Lautsprecher haben die Kopplung nicht angenommen. Prüfe, ob beide mit OCT eingerichtet sind.",
+      "stereo_pair_verification_failed": "Die Kopplung konnte nicht bestätigt werden. Es wurde nichts geändert oder der Vorgang wurde zurückgenommen.",
+      "stereo_pair_degraded": "Die Kopplung ist fehlgeschlagen und konnte nicht vollständig zurückgenommen werden. Repariere das Paar.",
+      "stereo_pair_timeout": "Der Server wurde nicht rechtzeitig fertig. Prüfe die Liste der Stereopaare und versuche es erneut."
+    },
+    "toast": {
+      "created": "Stereopaar erstellt",
+      "createFailed": "Das Stereopaar konnte nicht erstellt werden",
+      "details": "Details"
+    },
+    "pairBadge": "L/R Stereo",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Links: {{left}} · Rechts: {{right}}",
+    "dissolved": "Stereopaar „{{name}}“ aufgelöst",
+    "dissolveFailed": "Das Stereopaar konnte nicht aufgelöst werden"
   }
 }

@@ -44,6 +44,7 @@
 | `devices` | Discovery, sync, CRUD, health checks, capabilities |
 | `presets` | Preset management (1-6 per device), device programming |
 | `zones` | Multi-room zone management |
+| `stereo_pairs` | Stereo pairs (LEFT/RIGHT) of two SoundTouch 10 speakers: create/repair/dissolve lifecycle, speaker group client, Marge group XML |
 | `radio` | RadioBrowser search provider |
 | `settings` | User settings persistence |
 | `setup` | SSH/USB device configuration wizard |
@@ -68,7 +69,8 @@ SQLite (/data/oct.db via aiosqlite)
 
 Cross-module dependencies are minimal:
 - `presets` → `devices` (DeviceRepository for preset sync)
-- `zones` → `devices` (DeviceRepository for zone enrichment)
+- `zones` → `devices` (DeviceRepository for zone enrichment), `stereo_pairs` (pair membership)
+- `stereo_pairs` → `devices` (speaker lookup); `marge` group routes → `stereo_pairs` (speaker-initiated group calls)
 - `setup` → `devices` (DeviceRepository for setup context)
 - `bmx` → `devices`, `radio` (stream resolution)
 - `marge` → `devices` (Bose cloud emulation)

@@ -309,7 +309,8 @@ _CASES = {
         503,
         "service_unavailable",
         "Device Unavailable",
-        "Device unreachable: 1.2.3.4",
+        "The device did not respond. The action was not carried out; "
+        "try again when it is back online.",
         "device_unreachable",
     ),
     DiscoveryError: (

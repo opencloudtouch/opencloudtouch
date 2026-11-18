@@ -694,7 +694,7 @@
       "unknown": "問題が発生しました。",
       "unknownWithCode": "問題が発生しました（コード: {{code}}）。",
       "device_not_found": "デバイスが見つかりません。",
-      "device_unreachable": "デバイスに接続できません。電源が入っていて、ネットワークに接続されているか確認してください。",
+      "device_unreachable": "デバイスに接続できません。電源が入っていて、ネットワークに接続されているか確認してください。 操作は実行されませんでした。オンラインに戻ったら、もう一度お試しください。",
       "not_found": "要求されたリソースが見つかりません。",
       "validation_error": "リクエストに無効なデータが含まれています。入力内容を確認してください。",
       "internal_error": "内部エラーが発生しました。後でもう一度お試しください。"
@@ -906,5 +906,131 @@
     },
     "sourceUnreachable": "{{source}}に接続できません",
     "sourceFailedKey": "{{source}}に接続できません。もう一度試す"
+  },
+  "stereo": {
+    "title": "ステレオペア",
+    "lead": "2台のSoundTouch 10を1つのプレーヤーとして使います。1台は左、もう1台は右です。ペアは再起動後も保持されます。",
+    "create": "ステレオペアを作成",
+    "createNeedTwo": "ペアを作成するには、空いているSoundTouch 10が2台必要です。",
+    "createRunning": "ステレオペアを作成しています。",
+    "loading": "ステレオペアを読み込んでいます",
+    "errorLoading": "ステレオペアを読み込めませんでした",
+    "retry": "再読み込み",
+    "empty": {
+      "none": {
+        "title": "ステレオペアに使えるスピーカーがありません",
+        "text": "ステレオペアはSoundTouch 10でのみ使えます。まだ見つかっていません。"
+      },
+      "one": {
+        "title": "2台目のSoundTouch 10がありません",
+        "text": "ステレオペアにはSoundTouch 10が2台必要です。見つかったのは {{name}} です。"
+      },
+      "setup": {
+        "title": "スピーカーが未設定です",
+        "text": "ステレオペアにはOCTで設定済みのスピーカーが必要です。SoundTouch 10のセットアップを開始してください。"
+      },
+      "ready": {
+        "title": "ステレオペアはまだありません",
+        "text": "{{count}}台のSoundTouch 10をステレオペアにできます。1台は左、もう1台は右で再生します。"
+      }
+    },
+    "openWizard": "セットアップを開始",
+    "status": {
+      "active": "有効",
+      "creating": "作成中",
+      "degraded": "中断"
+    },
+    "imported": "インポート済み",
+    "importedTitle": "OCT以外で作成",
+    "left": "左",
+    "right": "右",
+    "master": "メインスピーカー",
+    "offline": "オフライン",
+    "members": "ステレオペアのスピーカー",
+    "dissolve": "解除",
+    "repair": "修復",
+    "repairing": "修復中",
+    "renameLabel": "ステレオペアの名前",
+    "clickToEdit": "クリックして名前を変更",
+    "dissolveNeedsBoth": "ペアを解除するには、両方のスピーカーに接続できる必要があります。{{name}} はオフラインです。",
+    "degradedTitle": "片方のスピーカーだけがペアになっています",
+    "degradedText": "ペアが正しく動作していません。修復すると、両方のスピーカーが初期の状態に戻ります。その後、ステレオペアを作り直せます。",
+    "creatingText": "作成中です。",
+    "showProgress": "進行状況を表示",
+    "background": "バックグラウンドで続行",
+    "confirmDissolveTitle": "ステレオペアを解除しますか？",
+    "confirmDissolveMessage": "「{{name}}」を解除します。その後、{{left}} と {{right}} は再び個別に再生します。",
+    "inPair": "ステレオペア内",
+    "defaultName": "{{left}} + {{right}}",
+    "reason": {
+      "not_provisioned": "OCTで未設定",
+      "offline": "オフライン",
+      "in_zone": "ゾーン内",
+      "in_pair": "ステレオペア内"
+    },
+    "dlg": {
+      "step1": "スピーカーを選択",
+      "step2": "左右を割り当て",
+      "step3": "作成",
+      "stepOf": "ステップ {{current}} / 3",
+      "pickLegend": "スピーカーを2台選んでください",
+      "pickHint": "OCTで設定済みのSoundTouch 10だけがペアを作れます。",
+      "pickCount": "2台中 {{count}} 台を選択",
+      "next": "次へ",
+      "back": "戻る",
+      "sidesTitle": "どのスピーカーがどこにありますか？",
+      "sidesHint": "スピーカーの正面に立ったときの左と右です。",
+      "swap": "左右を入れ替え",
+      "masterHint": "左のスピーカーが常にメインスピーカーです。再生、ソース、プリセットはこのスピーカーを通して操作します。",
+      "firmwareWarn": "ファームウェアのバージョンが異なります（{{left}} と {{right}}）。それでもステレオペアを作成できます。",
+      "nameLabel": "名前（任意）",
+      "nameHint": "未入力の場合: {{name}}",
+      "runningTitle": "ステレオペアを作成中",
+      "runningHint": "両方のスピーカーの電源を入れたままにしてください。",
+      "backgroundHint": "このウィンドウは閉じても構いません。ペアは「作成中」の状態で表示されます。",
+      "stepAnn": "ステップ {{n}} / 4: {{label}}",
+      "stepsLabel": "ステップ",
+      "successTitle": "ステレオペア「{{name}}」が有効になりました",
+      "successText": "{{left}} が左、{{right}} が右で再生します。再生は {{left}} から操作してください。",
+      "failedTitle": "ステレオペアを作成できませんでした",
+      "failedNothing": "何も変更されていません。",
+      "failedCode": "エラーコード: {{code}}",
+      "degradedText": "ペアを修復すると、両方のスピーカーを再び個別に使えるようになります。",
+      "retry": "もう一度試す",
+      "done": "完了"
+    },
+    "step": {
+      "preflight": "スピーカーを確認",
+      "create_left": "左のスピーカーを設定",
+      "create_right": "右のスピーカーを設定",
+      "verify": "結果を確認"
+    },
+    "stepState": {
+      "waiting": "待機中",
+      "running": "実行中",
+      "done": "完了",
+      "failed": "失敗"
+    },
+    "err": {
+      "stereo_pair_device_not_capable": "ステレオペアに対応していないスピーカーがあります。ペアを作れるのはSoundTouch 10だけです。",
+      "stereo_pair_device_not_provisioned": "OCTで設定されていないスピーカーが少なくとも1台あります。先にセットアップを開始してください。",
+      "stereo_pair_device_in_zone": "ゾーンに含まれているスピーカーが少なくとも1台あります。先にゾーンを解除してください。",
+      "stereo_pair_device_in_pair": "すでにステレオペアに入っているスピーカーが少なくとも1台あります。",
+      "stereo_pair_device_unreachable": "応答しないスピーカーがあります。電源とWi-Fiを確認して、もう一度試してください。",
+      "stereo_pair_marge_failed": "スピーカーがペアリングを受け付けませんでした。両方がOCTで設定されているか確認してください。",
+      "stereo_pair_verification_failed": "ペアリングを確認できませんでした。何も変更されていないか、処理が取り消されました。",
+      "stereo_pair_degraded": "ペアリングに失敗し、完全には元に戻せませんでした。ペアを修復してください。",
+      "stereo_pair_timeout": "サーバーが時間内に完了しませんでした。ステレオペアの一覧を確認して、もう一度試してください。"
+    },
+    "toast": {
+      "created": "ステレオペアを作成しました",
+      "createFailed": "ステレオペアを作成できませんでした",
+      "details": "詳細"
+    },
+    "pairBadge": "L/R ステレオ",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "左: {{left}} · 右: {{right}}",
+    "dissolved": "ステレオペア「{{name}}」を解除しました",
+    "dissolveFailed": "ステレオペアを解除できませんでした"
   }
 }

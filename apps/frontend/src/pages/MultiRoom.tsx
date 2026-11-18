@@ -10,12 +10,15 @@ import VolumeSlider from "../components/VolumeSlider";
 import NowPlaying from "../components/NowPlaying";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { DeviceNowPlaying } from "../components/DeviceNowPlaying";
+import StereoPairSection from "../components/StereoPairSection";
 import { Icon } from "../components/Icon";
 import "./MultiRoom.css";
 import { useToast } from "../contexts/ToastContext";
 
 interface MultiRoomProps {
   readonly devices?: Device[];
+  /** The stereo pairs changed: the device list (pair flags) is outdated */
+  readonly onDevicesStale?: () => void;
 }
 
 // ---- Zone Volume per Member ----
@@ -77,6 +80,7 @@ interface DeviceCardProps {
   isMaster: boolean;
   inZone: boolean;
   inEditZone: boolean;
+  inPair: boolean;
   stale: boolean;
   onToggle: () => void;
   onSetMaster: (deviceId: string) => void;
@@ -89,6 +93,7 @@ function DeviceCard({
   isMaster,
   inZone,
   inEditZone,
+  inPair,
   stale,
   onToggle,
   onSetMaster,
@@ -99,11 +104,12 @@ function DeviceCard({
   const badgesId = `${checkId}-badges`;
   const inOtherZone = inZone && !isSelected && !inEditZone;
   const showSlave = isSelected && !isMaster;
-  const hasBadges = stale || isMaster || showSlave || inOtherZone;
+  const blocked = inOtherZone || inPair;
+  const hasBadges = stale || isMaster || showSlave || inOtherZone || inPair;
 
   return (
     <motion.div
-      className={`mr-dev${isSelected ? " mr-dev--selected" : ""}${inOtherZone ? " mr-dev--zone" : ""}${stale ? " mr-dev--stale" : ""}`}
+      className={`mr-dev${isSelected ? " mr-dev--selected" : ""}${blocked ? " mr-dev--zone" : ""}${stale ? " mr-dev--stale" : ""}`}
       initial={false}
       animate={{ y: 0 }}
       transition={{ delay: Math.min(index, 6) * 0.05 }}
@@ -114,7 +120,7 @@ function DeviceCard({
         type="checkbox"
         checked={isSelected}
         onChange={onToggle}
-        disabled={inOtherZone}
+        disabled={blocked}
         aria-describedby={hasBadges ? badgesId : undefined}
       />
       <div className="mr-dev-main">
@@ -157,6 +163,14 @@ function DeviceCard({
                   {Icon.Link(14)}
                 </span>
                 {t("multiroom.inZone")}
+              </span>
+            )}
+            {inPair && (
+              <span className="ui-badge ui-badge--small">
+                <span className="ui-badge-icon" aria-hidden="true">
+                  {Icon.Speaker(14)}
+                </span>
+                {t("stereo.inPair", "In einem Stereopaar")}
               </span>
             )}
           </div>
@@ -250,7 +264,7 @@ function EditableZoneName({
   );
 }
 
-export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
+export default function MultiRoom({ devices = [], onDevicesStale }: Readonly<MultiRoomProps>) {
   const { t } = useTranslation();
   const [dissolving, setDissolving] = useState<{ masterId: string; name: string } | null>(null);
   const {
@@ -485,6 +499,7 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
                 isMaster={isMaster}
                 inZone={inZone}
                 inEditZone={inEditZone}
+                inPair={device.stereo_pair_id != null}
                 stale={stale}
                 onToggle={() => handleDeviceToggle(device.device_id)}
                 onSetMaster={handleSetMaster}
@@ -530,6 +545,9 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
           </motion.div>
         )}
       </motion.section>
+
+      {/* Stereo pairs */}
+      <StereoPairSection devices={devices} onPairsChanged={onDevicesStale} />
 
       {/* Info Box */}
       <motion.div

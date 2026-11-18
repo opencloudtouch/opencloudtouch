@@ -1,0 +1,244 @@
+/* sp-: create dialog (uses Modal size lg: full-screen sheet on phones). The panel has a fixed height, so the three steps never change its size. */
+.sp-stepline {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 20px 0;
+}
+.sp-stepline-text {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+.sp-stepline-num {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+.sp-stepline-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+.sp-stepline-seg {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-tertiary);
+}
+.sp-stepline-seg--on {
+  background: var(--primary-color);
+}
+.sp-body {
+  flex: 1 1 auto;
+}
+
+/* step 1 */
+.sp-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.sp-pick-legend {
+  padding: 0;
+  font-size: var(--fs-h3);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+.sp-pick-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 12px;
+}
+.sp-count {
+  margin: 0;
+  font-size: var(--fs-body);
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+.sp-wizard-link {
+  grid-column: 2 / -1;
+  grid-row: 2;
+  justify-self: start;
+  margin: 0 0 0 -12px;
+  min-height: var(--touch-target-min);
+  color: var(--primary-text);
+}
+.mr-dev:has(.sp-wizard-link) {
+  grid-template-rows: auto auto;
+}
+
+/* step 2 */
+.sp-sides {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sp-sides .ui-h3 {
+  margin: 0;
+}
+.sp-slots {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "left swap right";
+  gap: 12px;
+  align-items: stretch;
+}
+.sp-slot {
+  grid-area: left;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  background: var(--color-bg-card);
+}
+.sp-slot--right {
+  grid-area: right;
+}
+.sp-slot-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sp-slot-label {
+  font-size: var(--fs-h3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+.sp-slot-name {
+  font-size: var(--fs-lg);
+  line-height: 1.3;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.sp-slot .mr-dev-model {
+  margin-top: -2px;
+}
+.sp-swap {
+  grid-area: swap;
+  align-self: center;
+}
+@media (max-width: 600px) {
+  .sp-slots {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "left" "swap" "right";
+  }
+  .sp-swap {
+    justify-self: stretch;
+  }
+  .sp-swap-icon {
+    display: flex;
+    transform: rotate(90deg);
+  }
+}
+
+/* step 3: space for the longest state is reserved, result replaces the progress block in place */
+.sp-run {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.sp-run-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 72px;
+}
+.sp-run-head .ui-h3 {
+  margin: 0;
+}
+.sp-ops {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sp-op {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border-color);
+}
+.sp-op:last-child {
+  border-bottom: 1px solid var(--border-color);
+}
+.sp-op-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+.sp-op-icon .wz-spinner {
+  width: 20px;
+  height: 20px;
+}
+.sp-ring {
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 2px dashed var(--ui-control-border);
+  border-radius: 50%;
+}
+.sp-op-label {
+  font-size: var(--fs-body);
+  line-height: 1.35;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.sp-op--waiting .sp-op-label {
+  color: var(--color-text-secondary);
+}
+.sp-op--done .sp-op-icon {
+  color: var(--color-success);
+}
+.sp-op--failed .sp-op-icon,
+.sp-op--failed .sp-op-state {
+  color: var(--danger-text);
+}
+.sp-op--running .sp-op-label {
+  font-weight: var(--font-weight-bold);
+}
+.sp-op-state {
+  min-width: 7.5em;
+  text-align: right;
+  font-size: var(--fs-small);
+  color: var(--color-text-secondary);
+}
+@media (max-width: 400px) {
+  .sp-op-state {
+    min-width: 0;
+  }
+}
+.sp-code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
+@media (forced-colors: active) {
+  .sp-stepline-seg {
+    border: 1px solid CanvasText;
+  }
+  .sp-stepline-seg--on {
+    background: Highlight;
+  }
+  .sp-ring {
+    border-color: CanvasText;
+  }
+}

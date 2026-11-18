@@ -3,6 +3,7 @@
 import base64
 import json
 import logging
+from datetime import UTC
 from typing import Any
 from xml.etree import ElementTree as ET
 
@@ -54,6 +55,10 @@ def build_preset_xml(preset: Any) -> ET.Element:
         # RadioBrowser preset (real format)
         preset_id = str(preset.preset_number)
         source = getattr(preset, "source", None) or "LOCAL_INTERNET_RADIO"
+        if source not in _sources_by_name():
+            # e.g. INTERNET_RADIO imported from a speaker: without a known <source>
+            # the speaker drops the preset; the Orion location plays it anyway.
+            source = "LOCAL_INTERNET_RADIO"
         name = preset.station_name
         image_url = preset.station_favicon or ""
         # Build Orion adapter URL so the device resolves streams via BMX
@@ -203,3 +208,121 @@ def build_full_account_xml(
     account_elem.append(sources_xml)
 
     return account_elem
+
+
+def _source_element(parent: ET.Element, src: Any) -> ET.Element:
+    source = ET.SubElement(parent, "source", {"id": src.streaming_id, "type": "Audio"})
+    ET.SubElement(source, "createdOn").text = src.created_on
+    ET.SubElement(source, "credential", {"type": "token"})
+    ET.SubElement(source, "name").text = src.source_type
+    ET.SubElement(source, "sourceproviderid").text = src.streaming_id
+    ET.SubElement(source, "sourcename").text = src.source_type
+    ET.SubElement(source, "sourceSettings")
+    ET.SubElement(source, "updatedOn").text = src.created_on
+    ET.SubElement(source, "username")
+    return source
+
+
+_EPOCH = "2018-01-01T00:00:00.000+00:00"
+
+
+def _sources_by_name() -> dict[str, Any]:
+    return {src.source_type: src for src in BASE_SOURCES}
+
+
+def source_name_for_id(streaming_id: str) -> str | None:
+    """Source type for the Marge source id a speaker reports (e.g. "25" -> TUNEIN)."""
+    for src in BASE_SOURCES:
+        if src.streaming_id == streaming_id:
+            return src.source_type
+    return None
+
+
+def _format_time(moment: Any) -> str:
+    return moment.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%S.000+00:00")
+
+
+def build_recent_response_xml(recent: Any) -> ET.Element:
+    """Answer of ``POST .../device/{id}/recent``: the stored recent as a flat ``<recent>``."""
+    now = _format_time(recent.played_at)
+    element = ET.Element("recent", {"id": str(recent.id or 0)})
+    ET.SubElement(element, "contentItemType").text = "stationurl"
+    ET.SubElement(element, "createdOn").text = now
+    ET.SubElement(element, "lastplayedat").text = now
+    ET.SubElement(element, "location").text = recent.location
+    ET.SubElement(element, "name").text = recent.name
+    src = _sources_by_name().get(recent.source)
+    if src is not None:
+        _source_element(element, src)
+    ET.SubElement(element, "sourceid").text = src.streaming_id if src else ""
+    ET.SubElement(element, "updatedOn").text = now
+    return element
+
+
+def _item_children(parent: ET.Element, item: ET.Element, now: str) -> None:
+    """Fill the shared preset/recent children from a ``<ContentItem>`` element."""
+    content = item.find("ContentItem")
+    assert content is not None
+    ET.SubElement(parent, "containerArt").text = content.findtext("containerArt") or ""
+    ET.SubElement(parent, "contentItemType").text = "stationurl"
+    ET.SubElement(parent, "createdOn").text = now
+    ET.SubElement(parent, "location").text = content.get("location", "")
+    ET.SubElement(parent, "name").text = content.findtext("itemName") or ""
+    src = _sources_by_name().get(content.get("source", ""))
+    if src is not None:
+        _source_element(parent, src)
+    ET.SubElement(parent, "updatedOn").text = now
+    ET.SubElement(parent, "username")
+
+
+def build_preset_response_xml(preset: Any) -> ET.Element:
+    """One ``<preset buttonNumber>`` entry as the speaker's Marge calls expect it."""
+    element = build_preset_xml(preset)
+    entry = ET.Element("preset", {"buttonNumber": element.get("id", "")})
+    _item_children(entry, element, _EPOCH)
+    return entry
+
+
+def build_recents_response_xml(recents: list[Any] | None) -> ET.Element:
+    """``<recents>`` as listed in ``/full`` and answered to ``GET .../recents``."""
+    recent_list = ET.Element("recents")
+    for stored, recent in zip(recents or [], build_recents_xml(recents)):
+        entry = ET.SubElement(recent_list, "recent", {"id": str(stored.id or 0)})
+        _item_children(entry, recent, _EPOCH)
+        ET.SubElement(entry, "lastplayedat").text = _format_time(stored.played_at)
+        src = _sources_by_name().get(stored.source)
+        ET.SubElement(entry, "sourceid").text = src.streaming_id if src else ""
+    return recent_list
+
+
+def build_streaming_account_xml(
+    account_id: str,
+    device_id: str | None = None,
+    presets: list[Any] | None = None,
+    recents: list[Any] | None = None,
+) -> ET.Element:
+    """Build the ``<account>`` document the speaker's own Marge sync expects.
+
+    The speaker rejects any other root element ("account expected") and then
+    fails its sync, which also breaks group creation (error 5580).
+    Shape as the speaker sends and expects it.
+    """
+    now = _EPOCH
+    account = ET.Element("account", {"id": account_id})
+    ET.SubElement(account, "accountStatus").text = "OK"
+    devices = ET.SubElement(account, "devices")
+    if device_id:
+        device = ET.SubElement(devices, "device", {"deviceid": device_id})
+        ET.SubElement(device, "createdOn").text = now
+        preset_list = ET.SubElement(device, "presets")
+        for preset in presets or []:
+            preset_list.append(build_preset_response_xml(preset))
+        device.append(build_recents_response_xml(recents))
+        ET.SubElement(device, "updatedOn").text = now
+    ET.SubElement(account, "mode").text = "global"
+    ET.SubElement(account, "preferredLanguage").text = "en"
+    ET.SubElement(account, "providerSettings")
+    sources = ET.SubElement(account, "sources")
+    for src in BASE_SOURCES:
+        _source_element(sources, src)
+    return account

@@ -694,7 +694,7 @@
       "unknown": "Något gick fel.",
       "unknownWithCode": "Något gick fel (kod: {{code}}).",
       "device_not_found": "Enheten hittades inte.",
-      "device_unreachable": "Enheten kan inte nås. Kontrollera att den är påslagen och ansluten till nätverket.",
+      "device_unreachable": "Enheten kan inte nås. Kontrollera att den är påslagen och ansluten till nätverket. Åtgärden utfördes inte. Försök igen när den är online igen.",
       "not_found": "Den begärda resursen hittades inte.",
       "validation_error": "Begäran innehåller ogiltiga data. Kontrollera dina inmatningar.",
       "internal_error": "Ett internt fel inträffade. Försök igen senare."
@@ -906,5 +906,131 @@
     },
     "sourceUnreachable": "{{source}} kan inte nås",
     "sourceFailedKey": "{{source}}, kan inte nås. Försök igen"
+  },
+  "stereo": {
+    "title": "Stereopar",
+    "lead": "Två SoundTouch 10 spelar som en enda spelare: en till vänster, en till höger. Paret finns kvar även efter en omstart.",
+    "create": "Skapa stereopar",
+    "createNeedTwo": "Du behöver två lediga SoundTouch 10 för att skapa ett par.",
+    "createRunning": "Ett stereopar skapas just nu.",
+    "loading": "Laddar stereopar",
+    "errorLoading": "Stereoparen kunde inte laddas",
+    "retry": "Ladda om",
+    "empty": {
+      "none": {
+        "title": "Ingen högtalare för stereopar",
+        "text": "Stereopar fungerar bara med SoundTouch 10. Ingen har hittats än."
+      },
+      "one": {
+        "title": "En andra SoundTouch 10 saknas",
+        "text": "Ett stereopar kräver två SoundTouch 10. Hittad: {{name}}."
+      },
+      "setup": {
+        "title": "Högtalare ännu inte konfigurerade",
+        "text": "Stereopar kräver högtalare som är konfigurerade med OCT. Starta installationen för dina SoundTouch 10."
+      },
+      "ready": {
+        "title": "Inget stereopar ännu",
+        "text": "{{count}} SoundTouch 10 kan kopplas ihop till ett stereopar. En spelar till vänster, den andra till höger."
+      }
+    },
+    "openWizard": "Starta installationen",
+    "status": {
+      "active": "Aktivt",
+      "creating": "Skapas",
+      "degraded": "Avbrutet"
+    },
+    "imported": "Importerat",
+    "importedTitle": "Skapat utanför OCT",
+    "left": "Vänster",
+    "right": "Höger",
+    "master": "Huvudhögtalare",
+    "offline": "Offline",
+    "members": "Stereoparets högtalare",
+    "dissolve": "Lös upp",
+    "repair": "Reparera",
+    "repairing": "Repareras",
+    "renameLabel": "Stereoparets namn",
+    "clickToEdit": "Klicka för att byta namn",
+    "dissolveNeedsBoth": "Båda högtalarna måste vara nåbara för att lösa upp paret. {{name}} är offline.",
+    "degradedTitle": "Bara en högtalare är ihopkopplad",
+    "degradedText": "Paret fungerar inte som det ska. Vid reparation återställs båda högtalarna till ett rent tillstånd. Sedan kan du skapa stereoparet igen.",
+    "creatingText": "Skapas.",
+    "showProgress": "Visa förlopp",
+    "background": "Fortsätt i bakgrunden",
+    "confirmDissolveTitle": "Lösa upp stereoparet?",
+    "confirmDissolveMessage": "”{{name}}” löses upp. {{left}} och {{right}} spelar därefter var för sig igen.",
+    "inPair": "I ett stereopar",
+    "defaultName": "{{left}} + {{right}}",
+    "reason": {
+      "not_provisioned": "Inte konfigurerad med OCT",
+      "offline": "Offline",
+      "in_zone": "I en zon",
+      "in_pair": "I ett stereopar"
+    },
+    "dlg": {
+      "step1": "Välj högtalare",
+      "step2": "Tilldela sidor",
+      "step3": "Skapa",
+      "stepOf": "Steg {{current}} av 3",
+      "pickLegend": "Välj två högtalare",
+      "pickHint": "Bara SoundTouch 10 som är konfigurerade med OCT kan bilda ett par.",
+      "pickCount": "{{count}} av 2 valda",
+      "next": "Nästa",
+      "back": "Tillbaka",
+      "sidesTitle": "Vilken högtalare står var?",
+      "sidesHint": "Vänster och höger, som när du står framför högtalarna.",
+      "swap": "Byt sida",
+      "masterHint": "Den vänstra högtalaren är alltid huvudhögtalaren. Uppspelning, källa och förval styrs via den.",
+      "firmwareWarn": "Firmwareversionerna skiljer sig åt ({{left}} och {{right}}). Du kan ändå skapa stereoparet.",
+      "nameLabel": "Namn (valfritt)",
+      "nameHint": "Om du lämnar tomt: {{name}}",
+      "runningTitle": "Stereopar skapas",
+      "runningHint": "Låt båda högtalarna vara påslagna.",
+      "backgroundHint": "Du kan stänga det här fönstret. Paret visas då med statusen ”Skapas”.",
+      "stepAnn": "Steg {{n}} av 4: {{label}}",
+      "stepsLabel": "Steg",
+      "successTitle": "Stereoparet ”{{name}}” är aktivt",
+      "successText": "{{left}} spelar till vänster, {{right}} till höger. Styr uppspelningen via {{left}}.",
+      "failedTitle": "Stereoparet skapades inte",
+      "failedNothing": "Inget har ändrats.",
+      "failedCode": "Felkod: {{code}}",
+      "degradedText": "Reparera paret så att båda högtalarna kan användas var för sig igen.",
+      "retry": "Försök igen",
+      "done": "Klart"
+    },
+    "step": {
+      "preflight": "Kontrollerar högtalarna",
+      "create_left": "Konfigurerar vänster högtalare",
+      "create_right": "Konfigurerar höger högtalare",
+      "verify": "Kontrollerar resultatet"
+    },
+    "stepState": {
+      "waiting": "Väntar",
+      "running": "Pågår",
+      "done": "Klart",
+      "failed": "Misslyckades"
+    },
+    "err": {
+      "stereo_pair_device_not_capable": "En högtalare stöder inte stereopar. Bara SoundTouch 10 kan bilda ett par.",
+      "stereo_pair_device_not_provisioned": "Minst en högtalare är inte konfigurerad med OCT. Starta installationen först.",
+      "stereo_pair_device_in_zone": "Minst en högtalare ingår i en zon. Lös upp zonen först.",
+      "stereo_pair_device_in_pair": "Minst en högtalare är redan i ett stereopar.",
+      "stereo_pair_device_unreachable": "En högtalare svarar inte. Kontrollera strömmen och wifi och försök igen.",
+      "stereo_pair_marge_failed": "Högtalarna godtog inte ihopkopplingen. Kontrollera att båda är konfigurerade med OCT.",
+      "stereo_pair_verification_failed": "Ihopkopplingen kunde inte bekräftas. Inget har ändrats, eller så har åtgärden rullats tillbaka.",
+      "stereo_pair_degraded": "Ihopkopplingen misslyckades och kunde inte ångras helt. Reparera paret.",
+      "stereo_pair_timeout": "Servern blev inte klar i tid. Kontrollera listan över stereopar och försök igen."
+    },
+    "toast": {
+      "created": "Stereopar skapat",
+      "createFailed": "Stereoparet kunde inte skapas",
+      "details": "Detaljer"
+    },
+    "pairBadge": "L/R-stereo",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Vänster: {{left}} · Höger: {{right}}",
+    "dissolved": "Stereopar ”{{name}}” upplöst",
+    "dissolveFailed": "Stereoparet kunde inte upplösas"
   }
 }

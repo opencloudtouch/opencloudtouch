@@ -1,6 +1,6 @@
 {
   "name": "opencloudtouch",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "private": true,
   "description": "OpenCloudTouch - Local control for compatible streaming devices after cloud shutdown",
   "type": "module",
@@ -34,7 +34,7 @@
     "audit:vision:llama": "python .local/tools/analyze_ux_screenshots.py --model llama-vision --resume",
     "audit:vision:llama-large": "python .local/tools/analyze_ux_screenshots.py --model llama-vision-large --resume",
     "generate:openapi": "cd apps/backend && python -c \"from opencloudtouch.main import app; import yaml; f=open('openapi.yaml','w',encoding='utf-8'); f.write(yaml.dump(app.openapi(),sort_keys=False,allow_unicode=True)); f.close(); print('OpenAPI YAML exported')\"",
-    "generate:types": "npx openapi-typescript apps/backend/openapi.yaml -o apps/frontend/src/api/generated/schema.ts",
+    "generate:types": "npx openapi-typescript apps/backend/openapi.yaml -o apps/frontend/src/api/generated/schema.ts && npx prettier --write apps/frontend/src/api/generated/schema.ts",
     "generate:api": "npm run generate:openapi && npm run generate:types",
     "lint": "npm run lint --workspace=apps/frontend",
     "clean": "npm run clean --workspaces --if-present && rimraf node_modules .venv data-local .out .pytest_cache"

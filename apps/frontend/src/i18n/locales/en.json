@@ -694,7 +694,7 @@
       "unknown": "Something went wrong.",
       "unknownWithCode": "Something went wrong (code: {{code}}).",
       "device_not_found": "The device was not found.",
-      "device_unreachable": "The device is not reachable. Check that it is switched on and connected to the network.",
+      "device_unreachable": "The device is not reachable. Check that it is switched on and connected to the network. The action was not carried out. Try again once it is back online.",
       "not_found": "The requested resource was not found.",
       "validation_error": "The request contains invalid data. Please check your inputs.",
       "internal_error": "An internal error occurred. Please try again later."
@@ -906,5 +906,131 @@
     },
     "sourceUnreachable": "{{source}} not reachable",
     "sourceFailedKey": "{{source}}, not reachable. Try again"
+  },
+  "stereo": {
+    "title": "Stereo pairs",
+    "lead": "Two SoundTouch 10 speakers play as one player: one left, one right. The pair persists across restarts.",
+    "create": "Create stereo pair",
+    "createNeedTwo": "Two free SoundTouch 10 speakers are needed to create a pair.",
+    "createRunning": "A stereo pair is being created.",
+    "loading": "Loading stereo pairs",
+    "errorLoading": "Stereo pairs could not be loaded",
+    "retry": "Reload",
+    "empty": {
+      "none": {
+        "title": "No speaker for stereo pairs",
+        "text": "Stereo pairs only work with the SoundTouch 10. None has been found yet."
+      },
+      "one": {
+        "title": "A second SoundTouch 10 is missing",
+        "text": "A stereo pair needs two SoundTouch 10 speakers. Found: {{name}}."
+      },
+      "setup": {
+        "title": "Speakers not set up yet",
+        "text": "Stereo pairs need speakers that are set up with OCT. Start the setup for your SoundTouch 10 speakers."
+      },
+      "ready": {
+        "title": "No stereo pair yet",
+        "text": "{{count}} SoundTouch 10 speakers can be joined into a stereo pair. One plays left, the other right."
+      }
+    },
+    "openWizard": "Start setup",
+    "status": {
+      "active": "Active",
+      "creating": "Creating",
+      "degraded": "Interrupted"
+    },
+    "imported": "Imported",
+    "importedTitle": "Created outside OCT",
+    "left": "Left",
+    "right": "Right",
+    "master": "Main speaker",
+    "offline": "Offline",
+    "members": "Speakers of the stereo pair",
+    "dissolve": "Dissolve",
+    "repair": "Repair",
+    "repairing": "Repairing",
+    "renameLabel": "Stereo pair name",
+    "clickToEdit": "Click to rename",
+    "dissolveNeedsBoth": "Both speakers must be reachable to dissolve the pair. {{name}} is offline.",
+    "degradedTitle": "Only one speaker is paired",
+    "degradedText": "The pair does not work properly. Repairing resets both speakers to a clean state. Afterwards you can create the stereo pair again.",
+    "creatingText": "Creating.",
+    "showProgress": "Show progress",
+    "background": "Continue in background",
+    "confirmDissolveTitle": "Dissolve stereo pair?",
+    "confirmDissolveMessage": "“{{name}}” will be dissolved. {{left}} and {{right}} play individually again afterwards.",
+    "inPair": "In a stereo pair",
+    "defaultName": "{{left}} + {{right}}",
+    "reason": {
+      "not_provisioned": "Not set up with OCT",
+      "offline": "Offline",
+      "in_zone": "In a zone",
+      "in_pair": "In a stereo pair"
+    },
+    "dlg": {
+      "step1": "Choose speakers",
+      "step2": "Assign sides",
+      "step3": "Create",
+      "stepOf": "Step {{current}} of 3",
+      "pickLegend": "Choose two speakers",
+      "pickHint": "Only SoundTouch 10 speakers that are set up with OCT can form a pair.",
+      "pickCount": "{{count}} of 2 selected",
+      "next": "Next",
+      "back": "Back",
+      "sidesTitle": "Which speaker stands where?",
+      "sidesHint": "Left and right as you face the speakers.",
+      "swap": "Swap sides",
+      "masterHint": "The left speaker is always the main speaker. Playback, source and presets are controlled through it.",
+      "firmwareWarn": "The firmware versions differ ({{left}} and {{right}}). You can still create the stereo pair.",
+      "nameLabel": "Name (optional)",
+      "nameHint": "If left empty: {{name}}",
+      "runningTitle": "Creating stereo pair",
+      "runningHint": "Keep both speakers switched on.",
+      "backgroundHint": "You can close this window. The pair then appears with the status “Creating”.",
+      "stepAnn": "Step {{n}} of 4: {{label}}",
+      "stepsLabel": "Steps",
+      "successTitle": "Stereo pair “{{name}}” is active",
+      "successText": "{{left}} plays left, {{right}} plays right. Control playback through {{left}}.",
+      "failedTitle": "The stereo pair was not created",
+      "failedNothing": "Nothing was changed.",
+      "failedCode": "Error code: {{code}}",
+      "degradedText": "Repair the pair so that both speakers can be used individually again.",
+      "retry": "Try again",
+      "done": "Done"
+    },
+    "step": {
+      "preflight": "Checking speakers",
+      "create_left": "Setting up the left speaker",
+      "create_right": "Setting up the right speaker",
+      "verify": "Verifying the result"
+    },
+    "stepState": {
+      "waiting": "Waiting",
+      "running": "Running",
+      "done": "Done",
+      "failed": "Failed"
+    },
+    "err": {
+      "stereo_pair_device_not_capable": "A speaker does not support stereo pairs. Only the SoundTouch 10 can form a pair.",
+      "stereo_pair_device_not_provisioned": "At least one speaker is not set up with OCT. Start the setup first.",
+      "stereo_pair_device_in_zone": "At least one speaker is part of a zone. Dissolve the zone first.",
+      "stereo_pair_device_in_pair": "At least one speaker is already in a stereo pair.",
+      "stereo_pair_device_unreachable": "A speaker does not respond. Check power and Wi-Fi and try again.",
+      "stereo_pair_marge_failed": "The speakers did not accept the pairing. Check that both are set up with OCT.",
+      "stereo_pair_verification_failed": "The pairing could not be confirmed. Nothing was changed, or the operation was rolled back.",
+      "stereo_pair_degraded": "The pairing failed and could not be fully undone. Repair the pair.",
+      "stereo_pair_timeout": "The server did not finish in time. Check the stereo pair list and try again."
+    },
+    "toast": {
+      "created": "Stereo pair created",
+      "createFailed": "The stereo pair could not be created",
+      "details": "Details"
+    },
+    "pairBadge": "L/R Stereo",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Left: {{left}} · Right: {{right}}",
+    "dissolved": "Stereo pair “{{name}}” dissolved",
+    "dissolveFailed": "The stereo pair could not be dissolved"
   }
 }
