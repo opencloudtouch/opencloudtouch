@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A shuffle or repeat key press keeps the artwork, artist and track the cached now-playing already shows, instead of replacing them with the raw speaker state
 
 ### Added
+- A Playwright check (`apps/frontend/tests/playwright/`) verifies that the shuffle and repeat controls expose their state, show the repeat-one badge and show a focus outline in forced-colors mode
 - The speaker's shuffle and repeat settings are read from its now-playing state (`shuffle_setting` and `repeat_setting`, raw values such as `SHUFFLE_ON` or `REPEAT_ALL`, `null` when not reported)
 - The shuffle and repeat settings are kept when the metadata is enriched (preset favicon and ICY station data), so the speaker's values are not dropped from the now-playing state
 - The generated frontend API types describe the typed `NowPlayingResponse` and `KeyPressResponse` responses, including the shuffle and repeat fields

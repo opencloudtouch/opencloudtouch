@@ -22,6 +22,7 @@ export default defineConfig({
       '**/dist/**',
       '**/tests/real/**', // Exclude real device tests from default runs
       '**/tests/e2e/**', // Exclude Cypress E2E tests
+      '**/tests/playwright/**', // Exclude Playwright specs (run by `npx playwright test`)
     ],
     coverage: {
       provider: 'v8',
