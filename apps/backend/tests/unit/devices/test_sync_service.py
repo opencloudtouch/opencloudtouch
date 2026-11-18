@@ -122,6 +122,131 @@ async def test_mock_capabilities_return_none_on_bass_probe_failure(monkeypatch):
     assert flags is None
 
 
+@pytest.mark.asyncio
+async def test_real_capabilities_reuse_existing_client(monkeypatch):
+    """Capability detection must reuse the client passed by the sync."""
+    from opencloudtouch.devices.capabilities import DeviceCapabilities
+    from opencloudtouch.devices.client import BassCapabilities
+
+    monkeypatch.setenv("OCT_MOCK_MODE", "false")
+
+    client = MagicMock()
+    client.get_detailed_capabilities = AsyncMock(
+        return_value=DeviceCapabilities(
+            device_id="AABBCC112233",
+            device_type="SoundTouch 20",
+        )
+    )
+    client.get_bass_capabilities = AsyncMock(
+        return_value=BassCapabilities(
+            available=True,
+            minimum=-9,
+            maximum=0,
+            default=0,
+        )
+    )
+
+    flags = await original_fetch_capabilities("192.168.1.100", client)
+
+    client.get_detailed_capabilities.assert_awaited_once_with()
+    client.get_bass_capabilities.assert_awaited_once_with()
+    assert flags["settings"]["bass"] == {
+        "available": True,
+        "minimum": -9,
+        "maximum": 0,
+        "default": 0,
+    }
+
+
+@pytest.mark.asyncio
+async def test_mock_capabilities_skip_detailed_probe(monkeypatch):
+    """Mock clients must not need the real-device capability method."""
+    monkeypatch.setenv("OCT_MOCK_MODE", "true")
+    client = MockDeviceClient("AABBCC112233")
+
+    flags = await original_fetch_capabilities("192.168.1.100", client)
+
+    assert flags is not None
+    assert flags["device_id"] == "AABBCC112233"
+
+
+@pytest.mark.asyncio
+async def test_real_capabilities_handle_detailed_probe_failure(monkeypatch):
+    """A failed capability probe must not interrupt device synchronization."""
+    monkeypatch.setenv("OCT_MOCK_MODE", "false")
+
+    client = MagicMock()
+    client.get_detailed_capabilities = AsyncMock(
+        side_effect=ConnectionError("Device unavailable")
+    )
+    client.get_bass_capabilities = AsyncMock()
+
+    flags = await original_fetch_capabilities("192.168.1.100", client)
+
+    assert flags is None
+    client.get_detailed_capabilities.assert_awaited_once_with()
+    client.get_bass_capabilities.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_real_capabilities_do_not_use_ip_wrapper(monkeypatch):
+    """Real device sync must not create another client for capability detection."""
+    from opencloudtouch.devices.capabilities import DeviceCapabilities
+    from opencloudtouch.devices.client import BassCapabilities
+    from opencloudtouch.devices.services import sync_service
+
+    monkeypatch.setenv("OCT_MOCK_MODE", "false")
+
+    old_wrapper = AsyncMock(
+        side_effect=AssertionError("Old IP wrapper must not be called")
+    )
+    monkeypatch.setattr(sync_service, "get_capabilities_for_ip", old_wrapper)
+
+    client = MagicMock()
+    client.get_detailed_capabilities = AsyncMock(
+        return_value=DeviceCapabilities(
+            device_id="AABBCC112233",
+            device_type="SoundTouch 20",
+        )
+    )
+    client.get_bass_capabilities = AsyncMock(
+        return_value=BassCapabilities(available=True, minimum=-9, maximum=0, default=0)
+    )
+
+    flags = await original_fetch_capabilities("192.168.1.100", client)
+
+    assert flags is not None
+    client.get_detailed_capabilities.assert_awaited_once_with()
+    old_wrapper.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_real_capabilities_fallback_for_other_client(monkeypatch):
+    """Other client implementations retain the original capability path."""
+    from opencloudtouch.devices.capabilities import DeviceCapabilities
+    from opencloudtouch.devices.client import BassCapabilities
+    from opencloudtouch.devices.services import sync_service
+
+    monkeypatch.setenv("OCT_MOCK_MODE", "false")
+
+    old_wrapper = AsyncMock(
+        return_value=DeviceCapabilities(
+            device_id="AABBCC112233",
+            device_type="SoundTouch 20",
+        )
+    )
+    monkeypatch.setattr(sync_service, "get_capabilities_for_ip", old_wrapper)
+
+    class AlternativeClient:
+        async def get_bass_capabilities(self):
+            return BassCapabilities(available=True, minimum=-9, maximum=0, default=0)
+
+    flags = await original_fetch_capabilities("192.168.1.100", AlternativeClient())
+
+    assert flags is not None
+    old_wrapper.assert_awaited_once_with("192.168.1.100")
+
+
 class TestDeviceSyncService:
     """Test suite for DeviceSyncService."""
 

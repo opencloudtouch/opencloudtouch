@@ -355,7 +355,10 @@ class DeviceSyncService:
                     has_lr_stereo="SoundTouch 10" in (info.type or ""),
                 )
             else:
-                detected = await get_capabilities_for_ip(device_ip)
+                if hasattr(client, "get_detailed_capabilities"):
+                    detected = await client.get_detailed_capabilities()
+                else:
+                    detected = await get_capabilities_for_ip(device_ip)
 
             flags = get_feature_flags_for_ui(detected)
 

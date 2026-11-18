@@ -376,3 +376,23 @@ class TestBass:
         assert request.method == "POST"
         assert request.url.path == "/bass"
         assert b"<bass>-4</bass>" in request.content
+
+
+@pytest.mark.asyncio
+async def test_get_detailed_capabilities_reuses_existing_bose_client(monkeypatch):
+    """Capability detection uses the existing Bose client instance."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from opencloudtouch.devices import capabilities
+    from opencloudtouch.devices.client_adapter import BoseDeviceClientAdapter
+
+    adapter = BoseDeviceClientAdapter.__new__(BoseDeviceClientAdapter)
+    adapter._client = MagicMock()
+
+    fetch = AsyncMock(return_value=object())
+    monkeypatch.setattr(capabilities, "get_device_capabilities", fetch)
+
+    result = await adapter.get_detailed_capabilities()
+
+    fetch.assert_awaited_once_with(adapter._client)
+    assert result is fetch.return_value
