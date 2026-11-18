@@ -1,0 +1,784 @@
+import httpx
+import pytest
+
+from opencloudtouch.system import update_service
+
+
+@pytest.fixture(autouse=True)
+def reset_release_cache(monkeypatch):
+    monkeypatch.setattr(update_service, "_release_cache", None)
+    monkeypatch.setattr(update_service, "_release_cache_time", 0.0)
+
+
+class FakeResponse:
+    def __init__(self, data=None, status_code=200):
+        self._data = data
+        self.status_code = status_code
+
+    def json(self):
+        return self._data
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError(f"HTTP {self.status_code}")
+
+
+class FakeStream:
+    def __init__(self, lines):
+        self.lines = lines
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type,
+        exc,
+        tb,
+    ):
+        return False
+
+    def raise_for_status(self):
+        pass
+
+    async def aiter_lines(self):
+        for line in self.lines:
+            yield line
+
+
+class FakeClient:
+    def __init__(self):
+        self.requests = []
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type,
+        exc,
+        tb,
+    ):
+        return False
+
+    async def get(self, path):
+        self.requests.append(("GET", path))
+
+        if path == "/containers/json":
+            return FakeResponse(
+                [
+                    {
+                        "Id": "oct123",
+                        "Names": ["/opencloudtouch"],
+                    }
+                ]
+            )
+
+        if path == "/containers/oct123/json":
+            return FakeResponse(
+                {
+                    "Image": "sha256:oldimage",
+                    "Config": {
+                        "Image": ("ghcr.io/opencloudtouch/opencloudtouch:1.5.8")
+                    },
+                    "Mounts": [
+                        {
+                            "Type": "volume",
+                            "Name": "oct-data",
+                            "Destination": "/data",
+                        }
+                    ],
+                }
+            )
+
+        raise AssertionError(f"Unexpected GET {path}")
+
+    async def post(
+        self,
+        path,
+        params=None,
+        json=None,
+    ):
+        self.requests.append(("POST", path, params, json))
+
+        if path == "/containers/create":
+            return FakeResponse({"Id": "helper123"})
+
+        if path == "/containers/helper123/start":
+            return FakeResponse()
+
+        raise AssertionError(f"Unexpected POST {path}")
+
+    def stream(
+        self,
+        method,
+        path,
+        params=None,
+    ):
+        self.requests.append((method, path, params))
+
+        return FakeStream(
+            [
+                (
+                    '{"status":"Downloading",'
+                    '"id":"layer1",'
+                    '"progressDetail":'
+                    '{"current":50,"total":100}}'
+                ),
+                (
+                    '{"status":"Download complete",'
+                    '"id":"layer1",'
+                    '"progressDetail":'
+                    '{"current":100,"total":100}}'
+                ),
+            ]
+        )
+
+
+def test_parse_version():
+    assert update_service.parse_version("1.5.8") == (1, 5, 8)
+
+    assert update_service.parse_version("v2.0.1") == (2, 0, 1)
+
+
+def test_parse_version_rejects_invalid():
+    with pytest.raises(ValueError):
+        update_service.parse_version("latest")
+
+
+def test_target_image_uses_release_tag():
+    assert update_service.target_image_for_version("1.5.9") == (
+        "ghcr.io/opencloudtouch/opencloudtouch:1.5.9"
+    )
+
+
+def test_current_container_ids_prefers_docker_hostname(monkeypatch):
+    monkeypatch.setenv("HOSTNAME", "abc123def456")
+    monkeypatch.setattr(update_service.Path, "read_text", lambda *args, **kwargs: "")
+
+    assert update_service._current_container_ids() == ["abc123def456"]
+
+
+def test_split_image_reference():
+    assert update_service.split_image_reference(
+        "ghcr.io/opencloudtouch/opencloudtouch:1.5.9"
+    ) == (
+        "ghcr.io/opencloudtouch/opencloudtouch",
+        "1.5.9",
+    )
+
+
+def test_split_image_reference_defaults_latest():
+    assert update_service.split_image_reference(
+        "ghcr.io/opencloudtouch/opencloudtouch"
+    ) == (
+        "ghcr.io/opencloudtouch/opencloudtouch",
+        "latest",
+    )
+
+
+@pytest.mark.asyncio
+async def test_check_for_update_official(
+    monkeypatch,
+):
+    async def fake_release():
+        return {
+            "latest": "1.5.9",
+            "release_url": ("https://example.test/v1.5.9"),
+        }
+
+    monkeypatch.setattr(
+        update_service,
+        "get_latest_release",
+        fake_release,
+    )
+    monkeypatch.setattr(
+        update_service,
+        "get_self_update_capability",
+        lambda: {"self_update_enabled": True, "self_update_reason": None},
+    )
+    monkeypatch.setattr(
+        update_service,
+        "__version__",
+        "1.5.8",
+    )
+    monkeypatch.setattr(
+        update_service,
+        "is_official_build",
+        lambda: True,
+    )
+
+    result = await update_service.check_for_update()
+
+    assert result == {
+        "current": "1.5.8",
+        "latest": "1.5.9",
+        "update_available": True,
+        "release_url": ("https://example.test/v1.5.9"),
+        "self_update_enabled": True,
+        "self_update_reason": None,
+    }
+
+
+def test_self_update_capability_reports_missing_socket(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        update_service,
+        "DOCKER_SOCKET",
+        str(tmp_path / "missing-docker.sock"),
+    )
+
+    assert update_service.get_self_update_capability() == {
+        "self_update_enabled": False,
+        "self_update_reason": "Docker socket is not mounted",
+    }
+
+
+def test_self_update_capability_reports_accessible_socket(tmp_path, monkeypatch):
+    socket_path = tmp_path / "docker.sock"
+    socket_path.touch()
+    monkeypatch.setattr(update_service, "DOCKER_SOCKET", str(socket_path))
+    monkeypatch.setattr(update_service.os, "access", lambda *args: True)
+
+    assert update_service.get_self_update_capability() == {
+        "self_update_enabled": True,
+        "self_update_reason": None,
+    }
+
+
+def test_self_update_capability_reports_inaccessible_socket(tmp_path, monkeypatch):
+    socket_path = tmp_path / "docker.sock"
+    socket_path.touch()
+    monkeypatch.setattr(update_service, "DOCKER_SOCKET", str(socket_path))
+    monkeypatch.setattr(update_service.os, "access", lambda *args: False)
+
+    assert update_service.get_self_update_capability() == {
+        "self_update_enabled": False,
+        "self_update_reason": "Docker socket is not accessible",
+    }
+
+
+@pytest.mark.asyncio
+async def test_check_for_update_no_downgrade(
+    monkeypatch,
+):
+    async def fake_release():
+        return {
+            "latest": "1.5.7",
+            "release_url": ("https://example.test/v1.5.7"),
+        }
+
+    monkeypatch.setattr(
+        update_service,
+        "get_latest_release",
+        fake_release,
+    )
+    monkeypatch.setattr(
+        update_service,
+        "__version__",
+        "1.5.8",
+    )
+    monkeypatch.setattr(
+        update_service,
+        "is_official_build",
+        lambda: True,
+    )
+
+    result = await update_service.check_for_update()
+
+    assert result["update_available"] is False
+
+
+@pytest.mark.asyncio
+async def test_community_build_not_updateable(
+    monkeypatch,
+):
+    async def fake_release():
+        return {
+            "latest": "1.5.9",
+            "release_url": ("https://example.test/v1.5.9"),
+        }
+
+    monkeypatch.setattr(
+        update_service,
+        "get_latest_release",
+        fake_release,
+    )
+    monkeypatch.setattr(
+        update_service,
+        "__version__",
+        "1.5.8",
+    )
+    monkeypatch.setattr(
+        update_service,
+        "is_official_build",
+        lambda: False,
+    )
+
+    result = await update_service.check_for_update()
+
+    assert result["update_available"] is False
+
+
+@pytest.mark.asyncio
+async def test_get_oct_container(monkeypatch):
+    client = FakeClient()
+
+    async def fake_get_docker_client():
+        return client
+
+    monkeypatch.setattr(
+        update_service,
+        "get_docker_client",
+        fake_get_docker_client,
+    )
+    monkeypatch.setattr(update_service, "_current_container_ids", list)
+
+    container = await update_service.get_oct_container()
+
+    assert container["Id"] == "oct123"
+
+
+@pytest.mark.asyncio
+async def test_pull_oct_image_reports_progress(
+    monkeypatch,
+):
+    client = FakeClient()
+    progress = []
+
+    async def fake_get_docker_client():
+        return client
+
+    monkeypatch.setattr(
+        update_service,
+        "get_docker_client",
+        fake_get_docker_client,
+    )
+
+    await update_service.pull_oct_image(
+        ("ghcr.io/opencloudtouch/opencloudtouch:1.5.9"),
+        lambda pct, message: progress.append((pct, message)),
+    )
+
+    assert progress
+    assert progress[-1] == (
+        90,
+        "Image download complete",
+    )
+
+
+@pytest.mark.asyncio
+async def test_launch_helper_uses_old_image(
+    monkeypatch,
+):
+    client = FakeClient()
+
+    async def fake_get_docker_client():
+        return client
+
+    monkeypatch.setattr(
+        update_service,
+        "get_docker_client",
+        fake_get_docker_client,
+    )
+
+    helper_id = await update_service.launch_update_helper(
+        "oct123",
+        ("ghcr.io/opencloudtouch/opencloudtouch:1.5.9"),
+    )
+
+    assert helper_id == "helper123"
+
+    create_request = next(
+        request
+        for request in client.requests
+        if request[0:2] == ("POST", "/containers/create")
+    )
+
+    assert create_request[2] is None
+
+    config = create_request[3]
+
+    assert config["Image"] == ("sha256:oldimage")
+
+    assert config["Cmd"][-1] == ("ghcr.io/opencloudtouch/opencloudtouch:1.5.9")
+
+    assert "oct-data:/oct-update-data:rw" in config["HostConfig"]["Binds"]
+
+
+class AsyncClient:
+    def __init__(self, response=None):
+        self.response = response
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return False
+
+    async def get(self, path):
+        return self.response
+
+
+@pytest.mark.asyncio
+async def test_get_latest_release_success(monkeypatch):
+    client = AsyncClient(
+        FakeResponse(
+            {
+                "tag_name": "v1.5.9",
+                "html_url": "https://example.test/v1.5.9",
+            }
+        )
+    )
+
+    monkeypatch.setattr(
+        update_service.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: client,
+    )
+
+    result = await update_service.get_latest_release()
+
+    assert result == {
+        "latest": "1.5.9",
+        "release_url": "https://example.test/v1.5.9",
+    }
+
+
+@pytest.mark.asyncio
+async def test_get_latest_release_rejects_missing_tag(monkeypatch):
+    client = AsyncClient(
+        FakeResponse(
+            {
+                "html_url": "https://example.test/release",
+            }
+        )
+    )
+
+    monkeypatch.setattr(
+        update_service.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: client,
+    )
+
+    with pytest.raises(
+        update_service.UpdateCheckError,
+        match="tag_name",
+    ):
+        await update_service.get_latest_release()
+
+
+@pytest.mark.asyncio
+async def test_get_latest_release_handles_network_error(monkeypatch):
+    class Client:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def get(self, path):
+            raise httpx.ConnectError("network down")
+
+    monkeypatch.setattr(
+        update_service.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: Client(),
+    )
+
+    with pytest.raises(
+        update_service.UpdateCheckError,
+        match="Failed to check",
+    ):
+        await update_service.get_latest_release()
+
+
+@pytest.mark.asyncio
+async def test_get_oct_container_returns_none(monkeypatch):
+    client = AsyncClient(
+        FakeResponse(
+            [
+                {
+                    "Id": "other123",
+                    "Names": ["/something-else"],
+                }
+            ]
+        )
+    )
+
+    async def fake_client():
+        return client
+
+    monkeypatch.setattr(
+        update_service,
+        "get_docker_client",
+        fake_client,
+    )
+    monkeypatch.setattr(update_service, "_current_container_ids", list)
+
+    assert await update_service.get_oct_container() is None
+
+
+@pytest.mark.asyncio
+async def test_get_oct_container_uses_own_container_id(monkeypatch):
+    expected = {"Id": "abc123def456", "Name": "/renamed-oct"}
+
+    class Client:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def get(self, path):
+            assert path == "/containers/abc123def456/json"
+            return FakeResponse(expected)
+
+    async def fake_client():
+        return Client()
+
+    monkeypatch.setattr(update_service, "get_docker_client", fake_client)
+    monkeypatch.setattr(
+        update_service,
+        "_current_container_ids",
+        lambda: ["abc123def456"],
+    )
+
+    assert await update_service.get_oct_container() == expected
+
+
+@pytest.mark.asyncio
+async def test_get_container_inspect(monkeypatch):
+    expected = {
+        "Id": "abc123",
+        "Image": "sha256:test",
+    }
+
+    client = AsyncClient(FakeResponse(expected))
+
+    async def fake_client():
+        return client
+
+    monkeypatch.setattr(
+        update_service,
+        "get_docker_client",
+        fake_client,
+    )
+
+    assert await update_service.get_container_inspect("abc123") == expected
+
+
+@pytest.mark.asyncio
+async def test_launch_helper_rejects_unsupported_mount(monkeypatch):
+    client = AsyncClient(
+        FakeResponse(
+            {
+                "Image": "sha256:old",
+                "Mounts": [
+                    {
+                        "Type": "tmpfs",
+                        "Destination": "/data",
+                    }
+                ],
+            }
+        )
+    )
+
+    async def fake_client():
+        return client
+
+    monkeypatch.setattr(
+        update_service,
+        "get_docker_client",
+        fake_client,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Unsupported /data mount type",
+    ):
+        await update_service.launch_update_helper(
+            "old123",
+            "ghcr.io/opencloudtouch/opencloudtouch:1.5.9",
+        )
+
+
+def test_split_image_reference_rejects_digest():
+    with pytest.raises(ValueError, match="Digest"):
+        update_service.split_image_reference(
+            "ghcr.io/opencloudtouch/opencloudtouch@sha256:abc"
+        )
+
+
+@pytest.mark.asyncio
+async def test_launch_helper_supports_bind_mount(monkeypatch):
+    created = {}
+
+    class Client:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def get(self, path):
+            return FakeResponse(
+                {
+                    "Image": "sha256:old",
+                    "Mounts": [
+                        {
+                            "Type": "bind",
+                            "Source": "/srv/oct-data",
+                            "Destination": "/data",
+                        }
+                    ],
+                }
+            )
+
+        async def post(self, path, params=None, json=None):
+            if path == "/containers/create":
+                created["config"] = json
+                return FakeResponse({"Id": "helper123"})
+            return FakeResponse()
+
+    async def fake_client():
+        return Client()
+
+    monkeypatch.setattr(
+        update_service,
+        "get_docker_client",
+        fake_client,
+    )
+
+    result = await update_service.launch_update_helper(
+        "old123",
+        "ghcr.io/opencloudtouch/opencloudtouch:1.5.9",
+    )
+
+    assert result == "helper123"
+    assert (
+        "/srv/oct-data:/oct-update-data:rw" in created["config"]["HostConfig"]["Binds"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_launch_helper_requires_data_mount(monkeypatch):
+    class Client:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def get(self, path):
+            return FakeResponse(
+                {
+                    "Image": "sha256:old",
+                    "Mounts": [],
+                }
+            )
+
+    async def fake_client():
+        return Client()
+
+    monkeypatch.setattr(
+        update_service,
+        "get_docker_client",
+        fake_client,
+    )
+
+    with pytest.raises(RuntimeError, match="/data mount not found"):
+        await update_service.launch_update_helper(
+            "old123",
+            "ghcr.io/opencloudtouch/opencloudtouch:1.5.9",
+        )
+
+
+@pytest.mark.asyncio
+async def test_release_cache_reuses_response(monkeypatch):
+    calls = 0
+
+    async def fetch():
+        nonlocal calls
+        calls += 1
+        return {"latest": "1.5.9", "release_url": "https://example.test/release"}
+
+    monkeypatch.setattr(update_service, "_fetch_latest_release", fetch)
+    monkeypatch.setattr(update_service, "_release_cache", None)
+    monkeypatch.setattr(update_service, "_release_cache_time", 0.0)
+
+    first = await update_service.get_latest_release()
+    second = await update_service.get_latest_release()
+    assert first == second
+    assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_release_cache_refreshes_after_expiry(monkeypatch):
+    calls = 0
+
+    async def fetch():
+        nonlocal calls
+        calls += 1
+        return {"latest": "1.5.9", "release_url": "https://example.test/release"}
+
+    monkeypatch.setattr(update_service, "_fetch_latest_release", fetch)
+    monkeypatch.setattr(update_service, "_release_cache", None)
+    monkeypatch.setattr(update_service, "_release_cache_time", 0.0)
+    monkeypatch.setattr(update_service.time, "monotonic", lambda: 10000.0)
+    await update_service.get_latest_release()
+    monkeypatch.setattr(update_service.time, "monotonic", lambda: 12000.0)
+    await update_service.get_latest_release()
+    assert calls == 2
+
+
+@pytest.mark.asyncio
+async def test_concurrent_release_checks_share_one_request(monkeypatch):
+    import asyncio
+
+    calls = 0
+
+    async def fetch():
+        nonlocal calls
+        calls += 1
+        await asyncio.sleep(0)
+        return {
+            "latest": "1.5.9",
+            "release_url": "https://example.test/release",
+        }
+
+    monkeypatch.setattr(update_service, "_fetch_latest_release", fetch)
+    monkeypatch.setattr(update_service, "_release_cache", None)
+    monkeypatch.setattr(update_service, "_release_cache_time", 0.0)
+
+    results = await asyncio.gather(
+        *(update_service.get_latest_release() for _ in range(10))
+    )
+
+    assert calls == 1
+    assert all(result == results[0] for result in results)
+
+
+@pytest.mark.asyncio
+async def test_get_latest_release_handles_rate_limit(monkeypatch):
+    class Client:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def get(self, path):
+            request = httpx.Request("GET", path)
+            return httpx.Response(429, request=request)
+
+    monkeypatch.setattr(
+        update_service.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: Client(),
+    )
+
+    with pytest.raises(
+        update_service.UpdateCheckError,
+        match="429",
+    ):
+        await update_service.get_latest_release()
