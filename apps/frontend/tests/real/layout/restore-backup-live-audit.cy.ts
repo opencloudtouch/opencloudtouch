@@ -7,7 +7,7 @@ import { collectLayoutIssues, waitForStableLayout, LayoutIssue } from "../../e2e
 
 const DEVICE = "68C90B32AF6E";
 const WIDTH = Number(Cypress.expose("auditWidth") ?? 320);
-const LONG = { timeout: 180000 };
+const LONG = { timeout: 1200000 }; // device operations (backup, restore) can take 10+ minutes; wait until they finish
 const RESTART_WAIT_MS = 35000; // user requirement: wait >= 30 s after restarts
 
 const results: Record<string, LayoutIssue[]> = {};
@@ -45,7 +45,7 @@ describe("Restore wizard live audit", () => {
     // Real execution
     cy.get(".restore-execution__progress, .restore-execution__steps", LONG).should("exist");
     snap("22-execution-running");
-    cy.get(".wizard-btn-next:not([disabled])", { timeout: 600000 }).should("exist");
+    cy.get(".wizard-btn-next:not([disabled])", { timeout: 1200000 }).should("exist");
     snap("23-execution-done");
     waitForDeviceRestart();
     cy.get(".wizard-btn-next").click();
@@ -54,7 +54,7 @@ describe("Restore wizard live audit", () => {
     cy.get(".restore-verification__countdown, .restore-verification__online, .restore-verification__timeout", LONG)
       .should("exist");
     snap("24-verification-waiting");
-    cy.get(".wizard-btn-next:not([disabled])", { timeout: 600000 }).should("exist");
+    cy.get(".wizard-btn-next:not([disabled])", { timeout: 1200000 }).should("exist");
     snap("25-verification-online");
     waitForDeviceRestart();
     cy.get(".wizard-btn-next").click();

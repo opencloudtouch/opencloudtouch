@@ -4,7 +4,7 @@ Diese Workflows automatisieren die Anerkennung von Community-Mitgliedern.
 
 ## 📅 Monthly Community Spotlight (Announcement)
 
-**Datei:** `.github/workflows/monthly-community-spotlight.yml`
+**Datei:** `.github/workflows/community.yml`
 
 ### Was macht der Workflow?
 
@@ -29,10 +29,10 @@ Jeden **1. des Monats um 06:00 UTC** automatisch:
 
 ```bash
 # Im GitHub Repository:
-Actions → Monthly Community Spotlight Announcement → Run workflow
+Actions → Community → Run workflow (tick "spotlight")
 
 # Oder lokal testen (benötigt gh CLI + GitHub Token):
-gh workflow run monthly-community-spotlight.yml
+gh workflow run community.yml -f spotlight=true
 ```
 
 ### Output-Beispiel
@@ -104,7 +104,7 @@ Format: Announcement (nur Maintainer können posten)
 
 ### Scoring-Formel ändern
 
-In `.github/workflows/monthly-community-spotlight.yml`, Zeile ~95:
+In `.github/workflows/community.yml`, Zeile ~95:
 
 ```bash
 score: (.issuesCreated * 10) + (.issueComments * 2) + (.discussionComments * 1)

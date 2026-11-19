@@ -22,6 +22,12 @@ class WebhookEvent:
     body: str
     existing_labels: list[str] = field(default_factory=list)
     is_discussion: bool = False
+    author_login: str = ""
+    node_id: str = ""
+    comment_id: str = ""
+    comment_author: str = ""
+    comment_body: str = ""
+    state_reason: str = ""
 
     @classmethod
     def from_payload(cls, event_type: str, payload: dict[str, Any]) -> WebhookEvent:
@@ -30,7 +36,7 @@ class WebhookEvent:
         sender = payload.get("sender", {})
         repo = payload.get("repository", {})
 
-        is_discussion = event_type == "discussion"
+        is_discussion = event_type in ("discussion", "discussion_comment")
 
         if is_discussion:
             item = payload.get("discussion", {})
@@ -68,6 +74,12 @@ class WebhookEvent:
             body=body,
             existing_labels=labels,
             is_discussion=is_discussion,
+            author_login=(item.get("user") or {}).get("login", ""),
+            node_id=item.get("node_id", ""),
+            comment_id=str((payload.get("comment") or {}).get("node_id" if is_discussion else "id", "")),
+            comment_author=((payload.get("comment") or {}).get("user") or {}).get("login", ""),
+            comment_body=(payload.get("comment") or {}).get("body", "") or "",
+            state_reason=item.get("state_reason") or "",
         )
 
 

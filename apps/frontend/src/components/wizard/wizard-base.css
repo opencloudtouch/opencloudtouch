@@ -11,7 +11,7 @@
 }
 .wizard-content-v2 {
   width: 100%;
-  max-width: 720px;
+  max-width: var(--page-max);
   margin: 0 auto;
   padding: 0 var(--space-md);
   display: flex;
@@ -19,7 +19,7 @@
   gap: var(--space-lg);
 }
 .setup-wizard-page > .device-info-header {
-  max-width: calc(720px - 2 * var(--space-md));
+  max-width: calc(var(--page-max) - 2 * var(--space-md));
   margin: 0 var(--space-md) var(--space-lg);
 }
 .wizard-content-v2 > * {
@@ -32,7 +32,9 @@
 }
 @media (min-width: 769px) {
   .setup-wizard-page {
-    padding-top: var(--space-xl);
+    padding-top: var(
+      --space-lg
+    ); /* the title sits 24 px below the header, like on every other page */
   }
   .wizard-content-v2 {
     padding-inline: var(--space-lg);
@@ -54,7 +56,7 @@
   padding: 0 20px;
   border-radius: var(--border-radius-sm);
   border: 1px solid transparent;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
   transition:
@@ -158,7 +160,7 @@
 }
 .device-name {
   margin: 0 0 2px;
-  font-size: 17px;
+  font-size: var(--fs-h3);
   line-height: 1.25;
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
@@ -169,7 +171,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0 var(--space-sm);
-  font-size: 14px;
+  font-size: var(--fs-md);
   color: var(--color-text-secondary);
 }
 .device-model {
@@ -192,7 +194,7 @@
   border: 1px solid var(--color-disabled);
   background: transparent;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: var(--fs-body);
   font-weight: var(--font-weight-medium);
   text-align: center;
 }
@@ -206,7 +208,7 @@
   cursor: default;
 }
 .device-reboot-btn--error {
-  border-color: #f44336;
+  border-color: var(--color-danger);
   background: rgba(244, 67, 54, 0.12);
   color: var(--color-danger);
 }
@@ -215,7 +217,7 @@
     flex: 0 0 auto;
   }
   .device-name {
-    font-size: 20px;
+    font-size: var(--fs-h2);
   }
 }
 
@@ -232,7 +234,7 @@
 }
 .progress-tracker-compact {
   text-align: center;
-  font-size: 14px;
+  font-size: var(--fs-md);
   color: var(--color-text-secondary);
   padding-inline: var(--space-sm);
 }
@@ -265,7 +267,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: var(--fs-small);
   font-weight: var(--font-weight-bold);
   background: var(--color-bg-dark);
   color: var(--color-text-secondary);
@@ -307,9 +309,9 @@
   border-color: #4caf50;
 }
 .progress-step.error .step-circle {
-  background: #f44336;
+  background: var(--color-danger);
   color: var(--color-bg-darker);
-  border-color: #f44336;
+  border-color: var(--color-danger);
 }
 @media (max-width: 360px) {
   /* 8 circles of 28px (+ the active one scaled) do not fit into ~223px of a 320px screen */
@@ -348,7 +350,7 @@
     display: none;
   }
   .step-circle {
-    font-size: 15px;
+    font-size: var(--fs-body);
   }
   .step-label {
     position: static;
@@ -357,7 +359,7 @@
     overflow: visible;
     clip-path: none;
     white-space: normal;
-    font-size: 12px;
+    font-size: var(--fs-xs);
     line-height: 1.3;
     text-align: center;
     overflow-wrap: anywhere;
@@ -398,7 +400,7 @@
   margin: 0;
   padding: 4px 12px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: var(--fs-small);
   font-weight: var(--font-weight-bold);
   color: var(--primary-text);
   background: rgba(var(--primary-rgb), 0.15);
@@ -408,13 +410,13 @@
 } /* programmatic focus only (tabIndex -1) */
 .wizard-step-title {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--fs-h2);
   line-height: 1.25;
   color: var(--color-text-primary);
 }
 .wizard-step-description {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--color-text-secondary);
   text-wrap: pretty;
@@ -424,10 +426,10 @@
   align-items: flex-start;
   gap: 12px;
   margin: 0;
-  padding: 12px var(--space-md);
+  padding: 14px var(--space-md); /* same box as .wz-status */
   background: rgba(255, 193, 7, 0.1);
-  border: 1px solid rgba(255, 193, 7, 0.45);
-  border-radius: var(--border-radius-sm);
+  border: 1px solid rgba(255, 193, 7, 0.5);
+  border-radius: var(--border-radius-md);
 }
 .wizard-warning-icon {
   flex: none;
@@ -436,13 +438,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffc107;
+  color: var(--warning-color);
   font-size: 1rem;
 }
 .wizard-warning-text {
   min-width: 0;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: var(--fs-body);
   font-weight: var(--font-weight-medium);
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -496,7 +498,7 @@
   display: flex;
   gap: 6px;
   align-items: flex-start;
-  font-size: 13px;
+  font-size: var(--fs-small);
   line-height: 1.5;
   font-style: normal;
   color: var(--color-text-secondary);
@@ -510,7 +512,7 @@
     padding: 28px;
   }
   .wizard-step-title {
-    font-size: 24px;
+    font-size: var(--fs-2xl);
   }
   .wizard-step-actions {
     flex-direction: row;
@@ -571,7 +573,7 @@
   --bd: rgba(76, 175, 80, 0.5);
 }
 .wz-status--warning {
-  --c: #ffc107;
+  --c: var(--warning-color);
   --bg: rgba(255, 193, 7, 0.1);
   --bd: rgba(255, 193, 7, 0.5);
 }
@@ -595,49 +597,14 @@
   gap: 2px;
 }
 .wz-status-title {
-  font-size: 15px;
+  font-size: var(--fs-body);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
 .wz-status-text {
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-primary);
-  overflow-wrap: anywhere;
-}
-
-.wz-numlist {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-.wz-numlist > li {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  min-width: 0;
-}
-.wz-num {
-  flex: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  font-weight: var(--font-weight-bold);
-  background: rgba(var(--primary-rgb), 0.15);
-  color: var(--primary-text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.wz-numlist-title {
-  font-size: 15px;
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-}
-.wz-numlist-text {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--color-text-secondary);
   overflow-wrap: anywhere;
 }
 
@@ -651,7 +618,7 @@
   align-items: flex-start;
   gap: var(--space-sm);
   min-width: 0;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-primary);
   overflow-wrap: anywhere;
@@ -665,7 +632,7 @@
 .verify-group-title {
   margin-top: 6px;
   font-family: ui-monospace, Menlo, Consolas, monospace;
-  font-size: 14px;
+  font-size: var(--fs-md);
   color: var(--color-text-secondary);
 }
 .verify-group .verify-check-item {
@@ -720,29 +687,11 @@
   background: var(--color-bg-darker);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-sm);
-  font-size: 13px;
+  font-size: var(--fs-small);
   line-height: 1.6;
-}
-.wz-diff .del {
-  color: var(--color-danger);
 }
 .wz-diff .add {
   color: var(--color-success);
-}
-.wz-chip {
-  display: inline-block;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  padding: 6px 10px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
-  font:
-    13px/1.5 ui-monospace,
-    Menlo,
-    Consolas,
-    monospace;
-  color: var(--text-primary);
 }
 
 /* choice cards (also used for .risk-card and RestoreChoice) */
@@ -755,7 +704,7 @@
 }
 .wizard-choice__title {
   margin: 0;
-  font-size: 24px;
+  font-size: var(--fs-2xl);
   line-height: 1.2;
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
@@ -799,13 +748,13 @@
 }
 .wizard-choice__card h3 {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--fs-h2);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
 .wizard-choice__card p {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--color-text-secondary);
 }
@@ -821,7 +770,7 @@
   background: rgba(var(--primary-rgb), 0.1);
 }
 .risk-card.selected.danger {
-  border-color: #f44336;
+  border-color: var(--color-danger);
   background: rgba(244, 67, 54, 0.08);
 }
 @media (min-width: 601px) {
@@ -838,7 +787,7 @@
   min-width: 0;
 }
 .wz-label {
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: var(--font-weight-medium);
   color: var(--text-primary);
 }
@@ -861,12 +810,16 @@
     monospace; /* >=16px: no iOS zoom; long values scroll inside */
 }
 .config-input[aria-invalid="true"],
+.hosts-input:focus,
+.ntp-input:focus {
+  border-color: var(--primary-color); /* same as the config input */
+}
 .hosts-input[aria-invalid="true"],
 .ntp-input[aria-invalid="true"] {
-  border-color: #f44336;
+  border-color: var(--color-danger);
 }
 .wz-hint {
-  font-size: 13px;
+  font-size: var(--fs-small);
   line-height: 1.5;
   color: var(--color-text-tertiary);
   white-space: pre-line;
@@ -897,7 +850,7 @@
 }
 .loading-message {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--fs-h3);
   color: var(--text-primary);
 }
 .wizard-empty-state .empty-icon {
@@ -922,7 +875,7 @@
 .wizard-empty-state p {
   margin: 0;
   max-width: 44ch;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--color-text-secondary);
   text-wrap: pretty;
@@ -978,7 +931,7 @@
   color: var(--color-danger);
 }
 .warning-icon {
-  color: #ffc107;
+  color: var(--warning-color);
 }
 .success-icon {
   color: var(--color-success);
@@ -998,7 +951,7 @@
 .error-content p,
 .warning-content p {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-primary);
   overflow-wrap: anywhere;
@@ -1006,14 +959,14 @@
 .success-title {
   margin: 0;
   align-self: center;
-  font-size: 18px;
+  font-size: var(--fs-xl);
   line-height: 1.3;
   font-weight: var(--font-weight-bold);
   color: var(--color-success);
 }
 .success-message {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--text-primary);
 }
@@ -1064,20 +1017,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffc107;
+  color: var(--warning-color);
   line-height: 1;
 }
 .failed-title {
   margin: 0;
   align-self: center;
-  font-size: 18px;
+  font-size: var(--fs-xl);
   line-height: 1.3;
   font-weight: var(--font-weight-bold);
-  color: #ffc107;
+  color: var(--warning-color);
 }
 .failed-message {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--text-primary);
 }
@@ -1169,7 +1122,7 @@
 /* text and action rows inside a status box */
 .wz-status-body > p {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--text-primary);
   overflow-wrap: anywhere;
@@ -1204,4 +1157,51 @@ a.device-icon {
 }
 a.device-icon:hover {
   background: var(--border-color);
+}
+
+/* Full-width wizard (Stage 14) */
+.setup-wizard-page > .device-info-header {
+  max-width: calc(var(--page-max) - 2 * var(--space-md));
+}
+@media (min-width: 769px) {
+  .setup-wizard-page {
+    padding-top: var(--space-lg);
+  }
+  .setup-wizard-page > .device-info-header,
+  .setup-wizard-page > .wz-page-title:not(.wz-page-title--sr) {
+    box-sizing: border-box;
+    width: calc(100% - 2 * var(--space-lg));
+    max-width: calc(var(--page-max) - 2 * var(--space-lg));
+    margin-inline: auto;
+  }
+  /* page header like Devices and Zones; the choice screen keeps it hidden */
+  .setup-wizard-page > .wz-page-title:not(.wz-page-title--sr) {
+    position: static;
+    height: auto;
+    padding: 0;
+    margin-top: 0;
+    margin-bottom: var(--space-lg);
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    font-size: var(--fs-h1);
+    line-height: 1.2;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+    text-wrap: balance;
+  }
+}
+/* readable line length for long text only */
+.wizard-step-description,
+.backup-info,
+.config-description,
+.reboot-hint {
+  max-width: 68ch;
+}
+@media (min-width: 1024px) {
+  .config-input-group,
+  .hosts-input-group,
+  .ntp-input-group {
+    max-width: 560px;
+  }
 }

@@ -9,11 +9,9 @@ import SourceSwitch, { type DeviceSource } from "../components/SourceSwitch";
 import TransportKeys, { type TransportKey } from "../components/TransportKeys";
 import SetupBadge from "../components/SetupBadge";
 import DeviceOfflineBanner from "../components/DeviceOfflineBanner";
-import DeviceNameEditor from "../components/DeviceNameEditor";
 import RadioSearch, { RadioStation } from "../components/RadioSearch";
 import VolumeSlider from "../components/VolumeSlider";
 import ConfirmDialog from "../components/ConfirmDialog";
-import RemoveDevice from "../components/RemoveDevice";
 import { PresetSkeleton } from "../components/LoadingSkeleton";
 import { Icon } from "../components/Icon";
 import {
@@ -31,13 +29,20 @@ import { useNowPlaying } from "../hooks/useNowPlaying";
 import { useZones } from "../hooks/useZones";
 import { useLastPreset } from "../hooks/useLastPreset";
 import { usePrefetchDevices } from "../hooks/usePrefetchDevices";
+import { CardName, CardRemove, StereoRow, ZoneRow } from "./DevicesParts";
+import { visibleDevices } from "../utils/visibleDevices";
 import { useToast } from "../contexts/ToastContext";
 import "../components/DeviceCard.css";
+import "../components/StereoPairCard.css";
 import "./Devices.css";
+import { pickDevice, setLastDeviceId } from "../utils/lastDevice";
+import { getDeviceActionError } from "../utils/apiErrors";
 
 interface DevicesProps {
   devices?: Device[];
   onRemoveDevice?: (deviceId: string) => void;
+  /** The list changed on the server (a stereo pair was dissolved): fetch it anew. */
+  onDevicesChanged?: () => void;
 }
 
 const RADIO_SOURCES = new Set(["INTERNET_RADIO", "LOCAL_INTERNET_RADIO", "TUNEIN"]);
@@ -57,19 +62,33 @@ function toDeviceSource(source?: string): DeviceSource | null {
   return null;
 }
 
-export default function Devices({ devices = [], onRemoveDevice }: Readonly<DevicesProps>) {
+export default function Devices({
+  devices: allDevices = [],
+  onRemoveDevice,
+  onDevicesChanged,
+}: Readonly<DevicesProps>) {
   const { t } = useTranslation();
+  // A stereo pair is one device: the speaker that is not the master of its pair is not shown
+  const devices = useMemo(() => visibleDevices(allDevices), [allDevices]);
   const [searchParams, setSearchParams] = useSearchParams();
   // Start on the device of the URL: choosing it in an effect would show the first device and then slide to the right one
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(() => {
-    const index = devices.findIndex((d) => d.device_id === searchParams.get("device"));
-    return Math.max(index, 0);
+    const target = pickDevice(devices, searchParams.get("device"));
+    return Math.max(target ? devices.indexOf(target) : 0, 0);
   });
   const [searchOpen, setSearchOpen] = useState(false);
   const [assigningPreset, setAssigningPreset] = useState<number | null>(null);
 
   const currentDevice = devices[currentDeviceIndex];
   const deviceId = currentDevice?.device_id;
+  // Remember the device so that every way back to this page lands on it
+  // and put it into the URL when it has none, so links, reloads and the navigation bar all carry the same device
+  useEffect(() => {
+    setLastDeviceId(deviceId);
+    if (deviceId && !searchParams.get("device")) {
+      setSearchParams({ device: deviceId }, { replace: true });
+    }
+  }, [deviceId, searchParams, setSearchParams]);
   const deviceIdRef = useRef(deviceId);
   deviceIdRef.current = deviceId;
   const isCurrent = (id: string) => deviceIdRef.current === id;
@@ -82,13 +101,15 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
 
   const { presets, loading, syncing, error, clearError, syncPresets, assignStation, removePreset } =
     usePresets(deviceId);
-  const { volume, muted, setDeviceVolume, toggleMute } = useVolume(deviceId);
+  const { show: showVolumeToast } = useToast();
+  const { volume, muted, setDeviceVolume, toggleMute } = useVolume(deviceId, (message) =>
+    showVolumeToast(message, "error")
+  );
   const { nowPlaying: npState, refresh: refreshNowPlaying } = useNowPlaying(deviceId);
   const { zones } = useZones();
   const [lastPreset, setLastPreset] = useLastPreset(deviceId);
   const { show: showToast, hide: hideToast } = useToast();
   const [powerLoading, setPowerLoading] = useState(false);
-  const [pendingStation, setPendingStation] = useState<RadioStation | null>(null);
   const [clearingPreset, setClearingPreset] = useState<number | null>(null);
   const [startingPreset, setStartingPreset] = useState<number | null>(null);
   const [failedPreset, setFailedPreset] = useState<number | null>(null);
@@ -110,6 +131,12 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
   const deviceRole = deviceZone?.members.find((m) => m.device_id === deviceId)?.role ?? null;
   const isZoneMember = deviceRole === "slave";
   const masterName = deviceZone?.members.find((m) => m.role === "master")?.name ?? "";
+
+  // Stereo pair: the card is the pair (the master speaker stands for it). The names come with the
+  // device list, so the card is complete when it is first drawn.
+  const stereoPairId = currentDevice?.stereo_pair_id ?? null;
+  const partnerName = currentDevice?.stereo_partner_name ?? "";
+  const pairName = currentDevice?.stereo_pair_name ?? currentDevice?.name ?? "";
 
   // The source and the presets cannot be changed in standby, as a zone member, or while a switch runs
   const controlsLocked = isStandby || isZoneMember;
@@ -214,8 +241,10 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
 
   const handleSyncPresets = async () => {
     try {
-      await syncPresets();
-      showToast(t("presets.syncedFromDevice"), "success");
+      // The success toast only follows a successful sync (a failure shows the inline error instead)
+      if (await syncPresets()) {
+        showToast(t("presets.syncedFromDevice"), "success");
+      }
     } catch {
       // Error is already set in usePresets error state
     }
@@ -239,11 +268,8 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
       await assignStation(presetNumber, station, deviceId);
       setAssigningPreset(null);
       setSearchOpen(false);
-      setPendingStation(null);
       showToast(t("presets.presetSaved", { number: presetNumber }), "success");
     } catch (err) {
-      setPendingStation(null);
-
       if (station.stationuuid.startsWith("manual-")) {
         throw err;
       }
@@ -251,12 +277,6 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
       // Preserve the existing provider error behaviour.
       setAssigningPreset(null);
       setSearchOpen(false);
-    }
-  };
-
-  const handleConfirmOverwrite = async () => {
-    if (pendingStation && assigningPreset) {
-      await doAssign(assigningPreset, pendingStation);
     }
   };
 
@@ -318,6 +338,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
         await refreshNowPlaying();
       } catch (err) {
         console.error("Failed to toggle playback:", err);
+        showToast(getDeviceActionError(t, err, "errors.unknown"), "error");
       }
       return;
     }
@@ -375,6 +396,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
       else await togglePlayPause(deviceId);
     } catch (err) {
       console.error(`[Devices] Key ${key} failed:`, err);
+      showToast(getDeviceActionError(t, err, "errors.unknown"), "error");
     } finally {
       setKeyBusy(null);
     }
@@ -444,6 +466,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
                     await refreshNowPlaying();
                   } catch (err) {
                     console.error("[Devices] Power failed:", err);
+                    showToast(getDeviceActionError(t, err, "errors.unknown"), "error");
                   } finally {
                     setPowerLoading(false);
                   }
@@ -457,15 +480,11 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
                 {powerLoading ? <span className="ui-spin">{Icon.Loader(22)}</span> : Icon.Power(22)}
               </button>
               <div className="rp-device-info">
-                {currentDevice ? (
-                  <DeviceNameEditor deviceId={currentDevice.device_id} name={currentDevice.name} />
-                ) : (
-                  <h2 className="rp-device-name" data-test="device-name">
-                    {t("presets.unknownDevice")}
-                  </h2>
-                )}
+                <CardName device={currentDevice} stereoPairId={stereoPairId} pairName={pairName} />
                 <span className="rp-device-model" data-test="device-model">
-                  {currentDevice?.model || t("presets.unknownModel")}
+                  {stereoPairId !== null
+                    ? t("stereo.pairModel", "2× {{model}}", { model: currentDevice?.model })
+                    : currentDevice?.model || t("presets.unknownModel")}
                 </span>
                 <span className="rp-device-ip" data-test="device-ip">
                   {currentDevice?.ip || t("presets.unknownIp")}
@@ -482,21 +501,11 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
             </div>
 
             {deviceRole && !deviceOffline && (
-              <div className="dv-zone-row">
-                <span className="lc-zone" data-test="device-zone">
-                  {Icon.Link(16)}
-                  <span>
-                    {deviceRole === "master"
-                      ? t("multiroom.masterBadge")
-                      : t("multiroom.slaveBadge")}
-                  </span>
-                </span>
-                {isZoneMember && (
-                  <p id="dv-slave-hint" className="dv-zone-hint">
-                    {t("device.slaveHint", { master: masterName })}
-                  </p>
-                )}
-              </div>
+              <ZoneRow role={deviceRole} isZoneMember={isZoneMember} masterName={masterName} />
+            )}
+
+            {stereoPairId !== null && !deviceOffline && (
+              <StereoRow deviceName={currentDevice?.name} partnerName={partnerName} />
             )}
 
             {/* Device Offline Banner */}
@@ -663,12 +672,14 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
             )}
 
             {currentDevice && (
-              <RemoveDevice
-                deviceId={currentDevice.device_id}
-                name={currentDevice.name ?? ""}
-                ip={currentDevice.ip ?? ""}
+              <CardRemove
+                device={currentDevice}
                 offline={deviceOffline}
+                stereoPairId={stereoPairId}
+                pairName={pairName}
+                partnerName={partnerName}
                 onRemoved={handleDeviceRemoved}
+                onDissolved={() => onDevicesChanged?.()}
               />
             )}
           </div>
@@ -700,24 +711,12 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
         onClose={() => {
           setSearchOpen(false);
           setAssigningPreset(null);
-          setPendingStation(null);
         }}
         onStationSelect={handleStationSelect}
         onDelete={handleDeletePreset}
         presetNumber={assigningPreset}
         hasExistingPreset={assigningPreset !== null && !!presets[assigningPreset]}
         existingPreset={assigningPreset !== null ? presets[assigningPreset] : null}
-      />
-
-      {/* Confirm Overwrite Dialog */}
-      <ConfirmDialog
-        open={pendingStation !== null}
-        title={t("presets.confirmOverwriteTitle")}
-        message={t("presets.confirmOverwriteMessage", { preset: assigningPreset })}
-        confirmLabel={t("presets.confirmOverwrite")}
-        cancelLabel={t("common.cancel")}
-        onConfirm={handleConfirmOverwrite}
-        onCancel={() => setPendingStation(null)}
       />
 
       {/* Confirm Clear Dialog */}

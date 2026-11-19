@@ -146,3 +146,18 @@ async def test_no_repo_returns_503():
             json={"device_id": "d", "category": "c", "event": "e"},
         )
     assert resp.status_code == 503
+
+
+@pytest.mark.asyncio
+async def test_audit_entry_accepts_final_wizard_step(client: AsyncClient):
+    """The setup wizard has 8 steps; the completion event is logged with step 8."""
+    response = await client.post(
+        "/api/wizard/audit-log",
+        json={
+            "device_id": "dev-1",
+            "category": "step_transition",
+            "event": "wizard_complete",
+            "step": 8,
+        },
+    )
+    assert response.status_code == 200

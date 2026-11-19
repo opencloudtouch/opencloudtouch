@@ -9,6 +9,10 @@ import logging
 from typing import Dict, Optional
 
 from opencloudtouch.core.config import get_config
+from opencloudtouch.setup.hosts_check import (
+    HOSTS_MARKER_COUNT_COMMAND,
+    hosts_redirect_present,
+)
 from opencloudtouch.setup.models import (
     ModelInstructions,
     SetupProgress,
@@ -115,10 +119,8 @@ class SetupService:
             result["bmx_configured"] = our_server in check.output
 
             # Strategy B: /etc/hosts redirects Bose domains to OCT
-            hosts_check = await client.execute(
-                "grep -c 'OCT-START' /etc/hosts 2>/dev/null || echo '0'"
-            )
-            result["hosts_redirect"] = hosts_check.output.strip() != "0"
+            hosts_check = await client.execute(HOSTS_MARKER_COUNT_COMMAND)
+            result["hosts_redirect"] = hosts_redirect_present(hosts_check.output)
 
             await client.close()
 

@@ -24,29 +24,32 @@ interface DeviceSwiperProps {
 
 /* ---- dots: one row at any device count -------------------------------------------------------
    full   : count * 44 px fits            -> 44 px targets (as before)
-   dense  : count * 24 px fits            -> targets shrink to width/count (24..44 px wide, 44 px high), the visible dot shrinks with them
-   window : even 24 px per dot does not fit -> only the dots around the current device are shown (current one centred,
-            the outer dots on a side with more devices are small); every shown dot keeps >= 24 px (WCAG 2.2 SC 2.5.8)
+   dense  : count * min px fits           -> targets shrink to width/count (min..44 px wide, 44 px high), the visible dot shrinks with them
+   window : even min px per dot does not fit -> only the dots around the current device are shown (current one centred,
+            the outer dots on a side with more devices are small); every shown dot keeps >= min px
+   min is 44 px on phones (<= 600 px: every shown dot is a full 44x44 touch target) and 24 px above (WCAG 2.2 SC 2.5.8).
    The arrows (44 px) always reach every device, so no function depends on a small target. */
 const DOT_FULL = 44;
 const DOT_MIN = 24;
+const PHONE_QUERY = "(max-width: 600px)";
 
 type DotDensity = "full" | "dense" | "window";
 
-function getDotLayout(
+export function getDotLayout(
   count: number,
-  width: number
+  width: number,
+  min: number = DOT_MIN
 ): { density: DotDensity; visible: number; pitch: number } {
   if (!width || count * DOT_FULL <= width)
     return { density: "full", visible: count, pitch: DOT_FULL };
-  if (count * DOT_MIN <= width) {
+  if (count * min <= width) {
     return {
       density: "dense",
       visible: count,
       pitch: Math.floor((width / count) * 10) / 10,
     };
   }
-  const visible = Math.max(3, Math.floor(width / DOT_MIN));
+  const visible = Math.max(3, Math.floor(width / min));
   return { density: "window", visible, pitch: Math.floor((width / visible) * 10) / 10 };
 }
 
@@ -103,6 +106,19 @@ export default function DeviceSwiper({
   const [dragDirection, setDragDirection] = useState(0);
   const dotsRef = useRef<HTMLFieldSetElement>(null);
   const [dotsWidth, setDotsWidth] = useState(0);
+
+  // phones (<= 600 px) need 44 px per dot; kept in state so the render stays pure
+  const [phone, setPhone] = useState(
+    () => typeof window.matchMedia === "function" && window.matchMedia(PHONE_QUERY).matches
+  );
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia(PHONE_QUERY);
+    const update = () => setPhone(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
 
   useLayoutEffect(() => {
     const el = dotsRef.current;
@@ -253,7 +269,7 @@ export default function DeviceSwiper({
     }),
   };
 
-  const { density, visible, pitch } = getDotLayout(count, dotsWidth);
+  const { density, visible, pitch } = getDotLayout(count, dotsWidth, phone ? DOT_FULL : DOT_MIN);
   const start =
     density === "window"
       ? Math.min(Math.max(currentIndex - Math.floor(visible / 2), 0), count - visible)
@@ -300,6 +316,7 @@ export default function DeviceSwiper({
                   setDragDirection(index > currentIndex ? 1 : -1);
                   onIndexChange(index);
                 }}
+                tabIndex={-1} // keyboard: only the two arrows are tab stops (11 dots would be 11 stops); the dots stay clickable and readable for screen readers
                 aria-current={index === currentIndex ? "true" : undefined}
                 aria-label={t("a11y.switchToDevice", { name: device.name })}
                 title={device.name}

@@ -9,6 +9,7 @@ import type { SetupStatus } from "../api/setup";
 import { Icon } from "../components/Icon";
 import BackToAbout from "../components/BackToAbout";
 import "./Diagnostics.css";
+import { userErrorMessage } from "../utils/errorMessages";
 
 type Presence = "green" | "yellow" | "red";
 
@@ -95,7 +96,7 @@ export default function Diagnostics() {
         if (!cancelled) setData(result);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+        if (!cancelled) setError(userErrorMessage(err));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -118,7 +119,7 @@ export default function Diagnostics() {
       });
       showToast(t("bugReport.diagnosticsSuccess"), "success", 8000);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t("errors.unknown");
+      const msg = userErrorMessage(err);
       showToast(t("bugReport.diagnosticsFailed", { error: msg }), "error", 8000);
     } finally {
       setDownloading(false);
@@ -185,47 +186,49 @@ export default function Diagnostics() {
       </div>
 
       {/* Server Info */}
-      <section
-        className="dg-section"
-        data-test="diagnostics-server"
-        aria-labelledby="dg-server-title"
-      >
-        <h2 id="dg-server-title" className="ui-h2">
-          {t("diagnostics.serverInfo")}
-        </h2>
-        <dl className="ui-card dg-kv">
-          <Row label={t("diagnostics.version")} mono>
-            {server?.version}
-          </Row>
-          <Row label={t("diagnostics.python")} mono>
-            {server?.python_version}
-          </Row>
-          <Row label={t("diagnostics.platform")} mono>
-            {server?.platform}
-          </Row>
-          <Row label={t("diagnostics.discovery")}>
-            <OnOffBadge
-              on={!!server?.discovery_enabled}
-              label={server?.discovery_enabled ? t("common.enabled") : t("common.disabled")}
-            />
-          </Row>
-          <Row label={t("diagnostics.logLevel")} mono>
-            {server?.log_level}
-          </Row>
-          <Row label={t("diagnostics.manualIPs")}>{server?.manual_device_ips}</Row>
-        </dl>
-      </section>
+      <div className="dg-pair">
+        <section
+          className="dg-section"
+          data-test="diagnostics-server"
+          aria-labelledby="dg-server-title"
+        >
+          <h2 id="dg-server-title" className="ui-h2">
+            {t("diagnostics.serverInfo")}
+          </h2>
+          <dl className="ui-card dg-kv">
+            <Row label={t("diagnostics.version")} mono>
+              {server?.version}
+            </Row>
+            <Row label={t("diagnostics.python")} mono>
+              {server?.python_version}
+            </Row>
+            <Row label={t("diagnostics.platform")} mono>
+              {server?.platform}
+            </Row>
+            <Row label={t("diagnostics.discovery")}>
+              <OnOffBadge
+                on={!!server?.discovery_enabled}
+                label={server?.discovery_enabled ? t("common.enabled") : t("common.disabled")}
+              />
+            </Row>
+            <Row label={t("diagnostics.logLevel")} mono>
+              {server?.log_level}
+            </Row>
+            <Row label={t("diagnostics.manualIPs")}>{server?.manual_device_ips}</Row>
+          </dl>
+        </section>
 
-      {/* DB Stats */}
-      <section className="dg-section" data-test="diagnostics-db" aria-labelledby="dg-db-title">
-        <h2 id="dg-db-title" className="ui-h2">
-          {t("diagnostics.database")}
-        </h2>
-        <dl className="ui-card dg-kv">
-          <Row label={t("diagnostics.devicesCount")}>{data?.db_stats.devices}</Row>
-          <Row label={t("diagnostics.presetsCount")}>{data?.db_stats.presets}</Row>
-        </dl>
-      </section>
+        {/* DB Stats */}
+        <section className="dg-section" data-test="diagnostics-db" aria-labelledby="dg-db-title">
+          <h2 id="dg-db-title" className="ui-h2">
+            {t("diagnostics.database")}
+          </h2>
+          <dl className="ui-card dg-kv">
+            <Row label={t("diagnostics.devicesCount")}>{data?.db_stats.devices}</Row>
+            <Row label={t("diagnostics.presetsCount")}>{data?.db_stats.presets}</Row>
+          </dl>
+        </section>
+      </div>
 
       {/* Devices */}
       <section

@@ -113,7 +113,8 @@ async def enable_permanent_ssh(
         # Copy remote_services to persistent volume
         # SoundTouch init script (shelby_usb) checks both USB root AND /mnt/nv/
         cmd = "touch /mnt/nv/remote_services"
-        result = await ssh_client.execute(cmd, timeout=5.0)
+        async with ssh_client.write_access():
+            result = await ssh_client.execute(cmd, timeout=5.0)
 
         if not result.success:
             logger.error("Failed to create /mnt/nv/remote_services: %s", result.error)

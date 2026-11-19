@@ -103,7 +103,7 @@ body.dlg-scroll-lock .app-main {
 .dlg-title {
   margin: 0;
   min-width: 0;
-  font-size: 20px;
+  font-size: var(--fs-h2);
   line-height: 1.3;
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
@@ -133,7 +133,7 @@ body.dlg-scroll-lock .app-main {
 }
 .dlg-text {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--text-primary);
   overflow-wrap: anywhere;

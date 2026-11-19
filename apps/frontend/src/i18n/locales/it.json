@@ -23,7 +23,7 @@
     "devices": "Dispositivi",
     "zones": "Zone",
     "settings": "Impostazioni",
-    "about": "Informazioni",
+    "about": "Info",
     "ariaLabel": "Navigazione principale"
   },
   "player": {
@@ -74,9 +74,6 @@
     "searchEmpty": "Nessuna stazione trovata",
     "searchFailed": "Ricerca stazione fallita. Riprovare.",
     "deletePreset": "Elimina preset",
-    "confirmOverwriteTitle": "Sovrascrivere il preset",
-    "confirmOverwriteMessage": "Vuoi davvero sovrascrivere il preset {{preset}}?",
-    "confirmOverwrite": "Sovrascrivi",
     "confirmDeleteTitle": "Eliminare il preset",
     "confirmDeleteMessage": "Vuoi davvero eliminare il preset {{preset}}?",
     "confirmDelete": "Elimina",
@@ -120,7 +117,8 @@
     "removeDeviceOnline": "«{{name}}» è raggiungibile. Viene rimosso da OpenCloudTouch, i suoi preset salvati vengono conservati. Il dispositivo stesso non viene modificato e può essere aggiunto di nuovo con la prossima ricerca.",
     "removeDeviceOffline": "«{{name}}» è offline. Viene rimosso da OpenCloudTouch, i suoi preset salvati vengono conservati. Quando sarà di nuovo in rete, la prossima ricerca potrà aggiungerlo di nuovo.",
     "removeDeviceConfirm": "Rimuovi",
-    "deviceRemoved": "«{{name}}» è stato rimosso."
+    "deviceRemoved": "«{{name}}» è stato rimosso.",
+    "removeDeviceFailed": "Impossibile rimuovere «{{name}}». Riprova."
   },
   "settings": {
     "title": "Impostazioni",
@@ -207,6 +205,7 @@
     "zoneUpdated": "Zona aggiornata",
     "zoneCreated": "Zona creata",
     "zoneCreateFailed": "Impossibile creare la zona",
+    "zoneUpdateFailed": "Impossibile aggiornare la zona",
     "zoneDissolved": "Zona sciolta",
     "zoneDissolveFailed": "Impossibile sciogliere la zona",
     "setMaster": "Imposta come master",
@@ -355,20 +354,6 @@
         "btnCheckAgain": "Verifica di nuovo",
         "btnChecking": "Verifica...",
         "sshTitle": "Attivare SSH in modo permanente?",
-        "sshIntro": "L'accesso SSH è stato attivato temporaneamente tramite il file remote_services. Rispondere a 3 domande per valutare se SSH debba rimanere permanentemente sul dispositivo.",
-        "q1": "La rete domestica è protetta da un router o firewall da accessi non autorizzati da Internet?",
-        "q2": "Solo persone conosciute e fidate hanno accesso alla rete Wi-Fi?",
-        "q3": "Si prevede di installare aggiornamenti firmware per questo dispositivo SoundTouch nel prossimo futuro?",
-        "answerYes": "✅ Sì",
-        "answerNo": "❌ No",
-        "answerUnknown": "❓ Non so",
-        "riskLabel": "Rischio:",
-        "riskLow": "Basso",
-        "riskMedium": "Medio",
-        "riskHigh": "Alto",
-        "riskHintLow": "SSH può essere attivato in modo permanente — la rete è ben protetta.",
-        "riskHintMedium": "Valutare: SSH permanente aumenta leggermente la superficie di attacco.",
-        "riskHintHigh": "SSH permanente non è consigliato. Fattori sconosciuti o reti aperte aumentano notevolmente il rischio.",
         "sshPermanentLabel": "Attiva SSH in modo permanente",
         "sshTemporaryLabel": "Non mantenere permanentemente",
         "advancedTitle": "Per utenti avanzati: testare la connessione SSH manualmente",
@@ -397,7 +382,7 @@
         "description": "Creare un backup completo del dispositivo.",
         "warning": "Un backup è OBBLIGATORIO! Senza backup NON è possibile ripristinare il dispositivo in caso di problemi.",
         "sectionTitle": "Creare un backup completo",
-        "backupInfo": "Verranno salvate tutte le partizioni: RootFS (~58 MB), Persistent (~10 KB) e Update (~1 MB).",
+        "backupInfo": "Verranno salvate tutte le partizioni: RootFS (~141 MB), Persistent (~10 KB) e Update (~1 MB).",
         "btnCreate": "Crea backup ora",
         "btnCreating": "Creazione in corso...",
         "progressMessage": "Creazione del backup per {{device}}",
@@ -505,6 +490,8 @@
         "finalizing": "Configurazione in corso...",
         "btnRetryFinalize": "Riprova",
         "finalizeUuid": "UUID del dispositivo impostato: {{uuid}}",
+        "finalizeUuidKept": "UUID del dispositivo mantenuto: {{uuid}}",
+        "finalizeUuidReplaced": "UUID del dispositivo sostituito (un altro dispositivo usava lo stesso): {{uuid}}",
         "finalizeSources": "Sources.xml scritto",
         "finalizeSystemConfig": "SystemConfigurationDB.xml presente",
         "groupSources": "Sources.xml",
@@ -526,6 +513,9 @@
         "checkHostsOctBlockMissing": "Blocco OCT non trovato in /etc/hosts",
         "checkHostsDomainsMissing": "Alcuni domini richiesti mancano in /etc/hosts",
         "checkHostsIpWrong": "Non tutte le voci host puntano all'IP previsto",
+        "checkBmxUrlWrong": "L'URL BMX punta ancora al cloud Bose",
+        "checkConnectionFailed": "Impossibile connettersi al dispositivo",
+        "checkFailedGeneric": "Questo controllo non è riuscito",
         "checkSysConfigUuidMismatch": "L'UUID in SystemConfigurationDB.xml non corrisponde al dispositivo",
         "checkUuidNotInDb": "UUID non registrato nel database",
         "summaryConfigCorrect": "Configurazioni presenti e corrette",
@@ -630,6 +620,7 @@
       "success": "All steps completed successfully! Total: {{time}}s",
       "continue": "Continua",
       "running_hint": "Può richiedere diversi minuti (di solito 8-9). Tieni aperta questa pagina e non scollegare il dispositivo.",
+      "running_warning": "Non riavviare il dispositivo e non scollegarlo dall'alimentazione durante il ripristino.",
       "error_hint": "Torna indietro e riprova.",
       "failed_title": "Ripristino incompleto"
     },
@@ -665,24 +656,24 @@
     "messages": {
       "snapshot_saved": "Snapshot prima del ripristino salvato",
       "snapshot_unavailable": "Nessun servizio della procedura guidata disponibile",
-      "snapshot_failed": "Snapshot non riuscito: {{error}}",
+      "snapshot_failed": "Snapshot non riuscito",
       "config_restored": "File di configurazione ripristinati",
-      "config_restore_failed": "Ripristino della configurazione non riuscito: {{error}}",
+      "config_restore_failed": "Ripristino della configurazione non riuscito",
       "presets_clean": "Nessun Presets.xml trovato sul dispositivo (già pulito)",
       "presets_restored": "Preset ripristinati in {{path}}",
-      "presets_restore_failed": "Ripristino dei preset non riuscito: {{error}}",
+      "presets_restore_failed": "Ripristino dei preset non riuscito",
       "hosts_read_failed": "Impossibile leggere /etc/hosts",
       "hosts_clean": "Nessun blocco OCT trovato in /etc/hosts (già pulito)",
       "hosts_restored": "Blocco OCT rimosso da /etc/hosts",
-      "hosts_restore_failed": "Ripristino di /etc/hosts non riuscito: {{error}}",
+      "hosts_restore_failed": "Ripristino di /etc/hosts non riuscito",
       "ntp_no_backup": "Nessun backup NTP trovato (già pulito)",
       "ntp_copy_failed": "Impossibile ripristinare /etc/ntpservers.txt dal backup",
       "ntp_restored": "Server NTP ripristinati dal backup",
-      "ntp_restore_failed": "Ripristino dei server NTP non riuscito: {{error}}",
+      "ntp_restore_failed": "Ripristino dei server NTP non riuscito",
       "remote_services_deleted": "/mnt/nv/remote_services eliminato",
-      "remote_services_failed": "Impossibile rimuovere remote_services: {{error}}",
+      "remote_services_failed": "Impossibile rimuovere remote_services",
       "reboot_sent": "Comando di riavvio inviato",
-      "reboot_failed": "Riavvio non riuscito: {{error}}"
+      "reboot_failed": "Riavvio non riuscito"
     },
     "validation": {
       "archive_corrupt": "L'archivio è danneggiato o illeggibile",
@@ -699,6 +690,15 @@
     }
   },
   "errors": {
+    "api": {
+      "unknown": "Qualcosa è andato storto.",
+      "unknownWithCode": "Qualcosa è andato storto (codice: {{code}}).",
+      "device_not_found": "Il dispositivo non è stato trovato.",
+      "device_unreachable": "Il dispositivo non è raggiungibile. Verifica che sia acceso e collegato alla rete. L'azione non è stata eseguita. Riprova quando torna online.",
+      "not_found": "La risorsa richiesta non è stata trovata.",
+      "validation_error": "La richiesta contiene dati non validi. Controlla i dati inseriti.",
+      "internal_error": "Si è verificato un errore interno. Riprova più tardi."
+    },
     "loadFailed": "Caricamento fallito. Riprovare.",
     "unknown": "Si è verificato un errore imprevisto. Riprovare.",
     "networkFailed": "Impossibile connettersi al server. Controllare la connessione di rete.",
@@ -711,6 +711,7 @@
     "conflict": "Conflitto — impossibile eseguire l'azione.",
     "serverError": "Errore del server. Riprovare più tardi.",
     "presetsLoadFailed": "Impossibile caricare i preset. Riprovare.",
+    "volumeFailed": "Impossibile modificare il volume.",
     "presetsSyncFailed": "Impossibile sincronizzare i preset. Riprovare.",
     "presetSaveFailed": "Impossibile salvare il preset. Riprovare.",
     "presetClearFailed": "Impossibile eliminare il preset. Riprovare.",
@@ -862,6 +863,7 @@
     "reboot": "Riavvia il dispositivo",
     "sent": "Comando di riavvio inviato",
     "confirmMessage": "Riavviare {{name}}? Il dispositivo non sarà disponibile per circa 100 secondi.",
+    "rebootLocked": "Non disponibile durante il ripristino",
     "backToDevice": "Torna a {{name}}"
   },
   "a11y": {
@@ -904,5 +906,131 @@
     },
     "sourceUnreachable": "{{source}} non raggiungibile",
     "sourceFailedKey": "{{source}}, non raggiungibile. Riprova"
+  },
+  "stereo": {
+    "title": "Coppie stereo",
+    "lead": "Due SoundTouch 10 suonano come un unico lettore: uno a sinistra, uno a destra. La coppia resta attiva anche dopo un riavvio.",
+    "create": "Crea coppia stereo",
+    "createNeedTwo": "Per creare una coppia servono due SoundTouch 10 liberi.",
+    "createRunning": "È in corso la creazione di una coppia stereo.",
+    "loading": "Caricamento delle coppie stereo",
+    "errorLoading": "Impossibile caricare le coppie stereo",
+    "retry": "Ricarica",
+    "empty": {
+      "none": {
+        "title": "Nessun altoparlante per coppie stereo",
+        "text": "Le coppie stereo funzionano solo con il SoundTouch 10. Non ne è stato ancora trovato nessuno."
+      },
+      "one": {
+        "title": "Manca un secondo SoundTouch 10",
+        "text": "Una coppia stereo richiede due SoundTouch 10. Trovato: {{name}}."
+      },
+      "setup": {
+        "title": "Altoparlanti non ancora configurati",
+        "text": "Le coppie stereo richiedono altoparlanti configurati con OCT. Avvia la configurazione dei tuoi SoundTouch 10."
+      },
+      "ready": {
+        "title": "Ancora nessuna coppia stereo",
+        "text": "{{count}} SoundTouch 10 possono essere uniti in una coppia stereo. Uno suona a sinistra, l'altro a destra."
+      }
+    },
+    "openWizard": "Avvia la configurazione",
+    "status": {
+      "active": "Attiva",
+      "creating": "In creazione",
+      "degraded": "Interrotta"
+    },
+    "imported": "Importata",
+    "importedTitle": "Creata al di fuori di OCT",
+    "left": "Sinistra",
+    "right": "Destra",
+    "master": "Altoparlante principale",
+    "offline": "Offline",
+    "members": "Altoparlanti della coppia stereo",
+    "dissolve": "Scollega",
+    "repair": "Ripara",
+    "repairing": "Riparazione in corso",
+    "renameLabel": "Nome della coppia stereo",
+    "clickToEdit": "Clicca per rinominare",
+    "dissolveNeedsBoth": "Per sciogliere la coppia entrambi gli altoparlanti devono essere raggiungibili. {{name}} è offline.",
+    "degradedTitle": "Solo un altoparlante è accoppiato",
+    "degradedText": "La coppia non funziona correttamente. La riparazione riporta entrambi gli altoparlanti a uno stato pulito. Poi puoi ricreare la coppia stereo.",
+    "creatingText": "Creazione in corso.",
+    "showProgress": "Mostra avanzamento",
+    "background": "Continua in background",
+    "confirmDissolveTitle": "Sciogliere la coppia stereo?",
+    "confirmDissolveMessage": "«{{name}}» verrà sciolta. {{left}} e {{right}} suoneranno di nuovo singolarmente.",
+    "inPair": "In una coppia stereo",
+    "defaultName": "{{left}} + {{right}}",
+    "reason": {
+      "not_provisioned": "Non configurato con OCT",
+      "offline": "Offline",
+      "in_zone": "In una zona",
+      "in_pair": "In una coppia stereo"
+    },
+    "dlg": {
+      "step1": "Scegli gli altoparlanti",
+      "step2": "Assegna i lati",
+      "step3": "Crea",
+      "stepOf": "Passaggio {{current}} di 3",
+      "pickLegend": "Scegli due altoparlanti",
+      "pickHint": "Solo i SoundTouch 10 configurati con OCT possono formare una coppia.",
+      "pickCount": "{{count}} di 2 selezionati",
+      "next": "Avanti",
+      "back": "Indietro",
+      "sidesTitle": "Quale altoparlante sta dove?",
+      "sidesHint": "Sinistra e destra, come ti trovi davanti agli altoparlanti.",
+      "swap": "Scambia i lati",
+      "masterHint": "L'altoparlante sinistro è sempre quello principale. Riproduzione, sorgente e preset passano da lui.",
+      "firmwareWarn": "Le versioni del firmware sono diverse ({{left}} e {{right}}). Puoi comunque creare la coppia stereo.",
+      "nameLabel": "Nome (facoltativo)",
+      "nameHint": "Se lasci vuoto: {{name}}",
+      "runningTitle": "Creazione della coppia stereo",
+      "runningHint": "Tieni accesi entrambi gli altoparlanti.",
+      "backgroundHint": "Puoi chiudere questa finestra. La coppia comparirà con lo stato «In creazione».",
+      "stepAnn": "Passaggio {{n}} di 4: {{label}}",
+      "stepsLabel": "Passaggi",
+      "successTitle": "La coppia stereo «{{name}}» è attiva",
+      "successText": "{{left}} suona a sinistra, {{right}} a destra. Controlla la riproduzione tramite {{left}}.",
+      "failedTitle": "La coppia stereo non è stata creata",
+      "failedNothing": "Non è stato modificato nulla.",
+      "failedCode": "Codice errore: {{code}}",
+      "degradedText": "Ripara la coppia in modo che entrambi gli altoparlanti possano essere usati di nuovo singolarmente.",
+      "retry": "Riprova",
+      "done": "Fatto"
+    },
+    "step": {
+      "preflight": "Controllo degli altoparlanti",
+      "create_left": "Configurazione dell'altoparlante sinistro",
+      "create_right": "Configurazione dell'altoparlante destro",
+      "verify": "Verifica del risultato"
+    },
+    "stepState": {
+      "waiting": "In attesa",
+      "running": "In corso",
+      "done": "Fatto",
+      "failed": "Non riuscito"
+    },
+    "err": {
+      "stereo_pair_device_not_capable": "Un altoparlante non supporta le coppie stereo. Solo il SoundTouch 10 può formare una coppia.",
+      "stereo_pair_device_not_provisioned": "Almeno un altoparlante non è configurato con OCT. Avvia prima la configurazione.",
+      "stereo_pair_device_in_zone": "Almeno un altoparlante fa parte di una zona. Sciogli prima la zona.",
+      "stereo_pair_device_in_pair": "Almeno un altoparlante è già in una coppia stereo.",
+      "stereo_pair_device_unreachable": "Un altoparlante non risponde. Controlla alimentazione e Wi-Fi e riprova.",
+      "stereo_pair_marge_failed": "Gli altoparlanti non hanno accettato l'accoppiamento. Verifica che entrambi siano configurati con OCT.",
+      "stereo_pair_verification_failed": "Non è stato possibile confermare l'accoppiamento. Non è stato modificato nulla, oppure l'operazione è stata annullata.",
+      "stereo_pair_degraded": "L'accoppiamento non è riuscito e non è stato possibile annullarlo del tutto. Ripara la coppia.",
+      "stereo_pair_timeout": "Il server non ha terminato in tempo. Controlla l'elenco delle coppie stereo e riprova."
+    },
+    "toast": {
+      "created": "Coppia stereo creata",
+      "createFailed": "Impossibile creare la coppia stereo",
+      "details": "Dettagli"
+    },
+    "pairBadge": "Stereo L/R",
+    "pairModel": "2× {{model}}",
+    "pairMembers": "Sinistra: {{left}} · Destra: {{right}}",
+    "dissolved": "Coppia stereo «{{name}}» sciolta",
+    "dissolveFailed": "Impossibile sciogliere la coppia stereo"
   }
 }

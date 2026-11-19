@@ -607,6 +607,37 @@ class TestSSHVerification:
             # Should not raise
             await health_check._ssh_verify_all()
 
+    async def test_no_hosts_marker_is_not_a_redirect(self, health_check, mock_repo):
+        """A device without the OCT block must not become 'configured'.
+
+        On the device ``grep -c`` prints 0 and exits 1, so the command used to print a second 0 from its
+        ``|| echo`` fallback and the output was "0\n0", which differs from "0".
+        """
+        device = _make_device(ssh_permanent=True, setup_status="configured")
+        mock_client = AsyncMock()
+        mock_client.connect.return_value = MagicMock(success=True)
+        mock_client.execute.side_effect = [
+            MagicMock(output="bmxRegistryUrl=https://streaming.bose.com/bmx"),
+            MagicMock(output="0\n0"),
+        ]
+        mock_client.close = AsyncMock()
+
+        with (
+            patch(
+                "opencloudtouch.devices.health_check.check_ssh_port",
+                return_value=True,
+            ),
+            patch(
+                "opencloudtouch.devices.health_check.SoundTouchSSHClient",
+                return_value=mock_client,
+            ),
+        ):
+            await health_check._ssh_verify_device(device, "http://myserver:7777")
+
+        mock_repo.update_setup_status.assert_called_once_with(
+            device_id="dev1", setup_status="unconfigured"
+        )
+
 
 class TestZoneSyncAll:
     """Tests for _zone_sync_all() — zone drift detection and resolution."""

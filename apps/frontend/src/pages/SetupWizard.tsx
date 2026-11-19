@@ -36,6 +36,8 @@ import RestoreVerification from "../components/wizard/RestoreVerification";
 import RestoreCompletion from "../components/wizard/RestoreCompletion";
 import type { BackupSetResponse, RestoreStepResponse } from "../api/restore";
 import "./SetupWizard.css";
+import { octDebug } from "../utils/debug";
+import { pickDevice, setLastDeviceId } from "../utils/lastDevice";
 
 interface SetupWizardProps {
   devices: Device[];
@@ -125,6 +127,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   const [wizardMode, setWizardMode] = useState<"choice" | "setup" | "restore">(initialMode);
   // Restore flow state
   const [restoreStep, setRestoreStep] = useState(1); // 1=RestoreChoice, 2=BackupScan, 3=Execution, 4=Verification, 5=Completion
+  const [restoreRunning, setRestoreRunning] = useState(false);
   const [restoreType, setRestoreType] = useState<"backup" | "clean">("clean");
   const [selectedBackupSet, setSelectedBackupSet] = useState<BackupSetResponse | null>(null);
   const [restoreResults, setRestoreResults] = useState<RestoreStepResponse[]>([]);
@@ -134,7 +137,16 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   const [currentStep, setCurrentStep] = useState(
     Number.isNaN(urlStep) ? 1 : Math.max(1, Math.min(urlStep - 1, 8))
   );
-  const [steps, setSteps] = useState<WizardStep[]>(WIZARD_STEPS);
+  // Only the progress is state: the labels are derived from the current language on every render, so
+  // switching the language inside the wizard also translates the tracker.
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const steps = useMemo<WizardStep[]>(
+    () =>
+      WIZARD_STEPS.map((step) =>
+        completedSteps.includes(step.id) ? { ...step, status: "completed" } : step
+      ),
+    [WIZARD_STEPS, completedSteps]
+  );
 
   // Restore flow has its own 5-step tracker (1=choice, 2=backup scan, 3=execution, 4=verification, 5=completion).
   // A clean restore skips the backup scan, so step 2 counts as done once the flow moves past the choice.
@@ -189,11 +201,15 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
         return;
       }
     }
-    // Fallback: auto-select first device when no deviceId in URL
-    if (!selectedDevice && devices.length > 0 && devices[0]) {
-      setSelectedDevice(devices[0]);
+    // Fallback: the last visited device, else the first device
+    if (!selectedDevice && devices.length > 0) {
+      setSelectedDevice(pickDevice(devices, null) ?? null);
     }
   }, [searchParams, devices]); // eslint-disable-line @eslint-react/exhaustive-deps
+
+  useEffect(() => {
+    setLastDeviceId(selectedDevice?.device_id);
+  }, [selectedDevice]);
 
   // Always render the outer wrapper so tests/transitions can find it immediately.
   // Inner content transitions: loading → empty → main wizard.
@@ -213,9 +229,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   };
 
   const completeCurrentStep = () => {
-    setSteps((prev) =>
-      prev.map((step) => (step.id === currentStep ? { ...step, status: "completed" } : step))
-    );
+    setCompletedSteps((prev) => (prev.includes(currentStep) ? prev : [...prev, currentStep]));
   };
 
   const handleNext = () => {
@@ -268,7 +282,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
 
   const handleConfigModified = (data: unknown) => {
     audit?.logDetail("config", "config_modified", 4, { data: JSON.stringify(data) });
-    console.log("Config modified:", data);
+    octDebug("wizard", "Config modified:", data);
     // In Phase 3+: Store modification details
   };
 
@@ -278,7 +292,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
 
   const handleHostsModified = (data: unknown, effectiveIp: string) => {
     audit?.logDetail("config", "hosts_modified", 5, { data: JSON.stringify(data) });
-    console.log("Hosts modified:", data);
+    octDebug("wizard", "Hosts modified:", data);
     // Propagate user-overridden IP so Step7 verification uses the correct address
     if (effectiveIp) {
       setServerIp(effectiveIp);
@@ -287,7 +301,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
 
   const handleBackupComplete = (backupData: unknown) => {
     audit?.logDetail("config", "backup_complete", 3, { data: JSON.stringify(backupData) });
-    console.log("Backup completed:", backupData);
+    octDebug("wizard", "Backup completed:", backupData);
     // Extract backup directory from first successful volume
     if (backupData && typeof backupData === "object" && "volumes" in backupData) {
       const volumes = (backupData as Record<string, unknown>).volumes as
@@ -360,6 +374,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
               setRestoreStep(4);
             }}
             onPrevious={() => setRestoreStep(restoreType === "backup" ? 2 : 1)}
+            onRunningChange={setRestoreRunning}
           />
         );
 
@@ -532,7 +547,11 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
 
   return (
     <div className="page setup-wizard-page">
-      <h1 className="visually-hidden">{pageTitle}</h1>
+      <h1
+        className={`visually-hidden wz-page-title${wizardMode === "choice" ? " wz-page-title--sr" : ""}`}
+      >
+        {pageTitle}
+      </h1>
       {/* Dev Banner - only visible in development mode, not in production */}
       {import.meta.env.DEV && (
         <div className="global-demo-banner">
@@ -540,7 +559,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
         </div>
       )}
 
-      {selectedDevice && <DeviceInfoHeader device={selectedDevice} />}
+      {selectedDevice && <DeviceInfoHeader device={selectedDevice} rebootLocked={restoreRunning} />}
 
       <div className="wizard-content-v2">
         {wizardMode === "setup" && <ProgressTracker steps={steps} currentStep={currentStep} />}

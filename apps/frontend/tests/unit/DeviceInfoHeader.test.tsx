@@ -23,4 +23,22 @@ describe("DeviceInfoHeader", () => {
     expect(link).toHaveAttribute("href", "/?device=AABBCC112233");
     expect(link).toHaveClass("device-icon");
   });
+
+  it("disables the reboot button while the device must not be restarted", () => {
+    render(
+      <MemoryRouter>
+        <DeviceInfoHeader device={device} rebootLocked />
+      </MemoryRouter>,
+    );
+    expect(document.querySelector(".device-reboot-btn")).toBeDisabled();
+  });
+
+  it("keeps the reboot button enabled by default", () => {
+    render(
+      <MemoryRouter>
+        <DeviceInfoHeader device={device} />
+      </MemoryRouter>,
+    );
+    expect(document.querySelector(".device-reboot-btn")).toBeEnabled();
+  });
 });

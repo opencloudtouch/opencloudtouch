@@ -2,6 +2,7 @@
 
 import tempfile
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -9,6 +10,22 @@ from httpx import ASGITransport, AsyncClient
 from opencloudtouch.main import app
 from opencloudtouch.presets.repository import PresetRepository
 from opencloudtouch.presets.service import PresetService
+
+
+@pytest.fixture(autouse=True)
+def reachable_speaker():
+    """The preset API programs the speaker first: give it a device that answers."""
+    with (
+        patch(
+            "opencloudtouch.devices.repository.DeviceRepository.get_by_device_id",
+            new=AsyncMock(return_value=MagicMock(ip="10.0.0.1")),
+        ),
+        patch(
+            "opencloudtouch.devices.adapter.get_device_client",
+            return_value=AsyncMock(),
+        ),
+    ):
+        yield
 
 
 @pytest.fixture

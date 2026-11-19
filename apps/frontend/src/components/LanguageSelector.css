@@ -13,7 +13,7 @@
   border: 1px solid var(--ui-control-border);
   border-radius: var(--border-radius-sm);
   color: var(--color-text-primary);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: var(--font-weight-medium);
 }
 .lang-selector:hover {
@@ -25,7 +25,7 @@
 .lang-flag,
 .lang-option-flag {
   flex: none;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   border-radius: 2px;
 }
 .lang-code {
@@ -79,7 +79,7 @@
 .lang-option-code {
   flex: none;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: var(--fs-small);
   color: var(--color-text-secondary);
 }
 .lang-option-check {
@@ -92,4 +92,13 @@
   .lang-option--active {
     border: 1px solid Highlight;
   }
+}
+
+.lang-flag-preload {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
 }

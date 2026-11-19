@@ -10,6 +10,7 @@ Hierarchy:
     ├── DeviceConnectionError        → 503
     ├── DiscoveryError               → 500
     ├── DomainValidationError        → 400
+    ├── CodedApiError                → any (raise_coded)
     ├── RadioError                   → 500
     │   ├── RadioTimeoutError        → 504
     │   └── RadioConnectionError     → 503
@@ -21,9 +22,14 @@ Hierarchy:
 Includes RFC 7807-inspired standardized error responses.
 """
 
-from typing import Any
+from typing import Any, NoReturn
 
 from pydantic import BaseModel
+
+from opencloudtouch.core.error_codes import validate_code
+
+# Fixed text returned as ``detail`` for every 5xx error that must not expose internals.
+GENERIC_SERVER_ERROR_DETAIL = "An unexpected error occurred. Please try again later."
 
 
 class OpenCloudTouchError(Exception):
@@ -70,9 +76,56 @@ class DomainValidationError(OpenCloudTouchError):
     Maps to HTTP 400 Bad Request.
     """
 
-    def __init__(self, message: str, field: str | None = None):
+    def __init__(self, message: str, field: str | None = None, code: str | None = None):
         self.field = field
+        self.code = validate_code(code) if code is not None else None
         super().__init__(message)
+
+
+class CodedApiError(OpenCloudTouchError):
+    """Raised with an explicit HTTP status and a stable machine-readable ``code``.
+
+    Use ``raise_coded`` instead of instantiating directly. ``params`` values are
+    coerced with ``str()`` when the response is built. Neither ``params`` nor
+    ``extra`` may contain secrets, stack traces, filesystem paths or raw
+    exception text.
+    """
+
+    def __init__(
+        self,
+        status_code: int,
+        code: str,
+        detail: str,
+        *,
+        field: str | None = None,
+        params: dict[str, Any] | None = None,
+        extra: dict[str, Any] | None = None,
+        title: str | None = None,
+    ):
+        self.status_code = status_code
+        self.code = validate_code(code)
+        self.detail = detail
+        self.field = field
+        self.params = params
+        self.extra = extra
+        self.title = title
+        super().__init__(detail)
+
+
+def raise_coded(
+    status: int,
+    code: str,
+    detail: str,
+    *,
+    field: str | None = None,
+    params: dict[str, Any] | None = None,
+    extra: dict[str, Any] | None = None,
+    title: str | None = None,
+) -> NoReturn:
+    """Raise a ``CodedApiError`` that is rendered as a coded ``ErrorDetail``."""
+    raise CodedApiError(
+        status, code, detail, field=field, params=params, extra=extra, title=title
+    )
 
 
 # ============================================================================
@@ -170,6 +223,21 @@ class ExternalServiceError(OpenCloudTouchError):
 # ============================================================================
 
 
+class ErrorItem(BaseModel):
+    """One field-level error inside ``ErrorDetail.errors``.
+
+    ``field`` keeps the legacy dotted location (``body.port``); ``path`` is the
+    same location without the leading ``body``/``query``/``path``/``header``
+    segment (``port``) and is what clients map to input names.
+    """
+
+    field: str
+    path: str | None = None
+    message: str
+    type: str | None = None
+    code: str | None = None
+
+
 class ErrorDetail(BaseModel):
     """Standardized error response format (RFC 7807-inspired).
 
@@ -182,14 +250,21 @@ class ErrorDetail(BaseModel):
         detail: Detailed error message
         instance: Request path that triggered error (optional)
         errors: Field-level validation errors (optional, for 422 responses)
+        code: Stable machine-readable error identifier (see ``error_codes``)
+        params: Flat string map for message interpolation on the client
+        extra: Structured data for the client (not for translation)
 
     Example:
         {
             "type": "not_found",
             "title": "Device Not Found",
             "status": 404,
-            "detail": "Device with ID 'abc123' does not exist",
-            "instance": "/api/devices/abc123"
+            "detail": "Device not found: abc123",
+            "instance": "/api/devices/abc123",
+            "errors": null,
+            "code": "device_not_found",
+            "params": null,
+            "extra": null
         }
     """
 
@@ -198,7 +273,22 @@ class ErrorDetail(BaseModel):
     status: int
     detail: str
     instance: str | None = None
-    errors: list[dict[str, Any]] | None = None
+    errors: list[ErrorItem] | None = None
+    code: str | None = None
+    params: dict[str, str] | None = None
+    extra: dict[str, Any] | None = None
+
+
+_STATUS_TITLES: dict[int, str] = {
+    400: "Bad Request",
+    404: "Not Found",
+    409: "Conflict",
+    413: "Payload Too Large",
+    422: "Validation Error",
+    502: "Bad Gateway",
+    503: "Service Unavailable",
+    504: "Gateway Timeout",
+}
 
 
 _HTTP_STATUS_TYPE_MAP: dict[int, str] = {
@@ -214,6 +304,18 @@ _HTTP_STATUS_TYPE_MAP: dict[int, str] = {
     503: "service_unavailable",
     504: "gateway_timeout",
 }
+
+
+def status_title(status_code: int) -> str:
+    """Return the default error title for an HTTP status code.
+
+    Args:
+        status_code: HTTP status code
+
+    Returns:
+        Title such as 'Conflict', or 'HTTP <code>' for unmapped statuses
+    """
+    return _STATUS_TITLES.get(status_code, f"HTTP {status_code}")
 
 
 def map_status_to_type(status_code: int) -> str:

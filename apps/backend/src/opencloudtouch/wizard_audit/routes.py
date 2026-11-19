@@ -34,7 +34,10 @@ class AuditEntryRequest(BaseModel):
     )
     event: str = Field(..., description="Short event name, e.g. 'button_click:next'")
     step: Optional[int] = Field(
-        None, ge=0, le=7, description="Wizard step number (0=init)"
+        None,
+        ge=0,
+        le=10,
+        description="Wizard step number (0=init, up to 8 setup steps)",
     )
     detail: Optional[str] = Field(
         None,

@@ -11,6 +11,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - DLNA playback API reports automatic track advancement availability via `auto_advance` (#510)
+
+### Fixed
+- Guard DLNA service shutdown when startup did not initialize the service (#510)
+
+---
+
+## [2.1.0] - 2026-11-16
+
+### Added
+- Stereo pairs for SoundTouch 10 (LEFT/RIGHT) can be created, listed, repaired and dissolved from the multi-room page, without SSH access to the speakers
+- The speaker-facing Marge emulation answers the group calls (create, read, rename, delete, teardown), `provider_settings` and the recents the speaker reports (`POST .../device/{id}/recent`)
+- A stereo pair shows as one device in the device list: the pair name, "2× model", the main speaker's IP, an "L/R Stereo" badge and both speakers in the footer; the second speaker is no longer listed there, and the pair is dissolved from its card (presets stay on the main speaker)
+- Group changes on a speaker (`groupUpdated`) are parsed and forwarded as a `group` event on the device event stream; the pair list refreshes on it
+
+### Fixed
+- Renaming a stereo pair works: the speaker answers `PUT /updateGroup` with 405, so the rename is sent as `POST /updateGroup` with the whole group
+- Every action sent to a speaker (rename, volume, mute, source, key, bass, reboot, preset save/delete, preset load) answers HTTP 503 with code `device_unreachable` and a fixed, readable text (no IP address, no client library text; the details go to the log) when the speaker is offline and changes nothing in OCT; saving a preset no longer succeeds in OCT alone
+- Deleting a preset in OCT now also clears the slot on the speaker (HTTP 503 and nothing deleted when the speaker is unreachable), and "Load from device" mirrors the speaker: slots the speaker does not have are removed from OCT.
+- Renaming a speaker (from the app or `/name`) works again with the OCT Marge emulation: the speaker's rename call `PUT .../device/{id}` is answered and the new name is stored
+- Presets written on the speaker (`PUT/DELETE .../device/{id}/preset/{n}`) are taken over, and `GET .../device/{id}/recents` is answered; the speaker no longer logs 404 for them
+- Presets with an unknown source (for example `INTERNET_RADIO`) were missing on the speaker after the account sync change; they are announced as `LOCAL_INTERNET_RADIO` now
+- The speaker's account sync (`/streaming/account/{id}/full`) is answered with an `<account>` document; the old `<boseAccount>` root made the speaker fail its sync every minute and broke group creation
+- Metadata (title/artist) for TuneIn presets learned from a speaker: the relative station location is resolved to a stream URL before the stream is probed
+
+---
+
+## [2.0.1] - 2026-11-13
+
+### Added
+- The `linux/arm/v7` image now starts on ARM NAS devices with a 32 KB memory page size (for example WD My Cloud EX2 Ultra): Debian runtime libraries are rebuilt with 64 KB segment alignment and the entrypoint runs a library self-test instead of rejecting 32 KB kernels. Docker 20.10.9 or newer needs no setting; Docker 19.03.x needs the seccomp profile `seccomp-legacy-docker.json` (attached to every release)
+- CI scans the final arm/v7 image for ELF segments that are unsafe on 32 KB pages and runs a QEMU smoke test
+
+---
+
+## [2.0.0] - 2026-11-08
+
+### Added
 - Redesigned setup and restore wizards with a shared design, progress tracker, focus management and full keyboard and screen-reader support
 - Redesigned app shell, presets page, local control, zones, firmware, settings, diagnostics, about and licenses pages with swipe navigation between devices, a sticky device switch bar and a native `<dialog>` based modal
 - Remove button with a confirmation dialog for online and offline devices in presets and local control; saved presets are kept (#520)
@@ -20,17 +57,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PUT /api/devices/{id}/source` switches a device to Bluetooth, AUX or AirPlay
 - Translated restore step and validation messages via stable `message_code` / `message_params` (all 10 locales, English fallback)
 - Cypress suites for responsive layout (overlap, overflow and clipping audit) and for axe accessibility of every wizard state
+- Machine-readable `code`, `params` and `extra` in API error responses (`ErrorDetail`), `errors[].path`/`code` for field errors, `raise_coded()` and an error-code registry (`core/error_codes.py`); all existing keys are unchanged.
+- Frontend: typed `ApiError` thrown by `throwIfNotOk` and translated messages via `getApiErrorMessage`/`getFieldErrors` (`errors.api.*` in all locales).
 
 ### Changed
+- Renaming a device uses only the device REST API (`POST /name`, like the Bose app). The SSH fallback that edited `SystemConfigurationDB.xml` was removed, a failed rename now answers 502 and leaves the stored name unchanged; control characters in the name are rejected (422)
 - The navigation entry "Presets" is now "Devices" (all 10 locales). The device card is the single place for a device: now playing with a source switch (Presets, Bluetooth, AUX), previous/next/play keys for sources with tracks, volume, presets and remove
 - Preset rows are toggles: a tap starts, pauses or resumes the preset; a small button next to it changes the station (behaviour change: the tap on the name used to open the station search). "Presets" in the source switch plays the preset the device played last
 - The "Local control" page (`/local`) was removed; it was not linked anywhere and its source chips did not switch anything. Its functions live on the device card
 - Restore: backup timeout raised to 10 minutes; archive validation searches the whole archive
 - Device cards load from a small in-memory cache that is warmed for the neighbouring devices only
 - Settings: a failed log download shows a translated reason instead of failing silently (#527)
+- Frontend: the wire-shape interface `ApiError` is now `ApiErrorBody`.
+- `ErrorDetail` and `ErrorItem` are part of the generated OpenAPI schema.
+- `/health` has a typed response model (`HealthResponse`) in the OpenAPI schema; the frontend type is generated from it.
+- The SoundTouch WebSocket client uses the `websockets.asyncio` API and ignores `HTTP(S)_PROXY`/`ALL_PROXY` for LAN devices; minimum `websockets` is now 15.0.
 
 ### Fixed
-- Guard DLNA service shutdown when startup did not initialize the service (#510)
+- Devices without the OCT redirect block in `/etc/hosts` were reported as `configured` by the health check and the setup verification (the grep fallback printed a second `0`)
+- A second device scan now gets an explicit "already in progress" event instead of a bare HTTP 409, so real failures are no longer labelled "already running"
 - Layout overflow and overlap on the presets, local control, multi-room and settings pages, the swiper, the navigation and the empty state
 - False "unexpected content" warnings when validating a restore archive
 - Accessibility: skip link and `main` landmark, heading order, contrast tokens, translated `aria-label`s, `html lang` sync, toast roles and reduced-motion support

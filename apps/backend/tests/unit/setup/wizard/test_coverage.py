@@ -8,6 +8,7 @@ individual _check_* helper methods.
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from contextlib import nullcontext
 import pytest
 
 from opencloudtouch.setup.account_pairing_service import AccountPairingResult
@@ -30,6 +31,7 @@ def _make_device_repo(existing_uuid_owner=None):
 
 def _mock_ssh():
     ssh = AsyncMock()
+    ssh.write_access = MagicMock(return_value=nullcontext())
     ssh.execute = AsyncMock(
         return_value=CommandResult(success=True, output="", exit_code=0)
     )

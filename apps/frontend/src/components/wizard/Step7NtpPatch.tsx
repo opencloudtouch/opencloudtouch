@@ -9,6 +9,7 @@ import WizardStep from "./WizardStep";
 import { Icon } from "./Icon";
 import "./wizard-base.css";
 import "./Step7NtpPatch.css";
+import { userErrorMessage } from "../../utils/errorMessages";
 
 interface Step7Props {
   readonly deviceIp: string;
@@ -32,9 +33,9 @@ export default function Step7NtpPatch({ deviceIp, onNext, onPrevious }: Step7Pro
       const trimmed = ntpServer.trim();
       const res = await patchNtp({ device_ip: deviceIp, ntp_server: trimmed });
       setResult(res);
-      if (!res.success) setError(res.message || t("setup.wizard.step7.errorTitle"));
+      if (!res.success) setError(t("errors.unknown"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("errors.unknown"));
+      setError(userErrorMessage(err));
     } finally {
       setPatching(false);
     }

@@ -17,6 +17,7 @@ from opencloudtouch.core.config import get_config
 from opencloudtouch.core.dependencies import get_device_service, get_settings_service
 from opencloudtouch.core.exceptions import DiscoveryError
 from opencloudtouch.devices.events import (
+    DiscoveryEvent,
     DiscoveryEventType,
     event_generator,
     get_event_bus,
@@ -129,10 +130,22 @@ async def discover_devices_stream(
         event: completed
         data: {"discovered": 3, "synced": 3, "failed": 0}
     """
-    # Prevent concurrent discovery
+    # Prevent concurrent discovery. Answered inside the stream: EventSource cannot read the status or body of a
+    # failed request, so a bare 409 would be indistinguishable from any other connection error.
     if _discovery_lock.locked():
         logger.warning("Discovery already in progress, rejecting SSE request")
-        raise HTTPException(status_code=409, detail="Discovery already in progress")
+        busy = DiscoveryEvent(
+            type=DiscoveryEventType.ERROR,
+            data={
+                "message": "Discovery already in progress",
+                "code": "discovery_in_progress",
+            },
+        )
+        return StreamingResponse(
+            iter([busy.to_sse()]),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache"},
+        )
 
     # Subscribe to events
     event_bus = get_event_bus()
@@ -164,8 +177,6 @@ async def discover_devices_stream(
         except Exception as e:
             logger.exception("Discovery stream error")
             # Send error event
-            from opencloudtouch.devices.events import DiscoveryEvent
-
             error_event = DiscoveryEvent(
                 type=DiscoveryEventType.ERROR, data={"message": str(e)}
             )

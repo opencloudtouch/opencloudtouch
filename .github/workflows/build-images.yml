@@ -13,7 +13,7 @@
 #   - SUPPORTERS_API_PASS: Password for fetching supporters from opencloudtouch.org
 # ==============================================================================
 
-name: Build Docker Images
+name: Build · Docker Images
 
 on:
   workflow_dispatch:
@@ -96,7 +96,7 @@ jobs:
   # ============================================================================
   promote-stable:
     name: Promote ${{ inputs.version }} to stable
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: inputs.action == 'promote-stable'
     permissions:
       packages: write
@@ -126,7 +126,7 @@ jobs:
   # ============================================================================
   build-frontend:
     name: Build Frontend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: inputs.action == '' || inputs.action == 'build'
 
     steps:
@@ -153,8 +153,7 @@ jobs:
           SUPPORTERS_API_PASS: ${{ secrets.SUPPORTERS_API_PASS }}
         run: |
           # Fetch current supporters CSV via Basic Auth
-          AUTH=$(echo -n "$SUPPORTERS_API_USER:$SUPPORTERS_API_PASS" | base64)
-          curl -H "Authorization: Basic $AUTH" \
+          curl --user "${SUPPORTERS_API_USER}:${SUPPORTERS_API_PASS}" \
             https://opencloudtouch.org/api/supporters/get.php \
             -o apps/frontend/public/supporters.csv --fail --silent --show-error --remove-on-error || {
             echo "⚠️ Failed to fetch supporters, keeping git-committed placeholder"
@@ -183,7 +182,7 @@ jobs:
   # ============================================================================
   docker-security:
     name: Docker Security Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: inputs.action == '' || inputs.action == 'build'
     needs: [build-frontend]
 
@@ -347,7 +346,7 @@ jobs:
   # ============================================================================
   build-docker:
     name: Build Docker Image (${{ matrix.platform }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: inputs.action == '' || inputs.action == 'build'
     needs: [docker-security]
 
@@ -401,6 +400,18 @@ jobs:
           SIG=$(echo -n "$VERSION" | openssl dgst -sha256 -hmac "${{ secrets.BUILD_SIGNING_KEY }}" | awk '{print $NF}' | cut -c1-16)
           echo "signature=$SIG" >> $GITHUB_OUTPUT
 
+      - name: Build aligned-debs stage (cached in GHCR)
+        if: matrix.platform == 'linux/arm/v7'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deployment/Dockerfile
+          target: aligned-debs
+          platforms: linux/arm/v7
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-aligned-debs-armv7
+          cache-to: type=registry,mode=max,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-aligned-debs-armv7
+          outputs: type=cacheonly
+
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v7
@@ -414,9 +425,17 @@ jobs:
           build-contexts: |
             frontend-build=frontend-ctx
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=build-${{ matrix.platform }}
+          cache-from: |
+            type=gha,scope=build-${{ matrix.platform }}
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-aligned-debs-armv7
           cache-to: type=gha,mode=max,scope=build-${{ matrix.platform }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true
+
+      - name: Verify armv7 image (ELF page-size scan, smoke test)
+        if: matrix.platform == 'linux/arm/v7'
+        uses: ./.github/actions/verify-armv7-image
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
 
       - name: Export digest
         run: |
@@ -437,7 +456,7 @@ jobs:
   # ============================================================================
   push-docker:
     name: Push Docker Image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: inputs.action == '' || inputs.action == 'build'
     needs: [build-docker]
 
@@ -488,7 +507,7 @@ jobs:
   # ============================================================================
   container-scan:
     name: Scan Container (post-push)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: inputs.action == '' || inputs.action == 'build'
     needs: [push-docker]
 

@@ -1,22 +1,36 @@
 # ==============================================================================
-# POST-RELEASE WORKFLOW — Update CHANGELOG + create Announcement Discussion
+# POST-RELEASE WORKFLOW — changelog, announcement, welcome-post version
 #
-# Trigger: workflow_dispatch after a release is published
-#           OR automatically after release.yml publish-release job
+# Trigger: called by release.yml after the release is published (a release
+#          published with GITHUB_TOKEN never fires `release: published`, which is
+#          why this used to be skipped), manually for a past version, or by
+#          `release: published` for releases published by hand.
 #
 # Steps:
-#   1. Update CHANGELOG.md: [Unreleased] → [X.Y.Z] - YYYY-MM-DD
-#   2. Create Announcement Discussion with release summary
-#   3. Commit + push CHANGELOG changes
+#   1. CHANGELOG.md: [Unreleased] -> [X.Y.Z] - YYYY-MM-DD (curated text is kept;
+#      commit subjects are only the fallback), pushed to main
+#   2. Announcement discussion built from that changelog section
+#   3. "Current Version" line of the welcome discussion updated
+#
+# Discussions are written with RELEASE_TOKEN: the org caps GITHUB_TOKEN to read-only.
 # ==============================================================================
 
-name: Post-Release
+name: Release · Post-Release
 
 on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Released version (e.g. "2.0.0")'
+        required: true
+        type: string
+    secrets:
+      RELEASE_TOKEN:
+        required: true
   workflow_dispatch:
     inputs:
       version:
-        description: 'Released version (e.g. "1.2.8")'
+        description: 'Released version (e.g. "2.0.0")'
         required: true
         type: string
       skip_announcement:
@@ -29,307 +43,160 @@ on:
         required: false
         type: boolean
         default: false
-
   release:
     types: [published]
 
 env:
   REPO_NODE_ID: "R_kgDORCYFTw"
   ANNOUNCEMENT_CATEGORY_ID: "DIC_kwDORCYFT84C5HnX"
+  WELCOME_DISCUSSION: "64"
 
 # Least-privilege: no default permissions. Jobs declare what they need.
 permissions: {}
 
 jobs:
-  # ============================================================================
-  # RESOLVE VERSION (from event or input)
-  # ============================================================================
   resolve:
     name: Resolve Version
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
       is_semver: ${{ steps.version.outputs.is_semver }}
-
     steps:
       - name: Determine version
         id: version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           if [ "${{ github.event_name }}" = "release" ]; then
-            TAG="${{ github.event.release.tag_name }}"
-            VERSION="${TAG#v}"
+            VERSION="${RELEASE_TAG#v}"
           else
-            VERSION="${{ inputs.version }}"
-            TAG="v${VERSION}"
+            VERSION="${INPUT_VERSION#v}"
           fi
-
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Version: $VERSION (tag: $TAG)"
-
-          # Non-semver tags (e.g. the "raspi-v4"/"raspi-latest" Raspberry Pi image
-          # aliases) also fire `release: published` but aren't app releases — skip
-          # the changelog/announcement steps for those instead of producing
-          # garbage like "vraspi-latest Released".
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          # Non-semver release tags (e.g. the "raspi-latest" image alias) also fire
+          # `release: published` but are not app releases.
           if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "is_semver=true" >> "$GITHUB_OUTPUT"
           else
             echo "is_semver=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Skipping non-semver release tag '$TAG' — not an app release"
+            echo "::notice::Skipping non-semver release '$VERSION'"
           fi
 
-  # ============================================================================
-  # UPDATE CHANGELOG.md
-  # ============================================================================
   changelog:
     name: Update Changelog
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: resolve
-    if: >-
-      needs.resolve.outputs.is_semver == 'true' &&
-      (
-        (github.event_name == 'release') ||
-        (github.event_name == 'workflow_dispatch' && inputs.skip_changelog != true)
-      )
-
+    if: needs.resolve.outputs.is_semver == 'true' && inputs.skip_changelog != true
     permissions:
       contents: write
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
           token: ${{ secrets.RELEASE_TOKEN }}
 
-      - name: Configure Git
+      - name: Promote [Unreleased] to the released version
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          TAG: ${{ needs.resolve.outputs.tag }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Update CHANGELOG.md
-        run: |
-          VERSION="${{ needs.resolve.outputs.version }}"
-          TAG="${{ needs.resolve.outputs.tag }}"
-          DATE=$(date +%Y-%m-%d)
-
-          echo "Updating CHANGELOG.md: [Unreleased] → [$VERSION] - $DATE"
-
-          # Check if [Unreleased] section exists
-          if ! grep -q '## \[Unreleased\]' CHANGELOG.md; then
-            echo "::warning::No [Unreleased] section found in CHANGELOG.md — skipping"
-            exit 0
-          fi
-
-          # Check if version already in changelog
-          if grep -q "## \[$VERSION\]" CHANGELOG.md; then
-            echo "::warning::Version $VERSION already in CHANGELOG.md — skipping"
-            exit 0
-          fi
-
-          # Collect commit messages since last tag for changelog content
-          PREV_TAG=$(git tag --sort=-v:refname | grep -v "$TAG" | head -1 || echo "")
-
-          if [ -n "$PREV_TAG" ]; then
-            RANGE="${PREV_TAG}..${TAG}"
-          else
-            RANGE=""
-          fi
-
-          # Build changelog entries from conventional commits
-          build_entries() {
-            local prefix="$1" title="$2" entries=""
-            if [ -n "$RANGE" ]; then
-              entries=$(git log $RANGE --pretty=format:"- %s" --no-merges --grep="^${prefix}" 2>/dev/null | sed "s/^- ${prefix}[(:]/- /" | sed 's/)$//' || true)
-            fi
-            if [ -n "$entries" ]; then
-              printf "\n### %s\n%s\n" "$title" "$entries"
-            fi
-          }
-
-          CONTENT=""
-          CONTENT+=$(build_entries "feat" "Added")
-          CONTENT+=$(build_entries "fix" "Fixed")
-          CONTENT+=$(build_entries "perf" "Performance")
-          CONTENT+=$(build_entries "refactor" "Changed")
-          CONTENT+=$(build_entries "docs" "Documentation")
-
-          # If no conventional commits found, use placeholder
-          if [ -z "$CONTENT" ]; then
-            CONTENT=$'\n### Changed\n- See [release notes](https://github.com/${{ github.repository }}/releases/tag/'"$TAG"')\n'
-          fi
-
-          # Replace [Unreleased] with version + date, add new [Unreleased] section
-          # Use awk for reliable multi-line replacement
-          awk -v version="$VERSION" -v date="$DATE" -v content="$CONTENT" '
-            /^## \[Unreleased\]/ {
-              print "## [Unreleased]"
-              print ""
-              print "_No changes yet._"
-              print ""
-              print "---"
-              print ""
-              printf "## [%s] - %s\n", version, date
-              print content
-              # Skip the old unreleased content until next ## section
-              skip = 1
-              next
-            }
-            skip && /^## \[/ { skip = 0 }
-            skip && /^---$/ { next }
-            !skip { print }
-          ' CHANGELOG.md > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
-
-          echo "=== CHANGELOG preview ==="
-          head -30 CHANGELOG.md
-
-      - name: Commit and push
-        run: |
-          VERSION="${{ needs.resolve.outputs.version }}"
+          PREV_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]' | grep -Fxv "$TAG" | head -1 || true)
+          git log "${PREV_TAG:+$PREV_TAG..}$TAG" --no-merges --pretty=format:%s > "$RUNNER_TEMP/commits.txt"
+          python3 scripts/release_notes.py promote CHANGELOG.md "$VERSION" "$(date +%Y-%m-%d)" "$RUNNER_TEMP/commits.txt"
           git add CHANGELOG.md
           if git diff --cached --quiet; then
-            echo "No changes to commit"
+            echo "CHANGELOG.md already up to date"
           else
             git commit -m "docs: update CHANGELOG.md for v${VERSION}"
             git push origin main
-            echo "CHANGELOG.md updated and pushed"
           fi
 
-  # ============================================================================
-  # CREATE ANNOUNCEMENT DISCUSSION
-  # ============================================================================
   announcement:
     name: Create Announcement
-    runs-on: ubuntu-latest
-    needs: resolve
+    runs-on: ubuntu-24.04
+    needs: [resolve, changelog]
     if: >-
-      needs.resolve.outputs.is_semver == 'true' &&
-      (
-        (github.event_name == 'release') ||
-        (github.event_name == 'workflow_dispatch' && inputs.skip_announcement != true)
-      )
-
-    permissions:
-      discussions: write
-
+      always() && needs.resolve.outputs.is_semver == 'true' &&
+      needs.changelog.result != 'failure' && inputs.skip_announcement != true
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.resolve.outputs.tag }}
-          fetch-depth: 0
+          ref: main
 
-      - name: Build announcement body
-        id: body
-        run: |
-          VERSION="${{ needs.resolve.outputs.version }}"
-          TAG="${{ needs.resolve.outputs.tag }}"
-          PREV_TAG=$(git tag --sort=-v:refname | grep -v "$TAG" | head -1 || echo "")
-
-          # Collect highlights from commits
-          if [ -n "$PREV_TAG" ]; then
-            RANGE="${PREV_TAG}..${TAG}"
-          else
-            RANGE=""
-          fi
-
-          FEATURES=""
-          FIXES=""
-          if [ -n "$RANGE" ]; then
-            FEATURES=$(git log $RANGE --pretty=format:"- %s" --no-merges --grep="^feat" 2>/dev/null || true)
-            FIXES=$(git log $RANGE --pretty=format:"- %s" --no-merges --grep="^fix" 2>/dev/null || true)
-          fi
-
-          cat > announcement.md << EOF
-          ## What's new in v${VERSION}
-
-          EOF
-          sed -i 's/^          //' announcement.md
-
-          if [ -n "$FEATURES" ]; then
-            printf "### Features\n\n%s\n\n" "$FEATURES" >> announcement.md
-          fi
-
-          if [ -n "$FIXES" ]; then
-            printf "### Bug Fixes\n\n%s\n\n" "$FIXES" >> announcement.md
-          fi
-
-          if [ -z "$FEATURES" ] && [ -z "$FIXES" ]; then
-            echo "See the [release notes](https://github.com/${{ github.repository }}/releases/tag/${TAG}) for full details." >> announcement.md
-            echo "" >> announcement.md
-          fi
-
-          cat >> announcement.md << EOF
-          ---
-
-          ### How to update
-
-          **Docker (recommended):**
-          \`\`\`bash
-          docker pull ghcr.io/${{ github.repository }}:${VERSION}
-          docker compose up -d
-          \`\`\`
-
-          **Raspberry Pi:** Download the updated SD card image from the [v${VERSION} release page](https://github.com/${{ github.repository }}/releases/tag/${TAG}).
-
-          ---
-
-          Full release notes: [v${VERSION}](https://github.com/${{ github.repository }}/releases/tag/${TAG})
-          EOF
-
-          echo "=== Announcement preview ==="
-          cat announcement.md
-
-      - name: Create discussion via GraphQL
+      - name: Create the announcement discussion
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          VERSION: ${{ needs.resolve.outputs.version }}
+          TAG: ${{ needs.resolve.outputs.tag }}
+          REPO: ${{ github.repository }}
         run: |
-          VERSION="${{ needs.resolve.outputs.version }}"
           TITLE="v${VERSION} Released"
-
-          # Check if announcement already exists
-          EXISTING=$(gh api graphql -F query="$(cat <<'GQL'
-          {
-            repository(owner: "${{ github.repository_owner }}", name: "opencloudtouch") {
-              discussions(first: 5, categoryId: "${{ env.ANNOUNCEMENT_CATEGORY_ID }}", orderBy: {field: CREATED_AT, direction: DESC}) {
-                nodes { title }
-              }
-            }
-          }
-          GQL
-          )" --jq ".data.repository.discussions.nodes[].title" 2>/dev/null || true)
-
-          if echo "$EXISTING" | grep -q "$TITLE"; then
-            echo "::warning::Discussion '$TITLE' already exists — skipping"
+          if gh api graphql -f query='query($o:String!,$r:String!,$c:ID!){repository(owner:$o,name:$r){discussions(first:20,categoryId:$c,orderBy:{field:CREATED_AT,direction:DESC}){nodes{title}}}}' \
+               -f o="${REPO%/*}" -f r="${REPO#*/}" -f c="$ANNOUNCEMENT_CATEGORY_ID" \
+               --jq '.data.repository.discussions.nodes[].title' | grep -Fxq "$TITLE"; then
+            echo "::warning::'$TITLE' already exists, skipping"
             exit 0
           fi
 
-          BODY=$(cat announcement.md)
-
-          # Escape for JSON
-          BODY_JSON=$(echo "$BODY" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
+          NOTES=$(python3 scripts/release_notes.py extract CHANGELOG.md "$VERSION" | head -c 30000)
+          {
+            echo "## What's new in v${VERSION}"
+            echo
+            if [ -n "$NOTES" ]; then echo "$NOTES"; else echo "See the [release notes](https://github.com/${REPO}/releases/tag/${TAG})."; fi
+            echo
+            echo "---"
+            echo
+            echo "### How to update"
+            echo
+            echo "**Docker (recommended):**"
+            echo '```bash'
+            echo "docker pull ghcr.io/${REPO}:${VERSION}"
+            echo "docker compose up -d"
+            echo '```'
+            echo
+            echo "**Raspberry Pi:** download the updated SD card image from the [release page](https://github.com/${REPO}/releases/tag/${TAG})."
+            echo
+            echo "Full release notes: [v${VERSION}](https://github.com/${REPO}/releases/tag/${TAG})"
+          } > "$RUNNER_TEMP/announcement.md"
 
           gh api graphql \
-            -F repositoryId="${{ env.REPO_NODE_ID }}" \
-            -F categoryId="${{ env.ANNOUNCEMENT_CATEGORY_ID }}" \
-            -F title="$TITLE" \
-            -F body="$BODY" \
-            -F query='
-              mutation($repositoryId: ID!, $categoryId: ID!, $title: String!, $body: String!) {
-                createDiscussion(input: {
-                  repositoryId: $repositoryId,
-                  categoryId: $categoryId,
-                  title: $title,
-                  body: $body
-                }) {
-                  discussion {
-                    url
-                    number
-                  }
-                }
-              }
-            ' --jq '.data.createDiscussion.discussion'
+            -f repositoryId="$REPO_NODE_ID" -f categoryId="$ANNOUNCEMENT_CATEGORY_ID" \
+            -f title="$TITLE" -F body=@"$RUNNER_TEMP/announcement.md" \
+            -f query='mutation($repositoryId:ID!,$categoryId:ID!,$title:String!,$body:String!){createDiscussion(input:{repositoryId:$repositoryId,categoryId:$categoryId,title:$title,body:$body}){discussion{url}}}' \
+            --jq '.data.createDiscussion.discussion.url'
 
-          echo "Announcement discussion created"
+  welcome-version:
+    name: Update welcome discussion
+    runs-on: ubuntu-24.04
+    needs: resolve
+    if: needs.resolve.outputs.is_semver == 'true' && inputs.skip_announcement != true
+    steps:
+      - name: Set "Current Version" in the welcome discussion
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          VERSION: ${{ needs.resolve.outputs.version }}
+          TAG: ${{ needs.resolve.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh api graphql -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){discussion(number:$n){id body}}}' \
+            -f o="${REPO%/*}" -f r="${REPO#*/}" -F n="$WELCOME_DISCUSSION" --jq '.data.repository.discussion' > "$RUNNER_TEMP/welcome.json"
+          python3 - "$RUNNER_TEMP" "$VERSION" "$TAG" "$REPO" <<'PY'
+          import json, re, sys
+          tmp, version, tag, repo = sys.argv[1:]
+          d = json.load(open(f"{tmp}/welcome.json", encoding="utf-8"))
+          line = f"## Current Version: [v{version}](https://github.com/{repo}/releases/tag/{tag})"
+          body, n = re.subn(r"^## Current Version:.*$", line, d["body"].replace("\r", ""), flags=re.M)
+          if n != 1:
+              sys.exit("'## Current Version:' line not found exactly once")
+          open(f"{tmp}/welcome.md", "w", encoding="utf-8", newline="\n").write(body)
+          open(f"{tmp}/welcome.id", "w").write(d["id"])
+          PY
+          gh api graphql -f id="$(cat "$RUNNER_TEMP/welcome.id")" -F body=@"$RUNNER_TEMP/welcome.md" \
+            -f query='mutation($id:ID!,$body:String!){updateDiscussion(input:{discussionId:$id,body:$body}){discussion{url}}}' \
+            --jq '.data.updateDiscussion.discussion.url'

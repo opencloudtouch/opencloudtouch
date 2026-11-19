@@ -16,6 +16,10 @@ from opencloudtouch.core.config import get_config
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.zones.repository import ZoneNotFoundError
+from opencloudtouch.setup.hosts_check import (
+    HOSTS_MARKER_COUNT_COMMAND,
+    hosts_redirect_present,
+)
 from opencloudtouch.setup.ssh_client import SoundTouchSSHClient, check_ssh_port
 
 logger = logging.getLogger(__name__)
@@ -316,10 +320,8 @@ class DeviceHealthCheck:
             bmx_output = result.output or ""
 
             # Check /etc/hosts (Strategy B: hosts redirect via reverse proxy)
-            hosts_result = await client.execute(
-                "grep -c 'OCT-START' /etc/hosts 2>/dev/null || echo '0'"
-            )
-            has_hosts_redirect = hosts_result.output.strip() != "0"
+            hosts_result = await client.execute(HOSTS_MARKER_COUNT_COMMAND)
+            has_hosts_redirect = hosts_redirect_present(hosts_result.output)
 
             if our_server in bmx_output or has_hosts_redirect:
                 new_status = "configured"

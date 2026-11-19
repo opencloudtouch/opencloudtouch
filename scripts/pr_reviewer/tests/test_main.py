@@ -25,6 +25,7 @@ from main import (
     check_and_approve,
     get_ci_status,
     has_bot_reviewed_commit,
+    run_ai_review,
     wait_for_ci,
 )
 
@@ -778,3 +779,53 @@ class TestWaitForCi:
         passed, failures = await wait_for_ci(client, "owner/repo", "abc123")
         assert passed is False
         assert "CI/Backend (failure)" in failures
+
+
+# =============================================================================
+# run_ai_review Tests
+# =============================================================================
+
+
+class TestRunAiReview:
+    @pytest.mark.asyncio
+    async def test_uses_the_model_and_prices_from_rules(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        from unittest.mock import MagicMock, patch
+
+        monkeypatch.setenv("OPENAI_API_KEY", "key")
+        response = MagicMock()
+        response.choices = [MagicMock()]
+        response.choices[0].message.content = '{"verdict": "approve", "comments": []}'
+        response.usage.prompt_tokens = 1_000_000
+        response.usage.completion_tokens = 0
+        client = MagicMock()
+        client.chat.completions.create = AsyncMock(return_value=response)
+        client.models.list = AsyncMock(return_value=MagicMock(data=[MagicMock(id="gpt-5.4-nano")]))
+        tracker = CostTracker(tmp_path / "cost.json")
+
+        with patch("openai.AsyncOpenAI", return_value=client):
+            result = await run_ai_review("prompt", tracker)
+
+        assert result["verdict"] == "approve"
+        kwargs = client.chat.completions.create.call_args.kwargs
+        assert kwargs["model"] == "gpt-5.4-nano" and kwargs["service_tier"] == "flex"
+        assert tracker.total_cost_usd == pytest.approx(0.10)
+
+    @pytest.mark.asyncio
+    async def test_standard_tier_fallback_is_billed_at_double_price(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        from unittest.mock import MagicMock, patch
+
+        monkeypatch.setenv("OPENAI_API_KEY", "key")
+        response = MagicMock()
+        response.choices = [MagicMock()]
+        response.choices[0].message.content = "{}"
+        response.usage.prompt_tokens = 1_000_000
+        response.usage.completion_tokens = 0
+        client = MagicMock()
+        client.chat.completions.create = AsyncMock(side_effect=[RuntimeError("flex unavailable"), response])
+        client.models.list = AsyncMock(return_value=MagicMock(data=[MagicMock(id="gpt-5.4-nano")]))
+        tracker = CostTracker(tmp_path / "cost.json")
+
+        with patch("openai.AsyncOpenAI", return_value=client):
+            await run_ai_review("prompt", tracker)
+
+        assert tracker.total_cost_usd == pytest.approx(0.20)

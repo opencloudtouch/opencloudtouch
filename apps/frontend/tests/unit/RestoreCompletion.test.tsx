@@ -83,7 +83,7 @@ describe("RestoreCompletion", () => {
     expect(screen.getByText("No OCT block found")).toBeInTheDocument();
   });
 
-  it("shows failed steps with error details", () => {
+  it("shows failed steps with the translated message only", () => {
     const stepsWithFailure = [
       ...completedSteps,
       { name: "remote_services", status: "failed", message: "Could not remove", error: "Permission denied", duration_seconds: 0.5 },
@@ -96,7 +96,8 @@ describe("RestoreCompletion", () => {
         onFinish={vi.fn()}
       />,
     );
-    expect(screen.getByText(/Permission denied/)).toBeInTheDocument();
+    expect(screen.getByText(/Could not remove/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain("Permission denied"); // raw device error is not shown
   });
 
   it("calls onFinish when Done button is clicked", () => {

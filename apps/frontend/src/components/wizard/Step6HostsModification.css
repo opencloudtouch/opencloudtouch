@@ -20,7 +20,7 @@
 }
 .hosts-title {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--fs-xl);
   line-height: 1.3;
   color: var(--color-text-primary);
 }
@@ -32,7 +32,7 @@
 }
 .hosts-domains-subtitle {
   margin: 0 0 2px;
-  font-size: 13px;
+  font-size: var(--fs-small);
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -93,9 +93,9 @@
   justify-self: start;
   padding: 3px 8px;
   border-radius: 4px;
-  background: #ffc107;
+  background: var(--warning-color);
   color: #1a1a1a;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -117,7 +117,7 @@
 .hosts-modify-btn {
   width: 100%;
   min-height: 52px;
-  font-size: 17px;
+  font-size: var(--fs-h3);
 }
 
 /* result details: values scroll or wrap inside, never widen the card */
@@ -137,7 +137,7 @@
   min-width: 0;
 }
 .hosts-detail-item strong {
-  font-size: 13px;
+  font-size: var(--fs-small);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
 }

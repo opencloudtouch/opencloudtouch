@@ -83,7 +83,7 @@ class TestFindUsbMount:
 class TestBackupVolume:
     async def test_rootfs_uses_correct_tar_command(self, service, mock_ssh):
         backup_dir = "/media/sda1/oct-backup"
-        expected_file = f"{backup_dir}/soundtouch-rootfs.tgz"
+        expected_file = f"{backup_dir}/soundtouch-rootfs.tar"
 
         mock_ssh.execute.side_effect = [
             _ok(),  # tar command
@@ -94,7 +94,7 @@ class TestBackupVolume:
 
         tar_call = mock_ssh.execute.await_args_list[0]
         cmd = tar_call[0][0]
-        assert "tar czf" in cmd
+        assert "tar cf" in cmd
         assert expected_file in cmd
         assert "bin boot etc home lib mnt opt sbin srv usr var" in cmd
 
@@ -118,7 +118,7 @@ class TestBackupVolume:
 
         cmd = mock_ssh.execute.await_args_list[0][0][0]
         assert "/mnt/nv" in cmd
-        assert "soundtouch-nv.tgz" in cmd
+        assert "soundtouch-nv.tar" in cmd
 
     async def test_update_uses_mnt_update(self, service, mock_ssh):
         backup_dir = "/media/sda1/oct-backup"
@@ -128,7 +128,7 @@ class TestBackupVolume:
 
         cmd = mock_ssh.execute.await_args_list[0][0][0]
         assert "/mnt/update" in cmd
-        assert "soundtouch-update.tgz" in cmd
+        assert "soundtouch-update.tar" in cmd
 
     async def test_returns_real_size_from_wc(self, service, mock_ssh):
         mock_ssh.execute.side_effect = [_ok(), _ok("61341696")]
@@ -188,13 +188,17 @@ class TestBackupVolume:
 
 
 class TestBackupAll:
-    async def test_backs_up_three_volumes(self, service, mock_ssh):
-        # find_usb_mount + mkdir + (tar + wc) × 3
+    async def test_backs_up_all_volumes_including_the_config_archive(
+        self, service, mock_ssh
+    ):
+        # find_usb_mount + mkdir + (tar + size) x 4: rootfs, config, persistent, update
         mock_ssh.execute.side_effect = [
             _ok("/media/sda1"),  # find_usb_mount
             _ok(),  # mkdir
             _ok(),
             _ok("61341696"),  # rootfs
+            _ok(),  # tar config
+            _ok("2048"),  # size config
             _ok(),
             _ok("10240"),  # persistent
             _ok(),
@@ -203,9 +207,10 @@ class TestBackupAll:
 
         results = await service.backup_all()
 
-        assert len(results) == 3
+        assert len(results) == 4
         volumes = [r.volume for r in results]
         assert VolumeType.ROOTFS in volumes
+        assert VolumeType.CONFIG in volumes
         assert VolumeType.PERSISTENT in volumes
         assert VolumeType.UPDATE in volumes
 
@@ -215,6 +220,8 @@ class TestBackupAll:
             _ok(),
             _ok(),
             _ok("61341696"),
+            _ok(),  # tar config
+            _ok("2048"),  # size config
             _ok(),
             _ok("10240"),
             _ok(),
@@ -232,6 +239,8 @@ class TestBackupAll:
             _ok(),
             _fail("No space left"),
             _ok("0"),  # rootfs fails
+            _ok(),  # tar config
+            _ok("2048"),  # size config
             _ok(),
             _ok("10240"),  # persistent succeeds
             _ok(),
@@ -240,10 +249,11 @@ class TestBackupAll:
 
         results = await service.backup_all()
 
-        assert len(results) == 3
+        assert len(results) == 4
         assert results[0].success is False  # rootfs
-        assert results[1].success is True  # persistent
-        assert results[2].success is True  # update
+        assert results[1].success is True  # config
+        assert results[2].success is True  # persistent
+        assert results[3].success is True  # update
 
     async def test_backup_dir_uses_oct_backup_subdirectory(self, service, mock_ssh):
         mock_ssh.execute.side_effect = [
@@ -251,6 +261,8 @@ class TestBackupAll:
             _ok(),
             _ok(),
             _ok("61341696"),
+            _ok(),  # tar config
+            _ok("2048"),  # size config
             _ok(),
             _ok("10240"),
             _ok(),
@@ -284,6 +296,8 @@ class TestBackupAll:
             _fail("mkdir: /media/sda1/oct-backup: File exists"),  # mkdir fails
             _ok(),  # tar rootfs
             _ok("61341696"),  # wc -c rootfs
+            _ok(),  # tar config
+            _ok("2048"),  # size config
             _ok(),  # tar persistent
             _ok("10240"),  # wc -c persistent
             _ok(),  # tar update
@@ -293,4 +307,111 @@ class TestBackupAll:
         results = await service.backup_all()
 
         # Should still attempt all volumes despite mkdir warning
-        assert len(results) == 3
+        assert len(results) == 4
+
+
+class TestUncompressedBackup:
+    """Backups are plain tar: gzip needs ~400 s for the rootfs on the device CPU, tar about 31 s."""
+
+    @pytest.mark.parametrize("volume", list(VolumeType))
+    async def test_no_volume_is_compressed(self, service, mock_ssh, volume):
+        mock_ssh.execute.side_effect = [_ok(), _ok("1234")]
+
+        await service._backup_volume(volume, "/media/sda1/oct-backup")
+
+        cmd = mock_ssh.execute.await_args_list[0][0][0]
+        assert "tar cf " in cmd
+        assert "czf" not in cmd
+        assert "gzip" not in cmd
+        assert ".tgz" not in cmd
+
+    @pytest.mark.parametrize("volume", list(VolumeType))
+    async def test_archive_name_is_tar(self, service, mock_ssh, volume):
+        mock_ssh.execute.side_effect = [_ok(), _ok("1234")]
+
+        result = await service._backup_volume(volume, "/media/sda1/oct-backup")
+
+        assert result.backup_path.endswith(".tar")
+
+    def test_filename_with_device_id_is_tar(self):
+        from opencloudtouch.setup.backup_service import _backup_filename
+
+        name = _backup_filename(VolumeType.ROOTFS, "AA:BB:CC")
+        assert name.startswith("soundtouch-AABBCC-")
+        assert name.endswith("-rootfs.tar")
+
+    async def test_size_is_read_with_stat_not_by_reading_the_file(
+        self, service, mock_ssh
+    ):
+        mock_ssh.execute.side_effect = [_ok(), _ok("144475648")]
+
+        result = await service._backup_volume(
+            VolumeType.ROOTFS, "/media/sda1/oct-backup"
+        )
+
+        size_cmd = mock_ssh.execute.await_args_list[1][0][0]
+        assert size_cmd.startswith("stat -c %s ")
+        assert result.size_bytes == 144475648
+
+
+class TestConfigArchive:
+    """A small archive with the files a restore needs: restoring from it takes a second instead of ~30 s."""
+
+    async def test_config_archive_contains_only_the_sdk_config(self, service, mock_ssh):
+        mock_ssh.execute.side_effect = [_ok(), _ok("2048")]
+
+        result = await service._backup_volume(
+            VolumeType.CONFIG, "/media/sda1/oct-backup", "ABC"
+        )
+
+        cmd = mock_ssh.execute.await_args_list[0][0][0]
+        assert "opt/Bose/etc/SoundTouchSdkPrivateCfg.xml" in cmd
+        assert "tar cf " in cmd
+        assert "czf" not in cmd
+        assert result.backup_path.endswith("-config.tar")
+        assert result.success is True
+
+    async def test_a_missing_config_archive_does_not_fail_the_backup(
+        self, service, mock_ssh
+    ):
+        mock_ssh.execute.side_effect = [
+            _ok("/media/sda1"),
+            _ok(),
+            _ok(),
+            _ok("61341696"),  # rootfs
+            _fail("tar: can't open"),
+            _ok("0"),  # config: file missing on this firmware
+            _ok(),
+            _ok("10240"),  # persistent
+            _ok(),
+            _ok("954966"),  # update
+        ]
+
+        results = await service.backup_all()
+
+        assert [r.volume for r in results] == [
+            VolumeType.ROOTFS,
+            VolumeType.PERSISTENT,
+            VolumeType.UPDATE,
+        ]
+        assert all(r.success for r in results)
+
+    async def test_config_archive_is_created_after_the_rootfs_archive(
+        self, service, mock_ssh
+    ):
+        mock_ssh.execute.side_effect = [
+            _ok("/media/sda1"),
+            _ok(),
+            _ok(),
+            _ok("1"),
+            _ok(),
+            _ok("1"),
+            _ok(),
+            _ok("1"),
+            _ok(),
+            _ok("1"),
+        ]
+
+        results = await service.backup_all()
+
+        assert [r.volume for r in results][:2] == [VolumeType.ROOTFS, VolumeType.CONFIG]

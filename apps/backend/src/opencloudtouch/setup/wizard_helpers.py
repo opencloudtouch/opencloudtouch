@@ -9,9 +9,10 @@ import re
 import socket
 import ssl
 import urllib.request
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from typing import AsyncIterator
 
+from opencloudtouch.core import device_timing
 from opencloudtouch.core.exceptions import SSHConnectionError, SSHOperationError
 from opencloudtouch.setup.ssh_client import SoundTouchSSHClient
 
@@ -30,9 +31,14 @@ def _sanitize_hostname(hostname: str) -> str:
 
 @asynccontextmanager
 async def ssh_operation(
-    device_ip: str, operation_name: str
+    device_ip: str, operation_name: str, *, write: bool = False
 ) -> AsyncIterator[SoundTouchSSHClient]:
     """Async context manager: open SSH session, wrap errors as domain exceptions.
+
+    Args:
+        write: True if the operation changes files on the device. The read-only partitions
+            (``/`` and ``/mnt/nv``) are then made writable for the whole operation and put back
+            to the mode they had before (see ``SoundTouchSSHClient.write_access``).
 
     Yields:
         Connected SoundTouchSSHClient ready for commands
@@ -41,9 +47,13 @@ async def ssh_operation(
         SSHConnectionError: When SSH connection is refused or unreachable
         SSHOperationError: On any other unexpected error during the operation
     """
+    token = device_timing.current_operation.set(operation_name)
     try:
-        async with SoundTouchSSHClient(device_ip) as ssh:
-            yield ssh
+        with device_timing.measure("ssh_session", operation_name, host=device_ip):
+            async with SoundTouchSSHClient(device_ip) as ssh, AsyncExitStack() as stack:
+                if write:
+                    await stack.enter_async_context(ssh.write_access())
+                yield ssh
     except (SSHConnectionError, SSHOperationError):
         raise  # propagate domain exceptions unchanged
     except OSError:
@@ -56,6 +66,8 @@ async def ssh_operation(
             device_ip,
         )
         raise SSHOperationError(device_ip, operation_name, str(e))
+    finally:
+        device_timing.current_operation.reset(token)
 
 
 async def snapshot_config_files(

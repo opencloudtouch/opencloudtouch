@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { useNowPlaying } from "../../src/hooks/useNowPlaying";
 import { _resetOfflineStore, markDeviceOffline } from "../../src/api/offlineDeviceStore";
+import { expectTranslatedError } from "./helpers/translatedError";
 
 // Track subscribe calls and the unsubscribe functions they return
 let mockUnsubFns: ReturnType<typeof vi.fn>[] = [];
@@ -166,7 +167,7 @@ describe("useNowPlaying – device offline", () => {
     const { result } = renderHook(() => useNowPlaying("device-400"));
 
     await waitFor(() => {
-      expect(result.current.error).toBe("Failed to get now playing: Bad Request");
+      expectTranslatedError(result.current.error, "Bad Request");
     });
 
     expect(result.current.deviceOffline).toBe(false);

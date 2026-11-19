@@ -271,6 +271,8 @@ export interface FinalizeResponse {
   uuid: string;
   had_uuid: boolean;
   uuid_was_collision: boolean;
+  /** "existing" = kept from the device, "derived" = newly set, "collision_fallback" = replaced */
+  uuid_source?: "existing" | "derived" | "collision_fallback" | "unknown";
   sources_written: boolean;
   sources_backup_path: string;
   system_config_written: boolean;

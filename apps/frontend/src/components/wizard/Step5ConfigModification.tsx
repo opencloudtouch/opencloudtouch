@@ -18,6 +18,8 @@ import WizardStep from "./WizardStep";
 import { Icon } from "./Icon";
 import "./wizard-base.css";
 import "./Step5ConfigModification.css";
+import { userErrorMessage } from "../../utils/errorMessages";
+import { isApiErrorInstance } from "../../api/types";
 
 interface Step5Props {
   deviceId: string;
@@ -199,27 +201,6 @@ export default function Step5ConfigModification({
   };
 
   /**
-   * Parse backend validation error from API response.
-   * Extracts field-specific error messages from 422 validation responses.
-   */
-  const parseBackendError = (message: string): { isValidation: boolean; error: string } => {
-    if (!message.includes("422") && !message.includes("validation")) {
-      return { isValidation: false, error: message };
-    }
-
-    try {
-      const errorData = JSON.parse(message.split("failed: ")[1] || "{}");
-      if (errorData.errors?.[0]) {
-        return { isValidation: true, error: errorData.errors[0].message || message };
-      }
-    } catch {
-      // JSON parse failed, return original message
-    }
-
-    return { isValidation: false, error: message };
-  };
-
-  /**
    * Handle config modification API call.
    * Validates input, checks reachability, and submits to backend.
    */
@@ -256,16 +237,16 @@ export default function Step5ConfigModification({
       setBypassDnsCheck(false); // Reset bypass after successful submit
 
       if (!result.success) {
-        setError(result.message || t("setup.wizard.step5.errorTitle"));
+        setError(t("errors.unknown"));
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : t("errors.unknown");
-      const { isValidation, error } = parseBackendError(message);
-
-      if (isValidation) {
-        setValidationError(error);
+      // A rejected input (HTTP 422) is shown at the input; everything else as a translated error
+      const rejected =
+        isApiErrorInstance(err) && (err.status === 422 || err.fieldErrors.length > 0);
+      if (rejected) {
+        setValidationError(t("setup.wizard.step5.validationInvalid"));
       } else {
-        setError(error);
+        setError(userErrorMessage(err));
       }
     } finally {
       setModifying(false);

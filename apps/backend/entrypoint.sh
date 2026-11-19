@@ -32,9 +32,23 @@ check_page_size() {
     fi
 
     if [ "$PAGE_SIZE" -eq 32768 ]; then
-        log_error "This platform uses a 32768-byte page size, which is not supported."
-        log_error "Affected platforms include QNAP ARM NAS systems using 32KB pages."
-        log_error "See: https://www.qnap.com/en-uk/how-to/faq/article/why-do-the-installed-third-party-containers-not-run-successfully-on-specific-32-bit-arm-devices"
+        if [ "${OCT_SKIP_PAGE_SIZE_CHECK:-0}" = "1" ]; then
+            log_warn "This platform uses a 32768-byte page size; OCT_SKIP_PAGE_SIZE_CHECK=1 is set, skipping the self-test."
+            return 0
+        fi
+
+        # 32 KB kernels (some ARMv7 NAS) can only load libraries whose ELF segments are
+        # 64 KB-aligned. The armv7 image ships such libraries, so verify instead of rejecting.
+        if SELFTEST_OUTPUT=$(python -c "import zlib, ssl, sqlite3, ctypes, bz2" 2>&1); then
+            log_info "This platform uses a 32768-byte page size; library self-test passed, continuing."
+            return 0
+        fi
+
+        log_error "This platform uses a 32768-byte page size and the library self-test failed:"
+        log_error "$(printf '%s' "$SELFTEST_OUTPUT" | tail -n 1)"
+        log_error "On Docker older than 20.10.9 (for example 19.03.8 on WD My Cloud) the cause is its default seccomp profile, which blocks system calls that this image needs: update Docker or start the container with the legacy seccomp profile https://github.com/opencloudtouch/opencloudtouch/releases/latest/download/seccomp-legacy-docker.json (see docs/TROUBLESHOOTING.md)."
+        log_error "On Docker 20.10.9 or newer that is not the cause: the image cannot load its libraries on this kernel. Please report 'getconf PAGE_SIZE', 'uname -a' and 'docker version'."
+        log_error "Background: https://www.qnap.com/en-uk/how-to/faq/article/why-do-the-installed-third-party-containers-not-run-successfully-on-specific-32-bit-arm-devices"
         exit 1
     fi
 

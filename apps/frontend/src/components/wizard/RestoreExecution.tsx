@@ -16,6 +16,7 @@ import type {
 } from "../../api/restore";
 import { useEffect, type ReactElement } from "react";
 import { Icon } from "./Icon";
+import { userErrorMessage } from "../../utils/errorMessages";
 
 interface RestoreExecutionProps {
   readonly stepNumber: number;
@@ -25,6 +26,8 @@ interface RestoreExecutionProps {
   readonly backupSet: BackupSetResponse | null;
   readonly onComplete: (steps: RestoreStepResponse[]) => void;
   readonly onPrevious: () => void;
+  /** Reports whether the restore request is running (the wizard locks the device reboot button). */
+  readonly onRunningChange?: (running: boolean) => void;
 }
 
 // English fallback labels; the UI translates them via restore.step_labels.<name>
@@ -54,6 +57,7 @@ export default function RestoreExecution({
   backupSet,
   onComplete,
   onPrevious,
+  onRunningChange,
 }: RestoreExecutionProps) {
   const { t } = useTranslation();
   const { mutate: restore, data, isPending, error } = useExecuteRestore();
@@ -78,6 +82,12 @@ export default function RestoreExecution({
     restore(request);
   }, [deviceIp, deviceId, restoreType, backupSet, restore]);
 
+  useEffect(() => {
+    onRunningChange?.(isPending);
+  }, [isPending, onRunningChange]);
+
+  useEffect(() => () => onRunningChange?.(false), [onRunningChange]);
+
   return (
     <WizardStep
       stepNumber={stepNumber}
@@ -101,6 +111,12 @@ export default function RestoreExecution({
               "This can take several minutes (usually 8 to 9). Keep this page open and do not disconnect the device."
             )}
           </p>
+          <p className="restore-execution__hint restore-execution__warning">
+            {t(
+              "restore.execution.running_warning",
+              "Do not restart the device and do not remove its power while the restore is running."
+            )}
+          </p>
           <span className="wz-progress wz-progress--indeterminate" aria-hidden="true">
             <span className="wz-progress-bar" />
           </span>
@@ -115,7 +131,7 @@ export default function RestoreExecution({
           <div className="wz-status-body">
             <p>
               {t("restore.execution.error", "Restore failed: {{message}}", {
-                message: (error as Error).message,
+                message: userErrorMessage(error),
               })}
             </p>
             <p className="restore-execution__hint">
@@ -143,9 +159,6 @@ export default function RestoreExecution({
                 {translateStepLabel(t, step.name, STEP_LABELS[step.name])}
               </span>
               <span className="restore-execution__message">{translateStepMessage(t, step)}</span>
-              {step.error && step.error !== step.message && (
-                <span className="restore-execution__error-detail">{step.error}</span>
-              )}
               {step.duration_seconds > 0 && (
                 <span className="restore-execution__duration">
                   {step.duration_seconds.toFixed(1)}s

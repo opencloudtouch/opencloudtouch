@@ -59,6 +59,44 @@ describe("Devices API Client", () => {
       ]);
     });
 
+    it("passes the stereo pair fields through to the device", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            devices: [
+              {
+                device_id: "L1",
+                ip: "192.168.1.10",
+                name: "Office left",
+                model: "SoundTouch 10",
+                mac_address: "AA:BB:CC:DD:EE:FF",
+                firmware_version: "27.0.6",
+                last_seen: "2024-01-01T10:00:00Z",
+                stereo_capable: true,
+                oct_provisioned: true,
+                stereo_ineligible_reason: "in_pair",
+                stereo_pair_id: 7,
+                stereo_role: "LEFT",
+                stereo_master: true,
+              },
+            ],
+          }),
+      });
+
+      const [device] = await getDevices();
+
+      expect(device).toMatchObject({
+        stereo_capable: true,
+        oct_provisioned: true,
+        stereo_ineligible_reason: "in_pair",
+        stereo_pair_id: 7,
+        stereo_role: "LEFT",
+        stereo_master: true,
+        firmware: "27.0.6",
+      });
+    });
+
     it("returns empty array when no devices", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -86,6 +124,7 @@ describe("Devices API Client", () => {
         ok: false,
         statusText: "Internal Server Error",
         json: () => Promise.resolve({ detail: "Database error" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "Database error" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects
@@ -143,6 +182,7 @@ describe("Devices API Client", () => {
         ok: false,
         statusText: "Service Unavailable",
         json: () => Promise.resolve({ detail: "Discovery timeout" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "Discovery timeout" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects
@@ -252,6 +292,7 @@ describe("Devices API Client", () => {
         ok: false,
         statusText: "Internal Server Error",
         json: () => Promise.resolve({ detail: "Device offline" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "Device offline" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects

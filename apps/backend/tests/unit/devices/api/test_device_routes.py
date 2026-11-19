@@ -736,15 +736,23 @@ class TestDiscoverStreamEndpoint:
                 assert response.status_code == 200
                 assert "text/event-stream" in response.headers.get("content-type", "")
 
-    def test_discover_stream_returns_409_when_locked(self, client, mock_device_service):
-        """Test SSE stream endpoint returns 409 when discovery already in progress."""
+    def test_discover_stream_reports_a_running_scan_as_an_error_event(
+        self, client, mock_device_service
+    ):
+        """A second scan gets an explicit, machine-readable error event instead of a bare HTTP 409.
+
+        EventSource cannot read the status or body of a failed request, so the browser could not tell
+        "already running" from any other failed connection.
+        """
         import opencloudtouch.devices.api.discovery_routes as devices_module
 
         with patch.object(devices_module._discovery_lock, "locked", return_value=True):
             response = client.get("/api/devices/discover/stream")
 
-        assert response.status_code == 409
-        assert "already in progress" in response.json()["detail"].lower()
+        assert response.status_code == 200
+        assert "text/event-stream" in response.headers["content-type"]
+        assert "event: error" in response.text
+        assert '"code": "discovery_in_progress"' in response.text
 
 
 class TestKeyPressEndpoint:
@@ -1142,13 +1150,14 @@ class TestRenameDeviceEndpoint:
         assert data["device_id"] == device.device_id
         mock_client.set_name.assert_awaited_once_with("New Name")
 
-    def test_rename_fallback_to_ssh(self, client, mock_device_service, sample_devices):
-        """Test fallback to SSH when REST API fails."""
+    def test_rename_fails_with_502_when_the_device_rejects_it(
+        self, client, mock_device_service, sample_devices
+    ):
+        """A failed REST rename is an error: no SSH fallback, no name change in the database."""
         device = sample_devices[0]
         mock_device_service.get_device_by_id = AsyncMock(return_value=device)
         mock_device_service.repository = AsyncMock()
 
-        # Mock client that raises on REST
         mock_client = AsyncMock()
         mock_client.set_name = AsyncMock(side_effect=RuntimeError("REST failed"))
         mock_ctx = MagicMock()
@@ -1157,47 +1166,18 @@ class TestRenameDeviceEndpoint:
         mock_device_service._device_client = MagicMock(return_value=mock_ctx)
 
         with patch(
-            "opencloudtouch.devices.api.routes.rename_device_via_ssh"
-        ) as mock_ssh:
-            mock_ssh.return_value = None
-
-            response = client.put(
-                f"/api/devices/{device.device_id}/name",
-                json={"name": "New Name"},
-            )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["name"] == "New Name"
-        mock_ssh.assert_awaited_once_with(device.ip, "New Name")
-
-    def test_rename_both_methods_fail(
-        self, client, mock_device_service, sample_devices
-    ):
-        """Test rename fails when both REST and SSH fail."""
-        device = sample_devices[0]
-        mock_device_service.get_device_by_id = AsyncMock(return_value=device)
-
-        # Mock client that raises on REST
-        mock_client = AsyncMock()
-        mock_client.set_name = AsyncMock(side_effect=RuntimeError("REST failed"))
-        mock_ctx = MagicMock()
-        mock_ctx.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_ctx.__aexit__ = AsyncMock(return_value=False)
-        mock_device_service._device_client = MagicMock(return_value=mock_ctx)
-
-        with patch(
-            "opencloudtouch.devices.api.routes.rename_device_via_ssh"
-        ) as mock_ssh:
-            mock_ssh.side_effect = RuntimeError("SSH connection refused")
-
+            "opencloudtouch.setup.ssh_client.SoundTouchSSHClient.connect",
+            side_effect=AssertionError("the rename must not use SSH"),
+        ) as ssh_connect:
             response = client.put(
                 f"/api/devices/{device.device_id}/name",
                 json={"name": "New Name"},
             )
 
         assert response.status_code == 502
-        assert "REST and SSH both failed" in response.json()["detail"]
+        assert response.json()["detail"] == "Could not rename device"
+        ssh_connect.assert_not_called()
+        mock_device_service.repository.upsert.assert_not_awaited()
 
     def test_rename_empty_name(self, client, mock_device_service):
         """Test rename with empty name returns 422."""
@@ -1207,6 +1187,16 @@ class TestRenameDeviceEndpoint:
         )
 
         assert response.status_code == 422
+
+    @pytest.mark.parametrize("name", ["two\nlines", "bell\x07", "tab\there"])
+    def test_rename_name_with_control_characters(
+        self, client, mock_device_service, name
+    ):
+        """A name with control characters is rejected before any device is contacted."""
+        response = client.put("/api/devices/12345ABC/name", json={"name": name})
+
+        assert response.status_code == 422
+        mock_device_service.get_device_by_id.assert_not_called()
 
     def test_rename_name_too_long(self, client, mock_device_service):
         """Test rename with name > 30 chars returns 422."""

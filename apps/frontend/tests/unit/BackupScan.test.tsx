@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import React from "react";
+import { expectNoRawText } from "./helpers/translatedError";
 
 // Mock the restore API hook
 const mockScan = vi.fn();
@@ -65,7 +66,8 @@ describe("BackupScan", () => {
     mockError = new Error("Connection refused");
     const { default: BackupScan } = await import("../../src/components/wizard/BackupScan");
     render(<BackupScan {...defaultProps} />);
-    expect(screen.getByText(/Connection refused/)).toBeInTheDocument();
+    expectNoRawText(document, "Connection refused");
+    expect(screen.getByRole("alert")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
   });
 
@@ -123,5 +125,39 @@ describe("BackupScan", () => {
     const { default: BackupScan } = await import("../../src/components/wizard/BackupScan");
     const { container } = render(<BackupScan {...defaultProps} />);
     expect(container.textContent).toContain("Device ID mismatch");
+  });
+
+  // corrupt or empty archives
+  const files = (status: string) => [
+    { filename: "b-rootfs.tar", file_path: "/m/b-rootfs.tar", volume_type: "rootfs", validation_status: "invalid", validation_message: "Archive is corrupt or unreadable", validation_code: "archive_corrupt" },
+    { filename: "b-nv.tar", file_path: "/m/b-nv.tar", volume_type: "persistent", validation_status: status, validation_message: "" },
+  ];
+
+  it("shows the message of an invalid archive and disables 'Use This Backup'", async () => {
+    mockScanData = {
+      usb_mounted: true,
+      error: null,
+      selected_set: { device_id: "ABC123", backup_date: "20261105", is_legacy: false, files: files("valid") },
+    };
+    const { default: BackupScan } = await import("../../src/components/wizard/BackupScan");
+    const { container } = render(<BackupScan {...defaultProps} />);
+    expect(container.querySelector(".backup-scan__mismatch--invalid")).not.toBeNull();
+    expect(screen.getByRole("button", { name: /use this backup|restore.backup_scan.use_backup/i })).toBeDisabled();
+  });
+
+  it("keeps the button enabled when the archives are only unverified (warning)", async () => {
+    mockScanData = {
+      usb_mounted: true,
+      error: null,
+      selected_set: {
+        device_id: "ABC123",
+        backup_date: "20261105",
+        is_legacy: false,
+        files: [{ filename: "b-rootfs.tar", file_path: "/m/b-rootfs.tar", volume_type: "rootfs", validation_status: "warning", validation_message: "unverified", validation_code: "archive_unverified" }],
+      },
+    };
+    const { default: BackupScan } = await import("../../src/components/wizard/BackupScan");
+    render(<BackupScan {...defaultProps} />);
+    expect(screen.getByRole("button", { name: /use this backup|restore.backup_scan.use_backup/i })).toBeEnabled();
   });
 });

@@ -184,6 +184,47 @@ class TestSetupServiceVerify:
             assert result["ssh_persistent"] is True
 
     @pytest.mark.asyncio
+    async def test_verify_setup_without_hosts_marker_is_not_verified(
+        self, setup_service
+    ):
+        """No OCT block in /etc/hosts and a foreign BMX URL: the redirect check must be false.
+
+        ``grep -c`` prints 0 and exits 1 on the device; the old ``|| echo '0'`` fallback made the output
+        two lines of 0, which was read as "found".
+        """
+        mock_client = MagicMock()
+        mock_client.connect = AsyncMock()
+        mock_client.execute = AsyncMock(
+            side_effect=[
+                MagicMock(output="yes", success=True),
+                MagicMock(
+                    output="<bmxRegistryUrl>https://streaming.bose.com</bmxRegistryUrl>",
+                    success=True,
+                ),
+                MagicMock(output="0\n0", success=True),
+            ]
+        )
+        mock_client.close = AsyncMock()
+
+        with patch(
+            "opencloudtouch.setup.service.check_ssh_port",
+            new_callable=AsyncMock,
+            return_value=True,
+        ), patch(
+            "opencloudtouch.setup.service.SoundTouchSSHClient", return_value=mock_client
+        ), patch(
+            "opencloudtouch.setup.service.get_config"
+        ) as mock_config:
+            mock_config.return_value.station_descriptor_base_url = None
+            mock_config.return_value.host = "localhost"
+            mock_config.return_value.port = 8000
+
+            result = await setup_service.verify_setup("192.168.1.100")
+
+        assert result["hosts_redirect"] is False
+        assert result["verified"] is False
+
+    @pytest.mark.asyncio
     async def test_verify_setup_exception_handled(self, setup_service):
         """verify_setup catches exceptions and returns safe result."""
         mock_client = MagicMock()

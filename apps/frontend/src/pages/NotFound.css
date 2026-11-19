@@ -31,7 +31,7 @@
 }
 .nf-title {
   margin: 0;
-  font-size: 24px;
+  font-size: var(--fs-h1);
   line-height: 1.25;
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
@@ -41,7 +41,7 @@
 .nf-description {
   margin: 0;
   max-width: 40ch;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--color-text-secondary);
   text-wrap: pretty;

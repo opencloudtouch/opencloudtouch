@@ -47,9 +47,8 @@ class TestBug184HardcodedDeviceIdInStreamingRoute:
         result = await streaming_full_account("9999999", mock_marge)
         assert result.status_code == 200
         root = ElementTree.fromstring(result.body.decode())
-        presets = root.find("presets")
-        assert presets is not None
-        assert len(presets.findall("preset")) == 0
+        assert root.tag == "account"
+        assert root.findall(".//preset") == []
         mock_marge.get_full_account.assert_not_called()
 
 

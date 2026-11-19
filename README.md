@@ -25,7 +25,7 @@ Keep your SoundTouch® speakers (e.g. SoundTouch® 10/30/300) running — withou
 - Device discovery via SSDP/UPnP + manual IP fallbacks
 - Preset programming with local descriptor and playlist endpoints
 - Setup wizard for manual device configuration (SSH/USB)
-- Multi-room zone management
+- Multi-room zone management and stereo pairs (LEFT/RIGHT) for SoundTouch 10
 - BMX-compatible endpoints for SoundTouch® (including TuneIn stream resolver)
 - Docker deployment on three architectures (amd64, arm64, arm/v7)
 - Pre-built Raspberry Pi SD card images
@@ -111,7 +111,9 @@ Pre-built images for Raspberry Pi 3/4/5 are available on the [latest Raspberry P
 |------|----------|---------|
 | `amd64` | x86_64 | Desktop, server, NAS |
 | `arm64` | aarch64 | Raspberry Pi 4/5, Apple Silicon |
-| `arm/v7` | armhf | Raspberry Pi 2/3 |
+| `arm/v7` | armhf | Raspberry Pi 2/3, ARM NAS with 32 KB pages (for example WD My Cloud EX2 Ultra) |
+
+Docker 20.10.9 or newer is required for configuration-free operation on every platform. **NAS users:** see [ARM NAS with a 32 KB page size](docs/TROUBLESHOOTING.md#arm-nas-with-a-32-kb-page-size) (Docker 19.03.x needs a seccomp profile) and share your results in [NAS compatibility reports](https://github.com/opencloudtouch/opencloudtouch/discussions/637).
 
 ### Video Walkthrough
 

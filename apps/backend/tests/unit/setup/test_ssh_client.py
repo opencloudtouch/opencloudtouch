@@ -88,14 +88,12 @@ class TestSoundTouchSSHClient:
         """Test connection timeout handling."""
         # Need to mock asyncssh first so the import doesn't fail
         mock_asyncssh = MagicMock()
-        mock_asyncssh.connect = AsyncMock()
+        mock_asyncssh.connect = AsyncMock(side_effect=asyncio.TimeoutError())
 
         with patch.dict("sys.modules", {"asyncssh": mock_asyncssh}):
-            with patch("asyncio.wait_for") as mock_wait:
-                mock_wait.side_effect = asyncio.TimeoutError()
-                result = await ssh_client.connect(timeout=1.0)
-                assert result.success is False
-                assert "timeout" in result.error.lower()
+            result = await ssh_client.connect(timeout=1.0)
+            assert result.success is False
+            assert "timeout" in result.error.lower()
 
     @pytest.mark.asyncio
     async def test_execute_without_connection(self, ssh_client):
@@ -158,9 +156,8 @@ class TestSoundTouchSSHClient:
         mock_asyncssh.connect = mock_connect
 
         with patch.dict("sys.modules", {"asyncssh": mock_asyncssh}):
-            with patch("asyncio.wait_for", return_value=mock_connection):
-                result = await ssh_client.connect(timeout=5.0)
-                assert result.success is True
+            result = await ssh_client.connect(timeout=5.0)
+            assert result.success is True
 
     @pytest.mark.asyncio
     async def test_connect_success(self, ssh_client):
@@ -170,10 +167,9 @@ class TestSoundTouchSSHClient:
         mock_asyncssh.connect = AsyncMock(return_value=mock_connection)
 
         with patch.dict("sys.modules", {"asyncssh": mock_asyncssh}):
-            with patch("asyncio.wait_for", return_value=mock_connection):
-                result = await ssh_client.connect(timeout=5.0)
-                assert result.success is True
-                assert ssh_client._connection == mock_connection
+            result = await ssh_client.connect(timeout=5.0)
+            assert result.success is True
+            assert ssh_client._connection == mock_connection
 
     @pytest.mark.asyncio
     async def test_execute_success(self, ssh_client):
@@ -188,36 +184,32 @@ class TestSoundTouchSSHClient:
         mock_connection.run = AsyncMock(return_value=mock_result)
         ssh_client._connection = mock_connection
 
-        with patch("asyncio.wait_for", return_value=mock_result):
-            result = await ssh_client.execute("ls -la")
-            assert result.success is True
-            assert "file1.txt" in result.output
-            assert result.exit_code == 0
+        result = await ssh_client.execute("ls -la")
+        assert result.success is True
+        assert "file1.txt" in result.output
+        assert result.exit_code == 0
 
     @pytest.mark.asyncio
     async def test_execute_timeout(self, ssh_client):
         """Test command execution timeout."""
         mock_connection = MagicMock()
-        mock_connection.run = AsyncMock()
+        mock_connection.run = AsyncMock(side_effect=asyncio.TimeoutError())
         ssh_client._connection = mock_connection
 
-        with patch("asyncio.wait_for") as mock_wait:
-            mock_wait.side_effect = asyncio.TimeoutError()
-            result = await ssh_client.execute("long_command")
-            assert result.success is False
-            assert "timeout" in result.error.lower()
+        result = await ssh_client.execute("long_command")
+        assert result.success is False
+        assert "timeout" in result.error.lower()
 
     @pytest.mark.asyncio
     async def test_execute_exception(self, ssh_client):
         """Test command execution with exception."""
         mock_connection = MagicMock()
+        mock_connection.run = AsyncMock(side_effect=Exception("Connection lost"))
         ssh_client._connection = mock_connection
 
-        with patch("asyncio.wait_for") as mock_wait:
-            mock_wait.side_effect = Exception("Connection lost")
-            result = await ssh_client.execute("some_command")
-            assert result.success is False
-            assert "Connection lost" in result.error
+        result = await ssh_client.execute("some_command")
+        assert result.success is False
+        assert "Connection lost" in result.error
 
     @pytest.mark.asyncio
     async def test_close_with_connection(self, ssh_client):
@@ -245,11 +237,9 @@ class TestSoundTouchSSHClient:
     async def test_connect_generic_exception_returns_failure(self, ssh_client):
         """connect() catches generic Exception and returns failure (lines 119-122)."""
         mock_asyncssh = MagicMock()
+        mock_asyncssh.connect = AsyncMock(side_effect=Exception("Unexpected SSL error"))
         with patch.dict(sys.modules, {"asyncssh": mock_asyncssh}):
-            with patch(
-                "asyncio.wait_for", side_effect=Exception("Unexpected SSL error")
-            ):
-                result = await ssh_client.connect()
+            result = await ssh_client.connect()
         assert result.success is False
         assert "SSH connection failed" in result.error
         assert "Unexpected SSL error" in result.error
@@ -262,9 +252,9 @@ class TestSoundTouchSSHClient:
         mock_result.stderr = "warning: deprecated"
         mock_result.exit_status = 0
         ssh_client._connection = MagicMock()
+        ssh_client._connection.run = AsyncMock(return_value=mock_result)
 
-        with patch("asyncio.wait_for", return_value=mock_result):
-            result = await ssh_client.execute("some_command")
+        result = await ssh_client.execute("some_command")
 
         assert "main output" in result.output
         assert "[stderr]" in result.output

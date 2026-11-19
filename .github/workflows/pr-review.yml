@@ -9,7 +9,7 @@
 #   → If yes, auto-approves the PR.
 # ==============================================================================
 
-name: PR Review (oct-support)
+name: AI · PR Review (oct-support)
 
 on:
   pull_request_target:
@@ -18,7 +18,6 @@ on:
 permissions:
   contents: read
   pull-requests: read
-  models: read
 
 jobs:
   # ============================================================================
@@ -26,7 +25,7 @@ jobs:
   # ============================================================================
   welcome:
     name: Welcome & Guide
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Only for external contributors (fork PRs) when PR is opened
     if: >-
       github.event_name == 'pull_request_target'
@@ -120,7 +119,7 @@ jobs:
   # ============================================================================
   review:
     name: PR Review
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     if: >-
       github.event_name == 'pull_request_target'
@@ -138,7 +137,7 @@ jobs:
           python-version: '3.13'
 
       - name: Install dependencies
-        run: pip install -r scripts/pr_reviewer/requirements.txt
+        run: pip install -r scripts/requirements.txt
 
       - name: Restore cost tracker cache
         uses: actions/cache/restore@v6
@@ -172,7 +171,7 @@ jobs:
   # ============================================================================
   approve-check:
     name: Approve Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     if: >-
       github.event_name == 'pull_request_target'
@@ -190,7 +189,7 @@ jobs:
           python-version: '3.13'
 
       - name: Install dependencies
-        run: pip install -r scripts/pr_reviewer/requirements.txt
+        run: pip install -r scripts/requirements.txt
 
       - name: Check and approve
         env:

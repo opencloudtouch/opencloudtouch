@@ -1,18 +1,34 @@
-name: Monthly Community Spotlight Announcement
+name: Community
+
+# Scheduled community jobs. Each job has its own permissions and runs only for its own
+# cron entry or its checkbox on manual dispatch.
+#   Spotlight : 1st of the month 06:00 UTC, creates the monthly Community Spotlight discussion
+#   Follow-up : daily 07:00 UTC, labels unanswered threads and asks once whether a thread was solved
 
 on:
   schedule:
-    # Runs on the 1st of every month at 06:00 UTC
     - cron: '0 6 1 * *'
-  workflow_dispatch: # Manual trigger for testing
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+    inputs:
+      spotlight:
+        description: 'Create the Community Spotlight discussion (creates a real discussion)'
+        type: boolean
+        default: false
+      follow_up:
+        description: 'Run the follow-up job now (posts for real unless the repository variable OCT_BOT_DRY_RUN is true)'
+        type: boolean
+        default: false
 
-permissions:
-  contents: read
-  discussions: write
+permissions: {}
 
 jobs:
   create-spotlight:
-    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 6 1 * *' || (github.event_name == 'workflow_dispatch' && inputs.spotlight)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      discussions: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -31,7 +47,7 @@ jobs:
           echo "Analyzing activity since $SINCE..."
 
           # Excluded logins (maintainers + service accounts) — single source of truth
-          EXCLUDE_LOGINS='["scheilch","oct-support","codecov-commenter","dependabot","github-code-quality"]'
+          EXCLUDE_LOGINS='["scheilch","oct-support","codecov-commenter","dependabot","github-code-quality","gitar-bot"]'
 
           # Collect issue comments with body text (last 30 days)
           echo "📊 Collecting issue comments (last 30 days)..."
@@ -402,3 +418,46 @@ jobs:
           ' -f repositoryId="$REPO_ID" -f categoryId="$CATEGORY_ID" -f title="$TITLE" -f body="$BODY" --jq '.data.createDiscussion.discussion.url')
           
           echo "✅ Discussion created: $DISCUSSION_URL"
+
+  follow-up:
+    if: github.event.schedule == '0 7 * * *' || (github.event_name == 'workflow_dispatch' && inputs.follow_up)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Restore cost tracker cache
+        uses: actions/cache/restore@v6
+        with:
+          path: /tmp/ai-cost-tracker
+          key: ai-cost-tracker-${{ github.run_id }}
+          restore-keys: |
+            ai-cost-tracker-
+
+      - name: Label unanswered threads and post follow-ups
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BOT_PAT: ${{ secrets.BOT_PAT }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          # Dry-run until the repository variable OCT_BOT_DRY_RUN is set to "false"
+          OCT_BOT_DRY_RUN: ${{ vars.OCT_BOT_DRY_RUN || 'true' }}
+        working-directory: scripts/issue_handler
+        run: python followup_main.py
+
+      - name: Save cost tracker cache
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: /tmp/ai-cost-tracker
+          key: ai-cost-tracker-${{ github.run_id }}

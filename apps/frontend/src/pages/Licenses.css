@@ -3,7 +3,7 @@
 .lic {
   box-sizing: border-box;
   width: 100%;
-  max-width: 800px;
+  max-width: var(--page-max);
   margin: 0 auto;
   padding: var(--space-md);
   display: flex;
@@ -36,10 +36,6 @@
   flex-direction: column;
   gap: 12px;
 }
-.lic-list {
-  list-style: none;
-  padding: 4px var(--space-md);
-}
 .lic-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -58,7 +54,7 @@
   gap: 6px;
   min-height: var(--touch-target-min);
   max-width: max-content;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: var(--font-weight-medium);
   color: var(--primary-text);
   text-decoration: underline;
@@ -119,7 +115,7 @@
   gap: 8px;
 }
 .lic-trademark .wz-status-body > p {
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 .lic-trademark .lic-link {
   display: inline-block;
@@ -127,4 +123,57 @@
 }
 .lic-attribution {
   padding: 0 var(--space-xs) var(--space-lg);
+}
+
+.lic-header .lic-text {
+  max-width: 68ch;
+}
+.lic-groups,
+.lic-notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+@media (min-width: 1024px) {
+  .lic-groups {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+  /* Backend (6) on the right, Frontend (3) and Build (3) on the left */
+  .lic-groups > :nth-child(2) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .lic-notes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+/* Stage 14 F3: the whole library row is the 44px target on phones (the name link is stretched over the row); other links get 44px. The desktop grid is unchanged. */
+@media (max-width: 599px) {
+  .lic-item {
+    position: relative;
+  }
+  .lic-name::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  } /* row = hit area; the name stays the only focusable element */
+  .lic-name:focus-visible {
+    outline: none;
+  }
+  .lic-item:has(.lic-name:focus-visible) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+    border-radius: var(--border-radius-sm);
+  }
+  .lic-link,
+  .lic-trademark .lic-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--touch-target-min);
+  }
 }

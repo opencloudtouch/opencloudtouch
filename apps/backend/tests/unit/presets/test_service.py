@@ -14,7 +14,7 @@ from xml.etree import ElementTree as ET
 import httpx
 import pytest
 
-from opencloudtouch.core.exceptions import DeviceNotFoundError
+from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.service import PresetService
 
@@ -76,7 +76,10 @@ def mock_device_repo():
 
 
 @pytest.fixture
-def service(mock_repo, mock_device_repo):
+def service(mock_repo, mock_device_repo, monkeypatch):
+    # Clearing a slot also clears it on the speaker: the mock client keeps these tests
+    # off the network, whatever the order or the environment of the run.
+    monkeypatch.setenv("OCT_MOCK_MODE", "true")
     return PresetService(repository=mock_repo, device_repository=mock_device_repo)
 
 
@@ -96,7 +99,7 @@ async def test_sync_presets_raises_if_device_not_found(service, mock_device_repo
 
 @pytest.mark.asyncio
 async def test_sync_presets_raises_on_http_error(service):
-    """Device HTTP request fails → httpx error propagates."""
+    """Device HTTP request fails → DeviceConnectionError (HTTP 503 at the API)."""
     with patch("opencloudtouch.presets.service.httpx.AsyncClient") as mock_client_cls:
         instance = AsyncMock()
         instance.__aenter__ = AsyncMock(return_value=instance)
@@ -104,7 +107,7 @@ async def test_sync_presets_raises_on_http_error(service):
         instance.get = AsyncMock(side_effect=httpx.ConnectError("Connection refused"))
         mock_client_cls.return_value = instance
 
-        with pytest.raises(httpx.ConnectError):
+        with pytest.raises(DeviceConnectionError):
             await service.sync_presets_from_device("dev-001")
 
 
@@ -816,51 +819,43 @@ async def test_common_url_validation_does_not_open_http_connection(
 
 
 @pytest.mark.asyncio
-async def test_set_preset_device_programming_failure_does_not_reraise(
-    service, mock_device_repo
-):
-    """If Bose device programming fails, DB record is still returned."""
-    saved_preset = MagicMock()
-    service.repository.set_preset = AsyncMock(return_value=saved_preset)
-
+async def test_set_preset_offline_speaker_saves_nothing(service, mock_repo):
+    """Speaker unreachable -> DeviceConnectionError and no OCT row (stay in sync)."""
     with patch("opencloudtouch.devices.adapter.get_device_client") as mock_get_client:
         mock_client = AsyncMock()
         mock_client.store_preset = AsyncMock(
-            side_effect=Exception("Device unreachable")
+            side_effect=DeviceConnectionError("192.168.1.100", "offline")
         )
-        mock_client.close = AsyncMock()
         mock_get_client.return_value = mock_client
 
-        result = await service.set_preset(
-            device_id="dev-001",
-            preset_number=2,
-            station_uuid="uuid-xyz",
-            station_name="Fails Station",
-            station_url="http://fails.station/stream.mp3",
-        )
+        with pytest.raises(DeviceConnectionError):
+            await service.set_preset(
+                device_id="dev-001",
+                preset_number=2,
+                station_uuid="uuid-xyz",
+                station_name="Fails Station",
+                station_url="http://fails.station/stream.mp3",
+            )
 
-    # Must NOT raise — failure is logged and swallowed
-    assert result == saved_preset
+    mock_repo.set_preset.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_set_preset_device_not_found_during_programming(
-    service, mock_device_repo
+async def test_set_preset_unknown_device_raises_not_found(
+    service, mock_device_repo, mock_repo
 ):
-    """If device is missing when programming, a warning is logged but preset is returned."""
     mock_device_repo.get_by_device_id = AsyncMock(return_value=None)
-    saved_preset = MagicMock()
-    service.repository.set_preset = AsyncMock(return_value=saved_preset)
 
-    result = await service.set_preset(
-        device_id="missing-dev",
-        preset_number=3,
-        station_uuid="uuid-zzz",
-        station_name="Ghost Station",
-        station_url="http://ghost/stream.mp3",
-    )
+    with pytest.raises(DeviceNotFoundError):
+        await service.set_preset(
+            device_id="missing-dev",
+            preset_number=3,
+            station_uuid="uuid-zzz",
+            station_name="Ghost Station",
+            station_url="http://ghost/stream.mp3",
+        )
 
-    assert result == saved_preset
+    mock_repo.set_preset.assert_not_awaited()
 
 
 # ---------------------------------------------------------------------------
@@ -922,3 +917,77 @@ async def test_clear_all_presets_returns_count(service, mock_repo):
 
     assert count == 4
     mock_repo.clear_all_presets.assert_called_once_with("dev-001")
+
+
+# ---------------------------------------------------------------------------
+# The device is the source of truth (regression: stale OCT rows, speaker kept presets)
+# ---------------------------------------------------------------------------
+
+
+class TestDeviceIsSourceOfTruth:
+    @pytest.mark.asyncio
+    async def test_sync_drops_oct_slots_the_device_does_not_have(
+        self, service, mock_repo
+    ):
+        xml = _build_presets_xml({"id": 1}, {"id": 3})
+        with patch.object(
+            service, "_fetch_device_presets", AsyncMock(return_value=xml)
+        ):
+            await service.sync_presets_from_device("dev-001")
+
+        cleared = {c.args[1] for c in mock_repo.clear_preset.await_args_list}
+        assert cleared == {2, 4, 5, 6}
+
+    @pytest.mark.asyncio
+    async def test_sync_of_an_empty_device_empties_oct(self, service, mock_repo):
+        with patch.object(
+            service, "_fetch_device_presets", AsyncMock(return_value=b"<presets/>")
+        ):
+            assert await service.sync_presets_from_device("dev-001") == 0
+
+        assert mock_repo.clear_preset.await_count == 6
+
+    @pytest.mark.asyncio
+    async def test_clear_preset_also_clears_the_speaker(self, service, mock_repo):
+        client = AsyncMock()
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client", return_value=client
+        ):
+            assert await service.clear_preset("dev-001", 4) is True
+
+        client.remove_preset.assert_awaited_once_with(4)
+        mock_repo.clear_preset.assert_awaited_once_with("dev-001", 4)
+
+    @pytest.mark.asyncio
+    async def test_offline_speaker_aborts_the_delete_and_keeps_the_oct_row(
+        self, service, mock_repo
+    ):
+        from opencloudtouch.core.exceptions import DeviceConnectionError
+
+        client = AsyncMock()
+        client.remove_preset.side_effect = DeviceConnectionError(
+            "192.168.1.100", "offline"
+        )
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client", return_value=client
+        ):
+            with pytest.raises(DeviceConnectionError):
+                await service.clear_preset("dev-001", 4)
+
+        mock_repo.clear_preset.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_clear_all_clears_every_stored_slot_on_the_speaker(
+        self, service, mock_repo
+    ):
+        mock_repo.get_all_presets.return_value = [
+            MagicMock(preset_number=1),
+            MagicMock(preset_number=5),
+        ]
+        client = AsyncMock()
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client", return_value=client
+        ):
+            await service.clear_all_presets("dev-001")
+
+        assert [c.args[0] for c in client.remove_preset.await_args_list] == [1, 5]

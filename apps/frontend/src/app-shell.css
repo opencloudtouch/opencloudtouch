@@ -83,7 +83,7 @@
 }
 .app-state-message {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--fs-h3);
   line-height: 1.4;
   color: var(--text-primary);
   overflow-wrap: anywhere;
@@ -91,8 +91,14 @@
 .app-state-hint {
   margin: 0;
   max-width: 40ch;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--color-text-secondary);
   text-wrap: pretty;
+}
+
+/* the header sits outside the scrolling area: give it the scrollbar width of that area, so the menu and the page start on one line */
+.app-header {
+  box-sizing: border-box;
+  padding-right: var(--scrollbar-w, 0px);
 }

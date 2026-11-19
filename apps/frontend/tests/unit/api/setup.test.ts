@@ -40,9 +40,7 @@ describe("Setup API Client", () => {
 
       const result = await getModelInstructions("SoundTouch 30");
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        "/api/setup/instructions/SoundTouch%2030"
-      );
+      expect(mockFetch).toHaveBeenCalledWith("/api/setup/instructions/SoundTouch%2030");
       expect(result).toEqual(mockInstructions);
     });
 
@@ -51,12 +49,11 @@ describe("Setup API Client", () => {
         ok: false,
         statusText: "Not Found",
         json: () => Promise.resolve({ detail: "Model not found" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "Model not found" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects
-      await expect(getModelInstructions("UnknownModel")).rejects.toThrow(
-        "Model not found"
-      );
+      await expect(getModelInstructions("UnknownModel")).rejects.toThrow("Model not found");
     });
 
     it("handles JSON parse failure in error response", async () => {
@@ -102,12 +99,11 @@ describe("Setup API Client", () => {
         ok: false,
         statusText: "Service Unavailable",
         json: () => Promise.resolve({ detail: "Device unreachable" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "Device unreachable" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects
-      await expect(checkConnectivity("192.168.1.99")).rejects.toThrow(
-        "Device unreachable"
-      );
+      await expect(checkConnectivity("192.168.1.99")).rejects.toThrow("Device unreachable");
     });
 
     it("handles JSON parse failure gracefully", async () => {
@@ -161,12 +157,11 @@ describe("Setup API Client", () => {
         ok: false,
         statusText: "Not Found",
         json: () => Promise.resolve({ detail: "Device not found" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "Device not found" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects
-      await expect(getSetupStatus("bad_device")).rejects.toThrow(
-        "Device not found"
-      );
+      await expect(getSetupStatus("bad_device")).rejects.toThrow("Device not found");
     });
 
     it("handles JSON parse failure", async () => {
@@ -201,10 +196,9 @@ describe("Setup API Client", () => {
 
       const result = await verifySetup("device123", "192.168.1.100");
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        "/api/setup/verify/device123?ip=192.168.1.100",
-        { method: "POST" }
-      );
+      expect(mockFetch).toHaveBeenCalledWith("/api/setup/verify/device123?ip=192.168.1.100", {
+        method: "POST",
+      });
       expect(result).toEqual(mockVerification);
     });
 
@@ -213,12 +207,11 @@ describe("Setup API Client", () => {
         ok: false,
         statusText: "Bad Request",
         json: () => Promise.resolve({ detail: "SSH not accessible" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "SSH not accessible" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects
-      await expect(verifySetup("device123", "192.168.1.100")).rejects.toThrow(
-        "SSH not accessible"
-      );
+      await expect(verifySetup("device123", "192.168.1.100")).rejects.toThrow("SSH not accessible");
     });
 
     it("handles JSON parse failure", async () => {
@@ -280,12 +273,11 @@ describe("Setup API Client", () => {
         ok: false,
         statusText: "Internal Server Error",
         json: () => Promise.resolve({ detail: "Database error" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "Database error" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects
-      await expect(getSupportedModels()).rejects.toThrow(
-        "Database error"
-      );
+      await expect(getSupportedModels()).rejects.toThrow("Database error");
     });
 
     it("handles JSON parse failure", async () => {

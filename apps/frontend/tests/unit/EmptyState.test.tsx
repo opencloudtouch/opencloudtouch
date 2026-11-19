@@ -39,6 +39,7 @@ let mockDiscoveryState = {
   devicesFound: [] as { device_id: string; name: string }[],
   completed: false,
   error: null as string | null,
+  errorKind: null as "failed" | "alreadyRunning" | null,
   stats: { discovered: 0, synced: 0, failed: 0 },
   startDiscovery: mockStartDiscovery,
   cancelDiscovery: mockCancelDiscovery,
@@ -97,6 +98,7 @@ describe("EmptyState Component", () => {
       devicesFound: [],
       completed: false,
       error: null,
+      errorKind: null,
       stats: { discovered: 0, synced: 0, failed: 0 },
       startDiscovery: mockStartDiscovery,
       cancelDiscovery: mockCancelDiscovery,
@@ -122,6 +124,17 @@ describe("EmptyState Component", () => {
       expect(screen.getByText("Turn on devices")).toBeInTheDocument();
       expect(screen.getByText("Search for devices")).toBeInTheDocument();
       expect(screen.getByText("Manage presets")).toBeInTheDocument();
+    });
+
+    it("offers the language selector before the content (no navigation on this page)", () => {
+      renderWithProviders(<EmptyState />);
+
+      const selector = screen.getByRole("button", { name: /language/i });
+      const title = screen.getByText("Welcome to OpenCloudTouch");
+      expect(selector.closest(".es-lang")).not.toBeNull();
+      expect(
+        selector.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
     });
 
     it("should show discovery button", () => {
@@ -175,7 +188,6 @@ describe("EmptyState Component", () => {
       const discoverButton = screen.getByRole("button", { name: /Searching.../i });
       expect(discoverButton).toBeDisabled();
     });
-
   });
 
   describe("Manual IP Configuration", () => {
@@ -299,6 +311,7 @@ describe("EmptyState Component", () => {
 
       // Set error state to simulate 409 conflict response
       mockDiscoveryState.error = "Discovery already in progress";
+      mockDiscoveryState.errorKind = "alreadyRunning";
       mockDiscoveryState.isDiscovering = false;
 
       renderWithProviders(<EmptyState />);
@@ -334,6 +347,7 @@ describe("EmptyState Component", () => {
       // Fix: moved to useEffect([error])
 
       mockDiscoveryState.error = "Discovery already in progress";
+      mockDiscoveryState.errorKind = "alreadyRunning";
 
       // Capture console.error to detect React warnings
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -353,6 +367,5 @@ describe("EmptyState Component", () => {
 
       consoleSpy.mockRestore();
     });
-
   });
 });

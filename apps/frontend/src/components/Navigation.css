@@ -32,7 +32,7 @@
   padding: 4px 12px;
   border-radius: var(--border-radius-sm);
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   line-height: 1.2;
   font-weight: var(--font-weight-medium);
   text-align: center;
@@ -64,10 +64,16 @@
 @media (min-width: 601px) {
   .nav-link {
     padding-inline: 16px;
-    font-size: 13px;
+    font-size: var(--fs-small);
   }
   .nav-container {
     gap: 8px;
+  }
+}
+@media (min-width: 769px) {
+  /* same side padding as .ui-page, so the menu and the page title start on one line */
+  .nav-inner {
+    padding-inline: var(--space-lg);
   }
 }
 @media (max-width: 360px) {

@@ -5,6 +5,20 @@ settings:
   rate_limit_threshold: 2          # max issues per 24h per user
   min_text_length: 50              # min chars for AI classification
   bot_username: "oct-support"      # bot account username for self-filtering
+  answer_delay_min_seconds: 300    # wait 5-10 minutes before the first answer
+  answer_delay_max_seconds: 600
+  min_relevance: 0.3               # minimum source relevance (0-1); below it the bot stays silent
+  followup_days_with_answers: 3    # ask which reply helped after this many quiet days
+  followup_days_without_answers: 7 # ask the open question after this many quiet days
+  unanswered_label_days: 3         # label threads without any answer
+  followup_max_age_days: 60        # never follow up on older threads
+  followup_max_per_run: 5
+  # OpenAI fallback (Flex tier): the first model the API key can use is taken, so the order is the preference
+  # (newest small model first). The prices only feed the cost counter.
+  # Prices in USD per 1M tokens from https://developers.openai.com/api/docs/pricing, checked 2026-11-08
+  openai_models:
+    - {id: gpt-5.4-nano, input_usd_per_million: 0.10, output_usd_per_million: 0.625}
+    - {id: gpt-5-nano, input_usd_per_million: 0.025, output_usd_per_million: 0.20}
   monthly_budget_usd: 0.90         # hard cap for OpenAI fallback costs ($0.90 ≈ €1)
 
 rules:

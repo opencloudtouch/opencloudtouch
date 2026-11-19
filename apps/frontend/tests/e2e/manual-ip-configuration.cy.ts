@@ -74,7 +74,7 @@ describe("Manual IP Configuration", () => {
       cy.waitForDevices();
 
       // Verify redirect to dashboard
-      cy.url().should("eq", Cypress.config().baseUrl + "/");
+      cy.location("pathname").should("eq", "/");
       cy.get('[data-test="device-card"]').should("have.length.at.least", 1);
     });
   });
@@ -94,7 +94,7 @@ describe("Manual IP Configuration", () => {
       cy.waitForDevices();
 
       // Wait for redirect to dashboard
-      cy.url().should("eq", Cypress.config().baseUrl + "/");
+      cy.location("pathname").should("eq", "/");
 
       // Verify devices (MockDiscoveryAdapter returns 3 devices total)
       // Swiper shows 1 card at a time, check dots for count
@@ -115,7 +115,7 @@ describe("Manual IP Configuration", () => {
       cy.waitForDevices();
 
       // Wait for redirect to dashboard
-      cy.url().should("eq", Cypress.config().baseUrl + "/");
+      cy.location("pathname").should("eq", "/");
 
       // Verify 3 devices (all mock devices)
       // Swiper shows 1 card at a time, check dots for count
@@ -161,7 +161,7 @@ describe("Manual IP Configuration", () => {
       cy.waitForDevices();
 
       // Should redirect to dashboard with devices
-      cy.url().should("eq", Cypress.config().baseUrl + "/");
+      cy.location("pathname").should("eq", "/");
       cy.get('[data-test="app-header"]').should("be.visible");
       // Swiper shows 1 card at a time with dots for navigation
       cy.get(".ds-dot").should("have.length", 3); // Mock devices
@@ -198,14 +198,14 @@ describe("Manual IP Configuration", () => {
       cy.waitForDevices();
 
       // Verify initial state - should be on dashboard
-      cy.url().should("eq", Cypress.config().baseUrl + "/");
+      cy.location("pathname").should("eq", "/");
       cy.get(".ds-dot").should("have.length", 3);
 
       // Reload page
       cy.reload();
 
       // Verify state persisted after reload
-      cy.url().should("eq", Cypress.config().baseUrl + "/");
+      cy.location("pathname").should("eq", "/");
       cy.get('[data-test="app-header"]').should("be.visible");
       cy.get(".ds-dot", { timeout: 15000 }).should("have.length", 3);
       cy.get('[data-test="device-card"]').should("have.length", 1);

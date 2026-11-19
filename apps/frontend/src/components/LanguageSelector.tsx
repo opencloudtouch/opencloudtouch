@@ -79,6 +79,12 @@ export default function LanguageSelector() {
 
   return (
     <div className="lang-selector-wrapper" ref={wrapperRef}>
+      {/* Loads every flag image up front (ES and BR are separate files): no blank flags when the list opens */}
+      <span className="lang-flag-preload" aria-hidden="true">
+        {UI_LOCALES.map((locale) => (
+          <span key={locale} className={`fi fi-${LOCALE_CONFIGS[locale].flag}`} />
+        ))}
+      </span>
       <button
         ref={buttonRef}
         className="lang-selector"

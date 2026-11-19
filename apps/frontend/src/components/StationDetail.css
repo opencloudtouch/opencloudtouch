@@ -16,7 +16,7 @@
   gap: var(--space-md);
   padding: 40px var(--space-md);
   color: var(--text-primary);
-  font-size: 17px;
+  font-size: var(--fs-h3);
 }
 .sd-body {
   flex: 1;
@@ -52,14 +52,14 @@
 }
 .sd-name {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--fs-h2);
   line-height: 1.25;
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   overflow-wrap: anywhere;
 }
 .sd-country {
-  font-size: 14px;
+  font-size: var(--fs-md);
   color: var(--color-text-secondary);
   overflow-wrap: anywhere;
 }
@@ -82,13 +82,13 @@
 }
 .sd-label {
   flex: none;
-  font-size: 13px;
+  font-size: var(--fs-small);
   color: var(--color-text-secondary);
 }
 .sd-value {
   margin: 0;
   min-width: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   text-align: right;
   color: var(--color-text-primary);
   overflow-wrap: anywhere;

@@ -1,0 +1,5 @@
+# Shared by all Python scripts under scripts/ (issue handler, PR reviewer, community jobs)
+openai>=1.30
+PyYAML>=6.0
+python-frontmatter>=1.1
+httpx>=0.27

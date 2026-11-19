@@ -87,6 +87,7 @@ docs/*
 !docs/DEFINITION_OF_READY.md
 !docs/DEFINITION_OF_DONE.md
 !docs/UI_QUALITY_CHECKLIST.md
+!docs/MARGE-SPEAKER-CALLS.md
 .specify/
 specs/
 
@@ -102,3 +103,6 @@ bugs/
 # === SECRET Files ===
 doc
 memories
+
+# Playwright MCP browser snapshots
+.playwright-mcp/

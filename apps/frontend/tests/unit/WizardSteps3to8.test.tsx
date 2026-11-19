@@ -7,6 +7,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, act, waitFor } from "@testing-library/react";
 import React from "react";
+import { expectNoRawText } from "./helpers/translatedError";
+import { i18next } from "../../src/i18n";
 
 // Mock the wizard API to prevent async state updates during render
 vi.mock("../../src/api/wizard", () => ({
@@ -161,7 +163,7 @@ describe("Step3PowerCycle — handleCheckPorts", () => {
       checkBtn.click();
     });
 
-    expect(screen.getByText(/SSH ist nicht verfügbar/i)).toBeInTheDocument();
+    expect(screen.getByText(i18next.t("errors.sshFailed"))).toBeInTheDocument();
   });
 
   it("shows error message on API failure", async () => {
@@ -187,15 +189,15 @@ describe("Step3PowerCycle — handleCheckPorts", () => {
       checkBtn.click();
     });
 
-    expect(screen.getByText(/Network timeout/i)).toBeInTheDocument();
+    expectNoRawText(document, "Network timeout");
   });
 });
 
 // ------------------------------------------------------------------
-// Step 3 — calcRiskLevel (SSH persistence risk assessment via UI)
+// Step 3 — SSH decision (two buttons, no risk questionnaire)
 // ------------------------------------------------------------------
-describe("Step3PowerCycle — calcRiskLevel", () => {
-  async function renderWithSSHAvailable() {
+describe("Step3PowerCycle — SSH decision", () => {
+  async function renderWithSSHAvailable(onSSHDecision = vi.fn()) {
     const { checkPorts } = await import("../../src/api/wizard");
     (checkPorts as ReturnType<typeof vi.fn>).mockResolvedValue({
       success: true,
@@ -210,58 +212,52 @@ describe("Step3PowerCycle — calcRiskLevel", () => {
       <Step3
         deviceIp="192.168.1.1"
         deviceName="SoundTouch 10"
-        onSSHDecision={vi.fn()}
+        onSSHDecision={onSSHDecision}
         onPrevious={vi.fn()}
       />
     );
 
-    // Trigger port check to show risk assessment
     const checkBtn = screen.getByRole("button", { name: /Check now/i });
     await act(async () => {
       checkBtn.click();
     });
+    return onSSHDecision;
   }
 
-  it("shows low risk when all answers are safe", async () => {
+  it("shows only the two decision buttons once SSH is reachable", async () => {
     await renderWithSSHAvailable();
 
-    // Answer Q1=Yes, Q2=Yes, Q3=No → low risk (score=0)
-    const yesButtons = screen.getAllByRole("button", { name: /Yes/i });
-    const noButtons = screen.getAllByRole("button", { name: /No$/i });
-
-    await act(async () => { yesButtons[0]!.click(); }); // Q1: yes
-    await act(async () => { yesButtons[1]!.click(); }); // Q2: yes
-    await act(async () => { noButtons[2]!.click(); }); // Q3: no
-
-    expect(screen.getByText(/Low/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Enable SSH permanently/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Do not keep permanently/i })).toBeInTheDocument();
+    expect(document.querySelector(".risk-question")).toBeNull();
+    expect(document.querySelector(".risk-level")).toBeNull();
   });
 
-  it("shows high risk when unknown is selected", async () => {
+  it("keeps Next disabled until a decision is made", async () => {
     await renderWithSSHAvailable();
 
-    // Answer all 3 with Q1=unknown → always high risk
-    const unknownButtons = screen.getAllByRole("button", { name: /don't know/i });
-    const yesButtons = screen.getAllByRole("button", { name: /Yes/i });
-    const noButtons = screen.getAllByRole("button", { name: /No$/i });
-
-    await act(async () => { unknownButtons[0]!.click(); }); // Q1: unknown
-    await act(async () => { yesButtons[1]!.click(); }); // Q2: yes
-    await act(async () => { noButtons[2]!.click(); }); // Q3: no
-
-    expect(screen.getByText(/High/i)).toBeInTheDocument();
+    const next = screen.getByRole("button", { name: /next/i });
+    expect(next).toBeDisabled();
+    await act(async () => {
+      screen.getByRole("button", { name: /Do not keep permanently/i }).click();
+    });
+    expect(next).not.toBeDisabled();
   });
 
-  it("shows medium risk with one risky answer", async () => {
-    await renderWithSSHAvailable();
+  it.each([
+    [/Enable SSH permanently/i, true],
+    [/Do not keep permanently/i, false],
+  ])("passes the chosen decision %s to onSSHDecision", async (label, expected) => {
+    const onSSHDecision = await renderWithSSHAvailable();
 
-    // Answer Q1=Yes, Q2=Yes, Q3=Yes (updates planned = +1 score → medium)
-    const yesButtons = screen.getAllByRole("button", { name: /Yes/i });
+    await act(async () => {
+      screen.getByRole("button", { name: label }).click();
+    });
+    await act(async () => {
+      screen.getByRole("button", { name: /next/i }).click();
+    });
 
-    await act(async () => { yesButtons[0]!.click(); }); // Q1: yes
-    await act(async () => { yesButtons[1]!.click(); }); // Q2: yes
-    await act(async () => { yesButtons[2]!.click(); }); // Q3: yes
-
-    expect(screen.getByText(/Medium/i)).toBeInTheDocument();
+    expect(onSSHDecision).toHaveBeenCalledWith(expected);
   });
 });
 
@@ -499,7 +495,8 @@ describe("Step7NtpPatch — render", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("ntpd sync failed")).toBeInTheDocument();
+      expectNoRawText(document, "ntpd sync failed");
+      expect(screen.getByText(i18next.t("errors.unknown"), { selector: "p, span, div" })).toBeInTheDocument();
     });
   });
 });

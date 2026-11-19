@@ -13,13 +13,13 @@
 }
 .config-title {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--fs-xl);
   line-height: 1.3;
   color: var(--color-text-primary);
 }
 .config-description {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--color-text-secondary);
 }
@@ -28,7 +28,7 @@
 }
 .config-detecting p {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   color: var(--color-text-primary);
 }
 
@@ -40,7 +40,7 @@
   min-width: 0;
 }
 .config-label {
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
 }
@@ -48,10 +48,10 @@
   border-color: var(--primary-color);
 }
 .config-input[aria-invalid="true"] {
-  border-color: #f44336;
+  border-color: var(--color-danger);
 }
 .config-hint {
-  font-size: 13px;
+  font-size: var(--fs-small);
   line-height: 1.5;
   color: var(--color-text-tertiary);
   white-space: pre-line;
@@ -64,11 +64,11 @@
   align-items: flex-start;
 }
 .config-validation-error .error-icon {
-  color: #ffc107;
+  color: var(--warning-color);
 }
 .config-validation-error .error-content strong,
 .config-dns-warning .warning-content strong {
-  color: #ffc107;
+  color: var(--warning-color);
 }
 .config-validation-error .error-details {
   margin: 0;
@@ -111,7 +111,7 @@
 }
 .config-preview-title {
   margin: 0 0 12px;
-  font-size: 15px;
+  font-size: var(--fs-body);
   color: var(--color-text-primary);
 }
 .config-change-item {
@@ -138,7 +138,7 @@
 .config-change-label {
   display: block;
   margin-bottom: 2px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -178,13 +178,13 @@
 .config-modify-btn {
   width: 100%;
   min-height: 52px;
-  font-size: 17px;
+  font-size: var(--fs-h3);
 }
 
 /* result cards: details */
 .config-proxy-hint {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--color-text-secondary);
 }
@@ -204,12 +204,12 @@
   min-width: 0;
 }
 .config-detail-item strong {
-  font-size: 13px;
+  font-size: var(--fs-small);
   color: var(--color-text-secondary);
   font-weight: var(--font-weight-medium);
 }
 .config-detail-item span {
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--text-primary);
   overflow-wrap: anywhere;

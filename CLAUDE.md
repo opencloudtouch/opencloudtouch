@@ -40,3 +40,4 @@ Two quality gates apply to every contributor. The full criteria live in [docs/DE
 ## Git workflow
 
 - Branches are named `type/description` (`feat/…`, `fix/…`, `docs/…`); check `git status` before switching branches so uncommitted work is not lost.
+- The subject line of every commit and every PR title is at most 100 characters (commitlint `header-max-length`). CI checks each commit of a PR, so a too long subject can only be fixed by rewriting history: keep it short and put details in the commit body.

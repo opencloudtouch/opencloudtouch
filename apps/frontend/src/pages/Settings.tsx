@@ -76,7 +76,14 @@ export default function Settings() {
   });
 
   // Discovery
-  const { isDiscovering, devicesFound, completed, startDiscovery } = useDiscoveryStream();
+  const {
+    isDiscovering,
+    devicesFound,
+    completed,
+    error: discoveryError,
+    errorKind: discoveryErrorKind,
+    startDiscovery,
+  } = useDiscoveryStream();
   const queryClient = useQueryClient();
   const { show } = useToast();
 
@@ -122,6 +129,16 @@ export default function Settings() {
       );
     }
   }, [completed, devicesFound, show, t]);
+
+  // A failed scan is reported (it used to end silently); "already running" is only a hint
+  useEffect(() => {
+    if (!discoveryError) return;
+    const alreadyRunning = discoveryErrorKind === "alreadyRunning";
+    show(
+      alreadyRunning ? t("discovery.alreadyRunning") : t("discovery.failed"),
+      alreadyRunning ? "info" : "error"
+    );
+  }, [discoveryError, discoveryErrorKind, show, t]);
 
   const handleScan = () => {
     knownDeviceIdsRef.current = new Set(
@@ -248,183 +265,187 @@ export default function Settings() {
       <h1 className="ui-h1">{t("settings.title")}</h1>
 
       {/* Device Discovery Section */}
-      <section className="st-section" aria-labelledby="st-discovery-title">
-        <h2 id="st-discovery-title" className="ui-h2 st-h2">
-          <span className="st-h2-icon" aria-hidden="true">
-            {Icon.Search(22)}
-          </span>
-          {t("settings.deviceDiscovery.sectionTitle")}
-        </h2>
+      <div className="st-grid">
+        <section className="st-section" aria-labelledby="st-discovery-title">
+          <h2 id="st-discovery-title" className="ui-h2 st-h2">
+            <span className="st-h2-icon" aria-hidden="true">
+              {Icon.Search(22)}
+            </span>
+            {t("settings.deviceDiscovery.sectionTitle")}
+          </h2>
 
-        <div className="ui-card st-card">
-          {/* Primary: Automatic Discovery */}
-          <div className="st-method">
-            <h3 className="ui-h3">{t("settings.deviceDiscovery.autoTitle")}</h3>
-            <p className="st-text">{t("settings.deviceDiscovery.autoDescription")}</p>
-            <button
-              type="button"
-              className="btn btn-primary st-scan"
-              onClick={handleScan}
-              disabled={isDiscovering}
-              aria-busy={isDiscovering}
-            >
-              {isDiscovering ? (
-                <>
-                  <span className="spinner-small" aria-hidden="true" />
-                  {t("settings.deviceDiscovery.scanning")}
-                </>
-              ) : (
-                <>
-                  {Icon.Search(18)}
-                  {t("settings.deviceDiscovery.scanButton")}
-                </>
-              )}
-            </button>
-            <output className="visually-hidden">
-              {isDiscovering ? t("settings.deviceDiscovery.scanningStatus") : ""}
-            </output>
-          </div>
-
-          {/* Secondary: Manual IPs */}
-          <div className="st-method">
-            <h3 className="ui-h3">{t("settings.deviceDiscovery.manualTitle")}</h3>
-            <p className="st-text">{t("settings.deviceDiscovery.manualDescription")}</p>
-
-            {/* noValidate: our own messages appear instead of the browser bubble */}
-            <form onSubmit={handleAddIP} className="ui-field st-ip" noValidate>
-              <label htmlFor={ipId} className="ui-label">
-                {t("settings.manualIps.label")}
-              </label>
-              <div className="st-ip-row">
-                <input
-                  id={ipId}
-                  type="text"
-                  value={newIP}
-                  onChange={(e) => setNewIP(e.target.value)}
-                  placeholder={t("settings.manualIps.placeholder")}
-                  className="ui-input"
-                  pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-                  autoComplete="off"
-                  autoCapitalize="off"
-                  spellCheck={false}
-                  aria-invalid={error ? true : undefined}
-                  aria-describedby={error ? ipErrorId : ipHintId}
-                  disabled={probeDevice.isPending}
-                />
-                <button
-                  type="submit"
-                  className="btn btn-primary st-add"
-                  disabled={probeDevice.isPending}
-                  aria-busy={probeDevice.isPending}
-                >
-                  {probeDevice.isPending ? (
-                    <>
-                      <span className="spinner-small" aria-hidden="true" />
-                      {t("settings.manualIps.probing")}
-                    </>
-                  ) : (
-                    t("settings.manualIps.addButton")
-                  )}
-                </button>
-              </div>
-              {/* one reserved slot: hint, or the error in its place */}
-              <div className="st-ip-msg">
-                {error ? (
-                  <div id={ipErrorId} className="ui-field-error" role="alert">
-                    {Icon.CircleX(16)}
-                    <span>{error}</span>
-                  </div>
-                ) : (
-                  <p id={ipHintId} className="ui-field-hint">
-                    {t("settings.manualIps.hint")}
-                  </p>
-                )}
-              </div>
-            </form>
-          </div>
-        </div>
-      </section>
-
-      {/* Logging Section */}
-      <section className="st-section" aria-labelledby="st-logging-title">
-        <h2 id="st-logging-title" className="ui-h2 st-h2">
-          <span className="st-h2-icon" aria-hidden="true">
-            {Icon.FileText(22)}
-          </span>
-          {t("settings.logging.sectionTitle")}
-        </h2>
-
-        <div className="ui-card st-card">
-          <p className="st-text">{t("settings.logging.description")}</p>
-
-          {/* Log Level Dropdown */}
-          <div className="ui-field st-level">
-            <label htmlFor="log-level-select" className="ui-label">
-              {t("settings.logging.logLevel")}
-            </label>
-            <div className="st-select">
-              <select
-                id="log-level-select"
-                className="ui-select"
-                value={
-                  logLevelData?.level === "CRITICAL" ? "CRITICAL" : (logLevelData?.level ?? "INFO")
-                }
-                onChange={(e) => setLogLevel.mutate(e.target.value)}
-                disabled={setLogLevel.isPending}
-                aria-busy={setLogLevel.isPending}
+          <div className="ui-card st-card">
+            {/* Primary: Automatic Discovery */}
+            <div className="st-method">
+              <h3 className="ui-h3">{t("settings.deviceDiscovery.autoTitle")}</h3>
+              <p className="st-text">{t("settings.deviceDiscovery.autoDescription")}</p>
+              <button
+                type="button"
+                className="btn btn-primary st-scan"
+                onClick={handleScan}
+                disabled={isDiscovering}
+                aria-busy={isDiscovering}
               >
-                <option value="CRITICAL">{t("settings.logging.levelOff")}</option>
-                <option value="INFO">{t("settings.logging.levelInfo")}</option>
-                <option value="DEBUG">{t("settings.logging.levelDebug")}</option>
-              </select>
-              <span className="st-select-icon" aria-hidden="true">
-                {setLogLevel.isPending ? (
-                  <span className="ui-spin">{Icon.Loader(18)}</span>
+                {isDiscovering ? (
+                  <>
+                    <span className="spinner-small" aria-hidden="true" />
+                    {t("settings.deviceDiscovery.scanning")}
+                  </>
                 ) : (
-                  Icon.ChevronDown(18)
+                  <>
+                    {Icon.Search(18)}
+                    {t("settings.deviceDiscovery.scanButton")}
+                  </>
                 )}
-              </span>
+              </button>
+              <output className="visually-hidden">
+                {isDiscovering ? t("settings.deviceDiscovery.scanningStatus") : ""}
+              </output>
             </div>
-            <output className="visually-hidden">
-              {setLogLevel.isPending ? t("settings.logging.levelSaving") : ""}
-            </output>
-          </div>
 
-          {/* Download Logs */}
-          <div className="st-download">
-            <p className="st-text">{t("settings.logging.downloadDescription")}</p>
-            <button
-              type="button"
-              className="btn btn-secondary st-download-btn"
-              onClick={() => void handleDownloadLogs()}
-              disabled={downloading}
-              aria-busy={downloading}
-            >
-              {downloading ? (
-                <>
-                  <span className="spinner-small" aria-hidden="true" />
-                  {t("settings.logging.downloading")}
-                </>
-              ) : (
-                <>
-                  {Icon.Download(18)}
-                  {t("settings.logging.downloadLogs")}
-                </>
-              )}
-            </button>
-            {downloadState === "error" && (
-              <div className="wz-status wz-status--error st-download-error" role="alert">
-                <span className="wz-icon" aria-hidden="true">
-                  {Icon.CircleX(20)}
-                </span>
-                <div className="wz-status-body">
-                  <p>{downloadErrorText}</p>
+            {/* Secondary: Manual IPs */}
+            <div className="st-method">
+              <h3 className="ui-h3">{t("settings.deviceDiscovery.manualTitle")}</h3>
+              <p className="st-text">{t("settings.deviceDiscovery.manualDescription")}</p>
+
+              {/* noValidate: our own messages appear instead of the browser bubble */}
+              <form onSubmit={handleAddIP} className="ui-field st-ip" noValidate>
+                <label htmlFor={ipId} className="ui-label">
+                  {t("settings.manualIps.label")}
+                </label>
+                <div className="st-ip-row">
+                  <input
+                    id={ipId}
+                    type="text"
+                    value={newIP}
+                    onChange={(e) => setNewIP(e.target.value)}
+                    placeholder={t("settings.manualIps.placeholder")}
+                    className="ui-input"
+                    pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+                    autoComplete="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    aria-invalid={error ? true : undefined}
+                    aria-describedby={error ? ipErrorId : ipHintId}
+                    disabled={probeDevice.isPending}
+                  />
+                  <button
+                    type="submit"
+                    className="btn btn-primary st-add"
+                    disabled={probeDevice.isPending}
+                    aria-busy={probeDevice.isPending}
+                  >
+                    {probeDevice.isPending ? (
+                      <>
+                        <span className="spinner-small" aria-hidden="true" />
+                        {t("settings.manualIps.probing")}
+                      </>
+                    ) : (
+                      t("settings.manualIps.addButton")
+                    )}
+                  </button>
                 </div>
-              </div>
-            )}
+                {/* one reserved slot: hint, or the error in its place */}
+                <div className="st-ip-msg">
+                  {error ? (
+                    <div id={ipErrorId} className="ui-field-error" role="alert">
+                      {Icon.CircleX(16)}
+                      <span>{error}</span>
+                    </div>
+                  ) : (
+                    <p id={ipHintId} className="ui-field-hint">
+                      {t("settings.manualIps.hint")}
+                    </p>
+                  )}
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* Logging Section */}
+        <section className="st-section" aria-labelledby="st-logging-title">
+          <h2 id="st-logging-title" className="ui-h2 st-h2">
+            <span className="st-h2-icon" aria-hidden="true">
+              {Icon.FileText(22)}
+            </span>
+            {t("settings.logging.sectionTitle")}
+          </h2>
+
+          <div className="ui-card st-card">
+            <p className="st-text">{t("settings.logging.description")}</p>
+
+            {/* Log Level Dropdown */}
+            <div className="ui-field st-level">
+              <label htmlFor="log-level-select" className="ui-label">
+                {t("settings.logging.logLevel")}
+              </label>
+              <div className="st-select">
+                <select
+                  id="log-level-select"
+                  className="ui-select"
+                  value={
+                    logLevelData?.level === "CRITICAL"
+                      ? "CRITICAL"
+                      : (logLevelData?.level ?? "INFO")
+                  }
+                  onChange={(e) => setLogLevel.mutate(e.target.value)}
+                  disabled={setLogLevel.isPending}
+                  aria-busy={setLogLevel.isPending}
+                >
+                  <option value="CRITICAL">{t("settings.logging.levelOff")}</option>
+                  <option value="INFO">{t("settings.logging.levelInfo")}</option>
+                  <option value="DEBUG">{t("settings.logging.levelDebug")}</option>
+                </select>
+                <span className="st-select-icon" aria-hidden="true">
+                  {setLogLevel.isPending ? (
+                    <span className="ui-spin">{Icon.Loader(18)}</span>
+                  ) : (
+                    Icon.ChevronDown(18)
+                  )}
+                </span>
+              </div>
+              <output className="visually-hidden">
+                {setLogLevel.isPending ? t("settings.logging.levelSaving") : ""}
+              </output>
+            </div>
+
+            {/* Download Logs */}
+            <div className="st-download">
+              <p className="st-text">{t("settings.logging.downloadDescription")}</p>
+              <button
+                type="button"
+                className="btn btn-secondary st-download-btn"
+                onClick={() => void handleDownloadLogs()}
+                disabled={downloading}
+                aria-busy={downloading}
+              >
+                {downloading ? (
+                  <>
+                    <span className="spinner-small" aria-hidden="true" />
+                    {t("settings.logging.downloading")}
+                  </>
+                ) : (
+                  <>
+                    {Icon.Download(18)}
+                    {t("settings.logging.downloadLogs")}
+                  </>
+                )}
+              </button>
+              {downloadState === "error" && (
+                <div className="wz-status wz-status--error st-download-error" role="alert">
+                  <span className="wz-icon" aria-hidden="true">
+                    {Icon.CircleX(20)}
+                  </span>
+                  <div className="wz-status-body">
+                    <p>{downloadErrorText}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

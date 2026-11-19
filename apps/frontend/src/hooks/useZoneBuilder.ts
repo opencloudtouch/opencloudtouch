@@ -8,6 +8,7 @@ interface ZoneBuilderMessages {
   zoneCreated?: string;
   zoneUpdated?: string;
   zoneCreateFailed?: string;
+  zoneUpdateFailed?: string;
   zoneDissolved?: string;
   zoneDissolveFailed?: string;
 }
@@ -16,13 +17,21 @@ const DEFAULT_MESSAGES: Required<ZoneBuilderMessages> = {
   zoneCreated: "Zone erstellt",
   zoneUpdated: "Zone aktualisiert",
   zoneCreateFailed: "Zone konnte nicht erstellt werden",
+  zoneUpdateFailed: "Zone konnte nicht aktualisiert werden",
   zoneDissolved: "Zone aufgelöst",
   zoneDissolveFailed: "Zone konnte nicht aufgelöst werden",
 };
 
 export function useZoneBuilder(messages?: ZoneBuilderMessages) {
   const msgs = { ...DEFAULT_MESSAGES, ...messages };
-  const { zoneCreated, zoneUpdated, zoneCreateFailed, zoneDissolved, zoneDissolveFailed } = msgs;
+  const {
+    zoneCreated,
+    zoneUpdated,
+    zoneCreateFailed,
+    zoneUpdateFailed,
+    zoneDissolved,
+    zoneDissolveFailed,
+  } = msgs;
   const { zones, isLoading, error, createZone, dissolveZone, addMembers, removeMembers } =
     useZones();
   const { getZoneName, setZoneName, removeZoneName } = useZoneNames();
@@ -77,7 +86,7 @@ export function useZoneBuilder(messages?: ZoneBuilderMessages) {
       setEditingZone(null);
       showToast(editingZone ? zoneUpdated : zoneCreated, "success");
     } catch {
-      showToast(zoneCreateFailed, "error");
+      showToast(editingZone ? zoneUpdateFailed : zoneCreateFailed, "error");
     } finally {
       setOperationLoading(false);
     }
@@ -91,6 +100,7 @@ export function useZoneBuilder(messages?: ZoneBuilderMessages) {
     zoneCreated,
     zoneUpdated,
     zoneCreateFailed,
+    zoneUpdateFailed,
   ]);
 
   const handleDissolveZone = useCallback(

@@ -2,11 +2,14 @@ import { Link, NavLink, useLocation, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
 import { Icon } from "./Icon";
+import { useScrollbarGutter } from "../hooks/useScrollbarGutter";
+import { getLastDeviceId } from "../utils/lastDevice";
 import "./Navigation.css";
 
 export default function Navigation() {
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
+  useScrollbarGutter();
   const { pathname } = useLocation();
   // Diagnostics and Licenses belong to "About": the entry stays active on them
   const aboutActive = ["/about", "/diagnostics", "/licenses"].some(
@@ -14,11 +17,13 @@ export default function Navigation() {
   );
   // The wizard uses ?deviceId=, all other pages ?device=
   const deviceParam = searchParams.get("device") ?? searchParams.get("deviceId");
+  // Without a device in the URL (e.g. on the wizard) the last visited device is kept
+  const activeDevice = deviceParam ?? getLastDeviceId();
 
   // Preserve device parameter across all navigation
   const withDevice = (path: string) => {
-    if (!deviceParam) return path;
-    return `${path}?device=${deviceParam}`;
+    if (!activeDevice) return path;
+    return `${path}?device=${encodeURIComponent(activeDevice)}`;
   };
 
   return (

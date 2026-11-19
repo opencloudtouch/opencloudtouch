@@ -39,7 +39,7 @@
 }
 .eb-title {
   margin: 0;
-  font-size: 24px;
+  font-size: var(--fs-2xl);
   line-height: 1.25;
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
@@ -47,7 +47,7 @@
 .eb-message {
   margin: 0;
   max-width: 46ch;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--color-text-secondary);
   text-wrap: pretty;
@@ -69,7 +69,7 @@
   cursor: pointer;
   list-style: none;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: var(--font-weight-medium);
 }
 .eb-details > summary::-webkit-details-marker {

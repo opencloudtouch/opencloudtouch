@@ -2,7 +2,7 @@
 .dg {
   box-sizing: border-box;
   width: 100%;
-  max-width: 960px;
+  max-width: var(--page-max);
   margin: 0 auto;
   padding: var(--space-md);
   display: flex;
@@ -64,20 +64,20 @@
   border-top: 0;
 }
 .dg-row dt {
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.4;
   color: var(--color-text-secondary);
 }
 .dg-row dd {
   margin: 0;
   min-width: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.4;
   color: var(--text-primary);
   overflow-wrap: anywhere;
 }
 .dg-row dd.ui-mono {
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 @media (max-width: 479px) {
   .dg-row {
@@ -129,4 +129,44 @@
 }
 .dg-empty svg {
   flex: none;
+}
+
+.dg-pair {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+@media (min-width: 1024px) {
+  .dg-pair {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: var(--space-lg);
+    align-items: start;
+  }
+  /* server info: six pairs in two columns of pairs */
+  .dg-pair > .dg-section:first-child .dg-kv {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-xl);
+  }
+  .dg-pair > .dg-section:first-child .dg-row:nth-child(2) {
+    border-top: 0;
+  }
+}
+
+/* download button: under the title, left-aligned, normal button width; full width at <= 480px */
+.dg-head {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 12px;
+}
+.dg-download-btn {
+  min-width: 0;
+  padding-inline: var(--space-lg);
+}
+@media (max-width: 480px) {
+  .dg-head {
+    align-items: stretch;
+  }
 }

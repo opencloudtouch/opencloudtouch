@@ -100,10 +100,8 @@ export default function RestoreCompletion({
                     {Icon.X(18)}
                   </span>
                   <span>
+                    {/* translated message only: the raw error text of the device is not shown */}
                     {translateStepMessage(t, s)}
-                    {s.error && s.error !== s.message && (
-                      <span className="restore-completion__error"> — {s.error}</span>
-                    )}
                   </span>
                 </li>
               ))}

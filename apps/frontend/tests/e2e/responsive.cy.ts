@@ -66,7 +66,7 @@ function assertNoLayoutIssues(label: string) {
 /**
  * Wizard frame regressions that are not "overflow": the number inside the active step must stay readable
  * (a global `.step-number` rule from the welcome page once painted it blue on blue), and the content column
- * must keep the 720px width instead of stretching to the old 1200px.
+ * must stay inside the page width (--page-max, 1200px).
  */
 function assertWizardFrame(label: string) {
   cy.get("body").then(($body) => {
@@ -79,7 +79,7 @@ function assertWizardFrame(label: string) {
     for (const selector of [".progress-tracker", ".wizard-step"]) {
       const el = $body.find(selector)[0];
       if (el) {
-        expect(el.getBoundingClientRect().width, `${label}: ${selector} width`).to.be.at.most(720);
+        expect(el.getBoundingClientRect().width, `${label}: ${selector} width`).to.be.at.most(1200);
       }
     }
   });
@@ -146,7 +146,7 @@ describe("Responsive layout", { retries: 0 }, () => {
         cy.contains(".restore-execution__label", "Snapshot vor der Wiederherstellung").should("exist");
         cy.contains(".restore-execution__message", "Konfigurationsdateien wiederhergestellt").should("exist");
         cy.contains(".restore-execution__message", "Presets wiederhergestellt unter /mnt/nv/BoseApp-Persistence/1/Presets.xml").should("exist");
-        cy.contains(".restore-execution__message", "Wiederherstellung der NTP-Server fehlgeschlagen: Permission denied").should("exist");
+        cy.contains(".restore-execution__message", "Wiederherstellung der NTP-Server fehlgeschlagen").should("exist");
         cy.get(".wizard-btn-next:not([disabled])").should("exist");
         settle();
         assertNoLayoutIssues(`restore-execution@${width}`);
@@ -241,7 +241,7 @@ describe("Responsive layout", { retries: 0 }, () => {
         visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}&mode=restore`);
         cy.get(".wizard-choice__card").eq(0).click();
         cy.get(".restore-execution__failed").should("be.visible");
-        cy.contains(".restore-execution__message", "Wiederherstellung von /etc/hosts fehlgeschlagen: Read-only file system").should("exist");
+        cy.contains(".restore-execution__message", "Wiederherstellung von /etc/hosts fehlgeschlagen").should("exist");
         cy.get(".restore-execution__success").should("not.exist");
         if (width >= 414) {
           // A long German label must stay on one line (it once broke mid-word because the duration shared its row).

@@ -114,3 +114,31 @@ async def resolve_tunein_station(station_id: str) -> BmxPlaybackResponse:
     except Exception as e:
         logger.error("[BMX TUNEIN] Error resolving %s: %s", station_id, e)
         raise
+
+
+_TUNEIN_LOCATION_PREFIX = "/v1/playback/station/"
+_stream_url_cache: dict[str, str] = {}
+_STREAM_URL_CACHE_MAX = 64
+
+
+async def resolve_tunein_location(location: str) -> str | None:
+    """Turn a speaker's relative TuneIn location into a real stream URL.
+
+    Presets learned from a speaker keep ``/v1/playback/station/sNNN`` as their
+    location, which no HTTP client can open. Absolute URLs are returned as is;
+    results are cached because callers poll every few seconds.
+    """
+    if not location.startswith(_TUNEIN_LOCATION_PREFIX):
+        return location
+    station_id = location[len(_TUNEIN_LOCATION_PREFIX) :]
+    if station_id in _stream_url_cache:
+        return _stream_url_cache[station_id]
+    try:
+        stream_url = (await resolve_tunein_station(station_id)).audio.streamUrl
+    except Exception:
+        logger.debug("TuneIn resolve failed for %s", station_id, exc_info=True)
+        return None
+    if len(_stream_url_cache) >= _STREAM_URL_CACHE_MAX:
+        _stream_url_cache.pop(next(iter(_stream_url_cache)))
+    _stream_url_cache[station_id] = stream_url
+    return stream_url

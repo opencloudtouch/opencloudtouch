@@ -214,3 +214,46 @@ class TestBuildFullAccountXml:
         recents = elem.find("recents")
         assert recents is not None
         assert len(recents.findall("recent")) == 1
+
+
+class TestBuildStreamingAccountXml:
+    """The speaker rejects any other root than <account> ("account expected")."""
+
+    def test_root_is_account_with_id(self):
+        from opencloudtouch.marge.xml_builder import build_streaming_account_xml
+
+        elem = build_streaming_account_xml("3784726")
+        assert elem.tag == "account"
+        assert elem.get("id") == "3784726"
+
+    def test_has_required_account_children(self):
+        from opencloudtouch.marge.xml_builder import build_streaming_account_xml
+
+        elem = build_streaming_account_xml("1")
+        assert elem.findtext("accountStatus") == "OK"
+        assert elem.findtext("mode") == "global"
+        assert elem.findtext("preferredLanguage") == "en"
+        assert elem.find("devices") is not None
+        assert elem.find("providerSettings") is not None
+
+    def test_sources_carry_provider_and_name(self):
+        from opencloudtouch.marge.xml_builder import build_streaming_account_xml
+
+        sources = build_streaming_account_xml("1").findall("./sources/source")
+        assert sources
+        tunein = next(s for s in sources if s.findtext("sourcename") == "TUNEIN")
+        assert tunein.get("id")
+        assert tunein.findtext("sourceproviderid")
+        assert tunein.find("createdOn") is not None
+        assert tunein.find("updatedOn") is not None
+
+    def test_device_carries_presets_in_account_shape(self):
+        from opencloudtouch.marge.xml_builder import build_streaming_account_xml
+
+        elem = build_streaming_account_xml("1", "AABB", [_soundtouch_preset(slot=3)])
+        device = elem.find("./devices/device")
+        assert device.get("deviceid") == "AABB"
+        preset = device.find("./presets/preset")
+        assert preset.get("buttonNumber") == "3"
+        assert preset.findtext("location")
+        assert preset.findtext("name")

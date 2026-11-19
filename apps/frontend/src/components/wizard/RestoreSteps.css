@@ -15,7 +15,7 @@
 }
 .backup-scan__loading p {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   color: var(--color-text-primary);
 }
 
@@ -34,7 +34,7 @@
   align-items: center;
   gap: 10px;
   margin: 0;
-  font-size: 18px;
+  font-size: var(--fs-xl);
   line-height: 1.3;
   color: var(--color-text-primary);
   overflow-wrap: anywhere;
@@ -68,7 +68,7 @@
   border-radius: 4px;
   background: rgba(var(--primary-rgb), 0.18);
   color: var(--primary-text);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -87,10 +87,16 @@
   align-items: flex-start;
   gap: 8px;
   max-width: 100%;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: #ffd54f;
   overflow-wrap: anywhere;
+}
+.backup-scan__mismatch--invalid {
+  color: var(--danger-text);
+}
+.backup-scan__result li:has(.backup-scan__mismatch--invalid) {
+  border-color: var(--color-danger);
 }
 .backup-scan__mismatch .wz-icon {
   width: 18px;
@@ -114,14 +120,14 @@
 }
 .restore-execution__progress-head p {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--fs-h3);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
   overflow-wrap: anywhere;
 }
 .restore-execution__hint {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--color-text-secondary);
   text-wrap: pretty;
@@ -151,7 +157,7 @@
 }
 .restore-execution__success p {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: var(--font-weight-bold);
   line-height: 1.4;
   color: var(--color-text-primary);
@@ -164,7 +170,7 @@
   background: rgba(244, 67, 54, 0.16);
 }
 .restore-execution__failed .wz-status-title {
-  font-size: 17px;
+  font-size: var(--fs-h3);
 }
 
 .restore-execution__step {
@@ -193,7 +199,7 @@
   grid-area: label;
   min-width: 0;
   padding-top: 2px;
-  font-size: 15px;
+  font-size: var(--fs-body);
   font-weight: var(--font-weight-bold);
   line-height: 1.4;
   color: var(--color-text-primary);
@@ -216,25 +222,9 @@
 .restore-execution__message {
   grid-area: message;
   min-width: 0;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-primary);
-  overflow-wrap: anywhere;
-}
-.restore-execution__error-detail {
-  grid-area: detail;
-  min-width: 0;
-  margin-top: 4px;
-  padding: 8px 10px;
-  background: var(--color-bg-darker);
-  border: 1px solid rgba(244, 67, 54, 0.5);
-  border-radius: 4px;
-  font:
-    13px/1.5 ui-monospace,
-    Menlo,
-    Consolas,
-    monospace;
-  color: #ff8a80;
   overflow-wrap: anywhere;
 }
 /* Phones: label and duration in one row left only ~120px for the label ("Konfigurationsdateien" broke mid-word);
@@ -263,7 +253,7 @@
 }
 .restore-execution__step--failed {
   background: rgba(244, 67, 54, 0.12);
-  border-color: #f44336;
+  border-color: var(--color-danger);
   border-width: 2px;
   padding: 11px;
 }
@@ -305,7 +295,7 @@
 }
 .restore-verification__online p {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
@@ -319,14 +309,14 @@
 }
 .restore-completion h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--fs-xl);
   line-height: 1.3;
   color: var(--color-text-primary);
   overflow-wrap: anywhere;
 }
 @media (min-width: 601px) {
   .restore-completion h3 {
-    font-size: 20px;
+    font-size: var(--fs-h2);
   }
 }
 .restore-completion__section {
@@ -341,7 +331,7 @@
   align-items: center;
   gap: 10px;
   margin: 0 0 12px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.3;
   color: var(--color-text-primary);
 }
@@ -357,7 +347,7 @@
   align-items: flex-start;
   gap: 10px;
   min-width: 0;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-primary);
 }
@@ -384,24 +374,76 @@
 }
 .restore-completion__section--failed {
   background: rgba(244, 67, 54, 0.12);
-  border: 2px solid #f44336;
+  border: 2px solid var(--color-danger);
   padding: 15px;
 }
 .restore-completion__section--failed h4 .wz-icon,
 .restore-completion__section--failed li > .wz-icon {
   color: var(--color-danger);
 }
-.restore-completion__error {
-  color: #ff8a80;
-}
 .restore-completion__note {
   margin: 0;
   align-items: center;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
 }
 .restore-completion__note > span:last-child {
   min-width: 0;
   color: var(--text-primary);
   overflow-wrap: anywhere;
+}
+
+/* Stage 14: restore wizard on the full-width container (from 769px; mobile unchanged) */
+@media (min-width: 769px) {
+  .backup-scan__loading,
+  .backup-scan__error,
+  .backup-scan__warning,
+  .restore-execution__progress,
+  .restore-execution__error,
+  .restore-verification__countdown,
+  .restore-verification__timeout,
+  .restore-verification__online,
+  .restore-completion__note {
+    max-width: 720px;
+  }
+  .backup-scan__result,
+  .restore-execution__steps,
+  .restore-completion {
+    max-width: 760px;
+  }
+}
+@media (min-width: 1024px) {
+  .backup-scan__result {
+    max-width: none;
+  }
+  .backup-scan__result ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm) var(--space-md);
+  }
+  .restore-completion {
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(0, 720px);
+    gap: var(--space-md) var(--space-lg);
+  }
+  .restore-completion:has(> div:nth-of-type(2)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .restore-completion:has(> div:nth-of-type(3)) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .restore-completion > h3,
+  .restore-completion > .restore-completion__note {
+    grid-column: 1 / -1;
+  }
+}
+.restore-execution__warning {
+  margin: 8px 0 0;
+  font-weight: 600;
+  color: var(--color-text-primary, inherit);
+}
+.device-reboot-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }

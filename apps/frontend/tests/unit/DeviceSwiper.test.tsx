@@ -88,6 +88,22 @@ describe("DeviceSwiper Component", () => {
 
 
 
+  it("keyboard: only the two arrows are tab stops, the dots are not", () => {
+    render(
+      <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
+        <div>Device Content</div>
+      </DeviceSwiper>
+    );
+
+    const dots = within(screen.getByRole("group", { name: "Device selection" })).getAllByRole("button");
+    for (const dot of dots) expect(dot).toHaveAttribute("tabindex", "-1");
+    expect(screen.getByLabelText("Previous device")).not.toHaveAttribute("tabindex");
+    expect(screen.getByLabelText("Next device")).not.toHaveAttribute("tabindex");
+    // the dots still work with the mouse or a finger
+    fireEvent.click(dots[2]!);
+    expect(mockOnIndexChange).toHaveBeenCalledWith(2);
+  });
+
   it("disables previous arrow at first device", () => {
     render(
       <DeviceSwiper devices={mockDevices} currentIndex={0} onIndexChange={mockOnIndexChange}>

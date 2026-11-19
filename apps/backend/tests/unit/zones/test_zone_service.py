@@ -629,3 +629,56 @@ class TestDissolveZoneEdgeCases:
 
         # DB should still be updated despite exception
         zone_repo.dissolve_zone.assert_called_once_with(10)
+
+
+class TestStereoPairRule:
+    """A speaker in a stereo pair cannot be part of a zone."""
+
+    @pytest.fixture
+    def paired_service(self):
+        from unittest.mock import AsyncMock
+
+        device_repo = AsyncMock()
+        stereo_repo = AsyncMock()
+        stereo_repo.get_by_device.side_effect = lambda device_id: (
+            object() if device_id == "PAIRED" else None
+        )
+        return (
+            ZoneService(
+                device_repo=device_repo,
+                zone_repo=AsyncMock(),
+                stereo_pair_repo=stereo_repo,
+            ),
+            device_repo,
+        )
+
+    @pytest.mark.asyncio
+    async def test_create_zone_rejects_paired_slave(self, paired_service):
+        from opencloudtouch.core.exceptions import CodedApiError
+
+        service, device_repo = paired_service
+
+        with pytest.raises(CodedApiError) as raised:
+            await service.create_zone("MASTER", ["PAIRED"])
+
+        assert raised.value.status_code == 409
+        assert raised.value.code == "stereo_pair_device_in_pair"
+        device_repo.get_by_device_id.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_create_zone_rejects_paired_master(self, paired_service):
+        from opencloudtouch.core.exceptions import CodedApiError
+
+        service, _ = paired_service
+
+        with pytest.raises(CodedApiError):
+            await service.create_zone("PAIRED", ["OTHER"])
+
+    @pytest.mark.asyncio
+    async def test_add_members_rejects_paired_device(self, paired_service):
+        from opencloudtouch.core.exceptions import CodedApiError
+
+        service, _ = paired_service
+
+        with pytest.raises(CodedApiError):
+            await service.add_members("MASTER", ["PAIRED"])

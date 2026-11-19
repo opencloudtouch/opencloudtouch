@@ -4,6 +4,7 @@ import logging
 
 from fastapi import APIRouter
 
+from opencloudtouch.core import device_timing
 from opencloudtouch.core.dependencies import WizardServiceDep
 from opencloudtouch.setup.api_models import BackupRequest, BackupResponse
 from opencloudtouch.setup.backup_service import SoundTouchBackupService
@@ -62,7 +63,8 @@ async def wizard_backup(
     """Create complete backup to USB stick (Wizard Step 4)."""
     logger.info("Starting backup for %s", request.device_ip)
 
-    result = await wizard.backup_all(request.device_ip, request.device_id or "")
+    with device_timing.operation("backup", host=request.device_ip):
+        result = await wizard.backup_all(request.device_ip, request.device_id or "")
 
     if not result["success"]:
         return BackupResponse(success=False, message=result["message"])

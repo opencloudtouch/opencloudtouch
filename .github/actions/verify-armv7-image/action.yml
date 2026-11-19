@@ -1,0 +1,72 @@
+name: Verify armv7 image
+description: >
+  Scan the final file system of a pushed linux/arm/v7 image for ELF segments that are unsafe on
+  32 KB page-size kernels and run a QEMU smoke test. Fails the job on any hard failure.
+
+inputs:
+  image:
+    description: Image reference including the digest (registry/name@sha256:...)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: ELF page-size scan of the final image file system
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+      run: |
+        set -euo pipefail
+        # A venv, because `python3 -I` ignores user site-packages.
+        python3 -m venv "$RUNNER_TEMP/venv"
+        "$RUNNER_TEMP/venv/bin/pip" install --quiet pyelftools==0.32
+        cid=$(docker create --platform linux/arm/v7 "$IMAGE")
+        docker export "$cid" -o "$RUNNER_TEMP/image.tar"
+        docker rm "$cid" >/dev/null
+        # The tar holds the merged file system (last version of each file), not single layers.
+        rc=0
+        "$RUNNER_TEMP/venv/bin/python" -I scripts/elf_pagesize_scan.py --tar "$RUNNER_TEMP/image.tar" \
+          --label "$IMAGE" | tee "$RUNNER_TEMP/scan.txt" || rc=$?
+        {
+          echo "## ELF page-size scan (linux/arm/v7)"
+          echo '```'
+          head -c 200000 "$RUNNER_TEMP/scan.txt"
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
+        rm -f "$RUNNER_TEMP/image.tar"
+        exit "$rc"
+
+    - name: Package consistency check in the image
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+      run: |
+        docker run --rm --platform linux/arm/v7 --entrypoint sh "$IMAGE" \
+          -c 'dpkg --audit && apt-get check'
+
+    - name: QEMU smoke test (healthy and /health)
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+      run: |
+        set -euo pipefail
+        docker run -d --name oct-armv7-smoke --platform linux/arm/v7 "$IMAGE" >/dev/null
+        status=starting
+        for _ in $(seq 1 120); do
+          status=$(docker inspect --format '{{.State.Health.Status}}' oct-armv7-smoke)
+          [ "$status" = healthy ] && break
+          [ "$(docker inspect --format '{{.State.Running}}' oct-armv7-smoke)" = true ] || break
+          sleep 10
+        done
+        docker logs oct-armv7-smoke 2>&1 | tail -n 40
+        if [ "$status" != healthy ]; then
+          echo "::error::armv7 smoke test: container is '$status', expected healthy"
+          exit 1
+        fi
+        docker exec oct-armv7-smoke curl -fsS http://localhost:7777/health
+        # The 4 KB path must not run the 32 KB library self-test.
+        if docker logs oct-armv7-smoke 2>&1 | grep -q "library self-test"; then
+          echo "::error::armv7 smoke test: unexpected library self-test message on a 4 KB kernel"
+          exit 1
+        fi
+        docker rm -f oct-armv7-smoke >/dev/null

@@ -12,7 +12,7 @@
 # Build + test logic lives in raspi-build-and-test.yml (reusable workflow).
 # ==============================================================================
 
-name: Build Raspberry Pi Images
+name: Build · Raspberry Pi Images
 
 on:
   workflow_dispatch:
@@ -39,7 +39,7 @@ jobs:
   # ============================================================================
   resolve:
     name: Resolve Architectures
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       archs: ${{ steps.matrix.outputs.archs }}
     steps:
@@ -86,7 +86,7 @@ jobs:
   # ============================================================================
   release:
     name: Create Raspi Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [resolve, build-arm64, build-armhf]
     if: |
       always() &&

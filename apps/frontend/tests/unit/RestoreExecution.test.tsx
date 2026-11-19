@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import React from "react";
+import { expectNoRawText } from "./helpers/translatedError";
 
 const mockRestore = vi.fn();
 let mockRestoreData: unknown = null;
@@ -77,7 +78,8 @@ describe("RestoreExecution", () => {
       "../../src/components/wizard/RestoreExecution"
     );
     render(<RestoreExecution {...defaultProps} />);
-    expect(screen.getByText(/SSH timeout/)).toBeInTheDocument();
+    expectNoRawText(document, "SSH timeout");
+    expect(screen.getByRole("alert")).toBeInTheDocument();
   });
 
   it("shows step results when restore completes", async () => {
@@ -134,7 +136,7 @@ describe("RestoreExecution", () => {
     expect(container.textContent).toContain("8.3s");
   });
 
-  it("shows failed step with error detail", async () => {
+  it("shows failed step with the translated message only", async () => {
     mockRestoreData = {
       success: false,
       total_duration_seconds: 5.0,
@@ -147,7 +149,23 @@ describe("RestoreExecution", () => {
     );
     render(<RestoreExecution {...defaultProps} />);
     await waitFor(() => {
-      expect(screen.getByText("Permission denied")).toBeInTheDocument();
+      expect(screen.getByText("Failed to clean hosts")).toBeInTheDocument();
+      expect(document.body.textContent).not.toContain("Permission denied"); // raw device error is not shown
     });
+  });
+
+  it("reports the running state and shows the do-not-restart warning", async () => {
+    mockIsPending = true;
+    const onRunningChange = vi.fn();
+    const { default: RestoreExecution } = await import(
+      "../../src/components/wizard/RestoreExecution"
+    );
+    const { unmount } = render(
+      <RestoreExecution {...defaultProps} onRunningChange={onRunningChange} />,
+    );
+    expect(onRunningChange).toHaveBeenLastCalledWith(true);
+    expect(screen.getByText(/do not restart the device/i)).toBeInTheDocument();
+    unmount();
+    expect(onRunningChange).toHaveBeenLastCalledWith(false);
   });
 });

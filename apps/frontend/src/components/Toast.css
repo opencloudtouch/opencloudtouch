@@ -46,7 +46,7 @@
 }
 .toast-message {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--color-text-primary);
   overflow-wrap: anywhere;

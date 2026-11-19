@@ -355,6 +355,16 @@ class DeviceRepository(BaseRepository):
         await db.commit()
         logger.info("Updated setup status for %s: %s", device_id, setup_status)
 
+    async def update_name(self, device_id: str, name: str) -> bool:
+        """Set the display name; returns False when the device is unknown."""
+        db = self._ensure_initialized()
+        cursor = await db.execute(
+            "UPDATE devices SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE device_id = ?",
+            (name, device_id),
+        )
+        await db.commit()
+        return cursor.rowcount > 0
+
     async def get_by_account_uuid(self, account_uuid: str) -> Optional[Device]:
         """Get device by marge_account_uuid."""
         db = self._ensure_initialized()

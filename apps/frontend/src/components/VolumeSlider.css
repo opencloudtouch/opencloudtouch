@@ -38,7 +38,7 @@
   height: 6px;
   margin-top: -3px;
   border-radius: 3px;
-  background: #4d4d4d;
+  background: var(--color-disabled);
 }
 .vs-track-fill {
   position: absolute;
@@ -47,7 +47,7 @@
   height: 6px;
   margin-top: -3px;
   border-radius: 3px;
-  background: #5dade2;
+  background: var(--primary-text); /* #8ab8f0, same blue as active chips and links */
 }
 .vs-thumb {
   position: absolute;
@@ -56,8 +56,8 @@
   height: 20px;
   margin: -10px 0 0 -10px;
   border-radius: 50%;
-  background: #fff;
-  border: 2px solid var(--color-bg-darker);
+  background: var(--color-text-primary);
+  border: 2px solid var(--primary-color);
   box-shadow: var(--shadow-sm);
 }
 .vs-track:focus-visible .vs-thumb {
@@ -71,7 +71,7 @@
   flex: none;
   min-width: 3ch;
   text-align: right;
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-variant-numeric: tabular-nums;
   color: var(--color-text-secondary);
 }

@@ -22,11 +22,6 @@
 .btn.dm-quiet:active:not(:disabled) {
   background: rgba(244, 67, 54, 0.2);
 }
-/* offline: banner and button read as one block (the banner explains, the button acts) */
-.rp-card > .dob + .dm-foot,
-.lc-card > .dob + .dm-foot {
-  margin-top: 0;
-}
 /* confirm dialog: who is being removed */
 .dm-who {
   display: flex;
@@ -53,7 +48,7 @@
 }
 .dm-who-ip {
   flex: none;
-  font-size: 13px;
+  font-size: var(--fs-small);
   color: var(--color-text-secondary);
 }
 @media (max-width: 380px) {

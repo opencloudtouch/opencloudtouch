@@ -33,7 +33,7 @@
   display: flex;
 }
 .np-placeholder {
-  font-size: 15px;
+  font-size: var(--fs-body);
   color: var(--color-text-secondary);
 }
 .np-header {
@@ -46,7 +46,7 @@
 .np-station {
   flex: 1;
   min-width: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
   overflow: hidden;
@@ -82,14 +82,14 @@
 }
 .np-track {
   grid-row: 1;
-  font-size: 17px;
+  font-size: var(--fs-h3);
   line-height: var(--np-track-h);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
 .np-artist {
   grid-row: 2;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: var(--np-artist-h);
   color: var(--color-text-secondary);
 }

@@ -12,6 +12,7 @@ import WizardStep from "./WizardStep";
 import { Icon } from "./Icon";
 import "./wizard-base.css";
 import "./Step4Backup.css";
+import { userErrorMessage } from "../../utils/errorMessages";
 
 /** Format seconds into human-readable "Xm Ys" / "Xs" using i18n */
 function formatDuration(
@@ -63,10 +64,10 @@ export default function Step4Backup({
       onBackupComplete(result);
 
       if (!result.success) {
-        setError(result.message || t("setup.wizard.step4.errorTitle"));
+        setError(t("errors.unknown"));
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : t("errors.unknown");
+      const message = userErrorMessage(err);
       setError(message);
     } finally {
       setCreating(false);

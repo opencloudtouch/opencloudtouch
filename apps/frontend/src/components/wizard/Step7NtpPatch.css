@@ -10,7 +10,7 @@
 }
 .ntp-optional-text {
   min-width: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--text-primary);
   overflow-wrap: anywhere;
@@ -22,5 +22,5 @@
   width: 100%;
   min-height: 52px;
   margin-top: 8px;
-  font-size: 17px;
+  font-size: var(--fs-h3);
 }
