@@ -170,3 +170,16 @@
     align-items: stretch;
   }
 }
+
+/* Keep loading and error states aligned during retries. */
+.dg-retry-region {
+  box-sizing: border-box;
+  min-height: 11rem;
+}
+.dg-retry-message {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.dg-retry-btn {
+  min-height: var(--touch-target-min, 44px);
+}
