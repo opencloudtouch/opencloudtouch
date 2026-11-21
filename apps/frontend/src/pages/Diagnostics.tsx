@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { getDiagnostics, DiagnosticsResponse } from "../api/diagnostics";
 import { downloadDiagnostics } from "../api/bugReport";
@@ -86,25 +86,53 @@ export default function Diagnostics() {
   const { show: showToast } = useToast();
   const [data, setData] = useState<DiagnosticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const requestIdRef = useRef(0);
+  const retryRequestedRef = useRef(false);
+  const [completedRetry, setCompletedRetry] = useState(0);
+  const retryButtonRef = useRef<HTMLButtonElement>(null);
+  const contentHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  // Keep the fetch stable across language changes; ignore obsolete responses.
+  const loadDiagnostics = useCallback(async () => {
+    const currentRequest = ++requestIdRef.current;
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await getDiagnostics();
+      if (currentRequest === requestIdRef.current) setData(result);
+    } catch (err) {
+      if (currentRequest === requestIdRef.current) setError(err ?? new Error(""));
+    } finally {
+      if (currentRequest === requestIdRef.current) {
+        setLoading(false);
+        if (retryRequestedRef.current) {
+          setCompletedRetry(currentRequest);
+        }
+      }
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    getDiagnostics()
-      .then((result) => {
-        if (!cancelled) setData(result);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(userErrorMessage(err));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    void loadDiagnostics();
     return () => {
-      cancelled = true;
+      requestIdRef.current += 1;
     };
-  }, []);
+  }, [loadDiagnostics]);
+
+  // Restore focus after retries, without stealing focus on initial load.
+  useEffect(() => {
+    if (completedRetry === 0 || loading || !retryRequestedRef.current) return;
+
+    if (error !== null && retryButtonRef.current) {
+      retryButtonRef.current.focus();
+      retryRequestedRef.current = false;
+    } else if (data && contentHeadingRef.current) {
+      contentHeadingRef.current.focus();
+      retryRequestedRef.current = false;
+    }
+  }, [completedRetry, loading, error, data]);
 
   const handleDownload = async () => {
     if (downloading) return; // aria-disabled instead of disabled, so the button keeps focus and <main> keeps a focusable element
@@ -131,7 +159,7 @@ export default function Diagnostics() {
       <div className="dg">
         <BackToAbout />
         <h1 className="ui-h1">{t("diagnostics.title")}</h1>
-        <div className="ui-state" role="status" aria-live="polite">
+        <div className="ui-state dg-retry-region" role="status" aria-live="polite">
           <div className="spinner" aria-hidden="true" />
           <p>{t("common.loading")}</p>
         </div>
@@ -139,16 +167,30 @@ export default function Diagnostics() {
     );
   }
 
-  if (error) {
+  if (error !== null) {
     return (
       <div className="dg">
         <BackToAbout />
         <h1 className="ui-h1">{t("diagnostics.title")}</h1>
-        <div className="ui-state ui-state--error" role="alert">
+        <div className="ui-state ui-state--error dg-retry-region">
           <div className="ui-state-icon" aria-hidden="true">
             {Icon.CircleX(32)}
           </div>
-          <p>{error}</p>
+          <p role="alert" className="dg-retry-message">
+            {userErrorMessage(error)}
+          </p>
+          <button
+            ref={retryButtonRef}
+            type="button"
+            className="btn btn-secondary dg-retry-btn"
+            onClick={() => {
+              retryRequestedRef.current = true;
+              void loadDiagnostics();
+            }}
+          >
+            {Icon.RefreshCw(18)}
+            {t("common.retry")}
+          </button>
         </div>
       </div>
     );
@@ -161,7 +203,9 @@ export default function Diagnostics() {
       <BackToAbout />
       {/* the download sits next to the title (first focusable element, reachable without scrolling a long list) */}
       <div className="dg-head">
-        <h1 className="ui-h1">{t("diagnostics.title")}</h1>
+        <h1 ref={contentHeadingRef} tabIndex={-1} className="ui-h1">
+          {t("diagnostics.title")}
+        </h1>
         <div data-test="diagnostics-download">
           <button
             type="button"
