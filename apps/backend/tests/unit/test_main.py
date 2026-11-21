@@ -64,9 +64,11 @@ async def test_lifespan_initialization():
         mock_health_check.stop = AsyncMock()
 
         # Run lifespan
+        mock_dlna = AsyncMock()
         async with lifespan(app):
-            # Mock app.state.health_check for shutdown
+            # _init_services is mocked, so install its shutdown dependencies.
             app.state.health_check = mock_health_check
+            app.state.dlna_service = mock_dlna
 
             # Verify startup
             mock_init_config.assert_called_once()
@@ -75,6 +77,7 @@ async def test_lifespan_initialization():
                 repo.initialize.assert_called_once()
 
         # Verify shutdown — all repos closed
+        mock_dlna.close.assert_awaited_once()
         for name, repo in mock_repos.items():
             repo.close.assert_called_once()
 

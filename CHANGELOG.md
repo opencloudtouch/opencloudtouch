@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No changes yet._
+### Added
+- DLNA playback API reports automatic track advancement availability via `auto_advance` (#510)
+
+### Fixed
+- Guard DLNA service shutdown when startup did not initialize the service (#510)
 
 ---
 
