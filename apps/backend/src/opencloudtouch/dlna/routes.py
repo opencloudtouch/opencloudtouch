@@ -7,7 +7,7 @@ from typing import Any, Literal
 from xml.etree.ElementTree import ParseError
 
 from defusedxml.common import DefusedXmlException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 
 from opencloudtouch.dlna.client import DlnaBrowseError
@@ -62,7 +62,12 @@ class DlnaItemResult(BaseModel):
 class DlnaPlayResponse(DlnaItemResult):
     """Playback response with the AVTransport subscription status."""
 
-    auto_advance: bool
+    auto_advance: bool = Field(
+        description=(
+            "Indicates whether a live AVTransport subscription exists at response "
+            "time. Does not guarantee future event delivery or automatic track advancement."
+        )
+    )
 
 
 class DlnaCurrentResponse(BaseModel):

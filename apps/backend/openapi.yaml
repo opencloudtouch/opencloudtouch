@@ -4581,6 +4581,9 @@ components:
         auto_advance:
           type: boolean
           title: Auto Advance
+          description: Indicates whether a live AVTransport subscription exists at
+            response time. Does not guarantee future event delivery or automatic track
+            advancement.
       type: object
       required:
       - device_id
