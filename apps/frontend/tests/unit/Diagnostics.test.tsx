@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import Diagnostics from "../../src/pages/Diagnostics";
 import { getDiagnostics } from "../../src/api/diagnostics";
+import { i18next } from "../../src/i18n";
 
 vi.mock("../../src/api/diagnostics", () => ({
   getDiagnostics: vi.fn(),
@@ -14,14 +16,6 @@ vi.mock("../../src/api/bugReport", () => ({
 
 vi.mock("../../src/contexts/ToastContext", () => ({
   useToast: () => ({ show: vi.fn() }),
-}));
-
-let errorLanguage = "en";
-
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string) => (key === "common.error" ? `${errorLanguage}:error` : key),
-  }),
 }));
 
 const diagnostics = {
@@ -50,8 +44,8 @@ function deferred<T>() {
 }
 
 describe("Diagnostics retry", () => {
-  beforeEach(() => {
-    errorLanguage = "en";
+  beforeEach(async () => {
+    await i18next.changeLanguage("en");
     vi.clearAllMocks();
   });
 
@@ -67,20 +61,25 @@ describe("Diagnostics retry", () => {
       </MemoryRouter>
     );
 
-    const button = await screen.findByRole("button", { name: "common.retry" });
+    const button = await screen.findByRole("button", { name: "Retry" });
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent(/.+/);
-    expect(alert).not.toHaveTextContent("common.retry");
+    expect(alert).not.toHaveTextContent("Retry");
     expect(alert.parentElement).toHaveClass("dg-retry-region");
     expect(button).toBeEnabled();
-    // The retry action is the first and only tabbable control inside this page.
-    expect(screen.getByRole("link", { name: "nav.about" })).toBeInTheDocument();
+    // Back to Info is first in tab order; Retry is the next focusable control.
+    const backLink = screen.getByRole("link", { name: "Info" });
+    const user = userEvent.setup();
+    await user.tab();
+    expect(backLink).toHaveFocus();
+    await user.tab();
+    expect(button).toHaveFocus();
     expect(button).toHaveAttribute("type", "button");
 
     fireEvent.click(button);
-    expect(screen.getByRole("status")).toHaveTextContent("common.loading");
+    expect(screen.getByRole("status")).toHaveTextContent("Loading...");
     expect(screen.getByRole("status")).toHaveClass("dg-retry-region");
-    expect(screen.queryByRole("button", { name: "common.retry" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
 
     retry.resolve(diagnostics);
     await waitFor(() => {
@@ -88,7 +87,7 @@ describe("Diagnostics retry", () => {
     });
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByRole("heading", { level: 1, name: "diagnostics.title" })).toHaveFocus();
+      expect(screen.getByRole("heading", { level: 1, name: "Diagnostics" })).toHaveFocus();
     });
     expect(getDiagnostics).toHaveBeenCalledTimes(2);
   });
@@ -105,12 +104,12 @@ describe("Diagnostics retry", () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(await screen.findByRole("button", { name: "common.retry" }));
-    expect(screen.getByRole("status")).toHaveTextContent("common.loading");
+    fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Loading...");
 
     retry.reject(new Error("Second failure"));
     expect(await screen.findByRole("alert")).toHaveTextContent(/.+/);
-    const retryButton = screen.getByRole("button", { name: "common.retry" });
+    const retryButton = screen.getByRole("button", { name: "Retry" });
     expect(retryButton).toBeEnabled();
     expect(retryButton).toHaveFocus();
     expect(getDiagnostics).toHaveBeenCalledTimes(2);
@@ -127,10 +126,10 @@ describe("Diagnostics retry", () => {
         <Diagnostics />
       </MemoryRouter>
     );
-    fireEvent.click(await screen.findByRole("button", { name: "common.retry" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(/.+/);
 
-    fireEvent.click(screen.getByRole("button", { name: "common.retry" }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     await waitFor(() => {
       expect(screen.getByText("1.6.0")).toBeInTheDocument();
     });
@@ -139,19 +138,17 @@ describe("Diagnostics retry", () => {
 
   it("does not refetch loaded diagnostics when the language changes", async () => {
     vi.mocked(getDiagnostics).mockResolvedValueOnce(diagnostics);
-    const view = render(
+    render(
       <MemoryRouter>
         <Diagnostics />
       </MemoryRouter>
     );
     expect(await screen.findByText("1.6.0")).toBeInTheDocument();
 
-    errorLanguage = "de";
-    view.rerender(
-      <MemoryRouter>
-        <Diagnostics />
-      </MemoryRouter>
-    );
+    await act(async () => {
+      await i18next.changeLanguage("de");
+    });
+    expect(screen.getByRole("heading", { level: 1, name: "Diagnose" })).toBeInTheDocument();
     expect(screen.getByText("1.6.0")).toBeInTheDocument();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(getDiagnostics).toHaveBeenCalledTimes(1);
@@ -159,21 +156,50 @@ describe("Diagnostics retry", () => {
 
   it("keeps a retriable error state when the error message is empty", async () => {
     vi.mocked(getDiagnostics).mockRejectedValueOnce(new Error(""));
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(i18next.t("errors.unknown"));
+    expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled();
+
+    await act(async () => {
+      await i18next.changeLanguage("de");
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(i18next.t("errors.unknown"));
+    expect(screen.getByRole("button", { name: "Erneut versuchen" })).toBeEnabled();
+    expect(getDiagnostics).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a pending retry after leaving and does not steal focus on return", async () => {
+    const retry = deferred<typeof diagnostics>();
+    vi.mocked(getDiagnostics)
+      .mockRejectedValueOnce(new Error("Network error"))
+      .mockImplementationOnce(() => retry.promise)
+      .mockResolvedValueOnce(diagnostics);
+
     const view = render(
       <MemoryRouter>
         <Diagnostics />
       </MemoryRouter>
     );
-    expect(await screen.findByRole("alert")).toHaveTextContent(/.+/);
-    expect(screen.getByRole("button", { name: "common.retry" })).toBeEnabled();
+    fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
+    expect(screen.getByRole("status")).toBeInTheDocument();
 
-    errorLanguage = "de";
-    view.rerender(
+    view.unmount();
+    await act(async () => {
+      retry.resolve(diagnostics);
+      await retry.promise;
+    });
+
+    render(
       <MemoryRouter>
         <Diagnostics />
       </MemoryRouter>
     );
-    expect(screen.getByRole("alert")).toHaveTextContent(/.+/);
-    expect(getDiagnostics).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText("1.6.0")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Diagnostics" })).not.toHaveFocus();
+    expect(getDiagnostics).toHaveBeenCalledTimes(3);
   });
 });
