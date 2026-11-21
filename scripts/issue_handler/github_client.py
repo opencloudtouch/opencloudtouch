@@ -309,6 +309,9 @@ class GitHubClient:
         return found
 
     async def list_open_discussions(self, limit: int = 30) -> list[dict[str, Any]]:
+        return [d for d in await self.list_all_discussions(limit) if not d["closed"]]
+
+    async def list_all_discussions(self, limit: int = 100) -> list[dict[str, Any]]:
         query = (
             "query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){discussions(first:$n,"
             "orderBy:{field:CREATED_AT,direction:DESC}){nodes{id number title url closed isAnswered createdAt author{login} "
@@ -319,7 +322,7 @@ class GitHubClient:
         data = await self._graphql(
             self._search_client, query, {"o": self._repo_owner, "r": self._repo_name, "n": limit}
         )
-        return [d for d in data["repository"]["discussions"]["nodes"] if not d["closed"]]
+        return data["repository"]["discussions"]["nodes"]
 
     async def mark_discussion_answer(self, comment_node_id: str) -> None:
         mutation = "mutation($id:ID!){markDiscussionCommentAsAnswer(input:{id:$id}){discussion{id}}}"
