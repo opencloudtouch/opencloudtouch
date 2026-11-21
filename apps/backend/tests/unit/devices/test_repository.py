@@ -2,6 +2,8 @@
 Tests for Device Repository
 """
 
+import asyncio
+import sqlite3
 import tempfile
 from pathlib import Path
 
@@ -727,7 +729,6 @@ class TestDatabaseConnectionErrors:
         await repo.initialize()
 
         try:
-            import asyncio
 
             async def update_device(name_suffix):
                 device = Device(
@@ -866,7 +867,13 @@ async def test_upsert_rechecks_uuid_collision_during_sql_write(repo):
 
         if uuid == "1234567" and not injected:
             injected = True
-            await repo.update_marge_account_uuid(speaker_a.device_id, "1234567")
+            # Simulate an independent concurrent database connection.
+            other = DeviceRepository(repo.db_path)
+            await other.initialize()
+            try:
+                await other.update_marge_account_uuid(speaker_a.device_id, "1234567")
+            finally:
+                await other.close()
             return None
 
         return await original_lookup(uuid)
@@ -922,7 +929,13 @@ async def test_new_device_insert_rechecks_uuid_collision(repo):
         nonlocal injected
         if uuid == "1234567" and not injected:
             injected = True
-            await repo.update_marge_account_uuid(speaker_a.device_id, "1234567")
+            # Simulate an independent concurrent database connection.
+            other = DeviceRepository(repo.db_path)
+            await other.initialize()
+            try:
+                await other.update_marge_account_uuid(speaker_a.device_id, "1234567")
+            finally:
+                await other.close()
             return None
         return await original_lookup(uuid)
 
@@ -970,7 +983,13 @@ async def test_existing_device_late_collision_keeps_stored_uuid(repo):
         nonlocal injected
         if uuid == "1234567" and not injected:
             injected = True
-            await repo.update_marge_account_uuid(speaker_a.device_id, "1234567")
+            # Simulate an independent concurrent database connection.
+            other = DeviceRepository(repo.db_path)
+            await other.initialize()
+            try:
+                await other.update_marge_account_uuid(speaker_a.device_id, "1234567")
+            finally:
+                await other.close()
             return None
         return await original_lookup(uuid)
 
@@ -1199,3 +1218,310 @@ async def test_uuid_source_existing_migration_unknown_and_invalid_source(repo):
         await repo.update_marge_account_uuid(
             device.device_id, "1234567", uuid_source="untrusted"
         )
+
+
+@pytest.mark.asyncio
+async def test_uuid_collision_does_not_lock_other_connections(repo):
+    """A rejected UUID assignment must not block another DB connection."""
+
+    first = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="A",
+        model="SoundTouch 10",
+        mac_address="AABBCCDDEEFF",
+        firmware_version="27.0.6",
+        marge_account_uuid="1234567",
+    )
+    second = Device(
+        device_id="112233445566",
+        ip="192.168.1.11",
+        name="B",
+        model="SoundTouch 10",
+        mac_address="112233445566",
+        firmware_version="27.0.6",
+        marge_account_uuid="7654321",
+    )
+    await repo.upsert(first)
+    await repo.upsert(second)
+
+    with pytest.raises(ValueError, match="UUID collision"):
+        await repo.update_marge_account_uuid(second.device_id, "1234567")
+
+    assert not repo._conn.in_transaction
+
+    other = DeviceRepository(repo.db_path)
+    await other.initialize()
+    try:
+        await asyncio.wait_for(
+            other.update_marge_account_uuid(second.device_id, "8888888"),
+            timeout=2,
+        )
+        stored = await other.get_by_device_id(second.device_id)
+        assert stored.marge_account_uuid == "8888888"
+    finally:
+        await other.close()
+
+
+@pytest.mark.asyncio
+async def test_concurrent_uuid_updates_preserve_successful_write(repo):
+    """A failing update must not roll back another concurrent update."""
+
+    for mac, uuid in [
+        ("AABBCCDDEEFF", "1234567"),
+        ("112233445566", "7654321"),
+    ]:
+        await repo.upsert(
+            Device(
+                device_id=mac,
+                ip="192.168.1.10",
+                name=mac,
+                model="SoundTouch 10",
+                mac_address=mac,
+                firmware_version="27.0.6",
+                marge_account_uuid=uuid,
+            )
+        )
+
+    await repo._conn.execute("""
+        CREATE TRIGGER fail_uuid_update
+        BEFORE UPDATE OF marge_account_uuid ON devices
+        WHEN OLD.device_id = 'AABBCCDDEEFF'
+          AND NEW.marge_account_uuid = '1111111'
+        BEGIN
+            SELECT RAISE(ABORT, 'simulated failure');
+        END
+    """)
+    await repo._conn.commit()
+
+    start = asyncio.Event()
+
+    async def update(mac, uuid):
+        await start.wait()
+        await repo.update_marge_account_uuid(mac, uuid)
+
+    bad = asyncio.create_task(update("AABBCCDDEEFF", "1111111"))
+    good = asyncio.create_task(update("112233445566", "2222222"))
+    start.set()
+
+    results = await asyncio.wait_for(
+        asyncio.gather(bad, good, return_exceptions=True),
+        timeout=5,
+    )
+
+    assert isinstance(results[0], sqlite3.IntegrityError)
+    assert results[1] is None
+
+    stored = await repo.get_by_device_id("112233445566")
+    assert stored.marge_account_uuid == "2222222"
+    assert not repo._conn.in_transaction
+
+
+@pytest.mark.asyncio
+async def test_uuid_update_is_immediately_committed(repo):
+    """UUID updates must be visible to independent database connections."""
+
+    device = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="Wohnzimmer",
+        model="SoundTouch 10",
+        mac_address="AABBCCDDEEFF",
+        firmware_version="27.0.6",
+    )
+    await repo.upsert(device)
+
+    other = DeviceRepository(repo.db_path)
+    await other.initialize()
+    try:
+        await repo.update_marge_account_uuid(
+            device.device_id, "1234567", uuid_source="derived"
+        )
+
+        stored = await asyncio.wait_for(
+            other.get_by_device_id(device.device_id),
+            timeout=2,
+        )
+        assert stored is not None
+        assert stored.marge_account_uuid == "1234567"
+        assert stored.uuid_source == "derived"
+        assert not repo._conn.in_transaction
+    finally:
+        await other.close()
+
+
+@pytest.mark.asyncio
+async def test_failed_upsert_rolls_back_and_allows_next_write(repo):
+    """A failed upsert must leave the connection usable for another write."""
+    await repo._conn.execute("""
+        CREATE TRIGGER fail_device_insert
+        BEFORE INSERT ON devices
+        WHEN NEW.device_id = 'AABBCCDDEEFF'
+        BEGIN
+            SELECT RAISE(ABORT, 'simulated insert failure');
+        END
+    """)
+    await repo._conn.commit()
+
+    failed = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="Failed",
+        model="SoundTouch 10",
+        mac_address="AABBCCDDEEFF",
+        firmware_version="27.0.6",
+    )
+
+    with pytest.raises(sqlite3.IntegrityError, match="simulated insert failure"):
+        await repo.upsert(failed)
+
+    assert not repo._conn.in_transaction
+
+    successful = Device(
+        device_id="112233445566",
+        ip="192.168.1.11",
+        name="Successful",
+        model="SoundTouch 10",
+        mac_address="112233445566",
+        firmware_version="27.0.6",
+    )
+
+    await repo.upsert(successful)
+
+    stored = await repo.get_by_device_id(successful.device_id)
+    assert stored is not None
+    assert stored.name == "Successful"
+    assert not repo._conn.in_transaction
+
+
+@pytest.mark.asyncio
+async def test_failed_setup_status_update_rolls_back_and_allows_next_write(repo):
+    """A failed status update must roll back without affecting the next write."""
+    device = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="Speaker",
+        model="SoundTouch 10",
+        mac_address="AABBCCDDEEFF",
+        firmware_version="27.0.6",
+    )
+    await repo.upsert(device)
+
+    await repo._conn.execute("""
+        CREATE TRIGGER fail_setup_status_update
+        BEFORE UPDATE OF setup_status ON devices
+        WHEN NEW.setup_status = 'failed'
+        BEGIN
+            SELECT RAISE(ABORT, 'simulated status failure');
+        END
+    """)
+    await repo._conn.commit()
+
+    with pytest.raises(sqlite3.IntegrityError, match="simulated status failure"):
+        await repo.update_setup_status(device.device_id, "failed")
+
+    assert not repo._conn.in_transaction
+    assert (await repo.get_by_device_id(device.device_id)).setup_status == "unknown"
+
+    await repo.update_setup_status(device.device_id, "configured")
+    assert not repo._conn.in_transaction
+
+    other = DeviceRepository(repo.db_path)
+    await other.initialize()
+    try:
+        stored = await other.get_by_device_id(device.device_id)
+        assert stored is not None
+        assert stored.setup_status == "configured"
+    finally:
+        await other.close()
+
+
+@pytest.mark.asyncio
+async def test_cancelled_write_rolls_back_and_allows_next_write(repo, monkeypatch):
+    """Cancellation after SQL execution rolls back and releases the write lock."""
+    device = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="Original",
+        model="SoundTouch 10",
+        mac_address="AABBCCDDEEFF",
+        firmware_version="27.0.6",
+    )
+    await repo.upsert(device)
+
+    reached_commit = asyncio.Event()
+    allow_commit = asyncio.Event()
+    original_commit = type(repo._conn).commit
+    pause_once = True
+
+    async def paused_commit(connection):
+        nonlocal pause_once
+        if connection is repo._conn and pause_once:
+            pause_once = False
+            reached_commit.set()
+            await allow_commit.wait()
+        await original_commit(connection)
+
+    # Patch the class because the connection's commit method cannot be replaced
+    # on the instance. Pause only this test connection via the identity check.
+    monkeypatch.setattr(type(repo._conn), "commit", paused_commit)
+
+    task = asyncio.create_task(repo.update_setup_status(device.device_id, "configured"))
+    try:
+        await asyncio.wait_for(reached_commit.wait(), timeout=3)
+        assert repo._conn.in_transaction
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.wait_for(task, timeout=3)
+    finally:
+        if not task.done():
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+
+    assert not repo._conn.in_transaction
+    stored = await repo.get_by_device_id(device.device_id)
+    assert stored is not None
+    assert stored.setup_status == "unknown"
+
+    # A later write, including the new 2.1.0 rename path, must still work.
+    assert await asyncio.wait_for(
+        repo.update_name(device.device_id, "Renamed"), timeout=3
+    )
+
+    other = DeviceRepository(repo.db_path)
+    await other.initialize()
+    try:
+        persisted = await other.get_by_device_id(device.device_id)
+        assert persisted is not None
+        assert persisted.setup_status == "unknown"
+        assert persisted.name == "Renamed"
+    finally:
+        await other.close()
+
+
+@pytest.mark.asyncio
+async def test_update_name_unknown_device_returns_false(repo):
+    """Renaming an unknown device returns False without leaving a transaction."""
+    updated = await repo.update_name("UNKNOWN_DEVICE", "New name")
+
+    assert updated is False
+    assert not repo._conn.in_transaction
+
+    # A separate connection should still be able to write afterwards.
+    other = DeviceRepository(repo.db_path)
+    await other.initialize()
+    try:
+        device = Device(
+            device_id="AABBCCDDEEFF",
+            ip="192.168.1.10",
+            name="Speaker",
+            model="SoundTouch 10",
+            mac_address="AABBCCDDEEFF",
+            firmware_version="27.0.6",
+        )
+        await asyncio.wait_for(other.upsert(device), timeout=3)
+        stored = await other.get_by_device_id(device.device_id)
+        assert stored is not None
+        assert stored.name == "Speaker"
+    finally:
+        await other.close()
