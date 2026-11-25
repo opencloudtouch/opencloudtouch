@@ -9,6 +9,7 @@ from xml.etree import ElementTree as ET
 
 from opencloudtouch.core.config import get_config
 from opencloudtouch.core.source_types import BASE_SOURCES
+from opencloudtouch.marge.source_repository import MediaServerSource
 
 logger = logging.getLogger(__name__)
 
@@ -210,17 +211,34 @@ def build_full_account_xml(
     return account_elem
 
 
-def _source_element(parent: ET.Element, src: Any) -> ET.Element:
+def _source_element(
+    parent: ET.Element, src: Any, catalogue_ids: bool = False
+) -> ET.Element:
     source = ET.SubElement(parent, "source", {"id": src.streaming_id, "type": "Audio"})
     ET.SubElement(source, "createdOn").text = src.created_on
     ET.SubElement(source, "credential", {"type": "token"})
     ET.SubElement(source, "name").text = src.source_type
-    ET.SubElement(source, "sourceproviderid").text = src.streaming_id
+    ET.SubElement(source, "sourceproviderid").text = (
+        src.provider_id if catalogue_ids else src.streaming_id
+    )
     ET.SubElement(source, "sourcename").text = src.source_type
     ET.SubElement(source, "sourceSettings")
     ET.SubElement(source, "updatedOn").text = src.created_on
     ET.SubElement(source, "username")
     return source
+
+
+def stored_music_source_element(parent: ET.Element, src: MediaServerSource) -> None:
+    """A media server registered through OCT, always provider 7 (decision 11)."""
+    el = ET.SubElement(parent, "source", {"id": str(src.source_id), "type": "Audio"})
+    ET.SubElement(el, "createdOn").text = src.created_at.isoformat()
+    ET.SubElement(el, "credential", {"type": "token"})
+    ET.SubElement(el, "name").text = src.account
+    ET.SubElement(el, "sourceproviderid").text = "7"
+    ET.SubElement(el, "sourcename").text = src.display_name
+    ET.SubElement(el, "sourceSettings")
+    ET.SubElement(el, "updatedOn").text = src.updated_at.isoformat()
+    ET.SubElement(el, "username").text = src.account
 
 
 _EPOCH = "2018-01-01T00:00:00.000+00:00"
@@ -300,12 +318,15 @@ def build_streaming_account_xml(
     device_id: str | None = None,
     presets: list[Any] | None = None,
     recents: list[Any] | None = None,
+    stored_sources: list[MediaServerSource] | None = None,
+    catalogue_ids: bool = False,
 ) -> ET.Element:
     """Build the ``<account>`` document the speaker's own Marge sync expects.
 
     The speaker rejects any other root element ("account expected") and then
     fails its sync, which also breaks group creation (error 5580).
-    Shape as the speaker sends and expects it.
+    Shape as the speaker sends and expects it. ``catalogue_ids`` serves the Bose
+    provider ids (migration version >= 1); stored media servers follow the defaults.
     """
     now = _EPOCH
     account = ET.Element("account", {"id": account_id})
@@ -324,5 +345,7 @@ def build_streaming_account_xml(
     ET.SubElement(account, "providerSettings")
     sources = ET.SubElement(account, "sources")
     for src in BASE_SOURCES:
-        _source_element(sources, src)
+        _source_element(sources, src, catalogue_ids)
+    for stored in stored_sources or []:
+        stored_music_source_element(sources, stored)
     return account

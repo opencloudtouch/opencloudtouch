@@ -17,7 +17,7 @@ from opencloudtouch.core.dependencies import (
 from opencloudtouch.core.logging import clip_for_log
 from opencloudtouch.core.source_types import BASE_SOURCES
 from opencloudtouch.marge.service import MargeService
-from opencloudtouch.marge.source_repository import MediaServerSource
+from opencloudtouch.migrations.service import SpeakerMigrationService
 from opencloudtouch.recents.models import RecentPlay
 from opencloudtouch.stereo_pairs.repository import DeviceAlreadyPairedError
 from opencloudtouch.stereo_pairs.service import StereoPairService, UnknownDeviceError
@@ -44,6 +44,7 @@ from opencloudtouch.marge.xml_builder import (
     build_recents_xml,
     build_sources_xml,
     source_name_for_id,
+    stored_music_source_element,
 )
 
 logger = logging.getLogger(__name__)
@@ -274,10 +275,17 @@ async def streaming_sourceproviders() -> Response:
     return _xml_response(root, _MEDIA_STREAMING_XML)
 
 
+def _migration_service(request: Request) -> SpeakerMigrationService | None:
+    return getattr(request.app.state, "speaker_migration_service", None)
+
+
 @router.get("/streaming/account/{account_id}/full")
 async def streaming_full_account(
     account_id: str,
     marge: Annotated[MargeService, Depends(get_marge_service)],
+    migrations: Annotated[
+        SpeakerMigrationService | None, Depends(_migration_service)
+    ] = None,
 ) -> Response:
     """Account sync of the speaker (every 60 s), answered in the ``<account>`` shape.
 
@@ -297,15 +305,23 @@ async def streaming_full_account(
         )
 
     presets, recents = await marge.get_full_account(device_id)
+    stored = await marge.list_sources(account_id)
+    # Version 0 keeps the old provider ids (decision 20, T14b).
+    version = (await migrations.status(device_id))[0] if migrations else 0
     logger.info(
-        "[MARGE/STREAMING] Returning %d presets, %d recents for device %s (account %s)",
+        "[MARGE/STREAMING] Returning %d presets, %d recents, %d stored sources "
+        "for device %s (account %s, migration v%d)",
         len(presets),
         len(recents),
+        len(stored),
         device_id,
         account_id,
+        version,
     )
     return _xml_response(
-        build_streaming_account_xml(account_id, device_id, presets, recents),
+        build_streaming_account_xml(
+            account_id, device_id, presets, recents, stored, version >= 1
+        ),
         _MEDIA_STREAMING_XML,
     )
 
@@ -736,23 +752,10 @@ async def remove_account_source(
     return Response(status_code=200, headers={"METHOD_NAME": "removeSource"})
 
 
-def _stored_source_element(parent: ET.Element, src: MediaServerSource) -> None:
-    # shortcut: private until task 8 moves it to xml_builder for /full
-    el = ET.SubElement(parent, "source", {"id": str(src.source_id), "type": "Audio"})
-    ET.SubElement(el, "createdOn").text = src.created_at.isoformat()
-    ET.SubElement(el, "credential", {"type": "token"})
-    ET.SubElement(el, "name").text = src.account
-    ET.SubElement(el, "sourceproviderid").text = "7"
-    ET.SubElement(el, "sourcename").text = src.display_name
-    ET.SubElement(el, "sourceSettings")
-    ET.SubElement(el, "updatedOn").text = src.updated_at.isoformat()
-    ET.SubElement(el, "username").text = src.account
-
-
 @router.get("/streaming/account/{account_id}/sources", include_in_schema=False)
 async def list_account_sources(account_id: str, marge: MargeServiceDep) -> Response:
     """The account's stored media-server sources."""
     root = ET.Element("sources")
     for source in await marge.list_sources(account_id):
-        _stored_source_element(root, source)
+        stored_music_source_element(root, source)
     return _xml_response(root, _MEDIA_STREAMING_XML)

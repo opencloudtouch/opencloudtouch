@@ -149,6 +149,8 @@ class MargeService:
             (s.source_type for s in BASE_SOURCES if s.streaming_id == source_id),
             source_id,
         )
+        if source == source_id and await self._is_stored_source(device_id, source_id):
+            source = "STORED_MUSIC"
         station_url, art = _station_from_location(source, location, name)
         existing = await self._preset_repo.get_preset(device_id, slot)
         return await self._preset_repo.set_preset(
@@ -162,6 +164,16 @@ class MargeService:
                 station_favicon=art or (existing.station_favicon if existing else None),
                 source=source,
             )
+        )
+
+    async def _is_stored_source(self, device_id: str, source_id: str) -> bool:
+        """True if ``source_id`` is a media server stored for the device's account."""
+        if not source_id.isdigit() or not self._device_repo or not self._source_repo:
+            return False
+        device = await self._device_repo.get_by_device_id(device_id)
+        account = device.marge_account_uuid if device else None
+        return bool(
+            account and await self._source_repo.get_by_id(account, int(source_id))
         )
 
     async def delete_preset(self, device_id: str, slot: int) -> int:
