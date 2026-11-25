@@ -9,11 +9,13 @@ from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends, Request
 
+from opencloudtouch.dlna.native_service import DlnaNativeService
 from opencloudtouch.dlna.service import DlnaService
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.marge.service import MargeService
+from opencloudtouch.migrations.service import SpeakerMigrationService
 from opencloudtouch.presets.repository import PresetRepository
 from opencloudtouch.presets.service import PresetService
 from opencloudtouch.recents.repository import RecentsRepository
@@ -84,6 +86,16 @@ def get_dlna_service(request: Request) -> DlnaService:
     return request.app.state.dlna_service
 
 
+def get_dlna_native_service(request: Request) -> DlnaNativeService:
+    """Get the per-speaker native media server service."""
+    return request.app.state.dlna_native_service
+
+
+def get_speaker_migration_service(request: Request) -> SpeakerMigrationService:
+    """Get the speaker migration service."""
+    return request.app.state.speaker_migration_service
+
+
 def get_zone_service(request: Request) -> ZoneService:
     """Get zone service instance from app.state (FastAPI dependency)."""
     return request.app.state.zone_service
@@ -137,6 +149,10 @@ ZoneServiceDep = Annotated[ZoneService, Depends(get_zone_service)]
 StereoPairServiceDep = Annotated[StereoPairService, Depends(get_stereo_pair_service)]
 StereoLifecycleDep = Annotated[StereoPairLifecycle, Depends(get_stereo_lifecycle)]
 DlnaServiceDep = Annotated[DlnaService, Depends(get_dlna_service)]
+DlnaNativeServiceDep = Annotated[DlnaNativeService, Depends(get_dlna_native_service)]
+SpeakerMigrationServiceDep = Annotated[
+    SpeakerMigrationService, Depends(get_speaker_migration_service)
+]
 SettingsServiceDep = Annotated[SettingsService, Depends(get_settings_service)]
 DeviceStateManagerDep = Annotated[DeviceStateManager, Depends(get_device_state_manager)]
 WizardServiceDep = Annotated["WizardService", Depends(get_wizard_service)]

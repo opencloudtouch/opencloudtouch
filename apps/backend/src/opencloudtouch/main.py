@@ -37,6 +37,8 @@ from opencloudtouch.core.static_files import (
 from opencloudtouch.db import DeviceRepository
 from opencloudtouch.dlna.service import DlnaService
 from opencloudtouch.devices.adapter import get_discovery_adapter
+from opencloudtouch.dlna.native_routes import router as dlna_native_router
+from opencloudtouch.dlna.native_service import DlnaNativeService
 from opencloudtouch.dlna.routes import router as dlna_router
 from opencloudtouch.devices.api.discovery_routes import discovery_router
 from opencloudtouch.devices.api.event_routes import event_router
@@ -247,6 +249,13 @@ async def _init_services(
     )
     await app.state.speaker_migration_service.run_all()
     logger.info("SpeakerMigrationService initialized")
+
+    app.state.dlna_native_service = DlnaNativeService(
+        repos["marge_source_repo"],
+        device_repo,
+        migration_service=app.state.speaker_migration_service,
+    )
+    logger.info("DlnaNativeService initialized")
 
     # Settings service
     app.state.settings_service = SettingsService(settings_repo)
@@ -460,6 +469,7 @@ app.include_router(
     discovery_router
 )  # Device discovery endpoints (/discover, /sync, /stream)
 app.include_router(dlna_router)  # DLNA media server discovery and browsing
+app.include_router(dlna_native_router)  # Media servers registered on a speaker
 app.include_router(devices_router)
 app.include_router(presets_router)
 app.include_router(radio_router)
