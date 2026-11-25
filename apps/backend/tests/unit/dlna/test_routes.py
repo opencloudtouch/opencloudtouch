@@ -3,12 +3,15 @@
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from opencloudtouch.core.dependencies import get_dlna_service
 from opencloudtouch.dlna import routes
-from opencloudtouch.dlna.models import DlnaItem, DlnaServer
+from opencloudtouch.core.exception_handlers import coded_api_error_handler
+from opencloudtouch.core.exceptions import CodedApiError
+from opencloudtouch.dlna.client import DlnaBrowseError, DlnaTimeoutError
+from opencloudtouch.dlna.models import BrowsePage, DlnaItem, DlnaServer
 
 
 @pytest.mark.asyncio
@@ -35,112 +38,6 @@ async def test_get_dlna_servers():
     ]
 
 
-@pytest.mark.asyncio
-async def test_browse_dlna_server():
-    item = DlnaItem(
-        id="track-1",
-        parent_id="0",
-        title="Test Track",
-        is_container=False,
-        resource_url="http://192.0.2.10/track.mp3",
-        media_class="object.item.audioItem.musicTrack",
-    )
-
-    service = AsyncMock()
-    service.browse.return_value = [item]
-
-    result = await routes.browse_dlna_server(
-        service=service,
-        server_id="server-1",
-        object_id="music",
-    )
-
-    assert result == {
-        "server_id": "server-1",
-        "object_id": "music",
-        "items": [
-            {
-                "id": "track-1",
-                "parent_id": "0",
-                "title": "Test Track",
-                "is_container": False,
-                "resource_url": "http://192.0.2.10/track.mp3",
-                "media_class": "object.item.audioItem.musicTrack",
-                "artist": None,
-                "album": None,
-                "genre": None,
-                "creator": None,
-                "album_art_url": None,
-                "duration": None,
-                "size": None,
-                "bitrate": None,
-                "sample_frequency": None,
-                "audio_channels": None,
-                "protocol_info": None,
-            }
-        ],
-    }
-
-    service.browse.assert_awaited_once_with("server-1", "music")
-
-
-@pytest.mark.asyncio
-async def test_browse_unknown_dlna_server():
-    service = AsyncMock()
-    service.browse.side_effect = LookupError("DLNA server not found: missing")
-
-    with pytest.raises(HTTPException) as exc_info:
-        await routes.browse_dlna_server(
-            service=service,
-            server_id="missing",
-            object_id="0",
-        )
-
-    assert exc_info.value.status_code == 404
-    assert exc_info.value.detail == "DLNA server not found: missing"
-
-
-@pytest.mark.asyncio
-async def test_browse_missing_dlna_object():
-    from opencloudtouch.dlna.client import DlnaBrowseError
-
-    service = AsyncMock()
-    service.browse.side_effect = DlnaBrowseError(
-        "No Such Object",
-        error_code="701",
-    )
-
-    with pytest.raises(HTTPException) as exc_info:
-        await routes.browse_dlna_server(
-            service=service,
-            server_id="server-1",
-            object_id="does-not-exist",
-        )
-
-    assert exc_info.value.status_code == 404
-    assert exc_info.value.detail == "DLNA object not found: does-not-exist"
-
-
-@pytest.mark.asyncio
-async def test_browse_dlna_server_error():
-    from opencloudtouch.dlna.client import DlnaBrowseError
-
-    service = AsyncMock()
-    service.browse.side_effect = DlnaBrowseError(
-        "DLNA server unavailable",
-    )
-
-    with pytest.raises(HTTPException) as exc_info:
-        await routes.browse_dlna_server(
-            service=service,
-            server_id="server-1",
-            object_id="0",
-        )
-
-    assert exc_info.value.status_code == 502
-    assert exc_info.value.detail == "DLNA server unavailable"
-
-
 def test_dlna_route_dependency_override():
     app = FastAPI()
     app.include_router(routes.router)
@@ -154,3 +51,80 @@ def test_dlna_route_dependency_override():
     assert response.status_code == 200
     assert response.json() == []
     service.get_servers.assert_awaited_once()
+
+
+def _client(service):
+    app = FastAPI()
+    app.include_router(routes.router)
+    app.add_exception_handler(CodedApiError, coded_api_error_handler)
+    app.dependency_overrides[get_dlna_service] = lambda: service
+    return TestClient(app)
+
+
+def _track(i=1):
+    return DlnaItem(id=f"t{i}", parent_id="0", title="T", is_container=False)
+
+
+def test_has_more_with_total():
+    service = AsyncMock()
+    service.browse_page.return_value = BrowsePage([_track()], 2, 5)
+    res = _client(service).get(
+        "/api/dlna/servers/s1/browse",
+        params={"object_id": "m", "starting_index": 2, "requested_count": 2},
+    )
+    body = res.json()
+    assert res.status_code == 200
+    assert (body["next_index"], body["has_more"], body["total_matches"]) == (4, True, 5)
+    assert body["number_returned"] == 2 and len(body["items"]) == 1
+    service.browse_page.assert_awaited_once_with("s1", "m", 2, 2)
+
+
+def test_has_more_without_total():
+    service = AsyncMock()
+    service.browse_page.return_value = BrowsePage([], 3, None)
+    c = _client(service)
+    assert c.get("/api/dlna/servers/s1/browse?requested_count=3").json()["has_more"]
+    assert not c.get("/api/dlna/servers/s1/browse?requested_count=4").json()["has_more"]
+
+
+def _browse_error(exc):
+    service = AsyncMock()
+    service.browse_page.side_effect = exc
+    return _client(service).get("/api/dlna/servers/s1/browse")
+
+
+def test_unknown_server_404_code():
+    res = _browse_error(LookupError("x"))
+    assert (res.status_code, res.json()["code"]) == (404, "dlna_server_not_found")
+
+
+def test_701_maps_404_object_code():
+    res = _browse_error(DlnaBrowseError("x", error_code="701"))
+    assert (res.status_code, res.json()["code"]) == (404, "dlna_object_not_found")
+
+
+def test_timeout_maps_504_code():
+    res = _browse_error(DlnaTimeoutError("x"))
+    assert (res.status_code, res.json()["code"]) == (504, "dlna_server_timeout")
+
+
+def test_upstream_502_code():
+    res = _browse_error(DlnaBrowseError("http://192.0.2.10/secret"))
+    assert (res.status_code, res.json()["code"]) == (502, "dlna_upstream_error")
+    assert "secret" not in res.text
+
+
+def test_request_limits_422():
+    c = _client(AsyncMock())
+    assert c.get("/api/dlna/servers/s1/browse?requested_count=201").status_code == 422
+    assert c.get("/api/dlna/servers/s1/browse?starting_index=-1").status_code == 422
+
+
+def test_first_child_audio_route():
+    service = AsyncMock()
+    service.first_child_is_audio.return_value = True
+    res = _client(service).get("/api/dlna/servers/s1/first-child-audio?object_id=f")
+    assert res.json() == {"first_child_is_audio": True}
+    service.first_child_is_audio.side_effect = LookupError("x")
+    res = _client(service).get("/api/dlna/servers/s1/first-child-audio?object_id=f")
+    assert res.status_code == 404
