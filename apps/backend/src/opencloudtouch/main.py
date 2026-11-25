@@ -176,7 +176,9 @@ async def _init_services(
     logger.info("RecentsService initialized")
 
     # Marge service (account sync orchestration)
-    app.state.marge_service = MargeService(preset_repo, recents_repo, device_repo)
+    app.state.marge_service = MargeService(
+        preset_repo, recents_repo, device_repo, source_repo=repos["marge_source_repo"]
+    )
     logger.info("MargeService initialized")
 
     # Preset service

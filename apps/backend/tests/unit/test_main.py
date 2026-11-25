@@ -128,6 +128,7 @@ def _build_init_services_repos():
             "wizard_audit_repo",
             "zone_repo",
             "stereo_pair_repo",
+            "marge_source_repo",
         )
     }
 

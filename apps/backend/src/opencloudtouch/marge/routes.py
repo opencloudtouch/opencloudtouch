@@ -17,6 +17,7 @@ from opencloudtouch.core.dependencies import (
 from opencloudtouch.core.logging import clip_for_log
 from opencloudtouch.core.source_types import BASE_SOURCES
 from opencloudtouch.marge.service import MargeService
+from opencloudtouch.marge.source_repository import MediaServerSource
 from opencloudtouch.recents.models import RecentPlay
 from opencloudtouch.stereo_pairs.repository import DeviceAlreadyPairedError
 from opencloudtouch.stereo_pairs.service import StereoPairService, UnknownDeviceError
@@ -679,4 +680,79 @@ async def get_provider_settings(account_id: str) -> Response:
         ET.SubElement(setting, "keyName").text = key
         ET.SubElement(setting, "value").text = value
         ET.SubElement(setting, "providerId").text = provider
+    return _xml_response(root, _MEDIA_STREAMING_XML)
+
+
+_MAX_SOURCE_BODY = 16 * 1024
+_MAX_SOURCE_NAME = 64
+
+
+@router.post("/streaming/account/{account_id}/source", include_in_schema=False)
+async def add_account_source(
+    account_id: str, request: Request, marge: MargeServiceDep
+) -> Response:
+    """Speaker registers a media server (setMusicServiceAccount, T11); answers 201."""
+    body = await request.body()
+    if len(body) > _MAX_SOURCE_BODY:
+        return Response(status_code=413)
+    try:
+        root = parse_xml_string(body)
+    except (ParseError, ValueError):
+        return Response(status_code=400)
+    username = (root.findtext("username") or "").strip()
+    name = (root.findtext("sourcename") or "").strip()
+    # The provider id is not checked: the speaker may send the text INVALID_SOURCE.
+    if (
+        root.tag != "source"
+        or not username.endswith("/0")
+        or len(username) <= 2
+        or not name
+        or len(name) > _MAX_SOURCE_NAME
+    ):
+        return Response(status_code=400)
+    source = await marge.add_source(account_id, username[:-2], name)
+    if source is None:
+        logger.warning("[MARGE/SOURCE] POST for unknown account")
+        return Response(status_code=404)
+    # Answer shape of decision 11.
+    el = ET.Element("source")
+    ET.SubElement(el, "sourceID").text = str(source.source_id)
+    ET.SubElement(el, "sourceProviderID").text = "7"
+    ET.SubElement(el, "createdOn").text = source.created_at.isoformat()
+    ET.SubElement(el, "updatedOn").text = source.updated_at.isoformat()
+    response = _xml_response(el, _MEDIA_STREAMING_XML, status_code=201)
+    response.headers["METHOD_NAME"] = "addSource"
+    return response
+
+
+@router.delete(
+    "/streaming/account/{account_id}/source/{source_id}", include_in_schema=False
+)
+async def remove_account_source(
+    account_id: str, source_id: int, marge: MargeServiceDep
+) -> Response:
+    """Speaker removes a media server; unknown ids still answer 200."""
+    await marge.remove_source(account_id, source_id)
+    return Response(status_code=200, headers={"METHOD_NAME": "removeSource"})
+
+
+def _stored_source_element(parent: ET.Element, src: MediaServerSource) -> None:
+    # shortcut: private until task 8 moves it to xml_builder for /full
+    el = ET.SubElement(parent, "source", {"id": str(src.source_id), "type": "Audio"})
+    ET.SubElement(el, "createdOn").text = src.created_at.isoformat()
+    ET.SubElement(el, "credential", {"type": "token"})
+    ET.SubElement(el, "name").text = src.account
+    ET.SubElement(el, "sourceproviderid").text = "7"
+    ET.SubElement(el, "sourcename").text = src.display_name
+    ET.SubElement(el, "sourceSettings")
+    ET.SubElement(el, "updatedOn").text = src.updated_at.isoformat()
+    ET.SubElement(el, "username").text = src.account
+
+
+@router.get("/streaming/account/{account_id}/sources", include_in_schema=False)
+async def list_account_sources(account_id: str, marge: MargeServiceDep) -> Response:
+    """The account's stored media-server sources."""
+    root = ET.Element("sources")
+    for source in await marge.list_sources(account_id):
+        _stored_source_element(root, source)
     return _xml_response(root, _MEDIA_STREAMING_XML)

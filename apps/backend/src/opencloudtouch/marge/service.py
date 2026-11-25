@@ -7,11 +7,18 @@ account sync protocol. Keeps route handlers thin.
 import base64
 import json
 import logging
-from typing import Optional
+from typing import Callable, Optional
 from urllib.parse import parse_qs, urlparse
 
 from opencloudtouch.core.source_types import BASE_SOURCES
+from opencloudtouch.devices.adapter import get_device_client
+from opencloudtouch.devices.client import DeviceClient
 from opencloudtouch.devices.repository import DeviceRepository
+from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
+from opencloudtouch.marge.source_repository import (
+    MargeSourceRepository,
+    MediaServerSource,
+)
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.repository import PresetRepository
 from opencloudtouch.recents.models import RecentPlay
@@ -48,10 +55,14 @@ class MargeService:
         preset_repo: PresetRepository,
         recents_repo: RecentsRepository,
         device_repo: Optional[DeviceRepository] = None,
+        source_repo: Optional[MargeSourceRepository] = None,
+        client_factory: Callable[[str], DeviceClient] = get_device_client,
     ) -> None:
         self._preset_repo = preset_repo
         self._recents_repo = recents_repo
         self._device_repo = device_repo
+        self._source_repo = source_repo
+        self._client_factory = client_factory
 
     async def resolve_device_id_for_account(self, account_id: str) -> Optional[str]:
         """Resolve account_id (margeAccountUUID) to device_id (MAC).
@@ -156,3 +167,55 @@ class MargeService:
     async def delete_preset(self, device_id: str, slot: int) -> int:
         """Remove a preset the speaker deleted; returns the number of rows removed."""
         return await self._preset_repo.clear_preset(device_id, slot)
+
+    async def add_source(
+        self, account_id: str, server_id: str, display_name: str
+    ) -> Optional[MediaServerSource]:
+        """Store a media server the speaker registered; None if no device has the account."""
+        if not self._device_repo or not self._source_repo:
+            return None
+        if not await self._device_repo.get_by_account_uuid(account_id):
+            return None
+        source = await self._source_repo.upsert(account_id, server_id, display_name)
+        logger.info("[MARGE/SOURCE] Stored source %d", source.source_id)
+        await self._push_sources_updated(account_id)
+        return source
+
+    async def remove_source(self, account_id: str, source_id: int) -> bool:
+        """Remove a stored source; False (idempotent) if it did not exist."""
+        if not self._source_repo or not await self._source_repo.delete(
+            account_id, source_id
+        ):
+            return False
+        logger.info("[MARGE/SOURCE] Removed source %d", source_id)
+        await self._push_sources_updated(account_id)
+        return True
+
+    async def list_sources(self, account_id: str) -> list[MediaServerSource]:
+        """List the account's stored media-server sources."""
+        if not self._source_repo:
+            return []
+        return await self._source_repo.list_for_account(account_id)
+
+    async def _push_sources_updated(self, account_id: str) -> None:
+        """Tell the account's speaker to re-read its sources; never raises."""
+        try:
+            # shortcut: one device per account today, loop over all once accounts are shared
+            device = (
+                await self._device_repo.get_by_account_uuid(account_id)
+                if self._device_repo
+                else None
+            )
+            if not device:
+                return
+            client = self._client_factory(
+                f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR - LAN HTTP only
+            )
+            try:
+                await client.notify_sources_updated(device.device_id)
+            finally:
+                await client.close()
+        except Exception as exc:  # noqa: BLE001 - a failed push must not fail the request
+            logger.warning(
+                "[MARGE/SOURCE] sourcesUpdated push failed: %s", type(exc).__name__
+            )
