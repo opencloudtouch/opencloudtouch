@@ -34,3 +34,22 @@ def test_registry_is_superset_of_committed_snapshot():
     }
     missing = snapshot - set(_all_codes())
     assert not missing, f"error codes removed or renamed: {sorted(missing)}"
+
+
+_DLNA_CODES = {
+    "dlna_server_not_found",
+    "dlna_server_timeout",
+    "dlna_object_not_found",
+    "dlna_upstream_error",
+    "dlna_native_slots_affected",
+    "dlna_native_unavailable",
+    "dlna_folder_no_audio_first",
+    "dlna_preset_not_streamable",
+    "dlna_migration_failed",
+}
+
+
+def test_dlna_codes_are_registered():
+    snapshot = set(_SNAPSHOT.read_text(encoding="utf-8").split())
+    assert _DLNA_CODES <= set(_all_codes())
+    assert _DLNA_CODES <= snapshot
