@@ -3,12 +3,23 @@
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
+import httpx
 import pytest
+import respx
 
-from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
+from opencloudtouch.core import error_codes
+from opencloudtouch.core.exceptions import (
+    CodedApiError,
+    DeviceConnectionError,
+    DeviceNotFoundError,
+)
 from opencloudtouch.devices.client import SpeakerSource, StoredMusicBrowse
 from opencloudtouch.devices.repository import Device
-from opencloudtouch.dlna.native_service import DlnaNativeService, NativeState
+from opencloudtouch.dlna.native_service import (
+    DlnaNativeService,
+    NativeState,
+    _fetch_presets,
+)
 from opencloudtouch.marge.source_repository import MediaServerSource
 
 ACCOUNT = "00000000-0000-4000-8000-000000000001"
@@ -160,3 +171,140 @@ async def test_unknown_device_raises():
     service, _ = _service(_client())
     with pytest.raises(DeviceNotFoundError):
         await service.read_states("missing")
+
+
+# --- enable / remove (task 10) ---
+
+PRESETS_XML = f"""<presets>
+  <preset id="1"><ContentItem source="TUNEIN" location="/v1/playback/station/s1"
+    sourceAccount=""><itemName>Radio</itemName></ContentItem></preset>
+  <preset id="3"><ContentItem source="STORED_MUSIC" location="7$1"
+    sourceAccount="{UDN.lower()}/0"><itemName>Album</itemName></ContentItem></preset>
+  <preset id="5"><ContentItem source="STORED_MUSIC" location="9"
+    sourceAccount="other-udn/0"><itemName>Other</itemName></ContentItem></preset>
+</presets>""".encode()
+
+
+def _native(client, rows=(), migration_error=None, presets=PRESETS_XML):
+    source_repo = AsyncMock()
+    source_repo.list_for_account.return_value = list(rows)
+    device_repo = AsyncMock()
+    device_repo.get_by_device_id.return_value = _device()
+    migrations = AsyncMock()
+    migrations.status.return_value = (0, migration_error)
+    presets_xml = AsyncMock(return_value=presets)
+    sleep = AsyncMock()
+    service = DlnaNativeService(
+        source_repo,
+        device_repo,
+        client_factory=lambda d: client,
+        sleep=sleep,
+        poll_interval=1.0,
+        ready_timeout=3.0,
+        migration_service=migrations,
+        presets_xml=presets_xml,
+    )
+    return service, source_repo, presets_xml, sleep
+
+
+async def test_enable_refused_when_migration_failed():
+    client = _client()
+    service, *_ = _native(client, migration_error="RuntimeError: boom")
+    with pytest.raises(CodedApiError) as exc:
+        await service.enable("device-a", UDN, "NAS")
+    assert exc.value.status_code == 409
+    assert exc.value.code == error_codes.DLNA_MIGRATION_FAILED
+    assert exc.value.extra == {"reason": "RuntimeError: boom"}
+    client.register_media_server.assert_not_called()
+
+
+async def test_enable_skips_write_when_ready():
+    client = _client(sources=[_source()])
+    service, *_ = _native(client, rows=[_row()])
+    assert await service.enable("device-a", UDN, "NAS") is NativeState.READY
+    client.register_media_server.assert_not_called()
+
+
+async def test_enable_uses_speaker_udn_spelling():
+    client = _client(listed=[UDN])
+    service, *_ = _native(client)
+    await service.enable("device-a", UDN.lower(), "NAS")
+    client.register_media_server.assert_awaited_once_with(UDN, "NAS")
+
+
+async def test_enable_waits_for_listing():
+    client = _client()
+    client.list_media_servers.side_effect = [[UDN], [], [], [UDN], [UDN]]
+    client.get_source_list.side_effect = [[], [_source()]]
+    service, _, _, sleep = _native(client)
+    assert await service.enable("device-a", UDN, "NAS") is NativeState.READY
+    assert sleep.await_count == 2
+    client.register_media_server.assert_awaited_once()
+
+
+async def test_enable_not_listed_returns_unavailable_no_reregister():
+    client = _client(listed=[])
+    service, _, _, sleep = _native(client, rows=[_row()])
+    assert await service.enable("device-a", UDN, "NAS") is NativeState.UNAVAILABLE
+    client.register_media_server.assert_awaited_once_with(UDN, "NAS")
+    assert sleep.await_count == 3
+
+
+async def test_remove_with_slots_409_lists_live_slots():
+    client = _client(sources=[_source()])
+    service, *_ = _native(client)
+    with pytest.raises(CodedApiError) as exc:
+        await service.remove("device-a", UDN)
+    assert exc.value.status_code == 409
+    assert exc.value.code == error_codes.DLNA_NATIVE_SLOTS_AFFECTED
+    assert exc.value.extra == {"slots": [3]}
+    client.remove_media_server.assert_not_called()
+
+
+async def test_remove_force_removes_and_keeps_presets():
+    client = _client(sources=[_source()])
+    service, source_repo, *_ = _native(client, rows=[_row(UDN.lower())])
+    await service.remove("device-a", UDN.lower(), force=True)
+    client.remove_media_server.assert_awaited_once_with(UDN)
+    client.store_preset.assert_not_called()
+    client.remove_preset.assert_not_called()
+    source_repo.delete.assert_awaited_once_with(ACCOUNT, 20000000)
+
+
+async def test_remove_without_slots():
+    client = _client(sources=[_source(account="other-udn/0")])
+    service, source_repo, *_ = _native(client, presets=b"<presets/>")
+    await service.remove("device-a", UDN)
+    client.remove_media_server.assert_awaited_once_with(UDN)
+    source_repo.delete.assert_not_called()  # callback already removed the row
+
+
+async def test_affected_slots_reads_live_presets():
+    service, _, presets_xml, _ = _native(_client())
+    assert await service.affected_slots("device-a", UDN) == [3]
+    assert await service.affected_slots("device-a", UDN) == [3]
+    presets_xml.assert_awaited_with("192.0.2.10")
+    assert presets_xml.await_count == 2
+
+
+async def test_enable_poll_tolerates_list_failure():
+    client = _client()
+    client.list_media_servers.side_effect = [
+        [UDN],
+        DeviceConnectionError("192.0.2.10", "x"),
+        [UDN],
+        [UDN],
+    ]
+    service, _, _, sleep = _native(client)
+    await service.enable("device-a", UDN, "NAS")
+    assert sleep.await_count == 1
+
+
+@respx.mock
+async def test_fetch_presets_reads_speaker_and_maps_errors():
+    route = respx.get("http://192.0.2.10:8090/presets")
+    route.return_value = httpx.Response(200, content=b"<presets/>")
+    assert await _fetch_presets("192.0.2.10") == b"<presets/>"
+    route.return_value = httpx.Response(500)
+    with pytest.raises(DeviceConnectionError):
+        await _fetch_presets("192.0.2.10")
