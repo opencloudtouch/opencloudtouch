@@ -806,3 +806,63 @@ class BoseDeviceClientAdapter(DeviceClient):
                 )
             )
         return StoredMusicBrowse(items)
+
+    async def _post_account(self, path: str, server_udn: str, name: str) -> None:
+        body = (
+            f'<credentials source="STORED_MUSIC" displayName={quoteattr(name[:64])}>'
+            f"<user>{xml_escape(server_udn)}/0</user><pass></pass></credentials>"
+        )
+        response = await self._send(path, body)
+        try:  # rejections come as HTTP 500 <errors><error> or as an <error> root
+            error = next(ElementTree.fromstring(response.text).iter("error"), None)
+        except Exception:
+            error = None
+        if error is not None:
+            raise DeviceConnectionError(
+                self.ip, f"{path} error {error.get('value', '')}"
+            )
+        self._parse(response, path)
+
+    async def register_media_server(self, server_udn: str, name: str) -> None:
+        """Register a server via setMusicServiceAccount (UDN case kept, decision 48)."""
+        await self._post_account("/setMusicServiceAccount", server_udn, name)
+
+    async def remove_media_server(self, server_udn: str) -> None:
+        """Remove a server via removeMusicServiceAccount."""
+        await self._post_account("/removeMusicServiceAccount", server_udn, "")
+
+    async def notify_sources_updated(self, device_id: str) -> None:
+        """Push sourcesUpdated (decision 16); failures are logged and swallowed."""
+        body = f"<updates deviceID={quoteattr(device_id)}><sourcesUpdated/></updates>"
+        try:
+            response = await self._send("/notification", body)
+        except DeviceConnectionError:
+            return  # _send already logged the failure at warning
+        if response.is_error:
+            logger.warning(
+                "sourcesUpdated rejected by %s: HTTP %s", self.ip, response.status_code
+            )
+
+    async def store_native_preset(
+        self, preset_number: int, item: StoredMusicItem, artwork_url: str = ""
+    ) -> None:
+        """Store the speaker's ContentItem verbatim, without a type attribute (T12)."""
+        if not 1 <= preset_number <= 6:
+            raise ValueError(f"Preset number must be 1-6, got {preset_number}")
+        art = (
+            f"<containerArt>{xml_escape(artwork_url)}</containerArt>"
+            if artwork_url
+            else ""
+        )
+        body = (
+            f'<preset id="{preset_number}" createdOn="0" updatedOn="0">'
+            f'<ContentItem source="STORED_MUSIC" location={quoteattr(item.location)} '
+            f'sourceAccount={quoteattr(item.source_account)} isPresetable="true">'
+            f"<itemName>{xml_escape(item.item_name or item.name)}</itemName>"
+            f"{art}</ContentItem></preset>"
+        )
+        response = await self._send("/storePreset", body)
+        if response.is_error:
+            raise DeviceConnectionError(
+                self.ip, f"/storePreset HTTP {response.status_code}"
+            )

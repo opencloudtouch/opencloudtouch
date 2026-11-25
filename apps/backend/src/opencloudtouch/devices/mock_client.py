@@ -15,6 +15,7 @@ from opencloudtouch.devices.client import (
     NowPlayingInfo,
     SpeakerSource,
     StoredMusicBrowse,
+    StoredMusicItem,
     VolumeInfo,
 )
 from opencloudtouch.devices.models import SELECTABLE_SOURCES
@@ -124,6 +125,7 @@ class MockDeviceClient(DeviceClient):
         self._muted = False
         self._zone: ZoneStatus | None = None
         self._media_servers = self._MEDIA_SERVERS.setdefault(device_id, set())
+        self.native_presets: list[tuple[int, StoredMusicItem, str]] = []
 
         if device_id not in self.MOCK_DEVICES:
             raise ValueError(
@@ -358,3 +360,23 @@ class MockDeviceClient(DeviceClient):
     ) -> StoredMusicBrowse:
         """Mock browse: empty until the mock media server tree exists."""
         return StoredMusicBrowse([])
+
+    async def register_media_server(self, server_udn: str, name: str) -> None:
+        """Mock setMusicServiceAccount: the server becomes listed and READY."""
+        self._media_servers.add(server_udn)
+
+    async def remove_media_server(self, server_udn: str) -> None:
+        """Mock removeMusicServiceAccount (idempotent)."""
+        self._media_servers.discard(server_udn)
+
+    async def notify_sources_updated(self, device_id: str) -> None:
+        """Mock sourcesUpdated push (no-op)."""
+        logger.info("[MOCK] sourcesUpdated for device %s", device_id)
+
+    async def store_native_preset(
+        self, preset_number: int, item: StoredMusicItem, artwork_url: str = ""
+    ) -> None:
+        """Record the native preset write."""
+        if not 1 <= preset_number <= 6:
+            raise ValueError(f"Preset number must be 1-6, got {preset_number}")
+        self.native_presets.append((preset_number, item, artwork_url))

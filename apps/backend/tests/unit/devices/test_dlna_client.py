@@ -1,4 +1,4 @@
-"""Speaker-side DLNA read calls: listMediaServers, STORED_MUSIC navigate, sources."""
+"""Speaker-side DLNA calls: media servers, navigate, sources, registration, presets."""
 
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from opencloudtouch.core.exceptions import DeviceConnectionError
-from opencloudtouch.devices.client import SpeakerSource
+from opencloudtouch.devices.client import SpeakerSource, StoredMusicItem
 from opencloudtouch.devices.client_adapter import BoseDeviceClientAdapter
 from opencloudtouch.devices.mock_client import MockDeviceClient
 
@@ -193,5 +193,159 @@ async def test_mock_lists_registered_servers():
         # State is shared per device because the app builds a client per request.
         assert await MockDeviceClient("AABBCC112233").list_media_servers() == [UDN]
         assert (await client.browse_stored_music(ACCOUNT)).items == []
+    finally:
+        client._media_servers.clear()
+
+
+async def test_register_body_exact_and_case_kept(adapter, http):
+    http.post.return_value = _response("<status>/setMusicServiceAccount</status>")
+
+    await adapter.register_media_server(UDN, 'Rock & "Roll" <1>' + "x" * 70)
+
+    assert (
+        http.post.call_args.args[0] == "http://192.0.2.50:8090/setMusicServiceAccount"
+    )
+    name = 'Rock &amp; "Roll" &lt;1&gt;' + "x" * 47  # cut to 64 chars before escaping
+    assert http.post.call_args.kwargs["content"] == (
+        f"<credentials source=\"STORED_MUSIC\" displayName='{name}'>"
+        f"<user>{UDN}/0</user><pass></pass></credentials>"
+    )
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        _response(fx("set_account_error_1022.xml"), 500),
+        _response('<error value="1022" name="MARGE_SET_CRED_FAILED"/>'),
+    ],
+)
+async def test_register_error_raises_with_code(adapter, http, response):
+    http.post.return_value = response
+
+    with pytest.raises(DeviceConnectionError, match="1022"):
+        await adapter.register_media_server(UDN, "Library")
+
+
+@pytest.mark.parametrize(
+    "outcome", [httpx.ConnectError("down"), _response("", 500), _response("<x")]
+)
+async def test_register_failure_raises(adapter, http, outcome):
+    if isinstance(outcome, Exception):
+        http.post.side_effect = outcome
+    else:
+        http.post.return_value = outcome
+
+    with pytest.raises(DeviceConnectionError):
+        await adapter.register_media_server(UDN, "Library")
+
+
+async def test_remove_body(adapter, http):
+    http.post.return_value = _response("<status>/removeMusicServiceAccount</status>")
+
+    await adapter.remove_media_server(UDN)
+
+    assert (
+        http.post.call_args.args[0]
+        == "http://192.0.2.50:8090/removeMusicServiceAccount"
+    )
+    assert http.post.call_args.kwargs["content"] == (
+        '<credentials source="STORED_MUSIC" displayName="">'
+        f"<user>{UDN}/0</user><pass></pass></credentials>"
+    )
+
+
+async def test_notify_body_has_device_id(adapter, http):
+    http.post.return_value = _response("<status>/notification</status>")
+
+    await adapter.notify_sources_updated("A0B1C2D3E4F5")
+
+    assert http.post.call_args.args[0] == "http://192.0.2.50:8090/notification"
+    assert http.post.call_args.kwargs["content"] == (
+        '<updates deviceID="A0B1C2D3E4F5"><sourcesUpdated/></updates>'
+    )
+
+
+@pytest.mark.parametrize(
+    "outcome", [httpx.ConnectError("down"), _response("<errors/>", 500)]
+)
+async def test_notify_failure_swallowed(adapter, http, outcome, caplog):
+    if isinstance(outcome, Exception):
+        http.post.side_effect = outcome
+    else:
+        http.post.return_value = outcome
+
+    await adapter.notify_sources_updated("A0B1C2D3E4F5")
+
+    assert any(r.levelname == "WARNING" for r in caplog.records)
+
+
+ITEM = StoredMusicItem(
+    name="Rock & Roll",
+    is_directory=True,
+    source="STORED_MUSIC",
+    location='117634 "a"',
+    source_account=ACCOUNT,
+    item_name='Rock & "Roll" <1>',
+)
+
+
+async def test_store_native_preset_no_type_escaped(adapter, http):
+    http.post.return_value = _response("<presets/>")
+
+    await adapter.store_native_preset(3, ITEM, "http://192.0.2.9/a?b=1&c=2")
+
+    assert http.post.call_args.args[0] == "http://192.0.2.50:8090/storePreset"
+    assert http.post.call_args.kwargs["content"] == (
+        '<preset id="3" createdOn="0" updatedOn="0">'
+        """<ContentItem source="STORED_MUSIC" location='117634 "a"' """
+        f'sourceAccount="{ACCOUNT}" isPresetable="true">'
+        '<itemName>Rock &amp; "Roll" &lt;1&gt;</itemName>'
+        "<containerArt>http://192.0.2.9/a?b=1&amp;c=2</containerArt>"
+        "</ContentItem></preset>"
+    )
+
+
+async def test_store_native_preset_artwork_optional_and_name_fallback(adapter, http):
+    http.post.return_value = _response("<presets/>")
+    item = StoredMusicItem("Album", True, "STORED_MUSIC", "1", ACCOUNT, "")
+
+    await adapter.store_native_preset(1, item)
+
+    body = http.post.call_args.kwargs["content"]
+    assert "<itemName>Album</itemName></ContentItem>" in body
+    assert "containerArt" not in body
+    assert "type" not in body
+
+
+@pytest.mark.parametrize("slot", [0, 7])
+async def test_store_native_preset_invalid_slot(adapter, http, slot):
+    with pytest.raises(ValueError):
+        await adapter.store_native_preset(slot, ITEM)
+    http.post.assert_not_called()
+
+
+async def test_store_native_preset_http_error_raises(adapter, http):
+    http.post.return_value = _response("<errors/>", 500)
+
+    with pytest.raises(DeviceConnectionError):
+        await adapter.store_native_preset(1, ITEM)
+
+
+async def test_mock_register_remove_roundtrip():
+    client = MockDeviceClient("AABBCC112233")
+    client._media_servers.clear()
+
+    try:
+        await client.register_media_server(UDN, "Library")
+        assert await MockDeviceClient("AABBCC112233").list_media_servers() == [UDN]
+        await client.notify_sources_updated("AABBCC112233")
+        await client.remove_media_server(UDN)
+        await client.remove_media_server(UDN)
+        assert await client.list_media_servers() == []
+
+        await client.store_native_preset(2, ITEM, "art")
+        assert client.native_presets == [(2, ITEM, "art")]
+        with pytest.raises(ValueError):
+            await client.store_native_preset(9, ITEM)
     finally:
         client._media_servers.clear()

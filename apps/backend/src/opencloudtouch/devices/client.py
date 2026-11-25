@@ -283,3 +283,21 @@ class DeviceClient(ABC):
     @abstractmethod
     async def get_source_list(self) -> list[SpeakerSource]:
         """Read the speaker's current sources via GET /sources."""
+
+    @abstractmethod
+    async def register_media_server(self, server_udn: str, name: str) -> None:
+        """Register a server (`<UDN>/0`) via the speaker's setMusicServiceAccount."""
+
+    @abstractmethod
+    async def remove_media_server(self, server_udn: str) -> None:
+        """Remove a server via the speaker's removeMusicServiceAccount."""
+
+    @abstractmethod
+    async def notify_sources_updated(self, device_id: str) -> None:
+        """Best-effort sourcesUpdated push to the speaker; never raises."""
+
+    @abstractmethod
+    async def store_native_preset(
+        self, preset_number: int, item: StoredMusicItem, artwork_url: str = ""
+    ) -> None:
+        """Store the speaker's own STORED_MUSIC ContentItem in slot 1-6."""
