@@ -229,6 +229,8 @@ def test_dlna_control_url_must_match_description_host():
 
 @pytest.mark.asyncio
 async def test_discover_parses_description_into_server(monkeypatch):
+    # The integration conftest sets OCT_MOCK_MODE globally when both dirs run together.
+    monkeypatch.delenv("OCT_MOCK_MODE", raising=False)
     discovery = DlnaDiscovery()
     locations = ["http://192.0.2.10:8200/root.xml"]
     search = MagicMock(return_value=locations)

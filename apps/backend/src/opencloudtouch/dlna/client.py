@@ -6,6 +6,7 @@ from xml.etree.ElementTree import Element
 import httpx
 from defusedxml.ElementTree import fromstring as parse_xml_string
 
+from opencloudtouch.dlna import mock
 from opencloudtouch.dlna.models import BrowsePage, DlnaItem, DlnaServer
 
 logger = logging.getLogger(__name__)
@@ -63,6 +64,14 @@ class DlnaClient:
         starting_index: int,
         requested_count: int,
     ) -> BrowsePage:
+        if server.control_url.startswith("mock://"):
+            try:
+                if browse_flag == "BrowseMetadata":
+                    return BrowsePage([mock.mock_object(object_id)], 1, 1)
+                return mock.mock_browse(object_id, starting_index, requested_count)
+            except KeyError:
+                raise DlnaBrowseError("No Such Object", error_code="701") from None
+
         body = self._build_browse_request(
             object_id, starting_index, requested_count, browse_flag
         )

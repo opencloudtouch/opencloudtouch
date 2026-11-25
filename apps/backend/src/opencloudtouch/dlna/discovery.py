@@ -3,6 +3,7 @@
 import asyncio
 import ipaddress
 import logging
+import os
 import socket
 import time
 from urllib.parse import urljoin, urlsplit
@@ -10,6 +11,7 @@ from urllib.parse import urljoin, urlsplit
 import httpx
 from defusedxml.ElementTree import fromstring as parse_xml_string
 
+from opencloudtouch.dlna.mock import MOCK_SERVER
 from opencloudtouch.dlna.models import DlnaServer
 
 logger = logging.getLogger(__name__)
@@ -26,6 +28,8 @@ class DlnaDiscovery:
 
     async def discover(self) -> list[DlnaServer]:
         """Discover UPnP MediaServers via M-SEARCH from an ephemeral source port."""
+        if os.getenv("OCT_MOCK_MODE", "false").lower() == "true":
+            return [MOCK_SERVER]
         try:
             locations = await asyncio.to_thread(self._msearch)
             return await self._fetch_server_descriptions(locations)

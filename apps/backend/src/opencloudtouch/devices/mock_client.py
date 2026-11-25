@@ -19,6 +19,8 @@ from opencloudtouch.devices.client import (
     VolumeInfo,
 )
 from opencloudtouch.devices.models import SELECTABLE_SOURCES
+from opencloudtouch.dlna.mock import MOCK_SERVER, mock_browse
+from opencloudtouch.dlna.models import is_audio_item
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
 
 logger = logging.getLogger(__name__)
@@ -358,8 +360,28 @@ class MockDeviceClient(DeviceClient):
     async def browse_stored_music(
         self, source_account: str, location: str | None = None
     ) -> StoredMusicBrowse:
-        """Mock browse: empty until the mock media server tree exists."""
-        return StoredMusicBrowse([])
+        """Mock /navigate: speaker-style items of the mock DLNA tree."""
+        account = f"{MOCK_SERVER.id}/0"
+        if source_account != account:
+            return StoredMusicBrowse([])
+        try:
+            page = mock_browse(location or "0", 0, 0)
+        except KeyError:
+            return StoredMusicBrowse([])
+        return StoredMusicBrowse(
+            [
+                StoredMusicItem(
+                    name=i.title,
+                    is_directory=i.is_container,
+                    source="STORED_MUSIC",
+                    location=i.id if i.is_container else f"{i.id} TRACK",
+                    source_account=account,
+                    item_name=i.title,
+                )
+                for i in page.items
+                if i.is_container or is_audio_item(i)
+            ]
+        )
 
     async def register_media_server(self, server_udn: str, name: str) -> None:
         """Mock setMusicServiceAccount: the server becomes listed and READY."""
