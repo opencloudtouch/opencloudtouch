@@ -352,3 +352,24 @@ class TestGetPresetDescriptor:
         )
 
         assert response.status_code == 404
+
+
+@pytest.mark.parametrize("url", ["/device/D/preset/1", "/descriptor/device/D/preset/1"])
+def test_preset_stream_409_for_dlna(client, mock_preset_service, url):
+    mock_preset_service.get_preset = AsyncMock(
+        return_value=Preset(
+            device_id="D",
+            preset_number=1,
+            station_uuid="u",
+            station_name="Album",
+            station_url="42",
+            source="STORED_MUSIC",
+            source_account="uuid:abc/0",
+        )
+    )
+
+    response = client.get(url, follow_redirects=False)
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "dlna_preset_not_streamable"
+    mock_preset_service._validate_stream_url.assert_not_called()

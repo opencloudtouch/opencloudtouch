@@ -8,6 +8,7 @@ and metadata for playback.
 import logging
 from typing import Optional
 
+from opencloudtouch.presets.api.dlna_guard import reject_dlna_preset
 from opencloudtouch.presets.service import PresetService
 
 logger = logging.getLogger(__name__)
@@ -60,6 +61,7 @@ class StationDescriptorService:
             )
             return None
 
+        reject_dlna_preset(preset)
         descriptor = {
             "stationName": preset.station_name,
             "streamUrl": preset.station_url,

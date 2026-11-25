@@ -74,3 +74,24 @@ class TestStationDescriptorEndpoint:
 
         assert response.status_code == 500
         assert "station descriptor" in response.json()["detail"].lower()
+
+
+def test_station_descriptor_409_for_dlna(client, mock_preset_service):
+    from opencloudtouch.presets.models import Preset
+
+    mock_preset_service.get_preset = AsyncMock(
+        return_value=Preset(
+            device_id="DEV123",
+            preset_number=1,
+            station_uuid="u",
+            station_name="Album",
+            station_url="42",
+            source="STORED_MUSIC",
+            source_account="uuid:abc/0",
+        )
+    )
+
+    response = client.get("/stations/preset/DEV123/1.json")
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "dlna_preset_not_streamable"

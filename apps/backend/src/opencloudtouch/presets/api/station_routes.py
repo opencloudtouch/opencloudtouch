@@ -12,6 +12,7 @@ from fastapi import Path as FastAPIPath
 from fastapi.responses import JSONResponse
 
 from opencloudtouch.core.dependencies import get_preset_service
+from opencloudtouch.core.exceptions import CodedApiError
 from opencloudtouch.presets.api.descriptor_service import StationDescriptorService
 from opencloudtouch.presets.service import PresetService
 
@@ -72,7 +73,7 @@ async def get_station_descriptor(
 
         return JSONResponse(content=descriptor)
 
-    except HTTPException:
+    except (HTTPException, CodedApiError):
         raise
     except Exception as e:
         logger.error(
