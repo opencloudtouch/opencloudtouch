@@ -9,17 +9,26 @@ import asyncio
 import ipaddress
 import logging
 import socket
-from typing import List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
 
-from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
+from opencloudtouch.core import error_codes
+from opencloudtouch.core.exceptions import (
+    DeviceConnectionError,
+    DeviceNotFoundError,
+    raise_coded,
+)
+from opencloudtouch.devices.client import StoredMusicItem
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.parser import DevicePresetParser
 from opencloudtouch.presets.repository import PresetRepository
+
+if TYPE_CHECKING:
+    from opencloudtouch.dlna.service import DlnaService
 
 logger = logging.getLogger(__name__)
 
@@ -32,16 +41,21 @@ class PresetService:
     """
 
     def __init__(
-        self, repository: PresetRepository, device_repository: DeviceRepository
+        self,
+        repository: PresetRepository,
+        device_repository: DeviceRepository,
+        dlna_service: "DlnaService | None" = None,
     ):
         """Initialize the preset service.
 
         Args:
             repository: PresetRepository instance for preset data persistence
             device_repository: DeviceRepository instance for device lookups
+            dlna_service: DlnaService for native DLNA presets (folder check, cover)
         """
         self.repository = repository
         self.device_repository = device_repository
+        self.dlna_service = dlna_service
         self._parser = DevicePresetParser()
 
     @staticmethod
@@ -217,6 +231,117 @@ class PresetService:
         )
 
         return saved_preset
+
+    async def set_dlna_preset(
+        self,
+        device_id: str,
+        preset_number: int,
+        server_id: str,
+        parent_id: str,
+        object_id: str,
+        confirm: bool = False,
+    ) -> Preset:
+        """Save a DLNA folder/track as a native preset (speaker first, then DB).
+
+        The ContentItem is stored exactly as the speaker's /navigate returned it.
+
+        Raises:
+            DeviceNotFoundError: If the device is unknown
+            DeviceConnectionError: If the speaker is unreachable (nothing is saved)
+            CodedApiError: 404 object not found, 409 folder without audio first
+                (unless confirm), 502 speaker/server error
+        """
+        from opencloudtouch.devices.adapter import get_device_client
+
+        if self.dlna_service is None:
+            raise RuntimeError("PresetService has no DlnaService")
+        device = await self.device_repository.get_by_device_id(device_id)
+        if not device:
+            raise DeviceNotFoundError(device_id)
+
+        base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR
+        client = get_device_client(base_url)
+        try:
+            item = await self._find_speaker_item(
+                client, server_id, parent_id, object_id
+            )
+            if (
+                item.is_directory
+                and not confirm
+                and not await self._dlna(
+                    self.dlna_service.first_child_is_audio(server_id, object_id)
+                )
+            ):
+                raise_coded(
+                    409,
+                    error_codes.DLNA_FOLDER_NO_AUDIO_FIRST,
+                    "Folder does not start with an audio item",
+                    extra={"title": item.item_name},
+                )
+            artwork = await self._dlna_artwork(self.dlna_service, server_id, object_id)
+            await client.store_native_preset(preset_number, item, artwork or "")
+        finally:
+            await client.close()
+
+        return await self.repository.set_preset(
+            Preset(
+                device_id=device_id,
+                preset_number=preset_number,
+                station_uuid=f"STORED_MUSIC_{preset_number}",
+                station_name=item.item_name,
+                station_url=item.location,
+                station_favicon=artwork,
+                source="STORED_MUSIC",
+                source_account=item.source_account,
+            )
+        )
+
+    @staticmethod
+    async def _dlna(call: Any) -> Any:
+        """Await a DlnaService call; map its failures to coded API errors."""
+        from opencloudtouch.dlna.client import DlnaBrowseError
+        from opencloudtouch.dlna.errors import classify
+
+        try:
+            return await call
+        except (DlnaBrowseError, LookupError) as exc:
+            status, code, detail = classify(exc)
+            raise_coded(status, code, detail)
+
+    @staticmethod
+    async def _find_speaker_item(
+        client: Any, server_id: str, parent_id: str, object_id: str
+    ) -> StoredMusicItem:
+        """Find the speaker's own ContentItem for the object (1602 retried in client)."""
+        browse = await client.browse_stored_music(
+            f"{server_id}/0", None if parent_id == "0" else parent_id
+        )
+        if browse.error_code is not None:
+            raise_coded(
+                502, error_codes.DLNA_UPSTREAM_ERROR, "Speaker could not browse server"
+            )
+        for item in browse.items:
+            if item.location.removesuffix(" TRACK") == object_id:
+                return item
+        raise_coded(404, error_codes.DLNA_OBJECT_NOT_FOUND, "Object not found")
+
+    @staticmethod
+    async def _dlna_artwork(
+        dlna: "DlnaService", server_id: str, object_id: str
+    ) -> Optional[str]:
+        """Cover URL of the object if it is on the media server's own host."""
+        from opencloudtouch.dlna.client import DlnaBrowseError
+
+        try:
+            server = await dlna._resolve(server_id)
+            art = (await dlna.get_object_path(server_id, object_id)).item.album_art_url
+        except (DlnaBrowseError, LookupError):
+            return None
+        parts = urlsplit(art or "")
+        host = urlsplit(server.control_url).hostname
+        if parts.scheme in ("http", "https") and parts.hostname == host:
+            return art
+        return None
 
     async def get_preset(self, device_id: str, preset_number: int) -> Optional[Preset]:
         """Get a specific preset for a device.

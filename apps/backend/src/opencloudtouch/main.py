@@ -186,8 +186,13 @@ async def _init_services(
     )
     logger.info("MargeService initialized")
 
+    app.state.dlna_service = DlnaService()
+    logger.info("DlnaService initialized")
+
     # Preset service
-    app.state.preset_service = PresetService(preset_repo, device_repo)
+    app.state.preset_service = PresetService(
+        preset_repo, device_repo, dlna_service=app.state.dlna_service
+    )
     logger.info("PresetService initialized")
 
     # Device service (with sync + discovery)
@@ -205,9 +210,6 @@ async def _init_services(
     )
     app.state.device_service = device_service
     logger.info("DeviceService initialized")
-
-    app.state.dlna_service = DlnaService()
-    logger.info("DlnaService initialized")
 
     # Zone service (with injected client factory to avoid circular deps)
     from opencloudtouch.devices.adapter import get_device_client

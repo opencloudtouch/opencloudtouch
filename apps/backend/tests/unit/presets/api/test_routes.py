@@ -262,3 +262,35 @@ class TestSyncPresetsFromDevice:
         )
         r = client.post("/api/presets/DEV1/sync")
         assert r.status_code == 502
+
+
+class TestSetDlnaPreset:
+    """Tests for POST /api/presets/dlna."""
+
+    _PAYLOAD = dict(
+        device_id="DEV1", preset_number=1, server_id="uuid:abc", object_id="42"
+    )
+
+    def test_post_dlna_returns_201_with_dlna_true(self, client, mock_service):
+        mock_service.set_dlna_preset = AsyncMock(
+            return_value=_make_preset(
+                source="STORED_MUSIC", source_account="uuid:abc/0"
+            )
+        )
+        r = client.post("/api/presets/dlna", json=self._PAYLOAD)
+        assert r.status_code == 201
+        assert r.json()["dlna"] is True
+        assert r.json()["source_account"] == "uuid:abc/0"
+        mock_service.set_dlna_preset.assert_awaited_once_with(
+            "DEV1", 1, "uuid:abc", "0", "42", False
+        )
+
+    def test_slot_out_of_range_422(self, client):
+        r = client.post("/api/presets/dlna", json={**self._PAYLOAD, "preset_number": 7})
+        assert r.status_code == 422
+
+    def test_get_presets_reports_dlna_false_for_radio(self, client, mock_service):
+        mock_service.get_all_presets = AsyncMock(return_value=[_make_preset()])
+        r = client.get("/api/presets/DEV1")
+        assert r.json()[0]["dlna"] is False
+        assert r.json()[0]["source_account"] is None

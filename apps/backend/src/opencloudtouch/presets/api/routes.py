@@ -29,6 +29,17 @@ class PresetSetRequest(BaseModel):
     station_favicon: Optional[str] = Field(None, description="Station favicon URL")
 
 
+class PresetDlnaRequest(BaseModel):
+    """Request model for saving a DLNA folder/track as a native preset."""
+
+    device_id: str
+    preset_number: int = Field(..., ge=1, le=6, description="Preset number (1-6)")
+    server_id: str
+    parent_id: str = "0"
+    object_id: str
+    confirm: bool = Field(False, description="Save a folder without audio first")
+
+
 class PresetResponse(BaseModel):
     """Response model for a preset."""
 
@@ -41,6 +52,8 @@ class PresetResponse(BaseModel):
     station_homepage: Optional[str]
     station_favicon: Optional[str]
     source: Optional[str]
+    source_account: Optional[str] = None
+    dlna: bool = False
     created_at: str
     updated_at: str
 
@@ -73,7 +86,7 @@ async def set_preset(
             station_favicon=request.station_favicon,
         )
 
-        return PresetResponse(**saved_preset.to_dict())
+        return PresetResponse(**saved_preset.to_dict(), dlna=saved_preset.is_dlna)
 
     except DeviceConnectionError:
         raise
@@ -84,6 +97,23 @@ async def set_preset(
     except Exception:
         logger.exception("Error setting preset")
         raise HTTPException(status_code=500, detail="Failed to set preset")
+
+
+@router.post("/dlna", response_model=PresetResponse, status_code=201)
+async def set_dlna_preset(
+    request: PresetDlnaRequest,
+    preset_service: PresetService = Depends(get_preset_service),
+):
+    """Save a DLNA folder/track as a native preset (409 unless confirmed)."""
+    preset = await preset_service.set_dlna_preset(
+        request.device_id,
+        request.preset_number,
+        request.server_id,
+        request.parent_id,
+        request.object_id,
+        request.confirm,
+    )
+    return PresetResponse(**preset.to_dict(), dlna=preset.is_dlna)
 
 
 @router.get("/{device_id}", response_model=List[PresetResponse])
@@ -102,7 +132,7 @@ async def get_device_presets(
 
         logger.debug("Retrieved %d presets for device %s", len(presets), device_id)
 
-        return [PresetResponse(**p.to_dict()) for p in presets]
+        return [PresetResponse(**p.to_dict(), dlna=p.is_dlna) for p in presets]
 
     except Exception:
         logger.exception("Error getting presets for device %s", device_id)
@@ -142,7 +172,7 @@ async def get_preset(
             preset.station_name,
         )
 
-        return PresetResponse(**preset.to_dict())
+        return PresetResponse(**preset.to_dict(), dlna=preset.is_dlna)
 
     except HTTPException:
         raise

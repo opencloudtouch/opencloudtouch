@@ -565,3 +565,26 @@ async def test_lifespan_error_handling():
         with pytest.raises(Exception, match="DB connection failed"):
             async with lifespan(app):
                 pass
+
+
+@pytest.mark.asyncio
+async def test_init_services_wires_dlna_service_into_preset_service(
+    mock_init_services_deps,
+):
+    """PresetService gets the app's DlnaService for native DLNA presets."""
+    from fastapi import FastAPI
+
+    from opencloudtouch.main import _init_services
+
+    app = FastAPI()
+    cfg = MagicMock()
+    cfg.mock_mode = True
+    cfg.device_polling_enabled = False
+    cfg.discovery_timeout = 3
+    cfg.manual_device_ips_list = []
+    cfg.discovery_enabled = True
+
+    await _init_services(app, cfg, _build_init_services_repos(), MagicMock())
+
+    kwargs = mock_init_services_deps["preset"].call_args.kwargs
+    assert kwargs["dlna_service"] is app.state.dlna_service
