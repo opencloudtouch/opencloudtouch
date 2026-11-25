@@ -5,12 +5,17 @@ Provides shared fixtures with optimized scopes for faster parallel execution.
 """
 
 import logging
+import os
 import sys
 import warnings
 
 import pytest
 
 from opencloudtouch.core.config import AppConfig
+
+# Local OCT_* variables (e.g. a dev shell) must not leak into the suite, as in CI.
+for _key in [k for k in os.environ if k.startswith("OCT_")]:
+    del os.environ[_key]
 
 # Fix Windows asyncio cleanup issues
 # The asyncio module logs debug messages during event loop cleanup that
