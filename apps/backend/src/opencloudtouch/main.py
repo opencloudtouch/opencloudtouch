@@ -54,6 +54,8 @@ from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.marge.routes import router as marge_router
 from opencloudtouch.marge.service import MargeService
 from opencloudtouch.marge.source_repository import MargeSourceRepository
+from opencloudtouch.migrations.repository import SpeakerMigrationRepository
+from opencloudtouch.migrations.service import SpeakerMigrationService
 from opencloudtouch.presets.api.playlist_routes import router as playlist_router
 from opencloudtouch.presets.api.routes import router as presets_router
 from opencloudtouch.presets.api.station_routes import router as stations_router
@@ -149,6 +151,7 @@ async def _init_repositories(app: FastAPI, cfg, logger: logging.Logger) -> dict:
         ("zone_repo", ZoneRepository, cfg.effective_db_path),
         ("stereo_pair_repo", StereoPairRepository, cfg.effective_db_path),
         ("marge_source_repo", MargeSourceRepository, cfg.effective_db_path),
+        ("speaker_migration_repo", SpeakerMigrationRepository, cfg.effective_db_path),
     ]
 
     repos = {}
@@ -237,6 +240,13 @@ async def _init_services(
             result.failed,
             result.discovered,
         )
+
+    # Speaker migrations run before features use the speakers (decision 19)
+    app.state.speaker_migration_service = SpeakerMigrationService(
+        repos["speaker_migration_repo"], device_repo
+    )
+    await app.state.speaker_migration_service.run_all()
+    logger.info("SpeakerMigrationService initialized")
 
     # Settings service
     app.state.settings_service = SettingsService(settings_repo)
@@ -349,6 +359,8 @@ async def _init_websocket_pipeline(
 
     ws_manager = WebSocketManager(
         on_event=app.state.device_state_manager.on_event,
+        # A speaker that (re)connects runs its pending migrations (decision 19)
+        on_state_change=app.state.speaker_migration_service.on_connection_state,
     )
     app.state.ws_manager = ws_manager
 

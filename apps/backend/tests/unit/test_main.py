@@ -129,6 +129,7 @@ def _build_init_services_repos():
             "zone_repo",
             "stereo_pair_repo",
             "marge_source_repo",
+            "speaker_migration_repo",
         )
     }
 
