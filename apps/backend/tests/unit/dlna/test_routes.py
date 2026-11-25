@@ -128,3 +128,61 @@ def test_first_child_audio_route():
     service.first_child_is_audio.side_effect = LookupError("x")
     res = _client(service).get("/api/dlna/servers/s1/first-child-audio?object_id=f")
     assert res.status_code == 404
+
+
+def test_object_path_route():
+    from opencloudtouch.dlna.models import ObjectPath
+
+    service = AsyncMock()
+    folder = DlnaItem(id="f", parent_id="p", title="Folder", is_container=True)
+    parent = DlnaItem(id="p", parent_id="0", title="Parent", is_container=True)
+    service.get_object_path.return_value = ObjectPath("NAS", folder, [parent])
+    res = _client(service).get("/api/dlna/servers/s1/objects/path?object_id=f")
+    assert res.status_code == 200
+    assert res.json() == {
+        "server_id": "s1",
+        "server_name": "NAS",
+        "object_id": "f",
+        "title": "Folder",
+        "is_container": True,
+        "path": [{"object_id": "p", "title": "Parent"}],
+    }
+    service.get_object_path.assert_awaited_once_with("s1", "f")
+
+
+@pytest.mark.parametrize(
+    ("exc", "status", "code"),
+    [
+        (DlnaBrowseError("x", error_code="701"), 404, "dlna_object_not_found"),
+        (DlnaBrowseError("cycle"), 502, "dlna_upstream_error"),
+        (LookupError("x"), 404, "dlna_server_not_found"),
+    ],
+)
+def test_object_path_route_errors(exc, status, code):
+    service = AsyncMock()
+    service.get_object_path.side_effect = exc
+    res = _client(service).get("/api/dlna/servers/s1/objects/path?object_id=f")
+    assert (res.status_code, res.json()["code"]) == (status, code)
+
+
+def test_object_path_route_requires_object_id():
+    c = _client(AsyncMock())
+    assert c.get("/api/dlna/servers/s1/objects/path").status_code == 422
+    assert c.get("/api/dlna/servers/s1/objects/path?object_id=").status_code == 422
+
+
+def test_album_root_route():
+    service = AsyncMock()
+    service.find_album_root.return_value = "albums"
+    res = _client(service).get("/api/dlna/servers/s1/album-root")
+    assert res.json() == {"object_id": "albums"}
+    service.find_album_root.return_value = None
+    res = _client(service).get("/api/dlna/servers/s1/album-root")
+    assert res.json() == {"object_id": None}
+
+
+def test_album_root_route_errors():
+    service = AsyncMock()
+    service.find_album_root.side_effect = DlnaTimeoutError("x")
+    res = _client(service).get("/api/dlna/servers/s1/album-root")
+    assert (res.status_code, res.json()["code"]) == (504, "dlna_server_timeout")

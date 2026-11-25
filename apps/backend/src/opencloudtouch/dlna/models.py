@@ -48,6 +48,15 @@ class BrowsePage:
     total_matches: int | None
 
 
+@dataclass(frozen=True)
+class ObjectPath:
+    """An object with its ancestor folders, top first (root and object excluded)."""
+
+    server_name: str
+    item: DlnaItem
+    ancestors: list[DlnaItem]
+
+
 def is_audio_item(item: DlnaItem) -> bool:
     """True for UPnP audio items (by class or protocolInfo)."""
     return not item.is_container and (

@@ -6,9 +6,20 @@ from collections.abc import Callable
 from dataclasses import replace
 from urllib.parse import urlsplit
 
-from opencloudtouch.dlna.client import DlnaClient
+from opencloudtouch.dlna.client import DlnaBrowseError, DlnaClient
 from opencloudtouch.dlna.discovery import DlnaDiscovery
-from opencloudtouch.dlna.models import BrowsePage, DlnaServer, is_audio_item
+from opencloudtouch.dlna.models import (
+    BrowsePage,
+    DlnaItem,
+    DlnaServer,
+    ObjectPath,
+    is_audio_item,
+)
+
+MAX_PATH_DEPTH = 16
+ALBUM_SEARCH_MAX_CALLS = 20
+ALBUM_SEARCH_MAX_DEPTH = 3
+ALBUM_CLASS = "object.container.album.musicAlbum"
 
 
 class DlnaService:
@@ -120,3 +131,38 @@ class DlnaService:
         server = await self._resolve(server_id)
         page = await self.client.browse(server, container_id, 0, 1)
         return bool(page.items) and is_audio_item(page.items[0])
+
+    async def get_object_path(self, server_id: str, object_id: str) -> ObjectPath:
+        """Object plus its ancestors, read live."""
+        server = await self._resolve(server_id)
+        if object_id == "0":
+            return ObjectPath(server.name, DlnaItem("0", "-1", server.name, True), [])
+        item = await self.client.get_object(server, object_id)
+        seen = {object_id}
+        ancestors: list[DlnaItem] = []
+        parent_id = item.parent_id
+        while parent_id not in ("0", "-1"):
+            if not parent_id or parent_id in seen or len(ancestors) >= MAX_PATH_DEPTH:
+                raise DlnaBrowseError("DLNA object path is not resolvable")
+            seen.add(parent_id)
+            parent = await self.client.get_object(server, parent_id)
+            ancestors.append(parent)
+            parent_id = parent.parent_id
+        ancestors.reverse()
+        return ObjectPath(server.name, item, ancestors)
+
+    async def find_album_root(self, server_id: str) -> str | None:
+        """First container (breadth-first) directly holding music albums, or None."""
+        server = await self._resolve(server_id)
+        queue = [("0", 0)]
+        calls = 0
+        while queue and calls < ALBUM_SEARCH_MAX_CALLS:
+            object_id, depth = queue.pop(0)
+            calls += 1
+            page = await self.client.browse(server, object_id, 0, 200)
+            containers = [i for i in page.items if i.is_container]
+            if any(i.media_class == ALBUM_CLASS for i in containers):
+                return object_id
+            if depth < ALBUM_SEARCH_MAX_DEPTH:
+                queue.extend((i.id, depth + 1) for i in containers)
+        return None

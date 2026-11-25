@@ -44,7 +44,28 @@ class DlnaClient:
         requested_count: int = 50,
     ) -> BrowsePage:
         """Browse one page of direct children of a ContentDirectory object."""
-        body = self._build_browse_request(object_id, starting_index, requested_count)
+        return await self._browse(
+            server, object_id, "BrowseDirectChildren", starting_index, requested_count
+        )
+
+    async def get_object(self, server: DlnaServer, object_id: str) -> DlnaItem:
+        """Read the metadata of one object (BrowseMetadata)."""
+        page = await self._browse(server, object_id, "BrowseMetadata", 0, 1)
+        if not page.items:
+            raise DlnaBrowseError("No Such Object", error_code="701")
+        return page.items[0]
+
+    async def _browse(
+        self,
+        server: DlnaServer,
+        object_id: str,
+        browse_flag: str,
+        starting_index: int,
+        requested_count: int,
+    ) -> BrowsePage:
+        body = self._build_browse_request(
+            object_id, starting_index, requested_count, browse_flag
+        )
 
         headers = {
             "Content-Type": 'text/xml; charset="utf-8"',
@@ -81,9 +102,13 @@ class DlnaClient:
 
     @classmethod
     def _build_browse_request(
-        cls, object_id: str, starting_index: int = 0, requested_count: int = 0
+        cls,
+        object_id: str,
+        starting_index: int = 0,
+        requested_count: int = 0,
+        browse_flag: str = "BrowseDirectChildren",
     ) -> str:
-        """Build a SOAP BrowseDirectChildren request."""
+        """Build a SOAP Browse request."""
         return f"""<?xml version="1.0" encoding="utf-8"?>
 <s:Envelope
     xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
@@ -91,7 +116,7 @@ class DlnaClient:
   <s:Body>
     <u:Browse xmlns:u="{cls.CONTENT_DIRECTORY_SERVICE}">
       <ObjectID>{cls._escape_xml(object_id)}</ObjectID>
-      <BrowseFlag>BrowseDirectChildren</BrowseFlag>
+      <BrowseFlag>{browse_flag}</BrowseFlag>
       <Filter>*</Filter>
       <StartingIndex>{starting_index}</StartingIndex>
       <RequestedCount>{requested_count}</RequestedCount>

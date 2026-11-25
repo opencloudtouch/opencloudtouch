@@ -24,6 +24,24 @@ class DlnaBrowseResponse(BaseModel):
     has_more: bool
 
 
+class DlnaPathEntry(BaseModel):
+    object_id: str
+    title: str
+
+
+class DlnaObjectPath(BaseModel):
+    server_id: str
+    server_name: str
+    object_id: str
+    title: str
+    is_container: bool
+    path: list[DlnaPathEntry]
+
+
+class DlnaAlbumRoot(BaseModel):
+    object_id: str | None
+
+
 class FirstChildAudio(BaseModel):
     first_child_is_audio: bool
 
@@ -82,5 +100,35 @@ async def first_child_audio(
                 server_id, object_id
             )
         )
+    except (LookupError, DlnaBrowseError) as exc:
+        raise_coded(*classify(exc))
+
+
+@router.get("/servers/{server_id}/objects/path")
+async def get_dlna_object_path(
+    server_id: str,
+    service: DlnaServiceDep,
+    object_id: str = Query(min_length=1, max_length=512),
+) -> DlnaObjectPath:
+    """Ancestor folders of a saved object, read live (edit prefill)."""
+    try:
+        found = await service.get_object_path(server_id, object_id)
+    except (LookupError, DlnaBrowseError) as exc:
+        raise_coded(*classify(exc))
+    return DlnaObjectPath(
+        server_id=server_id,
+        server_name=found.server_name,
+        object_id=found.item.id,
+        title=found.item.title,
+        is_container=found.item.is_container,
+        path=[DlnaPathEntry(object_id=a.id, title=a.title) for a in found.ancestors],
+    )
+
+
+@router.get("/servers/{server_id}/album-root")
+async def get_dlna_album_root(server_id: str, service: DlnaServiceDep) -> DlnaAlbumRoot:
+    """Locate the folder holding a server's albums (album view link)."""
+    try:
+        return DlnaAlbumRoot(object_id=await service.find_album_root(server_id))
     except (LookupError, DlnaBrowseError) as exc:
         raise_coded(*classify(exc))
