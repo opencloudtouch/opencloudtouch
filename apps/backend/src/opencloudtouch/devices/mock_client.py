@@ -5,7 +5,7 @@ Provides deterministic responses that simulate device HTTP API.
 """
 
 import logging
-from typing import Optional
+from typing import ClassVar, Optional
 
 from opencloudtouch.devices.client import (
     BassCapabilities,
@@ -13,6 +13,8 @@ from opencloudtouch.devices.client import (
     DeviceClient,
     DeviceInfo,
     NowPlayingInfo,
+    SpeakerSource,
+    StoredMusicBrowse,
     VolumeInfo,
 )
 from opencloudtouch.devices.models import SELECTABLE_SOURCES
@@ -101,6 +103,9 @@ class MockDeviceClient(DeviceClient):
         },
     }
 
+    # device_id -> registered server ids; class-level because the app builds a client per request
+    _MEDIA_SERVERS: ClassVar[dict[str, set[str]]] = {}
+
     def __init__(self, device_id: str, ip_address: Optional[str] = None):
         """
         Initialize mock client for a specific device.
@@ -118,6 +123,7 @@ class MockDeviceClient(DeviceClient):
         self._bass = 0
         self._muted = False
         self._zone: ZoneStatus | None = None
+        self._media_servers = self._MEDIA_SERVERS.setdefault(device_id, set())
 
         if device_id not in self.MOCK_DEVICES:
             raise ValueError(
@@ -333,3 +339,22 @@ class MockDeviceClient(DeviceClient):
     async def reboot(self) -> None:
         """Mock reboot (no-op)."""
         logger.info("[MOCK] reboot() for device %s", self.device_id)
+
+    # ---- DLNA / STORED_MUSIC Methods ----
+
+    async def list_media_servers(self) -> list[str]:
+        """Mock listMediaServers: the servers registered on this mock device."""
+        return sorted(self._media_servers)
+
+    async def get_source_list(self) -> list[SpeakerSource]:
+        """Report registered servers as READY, alongside the AUX source."""
+        return [SpeakerSource("AUX", "", "READY", "AUX")] + [
+            SpeakerSource("STORED_MUSIC", f"{udn}/0", "READY", udn)
+            for udn in sorted(self._media_servers)
+        ]
+
+    async def browse_stored_music(
+        self, source_account: str, location: str | None = None
+    ) -> StoredMusicBrowse:
+        """Mock browse: empty until the mock media server tree exists."""
+        return StoredMusicBrowse([])

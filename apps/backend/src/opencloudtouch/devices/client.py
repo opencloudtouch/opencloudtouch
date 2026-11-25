@@ -68,6 +68,36 @@ class BassCapabilities:
     default: int
 
 
+@dataclass
+class SpeakerSource:
+    """One source and its current status as reported by the speaker's /sources."""
+
+    source: str
+    account: str
+    status: str
+    display_name: str
+
+
+@dataclass
+class StoredMusicItem:
+    """One /navigate entry; ContentItem attributes exactly as the speaker returned them."""
+
+    name: str
+    is_directory: bool
+    source: str
+    location: str
+    source_account: str
+    item_name: str
+
+
+@dataclass
+class StoredMusicBrowse:
+    """/navigate result; error_code is the speaker's error value when it answered one."""
+
+    items: list[StoredMusicItem]
+    error_code: int | None = None
+
+
 class DeviceClient(ABC):
     """Abstract client for device HTTP API."""
 
@@ -237,3 +267,19 @@ class DeviceClient(ABC):
     async def reboot(self) -> None:
         """Reboot the device via TCP telnet interface (port 17000)."""
         pass
+
+    # ---- DLNA / STORED_MUSIC Methods ----
+
+    @abstractmethod
+    async def list_media_servers(self) -> list[str]:
+        """Media server ids from GET /listMediaServers, exactly as the speaker lists them."""
+
+    @abstractmethod
+    async def browse_stored_music(
+        self, source_account: str, location: str | None = None
+    ) -> StoredMusicBrowse:
+        """Browse a server (`<UDN>/0`) through the speaker's /navigate; root if no location."""
+
+    @abstractmethod
+    async def get_source_list(self) -> list[SpeakerSource]:
+        """Read the speaker's current sources via GET /sources."""

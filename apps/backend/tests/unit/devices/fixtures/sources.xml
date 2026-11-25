@@ -1,0 +1,5 @@
+<sources>
+  <sourceItem source="STORED_MUSIC" sourceAccount="4d696e69-0000-0000-0000-000000000001/0" status="READY">Music &amp; Albums</sourceItem>
+  <sourceItem source="STORED_MUSIC" sourceAccount="4d696e69-0000-0000-0000-000000000002/0" status="UNAVAILABLE">Offline Library</sourceItem>
+  <sourceItem source="AUX" status="READY">AUX</sourceItem>
+</sources>

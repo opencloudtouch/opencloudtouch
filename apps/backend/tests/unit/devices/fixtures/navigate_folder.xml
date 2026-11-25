@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<navigateResponse source="STORED_MUSIC" sourceAccount="4D696E69-0000-0000-0000-00000000000A/0">
+    <totalItems>2</totalItems>
+    <items>
+        <item Playable="1">
+            <name>Album One</name>
+            <type>dir</type>
+            <ContentItem source="STORED_MUSIC" location="117634" sourceAccount="4D696E69-0000-0000-0000-00000000000A/0" isPresetable="true">
+                <itemName>Album One</itemName>
+            </ContentItem>
+        </item>
+        <item Playable="1">
+            <name>Track One</name>
+            <type>track</type>
+            <ContentItem source="STORED_MUSIC" location="117739 TRACK" sourceAccount="4D696E69-0000-0000-0000-00000000000A/0" isPresetable="true">
+                <itemName>Track One</itemName>
+            </ContentItem>
+        </item>
+    </items>
+</navigateResponse>

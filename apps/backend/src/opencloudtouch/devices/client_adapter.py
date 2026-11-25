@@ -11,6 +11,7 @@ import json
 import logging
 from urllib.parse import urlparse
 from xml.sax.saxutils import escape as xml_escape
+from xml.sax.saxutils import quoteattr
 
 import httpx
 from bosesoundtouchapi import SoundTouchClient as BoseClient
@@ -24,12 +25,18 @@ from opencloudtouch.devices.client import (
     DeviceClient,
     DeviceInfo,
     NowPlayingInfo,
+    SpeakerSource,
+    StoredMusicBrowse,
+    StoredMusicItem,
     VolumeInfo,
 )
 from opencloudtouch.devices.models import SELECTABLE_SOURCES
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
 
 logger = logging.getLogger(__name__)
+
+# Transient speaker-side service lookup failure; retried once (hardware T13).
+BROWSE_RETRY_ERROR = 1602
 
 
 class BoseDeviceClientAdapter(DeviceClient):
@@ -700,3 +707,102 @@ class BoseDeviceClientAdapter(DeviceClient):
         except Exception as e:
             logger.exception("Failed to reboot device at %s", self.ip)
             raise DeviceConnectionError(self.ip, str(e)) from e
+
+    # ---- DLNA / STORED_MUSIC Methods ----
+
+    async def _send(self, path: str, body: str | None = None) -> httpx.Response:
+        """GET (no body) or POST XML; transport errors raise DeviceConnectionError."""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                if body is None:
+                    return await client.get(f"{self.base_url}{path}")
+                return await client.post(
+                    f"{self.base_url}{path}",
+                    content=body,
+                    headers={"Content-Type": "application/xml"},
+                )
+        except Exception as e:
+            logger.warning("Request %s failed on %s: %s", path, self.ip, e)
+            raise DeviceConnectionError(self.ip, str(e)) from e
+
+    def _parse(self, response: httpx.Response, path: str):
+        """Parse an XML answer; HTTP errors and unparsable bodies raise DeviceConnectionError."""
+        if response.is_error:
+            raise DeviceConnectionError(self.ip, f"{path} HTTP {response.status_code}")
+        try:
+            return ElementTree.fromstring(response.text)
+        except Exception as e:
+            raise DeviceConnectionError(self.ip, f"Invalid {path} response") from e
+
+    async def list_media_servers(self) -> list[str]:
+        """Media server ids exactly as the speaker lists them (case kept, decision 48)."""
+        root = self._parse(await self._send("/listMediaServers"), "/listMediaServers")
+        return [s.get("id", "") for s in root.iter("media_server") if s.get("id")]
+
+    async def get_source_list(self) -> list[SpeakerSource]:
+        """Read source accounts and availability directly from the speaker."""
+        root = self._parse(await self._send("/sources"), "/sources")
+        return [
+            SpeakerSource(
+                source=entry.get("source", ""),
+                account=entry.get("sourceAccount", ""),
+                status=entry.get("status", ""),
+                display_name=entry.text or "",
+            )
+            for entry in root.iter("sourceItem")
+        ]
+
+    async def browse_stored_music(
+        self, source_account: str, location: str | None = None
+    ) -> StoredMusicBrowse:
+        """Browse a server via /navigate; speaker errors are returned as error_code."""
+        account = quoteattr(source_account)
+        folder = (
+            f'<item Playable="1"><name>{xml_escape(location)}</name><type>dir</type>'
+            f'<ContentItem source="STORED_MUSIC" location={quoteattr(location)} '
+            f'sourceAccount={account} isPresetable="true"/></item>'
+            if location
+            else ""
+        )
+        body = (
+            f'<navigate source="STORED_MUSIC" sourceAccount={account}>'
+            f"<startItem>1</startItem><numItems>1000</numItems>{folder}</navigate>"
+        )
+        result = await self._navigate(body)
+        if result.error_code == BROWSE_RETRY_ERROR:
+            result = await self._navigate(body)
+        return result
+
+    async def _navigate(self, body: str) -> StoredMusicBrowse:
+        response = await self._send("/navigate", body)
+        # Speaker errors arrive as HTTP 500 with <errors><error value="N"> (T15).
+        error_value = None
+        try:
+            root = ElementTree.fromstring(response.text)
+            error = root.find("error") if root.tag == "errors" else None
+            if error is not None:
+                error_value = int(error.get("value", ""))
+        except Exception as e:
+            raise DeviceConnectionError(self.ip, "Invalid /navigate response") from e
+        if error_value is not None:
+            return StoredMusicBrowse([], error_value)
+        if response.is_error:
+            raise DeviceConnectionError(
+                self.ip, f"/navigate HTTP {response.status_code}"
+            )
+        items = []
+        for item in root.iter("item"):
+            content = item.find("ContentItem")
+            if content is None:
+                continue
+            items.append(
+                StoredMusicItem(
+                    name=item.findtext("name", ""),
+                    is_directory=item.findtext("type") == "dir",
+                    source=content.get("source", ""),
+                    location=content.get("location", ""),
+                    source_account=content.get("sourceAccount", ""),
+                    item_name=content.findtext("itemName", ""),
+                )
+            )
+        return StoredMusicBrowse(items)
