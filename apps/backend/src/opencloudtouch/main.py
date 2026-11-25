@@ -53,6 +53,7 @@ from opencloudtouch.devices.startup_check import StartupCheck
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.marge.routes import router as marge_router
 from opencloudtouch.marge.service import MargeService
+from opencloudtouch.marge.source_repository import MargeSourceRepository
 from opencloudtouch.presets.api.playlist_routes import router as playlist_router
 from opencloudtouch.presets.api.routes import router as presets_router
 from opencloudtouch.presets.api.station_routes import router as stations_router
@@ -147,6 +148,7 @@ async def _init_repositories(app: FastAPI, cfg, logger: logging.Logger) -> dict:
         ("wizard_audit_repo", WizardAuditRepository, cfg.effective_db_path),
         ("zone_repo", ZoneRepository, cfg.effective_db_path),
         ("stereo_pair_repo", StereoPairRepository, cfg.effective_db_path),
+        ("marge_source_repo", MargeSourceRepository, cfg.effective_db_path),
     ]
 
     repos = {}
