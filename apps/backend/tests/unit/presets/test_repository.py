@@ -285,9 +285,9 @@ class TestMigration:
 
         result = await preset_repo.get_preset("device_migration", 1)
         assert result is not None
-        assert (
-            result.source == "INTERNET_RADIO"
-        ), "BUG-34: source field should be stored and retrieved correctly."
+        assert result.source == "INTERNET_RADIO", (
+            "BUG-34: source field should be stored and retrieved correctly."
+        )
 
     @pytest.mark.asyncio
     async def test_adds_source_column_to_existing_db(self):
@@ -338,9 +338,9 @@ class TestMigration:
                 cursor = await db.execute("PRAGMA table_info(presets)")
                 rows = await cursor.fetchall()
                 col_names = [row[1] for row in rows]
-                assert (
-                    "source" in col_names
-                ), f"BUG-34: After migration, 'source' column must exist. Columns: {col_names}"
+                assert "source" in col_names, (
+                    f"BUG-34: After migration, 'source' column must exist. Columns: {col_names}"
+                )
 
                 # Write to source column via raw SQL (avoids the new schema's id column issue)
                 await db.execute(
@@ -355,9 +355,9 @@ class TestMigration:
                 )
                 row = await cursor.fetchone()
                 assert row is not None, "Old row must still be present after migration"
-                assert (
-                    row[0] == "TUNEIN"
-                ), f"BUG-34: source column must be writable after migration. Got: {row[0]}"
+                assert row[0] == "TUNEIN", (
+                    f"BUG-34: source column must be writable after migration. Got: {row[0]}"
+                )
 
             await repo.close()
 
@@ -487,9 +487,9 @@ class TestSchemaVersions:
                     "SELECT version FROM schema_versions WHERE version = 1"
                 )
                 row = await cursor.fetchone()
-                assert (
-                    row is not None
-                ), "Migration v1 must be recorded even when column already existed"
+                assert row is not None, (
+                    "Migration v1 must be recorded even when column already existed"
+                )
 
             await repo.close()
         """Legacy DB (without schema_versions or source column) must be migrated
@@ -523,18 +523,94 @@ class TestSchemaVersions:
                 cursor = await db.execute("PRAGMA table_info(presets)")
                 rows = await cursor.fetchall()
                 col_names = [r[1] for r in rows]
-                assert (
-                    "source" in col_names
-                ), "REFACT-007: source column must exist after migrating legacy DB"
+                assert "source" in col_names, (
+                    "REFACT-007: source column must exist after migrating legacy DB"
+                )
 
                 # Migration must be recorded
                 cursor = await db.execute(
                     "SELECT version, applied_at FROM schema_versions WHERE version = 1"
                 )
                 row = await cursor.fetchone()
-                assert (
-                    row is not None
-                ), "REFACT-007: Migration v1 must be recorded in schema_versions"
+                assert row is not None, (
+                    "REFACT-007: Migration v1 must be recorded in schema_versions"
+                )
                 assert row[1] is not None, "applied_at timestamp must be set"
 
             await repo.close()
+
+
+@pytest.mark.asyncio
+async def test_migrations_add_columns_to_existing_db():
+    """A v1 presets table with a row is upgraded without data loss."""
+    import aiosqlite
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "v1.db"
+        async with aiosqlite.connect(str(db_path)) as db:
+            await db.execute("""
+                CREATE TABLE presets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    device_id TEXT NOT NULL,
+                    preset_number INTEGER NOT NULL,
+                    station_uuid TEXT NOT NULL,
+                    station_name TEXT NOT NULL,
+                    station_url TEXT NOT NULL,
+                    station_homepage TEXT,
+                    station_favicon TEXT,
+                    source TEXT,
+                    created_at TIMESTAMP NOT NULL,
+                    updated_at TIMESTAMP NOT NULL,
+                    UNIQUE(device_id, preset_number)
+                )
+                """)
+            await db.execute(
+                "INSERT INTO presets (device_id, preset_number, station_uuid,"
+                " station_name, station_url, source, created_at, updated_at)"
+                " VALUES ('dev1', 2, 'uuid', 'Radio', 'http://r/s', 'TUNEIN',"
+                " '2026-01-01T00:00:00+00:00', '2026-01-01T00:00:00+00:00')"
+            )
+            await db.commit()
+
+        repo = PresetRepository(str(db_path))
+        await repo.initialize()
+        try:
+            preset = await repo.get_preset("dev1", 2)
+            assert preset is not None
+            assert preset.station_name == "Radio"
+            assert preset.source == "TUNEIN"
+            assert preset.source_account is None
+        finally:
+            await repo.close()
+
+
+@pytest.mark.asyncio
+async def test_roundtrip_source_account(preset_repo):
+    account = "4d696e69-0000-0000-0000-000000000001/0"
+    await preset_repo.set_preset(
+        Preset(
+            device_id="dev1",
+            preset_number=3,
+            station_uuid="1$4$2",
+            station_name="Album",
+            station_url="1$4$2",
+            source="STORED_MUSIC",
+            source_account=account,
+        )
+    )
+    assert (await preset_repo.get_preset("dev1", 3)).source_account == account
+    [stored] = await preset_repo.get_all_presets("dev1")
+    assert stored.is_dlna
+
+    # A later full upsert without an account clears it.
+    await preset_repo.set_preset(
+        Preset(
+            device_id="dev1",
+            preset_number=3,
+            station_uuid="uuid",
+            station_name="Radio",
+            station_url="http://r/s",
+            source="TUNEIN",
+        )
+    )
+    assert (await preset_repo.get_preset("dev1", 3)).source_account is None

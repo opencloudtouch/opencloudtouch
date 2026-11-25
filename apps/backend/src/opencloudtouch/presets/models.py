@@ -22,6 +22,7 @@ class Preset:
         station_homepage: Optional[str] = None,
         station_favicon: Optional[str] = None,
         source: Optional[str] = None,
+        source_account: Optional[str] = None,
         created_at: Optional[datetime] = None,
         updated_at: Optional[datetime] = None,
         id: Optional[int] = None,
@@ -38,6 +39,7 @@ class Preset:
             station_homepage: Optional station homepage URL
             station_favicon: Optional station favicon URL
             source: Preset source type (TUNEIN, INTERNET_RADIO, LOCAL_INTERNET_RADIO, etc.)
+            source_account: Speaker-reported source account (DLNA: "<UDN>/0")
             created_at: Creation timestamp
             updated_at: Last update timestamp
             id: Database primary key (optional)
@@ -57,6 +59,7 @@ class Preset:
         self.station_homepage = station_homepage
         self.station_favicon = station_favicon
         self.source = source
+        self.source_account = source_account
         self.created_at = created_at or datetime.now(UTC)
         self.updated_at = updated_at or datetime.now(UTC)
 
@@ -72,9 +75,20 @@ class Preset:
             "station_homepage": self.station_homepage,
             "station_favicon": self.station_favicon,
             "source": self.source,
+            "source_account": self.source_account,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
+
+    @property
+    def is_dlna(self) -> bool:
+        """True for a native STORED_MUSIC preset with a speaker source account."""
+        return self.source == "STORED_MUSIC" and bool(self.source_account)
+
+    @property
+    def is_dlna_directory(self) -> bool:
+        """True for a DLNA folder; tracks carry a ' TRACK' suffix in the location."""
+        return self.is_dlna and not self.station_url.endswith(" TRACK")
 
     def __repr__(self) -> str:
         """String representation for debugging."""
