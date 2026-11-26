@@ -80,6 +80,12 @@ vi.mock("../../src/hooks/useNowPlaying", () => ({
   }),
 }));
 
+let mockSourceError: { code: number } | null = null;
+const mockDismissSourceError = vi.fn();
+vi.mock("../../src/hooks/useSourceError", () => ({
+  useSourceError: () => ({ error: mockSourceError, dismiss: mockDismissSourceError }),
+}));
+
 import { clearDeviceDataCache } from "../../src/utils/deviceDataCache";
 import * as presetsApi from "../../src/api/presets";
 import * as devicesApi from "../../src/api/devices";
@@ -274,6 +280,7 @@ describe("Devices Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockNowPlayingState = null;
+    mockSourceError = null;
     mockZones = [];
     window.localStorage.clear();
 
@@ -1626,6 +1633,28 @@ describe("Devices Page", () => {
       expect(screen.getByRole("button", { name: "Next track" })).not.toHaveAttribute(
         "aria-disabled"
       );
+    });
+  });
+
+  describe("source error alert", () => {
+    const renderDevices = async () => {
+      await act(async () => {
+        render(<Devices devices={mockDevices} />);
+      });
+    };
+
+    it("shows no alert without an event", async () => {
+      await renderDevices();
+      expect(screen.queryByTestId("source-error")).not.toBeInTheDocument();
+    });
+
+    it("shows the alert for the error and dismisses it", async () => {
+      mockSourceError = { code: 1608 };
+      await renderDevices();
+      const alert = screen.getByTestId("source-error");
+      expect(alert).toHaveAttribute("role", "alert");
+      fireEvent.click(within(alert).getByRole("button"));
+      expect(mockDismissSourceError).toHaveBeenCalledTimes(1);
     });
   });
 });

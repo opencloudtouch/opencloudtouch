@@ -26,6 +26,8 @@ import { isDeviceOffline } from "../api/offlineDeviceStore";
 import { usePresets } from "../hooks/usePresets";
 import { useVolume } from "../hooks/useVolume";
 import { useNowPlaying } from "../hooks/useNowPlaying";
+import { useSourceError } from "../hooks/useSourceError";
+import SourceErrorAlert from "../components/dlna/SourceErrorAlert";
 import { useZones } from "../hooks/useZones";
 import { useLastPreset } from "../hooks/useLastPreset";
 import { usePrefetchDevices } from "../hooks/usePrefetchDevices";
@@ -106,6 +108,7 @@ export default function Devices({
     showVolumeToast(message, "error")
   );
   const { nowPlaying: npState, refresh: refreshNowPlaying } = useNowPlaying(deviceId);
+  const { error: sourceError, dismiss: dismissSourceError } = useSourceError(deviceId);
   const { zones } = useZones();
   const [lastPreset, setLastPreset] = useLastPreset(deviceId);
   const { show: showToast, hide: hideToast } = useToast();
@@ -552,6 +555,13 @@ export default function Devices({
                       />
                     )}
                   </div>
+                  {sourceError && (
+                    <SourceErrorAlert
+                      key={sourceError.code}
+                      code={sourceError.code}
+                      onDismiss={dismissSourceError}
+                    />
+                  )}
                   <TransportKeys
                     playing={isPlaying}
                     showSkip={!!source && !isRadio && !isStandby && source !== "AUX"}

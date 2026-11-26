@@ -883,6 +883,30 @@
     "bitrate": "Bitrate",
     "homepage": "Homepage"
   },
+  "devices": {
+    "sourceError": {
+      "notFound": {
+        "title": "Media server not found",
+        "body": "The speaker cannot see this media server right now. Make sure the server is running and in the same network; if two servers share one IP address the speaker may see only one."
+      },
+      "serviceUnreachable": {
+        "title": "Music service not reachable",
+        "body": "The speaker could not reach the server's music service. Try again in a moment."
+      },
+      "badFormat": {
+        "title": "Unsupported content",
+        "body": "The speaker cannot play this folder's content (unsupported format)."
+      },
+      "subFolders": {
+        "title": "Folder cannot be played as a whole",
+        "body": "This folder cannot be played as a whole: its first item is not a song. Choose a folder with songs first."
+      },
+      "generic": {
+        "title": "Playback could not start",
+        "body": "The speaker could not play this item. Try again or choose another one."
+      }
+    }
+  },
   "device": {
     "sourceChoose": "Choose source",
     "sourceSwitching": "Switching to {{source}}…",
