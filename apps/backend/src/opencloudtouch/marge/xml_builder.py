@@ -228,13 +228,22 @@ def _source_element(
     return source
 
 
-def stored_music_source_element(parent: ET.Element, src: MediaServerSource) -> None:
-    """A media server registered through OCT, always provider 7 (decision 11)."""
+def stored_music_source_element(
+    parent: ET.Element, src: MediaServerSource, catalogue_ids: bool = False
+) -> None:
+    """A media server registered through OCT, with the default STORED_MUSIC provider.
+
+    Version 0 serves the old id 50, the catalogue id 7 only from version 1: a
+    provider id missing from the speaker's catalogue makes it INVALID_SOURCE (T20).
+    """
+    default = _sources_by_name()["STORED_MUSIC"]
     el = ET.SubElement(parent, "source", {"id": str(src.source_id), "type": "Audio"})
     ET.SubElement(el, "createdOn").text = src.created_at.isoformat()
     ET.SubElement(el, "credential", {"type": "token"})
     ET.SubElement(el, "name").text = src.account
-    ET.SubElement(el, "sourceproviderid").text = "7"
+    ET.SubElement(el, "sourceproviderid").text = (
+        default.provider_id if catalogue_ids else default.streaming_id
+    )
     ET.SubElement(el, "sourcename").text = src.display_name
     ET.SubElement(el, "sourceSettings")
     ET.SubElement(el, "updatedOn").text = src.updated_at.isoformat()
@@ -347,5 +356,5 @@ def build_streaming_account_xml(
     for src in BASE_SOURCES:
         _source_element(sources, src, catalogue_ids)
     for stored in stored_sources or []:
-        stored_music_source_element(sources, stored)
+        stored_music_source_element(sources, stored, catalogue_ids)
     return account

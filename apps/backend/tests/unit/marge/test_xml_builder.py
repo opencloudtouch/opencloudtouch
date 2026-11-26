@@ -273,6 +273,21 @@ def test_stored_music_source_element_shape():
     )
     (source,) = parent
     assert (source.get("id"), source.get("type")) == ("20000001", "Audio")
-    assert source.findtext("sourceproviderid") == "7"
+    assert source.findtext("sourceproviderid") == "50"
     assert source.findtext("name") == source.findtext("username") == "udn-1/0"
     assert source.findtext("createdOn") == now.isoformat()
+
+
+def test_stored_music_source_element_catalogue_id():
+    from datetime import UTC, datetime
+    from xml.etree import ElementTree as ET
+
+    from opencloudtouch.marge.source_repository import MediaServerSource
+    from opencloudtouch.marge.xml_builder import stored_music_source_element
+
+    now = datetime(2026, 11, 1, tzinfo=UTC)
+    parent = ET.Element("sources")
+    stored_music_source_element(
+        parent, MediaServerSource(20000001, "acc", "udn-1", "NAS", now, now), True
+    )
+    assert parent[0].findtext("sourceproviderid") == "7"

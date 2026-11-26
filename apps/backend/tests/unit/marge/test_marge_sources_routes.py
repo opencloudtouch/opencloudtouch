@@ -33,6 +33,7 @@ async def ctx(tmp_path):
     device_repo.get_by_account_uuid = AsyncMock(
         side_effect=lambda a: device if a == "acc1" else None
     )
+    device_repo.get_by_device_id = AsyncMock(return_value=None)
     client = AsyncMock()
     factory = MagicMock(return_value=client)
     try:
@@ -160,8 +161,25 @@ async def test_get_sources_lists_stored(ctx):
     assert root.tag == "sources"
     (src,) = root.findall("source")
     assert src.get("id") == sid
-    assert src.findtext("sourceproviderid") == "7"
+    assert src.findtext("sourceproviderid") == "50"  # version 0 (T20)
     assert src.findtext("username") == f"{UDN}/0"
     assert src.findtext("sourcename") == "NAS"
     empty = ElementTree.fromstring(http.get("/streaming/account/nope/sources").content)
     assert list(empty) == []
+
+
+@pytest.mark.asyncio
+async def test_get_sources_catalogue_id_on_version_one(ctx):
+    from opencloudtouch.marge.routes import _migration_service
+
+    http, _, _, _ = ctx
+    _post(http)
+    migrations = AsyncMock()
+    migrations.status.return_value = (1, None)
+    app.dependency_overrides[_migration_service] = lambda: migrations
+    try:
+        root = ElementTree.fromstring(http.get(f"{BASE}/sources").content)
+    finally:
+        app.dependency_overrides.pop(_migration_service, None)
+    assert root.find("source").findtext("sourceproviderid") == "7"
+    migrations.status.assert_awaited_once_with("DEV1")

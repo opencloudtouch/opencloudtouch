@@ -762,9 +762,17 @@ async def remove_account_source(
 
 
 @router.get("/streaming/account/{account_id}/sources", include_in_schema=False)
-async def list_account_sources(account_id: str, marge: MargeServiceDep) -> Response:
-    """The account's stored media-server sources."""
+async def list_account_sources(
+    account_id: str,
+    marge: MargeServiceDep,
+    migrations: Annotated[
+        SpeakerMigrationService | None, Depends(_migration_service)
+    ] = None,
+) -> Response:
+    """The account's stored media-server sources, provider id as in ``/full``."""
+    device_id = await marge.resolve_device_id_for_account(account_id)
+    version = (await migrations.status(device_id))[0] if migrations and device_id else 0
     root = ET.Element("sources")
     for source in await marge.list_sources(account_id):
-        stored_music_source_element(root, source)
+        stored_music_source_element(root, source, version >= 1)
     return _xml_response(root, _MEDIA_STREAMING_XML)

@@ -280,6 +280,29 @@ async def test_remove_without_slots():
     source_repo.delete.assert_not_called()  # callback already removed the row
 
 
+@respx.mock
+async def test_remove_already_removed_1047_deletes_oct_row():
+    """Speaker answers 1047 and sends no DELETE callback: OCT still drops its row."""
+    from unittest.mock import patch
+
+    from opencloudtouch.devices.client_adapter import BoseDeviceClientAdapter
+
+    respx.post("http://192.0.2.10:8090/removeMusicServiceAccount").respond(
+        500,
+        text='<errors deviceID="0"><error value="1047" '
+        'name="SOURCE_ALREADY_REMOVED">1047</error></errors>',
+    )
+    with patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"):
+        client = BoseDeviceClientAdapter("http://192.0.2.10:8090")
+    client.get_source_list = AsyncMock(return_value=[])
+    client.close = AsyncMock()
+    service, source_repo, *_ = _native(client, rows=[_row()], presets=b"<presets/>")
+
+    await service.remove("device-a", UDN)
+
+    source_repo.delete.assert_awaited_once_with(ACCOUNT, 20000000)
+
+
 async def test_affected_slots_reads_live_presets():
     service, _, presets_xml, _ = _native(_client())
     assert await service.affected_slots("device-a", UDN) == [3]

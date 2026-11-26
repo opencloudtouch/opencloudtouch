@@ -73,16 +73,25 @@ def test_version_one_uses_catalogue_ids():
     assert [row[0] for row in rows] == [row[0] for row in MAIN_DEFAULTS]
 
 
-def test_stored_server_rendered_with_provider_7_and_udn_account():
+def test_stored_server_follows_default_stored_music_provider_and_udn_account():
+    """Version 0 serves the old STORED_MUSIC id 50 for stored servers too (T20)."""
     account = build_streaming_account_xml("acc1", stored_sources=[_stored()])
     assert _rows(account)[:-1] == MAIN_DEFAULTS
     stored = account.findall("./sources/source")[-1]
     assert stored.get("id") == "20000000"
-    assert stored.findtext("sourceproviderid") == "7"
+    assert stored.findtext("sourceproviderid") == "50"
     assert stored.findtext("username") == f"{UDN}/0"
     assert stored.findtext("name") == f"{UDN}/0"
     assert stored.findtext("sourcename") == "NAS"
     assert [child.tag for child in stored] == CHILD_ORDER
+
+
+def test_stored_server_uses_catalogue_id_7_on_version_one():
+    account = build_streaming_account_xml(
+        "acc1", stored_sources=[_stored()], catalogue_ids=True
+    )
+    stored = account.findall("./sources/source")[-1]
+    assert stored.findtext("sourceproviderid") == "7"
 
 
 def test_defaults_unchanged_without_stored_sources():

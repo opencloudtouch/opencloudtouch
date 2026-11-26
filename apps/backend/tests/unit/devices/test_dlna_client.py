@@ -19,6 +19,11 @@ ERROR_1005 = (
     'name="UNKNOWN_SOURCE_ERROR" severity="Unknown">1005</error></errors>'
 )
 
+ERROR_1047 = (
+    '<errors deviceID="000000000000"><error value="1047" '
+    'name="SOURCE_ALREADY_REMOVED" severity="Unknown">1047</error></errors>'
+)
+
 
 def fx(name: str) -> str:
     return (FIXTURES / name).read_text(encoding="utf-8")
@@ -252,6 +257,22 @@ async def test_remove_body(adapter, http):
         '<credentials source="STORED_MUSIC" displayName="">'
         f"<user>{UDN}/0</user><pass></pass></credentials>"
     )
+
+
+async def test_remove_already_removed_1047_is_success(adapter, http, caplog):
+    http.post.return_value = _response(ERROR_1047, 500)
+
+    with caplog.at_level("INFO"):
+        await adapter.remove_media_server(UDN)
+
+    assert any("1047" in r.getMessage() for r in caplog.records)
+
+
+async def test_remove_other_error_still_raises(adapter, http):
+    http.post.return_value = _response(ERROR_1005, 500)
+
+    with pytest.raises(DeviceConnectionError, match="1005"):
+        await adapter.remove_media_server(UDN)
 
 
 async def test_notify_body_has_device_id(adapter, http):

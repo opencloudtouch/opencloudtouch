@@ -812,7 +812,9 @@ class BoseDeviceClientAdapter(DeviceClient):
             )
         return StoredMusicBrowse(items)
 
-    async def _post_account(self, path: str, server_udn: str, name: str) -> None:
+    async def _post_account(
+        self, path: str, server_udn: str, name: str, done_error: str | None = None
+    ) -> None:
         body = (
             f'<credentials source="STORED_MUSIC" displayName={quoteattr(name[:64])}>'
             f"<user>{xml_escape(server_udn)}/0</user><pass></pass></credentials>"
@@ -822,6 +824,9 @@ class BoseDeviceClientAdapter(DeviceClient):
             error = next(ElementTree.fromstring(response.text).iter("error"), None)
         except Exception:
             error = None
+        if error is not None and error.get("value") == done_error:
+            logger.info("%s on %s: error %s, already done", path, self.ip, done_error)
+            return
         if error is not None:
             raise DeviceConnectionError(
                 self.ip, f"{path} error {error.get('value', '')}"
@@ -833,8 +838,8 @@ class BoseDeviceClientAdapter(DeviceClient):
         await self._post_account("/setMusicServiceAccount", server_udn, name)
 
     async def remove_media_server(self, server_udn: str) -> None:
-        """Remove a server via removeMusicServiceAccount."""
-        await self._post_account("/removeMusicServiceAccount", server_udn, "")
+        """Remove a server via removeMusicServiceAccount; 1047 (already removed) is done."""
+        await self._post_account("/removeMusicServiceAccount", server_udn, "", "1047")
 
     async def notify_sources_updated(self, device_id: str) -> None:
         """Push sourcesUpdated (decision 16); failures are logged and swallowed."""
