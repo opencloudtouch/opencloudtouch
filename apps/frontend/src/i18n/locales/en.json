@@ -1061,6 +1061,21 @@
       "removeSlots": "Presets on slots {{slots}} still play from this server. They stay saved but will not play until the server is set up again.",
       "removeAnyway": "Remove anyway",
       "removeFailed": "The server could not be removed. Try again."
+    },
+    "browser": {
+      "breadcrumb": "Folder path",
+      "up": "Up",
+      "loading": "Loading folder",
+      "empty": "This folder is empty",
+      "loadMore": "Load more",
+      "select": "Select",
+      "selectLabel": "Select {{title}}",
+      "openLabel": "Open folder {{title}}",
+      "retry": "Retry",
+      "error": "The folder could not be loaded.",
+      "serverNotFound": "Server not found. Check that it is switched on.",
+      "serverTimeout": "The server did not answer. Try again.",
+      "objectGone": "That folder no longer exists. Showing the top level."
     }
   }
 }
