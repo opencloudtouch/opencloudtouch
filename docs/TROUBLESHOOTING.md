@@ -144,6 +144,34 @@ An app is also a clean place for the hook: it shows up under Apps, where you can
 3. Try the fix from step 2 (Docker update or the profile) and restart the container.
 4. Still failing? Open a [bug report](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml) and attach: the output of step 1, the full container log (`docker logs <container>`), your `docker run` or Compose settings without secrets, and the device model. Do not include tokens, passwords or personal data.
 
+## DLNA: error 1608 / server "not available"
+
+OCT reads the state of a media server live from the speaker. A server is **ready** when the speaker lists it as READY in its sources,
+finds it on the network (`/listMediaServers`) and can browse it. It is **not available** when it is registered on the speaker but one of
+these checks fails; pressing a preset of that server then fails with error 1608 (`STORED_MUSIC_SERVER_NOT_FOUND`, "temporarily
+unavailable"). OCT can explain this state, it cannot fix it: the speaker has to see the server.
+
+**Most common cause: two media servers on one host.** When two DLNA servers run on the same host IP (for example a NAS app plus a
+container), both answer the speaker's network search within a few milliseconds and the speaker keeps only one of them in its table. Measured:
+
+- Both servers on one IP, answering together: the second server was listed only 12-16 % of the time and its presets failed.
+- Only one server running, or the two servers on separate IP addresses: both listed all the time, presets played.
+- Both on one IP, but one server's answer delayed by about 1 second (either one): both listed all the time, presets played.
+
+What helps (on the NAS or host, not in OCT):
+
+1. Run **one media server per IP address**: serve all media from one server, or give the second server its own IP address. A container
+   on its own address (macvlan) is reachable by the speaker, but by default not from the Docker host itself, so OCT on the same host then
+   cannot browse it.
+2. Or delay one server's search answers by about 1 second.
+
+**Other causes:** the server is switched off or asleep, or it is on a different network segment than the speaker. A single failed browse
+with error 1602 is usually transient; OCT retries it once.
+
+**Removing a server that presets use:** OCT lists the preset slots that use it (read from the speaker). "Remove anyway" removes the
+server and keeps the presets; pressing them then fails with a speaker error until the server is registered again or the slots are
+overwritten.
+
 ## Still stuck?
 
 Open a [bug report](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml) or check [GitHub Discussions](https://github.com/opencloudtouch/opencloudtouch/discussions).

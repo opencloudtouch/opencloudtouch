@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The speaker-facing Marge emulation answers the group calls (create, read, rename, delete, teardown), `provider_settings` and the recents the speaker reports (`POST .../device/{id}/recent`)
 - A stereo pair shows as one device in the device list: the pair name, "2× model", the main speaker's IP, an "L/R Stereo" badge and both speakers in the footer; the second speaker is no longer listed there, and the pair is dissolved from its card (presets stay on the main speaker)
 - Group changes on a speaker (`groupUpdated`) are parsed and forwarded as a `group` event on the device event stream; the pair list refreshes on it
+- DLNA media servers can be browsed page by page from OCT; nothing is cached, every list is read live (see [ADR 009](docs/adr/009-dlna-native-presets-speaker-as-truth.md))
+- Native DLNA presets: a folder or track is stored on the speaker exactly as the speaker's `/navigate` returns it (`POST /api/presets/dlna`); a folder whose first entry is not audio needs a confirmation (409 `dlna_folder_no_audio_first`). The preset list is read live from the speaker and falls back to the stored rows when the speaker is offline
+- Media server setup per speaker (`/api/dlna/native`): list the servers with their live state (`ready`, `not_enabled`, `unavailable`), enable one through the speaker's own registration, remove one; if presets use it, OCT lists the affected slots and "remove anyway" keeps them
+- The Marge emulation answers the speaker's media-server source calls (`POST`/`DELETE /streaming/account/{account}/source`, `GET .../sources`), lists the stored servers in `/full` with provider id 7 and sends `sourcesUpdated` to the speaker after each change
+- A speaker migration service records a migration version per speaker at startup and when a speaker comes back online; no migration step is registered yet, so the existing provider ids stay unchanged
+- Playback errors reported by the speaker (`errorUpdate`) are forwarded as a `source_error` event on the device event stream
+- Now-playing shows the preset number of a playing DLNA preset (matched by location and account), and shuffle/repeat are read from the speaker and set with its keys
 
 ### Fixed
 - Renaming a stereo pair works: the speaker answers `PUT /updateGroup` with 405, so the rename is sent as `POST /updateGroup` with the whole group
