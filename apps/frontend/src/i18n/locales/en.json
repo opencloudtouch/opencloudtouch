@@ -1079,6 +1079,19 @@
     },
     "album": {
       "open": "Open album view"
+    },
+    "pane": {
+      "tab": "DLNA",
+      "loading": "Looking up the saved item",
+      "hint": "Choose a folder or song for preset {{number}}.",
+      "allServers": "All media servers",
+      "serverGone": "The media server of this preset is no longer available. Pick a server below.",
+      "objectGone": "The saved item no longer exists on the server. You are at the top level."
+    },
+    "save": {
+      "noAudioFirst": "The first item in this folder is not a song (for example a cover image). The speaker may not be able to play it. Save anyway?",
+      "saveAnyway": "Save anyway",
+      "chooseAnother": "Choose another folder"
     }
   }
 }

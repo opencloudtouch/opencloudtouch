@@ -6,6 +6,7 @@ import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import StationDetail from "./StationDetail";
 import ConfirmDialog from "./ConfirmDialog";
 import Modal from "./Modal";
+import DlnaPane from "./dlna/DlnaPane";
 import { Icon } from "./Icon";
 import "./RadioSearch.css";
 import { userErrorMessage } from "../utils/errorMessages";
@@ -34,6 +35,8 @@ interface ExistingPreset {
   station_name: string;
   station_url?: string;
   station_favicon?: string;
+  source_account?: string | null;
+  dlna?: boolean;
 }
 
 interface RadioSearchProps {
@@ -44,6 +47,9 @@ interface RadioSearchProps {
   presetNumber?: number | null;
   hasExistingPreset?: boolean;
   existingPreset?: ExistingPreset | null;
+  /** Enables the DLNA tab; onDlnaSaved runs after a DLNA preset was saved. */
+  deviceId?: string;
+  onDlnaSaved?: () => void;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
@@ -62,7 +68,7 @@ function getApiBaseUrl(): string {
 
 type SearchType = "name" | "country" | "tag";
 type RadioProviderType = "radiobrowser" | "tunein";
-type SearchMode = "provider" | "manual";
+type SearchMode = "provider" | "manual" | "dlna";
 
 function isValidHttpUrl(value: string): boolean {
   try {
@@ -176,6 +182,7 @@ interface SearchChipsProps {
   readonly onModeChange: (mode: SearchMode) => void;
   readonly onProviderChange: (provider: RadioProviderType) => void;
   readonly onManualMode: () => void;
+  readonly onDlnaMode?: () => void;
 }
 
 /** Search-type and provider chips above the result list. */
@@ -189,6 +196,7 @@ function SearchChips({
   onModeChange,
   onProviderChange,
   onManualMode,
+  onDlnaMode,
 }: SearchChipsProps) {
   const { t } = useTranslation();
   const canSearch = query.trim().length >= 2;
@@ -201,7 +209,7 @@ function SearchChips({
             key={st.value}
             className="ui-chip"
             aria-pressed={searchType === st.value}
-            disabled={searchMode === "manual"}
+            disabled={searchMode !== "provider"}
             onClick={() => {
               onSearchTypeChange(st.value);
               if (canSearch) onSearch(query, radioProvider, st.value);
@@ -234,6 +242,16 @@ function SearchChips({
         >
           {t("presets.manualStreamMode")}
         </button>
+        {onDlnaMode && (
+          <button
+            data-test="dlna-mode"
+            className="ui-chip"
+            aria-pressed={searchMode === "dlna"}
+            onClick={onDlnaMode}
+          >
+            {t("dlna.pane.tab")}
+          </button>
+        )}
       </fieldset>
     </div>
   );
@@ -364,6 +382,8 @@ export default function RadioSearch({
   presetNumber: _presetNumber,
   hasExistingPreset,
   existingPreset,
+  deviceId,
+  onDlnaSaved,
 }: RadioSearchProps) {
   const { t } = useTranslation();
   const [searchMode, setSearchMode] = useState<SearchMode>("provider");
@@ -399,7 +419,10 @@ export default function RadioSearch({
     setOffset(0);
     setHasMore(false);
 
-    setSearchMode(manualFields ? "manual" : "provider");
+    let mode: SearchMode = "provider";
+    if (manualFields) mode = "manual";
+    else if (existingPreset?.dlna) mode = "dlna";
+    setSearchMode(mode);
     setManualUrl(manualFields?.url ?? "");
     setManualName(manualFields?.name ?? "");
     setManualFavicon(manualFields?.favicon ?? "");
@@ -583,9 +606,29 @@ export default function RadioSearch({
               setError(null);
               setDetailUuid(null);
             }}
+            onDlnaMode={
+              deviceId && _presetNumber
+                ? () => {
+                    setSearchMode("dlna");
+                    setError(null);
+                  }
+                : undefined
+            }
           />
 
-          <div className="rs-field">
+          {searchMode === "dlna" && deviceId && _presetNumber ? (
+            <DlnaPane
+              deviceId={deviceId}
+              presetNumber={_presetNumber}
+              existingPreset={existingPreset}
+              onSaved={() => {
+                onDlnaSaved?.();
+                onClose?.();
+              }}
+            />
+          ) : null}
+
+          <div className="rs-field" hidden={searchMode === "dlna"}>
             {searchMode === "manual" ? (
               <div className="rs-url-field">
                 <input

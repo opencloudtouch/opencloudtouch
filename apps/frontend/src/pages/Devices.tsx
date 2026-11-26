@@ -717,6 +717,11 @@ export default function Devices({
         presetNumber={assigningPreset}
         hasExistingPreset={assigningPreset !== null && !!presets[assigningPreset]}
         existingPreset={assigningPreset !== null ? presets[assigningPreset] : null}
+        deviceId={deviceId}
+        onDlnaSaved={() => {
+          showToast(t("presets.presetSaved", { number: assigningPreset }), "success");
+          void syncPresets();
+        }}
       />
 
       {/* Confirm Clear Dialog */}

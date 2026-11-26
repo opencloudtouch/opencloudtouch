@@ -12,6 +12,8 @@ interface Props {
   serverId: string;
   serverName: string;
   startObjectId?: string;
+  /** Row that gets keyboard focus on arrival (the saved object when editing). */
+  focusObjectId?: string;
   onSelect: (item: DlnaItem, parentId: string) => void;
   onPathChange?: (objectId: string) => void;
 }
@@ -39,6 +41,7 @@ export default function DlnaBrowser({
   serverId,
   serverName,
   startObjectId,
+  focusObjectId,
   onSelect,
   onPathChange,
 }: Readonly<Props>) {
@@ -177,6 +180,7 @@ export default function DlnaBrowser({
                 type="button"
                 className="btn btn-secondary"
                 aria-label={t("dlna.browser.selectLabel", { title: item.title })}
+                autoFocus={item.id === focusObjectId}
                 onClick={() => onSelect(item, objectId)}
               >
                 {t("dlna.browser.select")}
