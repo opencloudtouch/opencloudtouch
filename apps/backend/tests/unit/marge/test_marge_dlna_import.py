@@ -121,3 +121,26 @@ def test_put_preset_passes_reported_source_account():
         "1$4",
         "uuid-server-1/0",
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("location", "expected"),
+    [("1$4", "uuid-server-1/0"), ("9$9", None)],
+    ids=["same-location", "other-location"],
+)
+async def test_callback_keeps_oct_account_for_empty_stored_music_account(
+    location, expected
+):
+    """A server removed by OCT leaves the speaker's slot without account (T22 5c)."""
+    existing = Preset(
+        device_id="DEV1",
+        preset_number=1,
+        station_uuid="STORED_MUSIC_1",
+        station_name="S",
+        station_url="1$4",
+        source="STORED_MUSIC",
+        source_account="uuid-server-1/0",
+    )
+    p = await _service(None, existing).store_preset("DEV1", 1, "50", "S", location)
+    assert p.source_account == expected

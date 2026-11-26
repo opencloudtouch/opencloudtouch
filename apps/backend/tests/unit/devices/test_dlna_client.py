@@ -86,6 +86,25 @@ async def test_browse_parses_folder_items_verbatim(adapter, http):
     assert track.item_name == "Track One"
 
 
+async def test_browse_requests_the_given_page_and_reads_total(adapter, http):
+    http.post.return_value = _response(fx("navigate_folder.xml"))
+
+    result = await adapter.browse_stored_music(ACCOUNT, "32", 51, 50)
+
+    body = http.post.call_args.kwargs["content"]
+    assert "<startItem>51</startItem><numItems>50</numItems>" in body
+    assert result.total == 2
+
+
+async def test_browse_defaults_to_first_1000_items(adapter, http):
+    http.post.return_value = _response(fx("navigate_folder.xml"))
+
+    await adapter.browse_stored_music(ACCOUNT)
+
+    body = http.post.call_args.kwargs["content"]
+    assert "<startItem>1</startItem><numItems>1000</numItems>" in body
+
+
 async def test_browse_uses_long_navigate_timeout(adapter):
     """Large parents take far longer than the 3 s default (T21 4c)."""
     from opencloudtouch.devices.client_adapter import NAVIGATE_TIMEOUT

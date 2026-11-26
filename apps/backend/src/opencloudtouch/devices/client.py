@@ -44,6 +44,11 @@ class NowPlayingInfo:
     shuffle_setting: Optional[str] = None  # SHUFFLE_ON/OFF; None = not supported
     repeat_setting: Optional[str] = None  # REPEAT_OFF/ALL/ONE; None = not supported
 
+    @property
+    def is_dlna(self) -> bool:
+        """The one now-playing DLNA rule for REST and SSE: source is STORED_MUSIC."""
+        return self.source == "STORED_MUSIC"
+
 
 # Keys whose result the speaker reports back as shuffle/repeat setting
 SHUFFLE_REPEAT_KEYS = (
@@ -110,6 +115,7 @@ class StoredMusicBrowse:
 
     items: list[StoredMusicItem]
     error_code: int | None = None
+    total: int | None = None  # <totalItems> of the browsed folder, if reported
 
 
 class DeviceClient(ABC):
@@ -290,7 +296,11 @@ class DeviceClient(ABC):
 
     @abstractmethod
     async def browse_stored_music(
-        self, source_account: str, location: str | None = None
+        self,
+        source_account: str,
+        location: str | None = None,
+        start_item: int = 1,
+        num_items: int = 1000,
     ) -> StoredMusicBrowse:
         """Browse a server (`<UDN>/0`) through the speaker's /navigate; root if no location."""
 

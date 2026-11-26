@@ -376,7 +376,11 @@ class TestNativeDlnaPreset:
         account = build_streaming_account_xml("acc", "AABB", [_dlna_preset()])
         preset = account.find("./devices/device/presets/preset")
         assert preset.findtext("location") == "129901"
-        assert preset.find("source").findtext("sourcename") == "STORED_MUSIC"
+        source = preset.find("source")
+        assert source.findtext("sourcename") == "STORED_MUSIC"
+        # The speaker keeps the account only if /full carries it (T22 5c).
+        assert source.findtext("username") == "Udn-1/0"
+        assert source.findtext("name") == "Udn-1/0"
 
     def test_radio_preset_unchanged_next_to_stored_sources(self):
         from opencloudtouch.marge.xml_builder import build_streaming_account_xml

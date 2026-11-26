@@ -10,6 +10,7 @@ import ipaddress
 import logging
 import os
 import socket
+import time
 from typing import TYPE_CHECKING, Any, List, Optional
 from urllib.parse import urljoin, urlsplit, urlunsplit
 from xml.etree.ElementTree import ParseError
@@ -29,6 +30,11 @@ from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.parser import DevicePresetParser
 from opencloudtouch.presets.repository import PresetRepository
+
+# Small /navigate pages: one 1000-item request of a 1447-item parent took > 15 s
+# and blocked the speaker's next /navigate (T22 2a/2b).
+_BROWSE_PAGE = 50
+_BROWSE_BUDGET = 60.0  # seconds for all pages of one save
 
 if TYPE_CHECKING:
     from opencloudtouch.dlna.service import DlnaService
@@ -315,18 +321,39 @@ class PresetService:
     async def _find_speaker_item(
         client: Any, server_id: str, parent_id: str, object_id: str
     ) -> StoredMusicItem:
-        """Find the speaker's own ContentItem for the object (1602 retried in client)."""
-        browse = await client.browse_stored_music(
-            f"{server_id}/0", None if parent_id == "0" else parent_id
-        )
-        if browse.error_code is not None:
-            raise_coded(
-                502, error_codes.DLNA_UPSTREAM_ERROR, "Speaker could not browse server"
+        """Find the speaker's own ContentItem for the object, page by page.
+
+        1602 is retried in the client.
+        """
+        deadline = time.monotonic() + _BROWSE_BUDGET
+        start = 1
+        while True:
+            if time.monotonic() > deadline:
+                raise_coded(
+                    504, error_codes.DLNA_SERVER_TIMEOUT, "Speaker browse timed out"
+                )
+            browse = await client.browse_stored_music(
+                f"{server_id}/0",
+                None if parent_id == "0" else parent_id,
+                start,
+                _BROWSE_PAGE,
             )
-        for item in browse.items:
-            if item.location.removesuffix(" TRACK") == object_id:
-                return item
-        raise_coded(404, error_codes.DLNA_OBJECT_NOT_FOUND, "Object not found")
+            if browse.error_code is not None:
+                raise_coded(
+                    502,
+                    error_codes.DLNA_UPSTREAM_ERROR,
+                    "Speaker could not browse server",
+                )
+            for item in browse.items:
+                if item.location.removesuffix(" TRACK") == object_id:
+                    return item
+            start += _BROWSE_PAGE
+            # shortcut: without <totalItems>, a page shortened by skipped items
+            # ends the search early; the real speaker reports the total.
+            if len(browse.items) < _BROWSE_PAGE or (
+                browse.total is not None and start > browse.total
+            ):
+                raise_coded(404, error_codes.DLNA_OBJECT_NOT_FOUND, "Object not found")
 
     @staticmethod
     async def _dlna_artwork(
@@ -470,6 +497,9 @@ class PresetService:
                 preset.station_favicon = (
                     preset.station_favicon or existing.station_favicon
                 )
+                if preset.source == "STORED_MUSIC" and not preset.source_account:
+                    # Repairs only an account OCT's own /full dropped (T22 5c).
+                    preset.source_account = existing.source_account
             await self.repository.set_preset(preset)
             synced_count += 1
             logger.info(

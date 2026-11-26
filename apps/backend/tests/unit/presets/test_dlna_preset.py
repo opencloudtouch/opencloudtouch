@@ -85,7 +85,7 @@ async def test_saves_folder_native_speaker_first_then_db(service, speaker, repo,
     preset = await _save(service)
 
     assert order == ["speaker", "db"]
-    speaker.browse_stored_music.assert_awaited_once_with(f"{SERVER}/0", None)
+    speaker.browse_stored_music.assert_awaited_once_with(f"{SERVER}/0", None, 1, 50)
     speaker.store_native_preset.assert_awaited_once()
     assert speaker.store_native_preset.await_args.args[2] == "http://nas:1/art.jpg"
     assert preset.station_uuid == "STORED_MUSIC_2"
@@ -108,7 +108,7 @@ async def test_track_location_has_track_suffix_and_account(service, speaker):
         [_item("42 TRACK", is_directory=False, name="Song")]
     )
     preset = await _save(service, parent_id="7")
-    speaker.browse_stored_music.assert_awaited_once_with(f"{SERVER}/0", "7")
+    speaker.browse_stored_music.assert_awaited_once_with(f"{SERVER}/0", "7", 1, 50)
     assert preset.station_url == "42 TRACK"
     assert preset.source_account == f"{SERVER}/0"
     assert preset.station_name == "Song"
@@ -213,3 +213,50 @@ async def test_artwork_lookup_failure_saves_without_cover(service, speaker, dlna
     preset = await _save(service)
     assert preset.station_favicon is None
     assert speaker.store_native_preset.await_args.args[2] == ""
+
+
+def _page(start: int, count: int) -> list[StoredMusicItem]:
+    return [_item(str(1000 + n)) for n in range(start, start + count)]
+
+
+@pytest.mark.asyncio
+async def test_large_parent_is_paged_until_the_object(service, speaker):
+    """One 1000-item /navigate of a 1447-item parent timed out (T22 2a)."""
+    speaker.browse_stored_music.side_effect = [
+        StoredMusicBrowse(_page(0, 50), total=1447),
+        StoredMusicBrowse(_page(50, 50) + [_item("42")], total=1447),
+    ]
+    preset = await _save(service, parent_id="32")
+    assert [c.args for c in speaker.browse_stored_music.await_args_list] == [
+        (f"{SERVER}/0", "32", 1, 50),
+        (f"{SERVER}/0", "32", 51, 50),
+    ]
+    assert preset.station_url == "42"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "browse",
+    [StoredMusicBrowse(_page(0, 50), total=50), StoredMusicBrowse(_page(0, 3))],
+    ids=["total-reached", "short-page"],
+)
+async def test_paging_stops_at_the_end_with_404(service, speaker, browse):
+    speaker.browse_stored_music.return_value = browse
+    with pytest.raises(CodedApiError) as exc:
+        await _save(service, object_id="999")
+    assert exc.value.code == "dlna_object_not_found"
+    speaker.browse_stored_music.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_paging_over_time_budget_is_504(service, speaker, repo):
+    speaker.browse_stored_music.return_value = StoredMusicBrowse(
+        _page(0, 50), total=5000
+    )
+    clock = iter([0.0, 10.0, 61.0])
+    with patch("opencloudtouch.presets.service.time.monotonic", lambda: next(clock)):
+        with pytest.raises(CodedApiError) as exc:
+            await _save(service, object_id="999")
+    assert (exc.value.status_code, exc.value.code) == (504, "dlna_server_timeout")
+    assert speaker.browse_stored_music.await_count == 1
+    repo.set_preset.assert_not_awaited()

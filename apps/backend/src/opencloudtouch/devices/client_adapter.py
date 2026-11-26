@@ -762,7 +762,11 @@ class BoseDeviceClientAdapter(DeviceClient):
         ]
 
     async def browse_stored_music(
-        self, source_account: str, location: str | None = None
+        self,
+        source_account: str,
+        location: str | None = None,
+        start_item: int = 1,
+        num_items: int = 1000,
     ) -> StoredMusicBrowse:
         """Browse a server via /navigate; speaker errors are returned as error_code."""
         account = quoteattr(source_account)
@@ -775,7 +779,8 @@ class BoseDeviceClientAdapter(DeviceClient):
         )
         body = (
             f'<navigate source="STORED_MUSIC" sourceAccount={account}>'
-            f"<startItem>1</startItem><numItems>1000</numItems>{folder}</navigate>"
+            f"<startItem>{start_item:d}</startItem><numItems>{num_items:d}</numItems>"
+            f"{folder}</navigate>"
         )
         result = await self._navigate(body)
         if result.error_code == BROWSE_RETRY_ERROR:
@@ -814,7 +819,8 @@ class BoseDeviceClientAdapter(DeviceClient):
                     item_name=content.findtext("itemName", ""),
                 )
             )
-        return StoredMusicBrowse(items)
+        total = root.findtext("totalItems")
+        return StoredMusicBrowse(items, total=int(total) if total else None)
 
     async def _post_account(
         self, path: str, server_udn: str, name: str, done_error: str | None = None

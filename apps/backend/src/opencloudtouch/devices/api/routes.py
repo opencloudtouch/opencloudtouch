@@ -606,7 +606,7 @@ def _now_playing_to_dict(info: NowPlayingInfo, *, online: bool) -> dict[str, obj
         "album": info.album,
         "artwork_url": info.artwork_url,
         "online": online,
-        "dlna": info.source == "STORED_MUSIC",
+        "dlna": info.is_dlna,
         "preset_number": None,
         "shuffle_setting": info.shuffle_setting,
         "repeat_setting": info.repeat_setting,

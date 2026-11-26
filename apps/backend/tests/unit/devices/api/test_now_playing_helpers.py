@@ -332,6 +332,24 @@ class TestNowPlayingDlnaFields:
         data = _now_playing_to_dict(_dlna_info(), online=True)
         assert data["dlna"] is True
 
+    @pytest.mark.parametrize(
+        ("source", "account", "expected"),
+        [
+            ("STORED_MUSIC", "Udn-1/0", True),
+            ("STORED_MUSIC", "", True),
+            ("INVALID_SOURCE", "", False),
+            ("TUNEIN", None, False),
+        ],
+    )
+    def test_rest_and_sse_share_one_rule(self, source, account, expected):
+        """REST and SSE disagreed on an account-less STORED_MUSIC item (T22 5d)."""
+        from opencloudtouch.devices.api.event_routes import _dlna_fields
+
+        info = NowPlayingInfo(source=source, state="STOP_STATE", source_account=account)
+        assert info.is_dlna is expected
+        assert _now_playing_to_dict(info, online=True)["dlna"] is expected
+        assert _dlna_fields(info, None)["dlna"] is expected
+
 
 class TestContentItemParsing:
     def test_parser_fills_location_and_account(self):

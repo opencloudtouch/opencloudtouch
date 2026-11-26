@@ -380,14 +380,18 @@ class MockDeviceClient(DeviceClient):
         ]
 
     async def browse_stored_music(
-        self, source_account: str, location: str | None = None
+        self,
+        source_account: str,
+        location: str | None = None,
+        start_item: int = 1,
+        num_items: int = 1000,
     ) -> StoredMusicBrowse:
         """Mock /navigate: speaker-style items of the mock DLNA tree."""
         account = f"{MOCK_SERVER.id}/0"
         if source_account != account:
             return StoredMusicBrowse([])
         try:
-            page = mock_browse(location or "0", 0, 0)
+            page = mock_browse(location or "0", start_item - 1, num_items)
         except KeyError:
             return StoredMusicBrowse([])
         return StoredMusicBrowse(
@@ -402,7 +406,8 @@ class MockDeviceClient(DeviceClient):
                 )
                 for i in page.items
                 if i.is_container or is_audio_item(i)
-            ]
+            ],
+            total=page.total_matches,
         )
 
     async def register_media_server(self, server_udn: str, name: str) -> None:

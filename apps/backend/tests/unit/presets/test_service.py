@@ -1087,3 +1087,51 @@ class TestSyncKeepsMetadata:
 
         fetch.assert_not_awaited()
         mock_repo.get_all_presets.assert_awaited_once_with("dev-001")
+
+
+# ---------------------------------------------------------------------------
+# sync_presets_from_device — STORED_MUSIC account lost by an OCT /full (T22 5c)
+# ---------------------------------------------------------------------------
+
+
+def _dlna_row(location: str = "129901") -> Preset:
+    return Preset(
+        device_id="dev-001",
+        preset_number=5,
+        station_uuid="STORED_MUSIC_5",
+        station_name="Album",
+        station_url=location,
+        source="STORED_MUSIC",
+        source_account="Udn-1/0",
+    )
+
+
+def _stored_music_xml(account: str, location: str = "129901") -> bytes:
+    return (
+        f'<presets><preset id="5"><ContentItem source="STORED_MUSIC" '
+        f'location="{location}" sourceAccount="{account}" isPresetable="true">'
+        "<itemName>Album</itemName></ContentItem></preset></presets>"
+    ).encode()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("account", "location", "expected"),
+    [
+        ("", "129901", "Udn-1/0"),  # empty account, same location: OCT account kept
+        ("Other/0", "129901", "Other/0"),  # a speaker account always wins
+        ("", "777", None),  # another item: nothing to repair
+    ],
+    ids=["repaired", "speaker-wins", "other-location"],
+)
+async def test_sync_keeps_oct_account_for_empty_stored_music_account(
+    service, real_mode, mock_repo, account, location, expected
+):
+    mock_repo.get_preset = AsyncMock(return_value=_dlna_row())
+    xml = _stored_music_xml(account, location)
+    with patch.object(service, "_fetch_device_presets", AsyncMock(return_value=xml)):
+        await service.sync_presets_from_device("dev-001")
+
+    saved: Preset = mock_repo.set_preset.call_args[0][0]
+    assert saved.source_account == expected
+    assert saved.is_dlna is (expected is not None)

@@ -306,7 +306,7 @@ def _item_children(
     """Fill the shared preset/recent children from a ``<ContentItem>`` element.
 
     A STORED_MUSIC item with an account references the account's registered
-    media-server source, else the default STORED_MUSIC source.
+    media-server source, else the default STORED_MUSIC source carrying the account.
     """
     content = item.find("ContentItem")
     assert content is not None
@@ -324,7 +324,11 @@ def _item_children(
         stored_music_source_element(parent, stored, catalogue_ids)
     elif src is not None:
         # Radio keeps its old ids; only a native item follows the version (I-1).
-        _source_element(parent, src, catalogue_ids and bool(account))
+        el = _source_element(parent, src, catalogue_ids and bool(account))
+        if account:
+            # Without the account the speaker stores sourceAccount="" (T22 5c).
+            el.find("name").text = account  # type: ignore[union-attr]
+            el.find("username").text = account  # type: ignore[union-attr]
     ET.SubElement(parent, "updatedOn").text = now
     ET.SubElement(parent, "username")
 

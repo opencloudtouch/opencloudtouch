@@ -33,7 +33,7 @@ _KEEPALIVE_INTERVAL = 15  # seconds
 
 def _dlna_fields(np: NowPlayingInfo, preset_number: int | None) -> dict[str, object]:
     """DLNA fields of the REST now-playing shape."""
-    return {"dlna": np.source == "STORED_MUSIC", "preset_number": preset_number}
+    return {"dlna": np.is_dlna, "preset_number": preset_number}
 
 
 async def _preset_number(

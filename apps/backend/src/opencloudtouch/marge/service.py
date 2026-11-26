@@ -165,6 +165,14 @@ class MargeService:
             source = "STORED_MUSIC"
         existing = await self._preset_repo.get_preset(device_id, slot)
         account = source_account or (stored.account if stored else None)
+        if (
+            not account
+            and source == "STORED_MUSIC"
+            and existing
+            and existing.station_url == location
+        ):
+            # Same item without account: OCT's own /full dropped it (T22 5c).
+            account = existing.source_account
         if source == "STORED_MUSIC" and account:
             # Same importer as "Load from device" (decision 28).
             imported = preset_from_content_item(
