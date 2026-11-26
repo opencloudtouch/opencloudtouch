@@ -168,3 +168,10 @@ async def test_reconnect_hook_triggers_run(repo):
     await service.on_connection_state("device-a", ConnectionState.CONNECTED)
     assert calls == ["device-a"]
     assert await service.status("device-a") == (1, None)
+
+
+async def test_run_without_pending_step_logs_current_version(repo, caplog):
+    service = _service(repo, {})
+    with caplog.at_level(logging.INFO, logger="opencloudtouch.migrations.service"):
+        await service.run(_device("device-a"))
+    assert "[MIGRATION] device-a on version 0, no pending step" in caplog.text

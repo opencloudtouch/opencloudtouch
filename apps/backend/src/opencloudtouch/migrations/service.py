@@ -71,6 +71,9 @@ class SpeakerMigrationService:
                     (time.monotonic() - started) * 1000,
                 )
             await self._repo.set_version(device_id, version)
+            logger.info(
+                "[MIGRATION] %s on version %d, no pending step", device_id, version
+            )
             return version
 
     async def run_all(self) -> None:
