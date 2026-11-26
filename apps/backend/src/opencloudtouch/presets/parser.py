@@ -1,4 +1,4 @@
-﻿"""Preset XML parser for Bose SoundTouch devices.
+"""Preset XML parser for Bose SoundTouch devices.
 
 Parses the /presets endpoint XML response into Preset domain objects.
 This module has a single responsibility — parsing — with no I/O or DB access.
@@ -13,6 +13,8 @@ import re
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
 from xml.etree import ElementTree as ET
+
+from defusedxml.ElementTree import fromstring as parse_xml_string
 
 from opencloudtouch.presets.models import Preset
 
@@ -38,7 +40,7 @@ class DevicePresetParser:
         Returns:
             List of valid Preset domain objects (may be empty).
         """
-        root = ET.fromstring(xml_bytes)  # nosec B314
+        root = parse_xml_string(xml_bytes)
         presets: list[Preset] = []
         for elem in root.findall("preset"):
             preset = self.parse_element(elem, device_id)
@@ -83,20 +85,14 @@ class DevicePresetParser:
             else "Unknown"
         )
 
-        resolved = self._resolve_source(source, location, preset_number, station_name)
-        if resolved is None:
-            return None
-
-        station_uuid, station_url, preset_source, resolved_name = resolved
-        return Preset(
-            device_id=device_id,
-            preset_number=preset_number,
-            station_uuid=station_uuid,
-            station_name=resolved_name or "Unknown",
-            station_url=station_url,
-            station_homepage=None,
-            station_favicon=None,
-            source=preset_source,
+        return preset_from_content_item(
+            device_id,
+            preset_number,
+            source,
+            location,
+            content_item.get("sourceAccount", ""),
+            station_name,
+            (content_item.findtext("containerArt") or "").strip() or None,
         )
 
     # ------------------------------------------------------------------
@@ -228,3 +224,42 @@ class DevicePresetParser:
             station_uuid,
         )
         return station_uuid, location, "LOCAL_INTERNET_RADIO", station_name
+
+
+def preset_from_content_item(
+    device_id: str,
+    slot: int,
+    source: str,
+    location: str,
+    source_account: str,
+    name: str,
+    artwork: str | None,
+) -> Optional[Preset]:
+    """Turn a speaker-reported ContentItem into a preset row (the one importer).
+
+    Used by "Load from device", GET presets and the Marge preset callback.
+    Returns None if the item cannot be read.
+    """
+    if source == "STORED_MUSIC" and source_account:
+        return Preset(
+            device_id=device_id,
+            preset_number=slot,
+            station_uuid=f"STORED_MUSIC_{slot}",
+            station_name=name or "Unknown",
+            station_url=location,
+            station_favicon=artwork,
+            source="STORED_MUSIC",
+            source_account=source_account,
+        )
+    resolved = DevicePresetParser()._resolve_source(source, location, slot, name)
+    if resolved is None:
+        return None
+    station_uuid, station_url, preset_source, resolved_name = resolved
+    return Preset(
+        device_id=device_id,
+        preset_number=slot,
+        station_uuid=station_uuid,
+        station_name=resolved_name or "Unknown",
+        station_url=station_url,
+        source=preset_source,
+    )

@@ -512,8 +512,17 @@ async def put_device_preset(
     name = (root.findtext("name") or root.findtext("username") or "").strip()
     if root.tag != "preset" or not location or not 1 <= slot <= 6:
         return Response(status_code=400)
+    # UNVERIFIED which element carries the account; tolerate both spellings
+    account = (
+        root.findtext("sourceaccount") or root.findtext("sourceAccount") or ""
+    ).strip()
     stored = await marge.store_preset(
-        device_id, slot, (root.findtext("sourceid") or "").strip(), name, location
+        device_id,
+        slot,
+        (root.findtext("sourceid") or "").strip(),
+        name,
+        location,
+        account or None,
     )
     return _xml_response(build_preset_response_xml(stored), _MEDIA_STREAMING_XML)
 

@@ -20,6 +20,7 @@ from opencloudtouch.marge.source_repository import (
     MediaServerSource,
 )
 from opencloudtouch.presets.models import Preset
+from opencloudtouch.presets.parser import preset_from_content_item
 from opencloudtouch.presets.repository import PresetRepository
 from opencloudtouch.recents.models import RecentPlay
 from opencloudtouch.recents.repository import RecentsRepository
@@ -142,17 +143,44 @@ class MargeService:
         return await self._device_repo.update_name(device_id, name)
 
     async def store_preset(
-        self, device_id: str, slot: int, source_id: str, name: str, location: str
+        self,
+        device_id: str,
+        slot: int,
+        source_id: str,
+        name: str,
+        location: str,
+        source_account: str | None = None,
     ) -> Preset:
         """Store a preset the speaker wrote (upsert; keeps uuid and homepage of the slot)."""
         source = next(
             (s.source_type for s in BASE_SOURCES if s.streaming_id == source_id),
             source_id,
         )
-        if source == source_id and await self._is_stored_source(device_id, source_id):
+        stored = (
+            await self._stored_source(device_id, source_id)
+            if source == source_id
+            else None
+        )
+        if stored:
             source = "STORED_MUSIC"
-        station_url, art = _station_from_location(source, location, name)
         existing = await self._preset_repo.get_preset(device_id, slot)
+        account = source_account or (stored.account if stored else None)
+        if source == "STORED_MUSIC" and account:
+            # Same importer as "Load from device" (decision 28).
+            imported = preset_from_content_item(
+                device_id,
+                slot,
+                source,
+                location,
+                account,
+                name,
+                existing.station_favicon
+                if existing and existing.station_url == location
+                else None,
+            )
+            if imported:
+                return await self._preset_repo.set_preset(imported)
+        station_url, art = _station_from_location(source, location, name)
         return await self._preset_repo.set_preset(
             Preset(
                 device_id=device_id,
@@ -166,15 +194,17 @@ class MargeService:
             )
         )
 
-    async def _is_stored_source(self, device_id: str, source_id: str) -> bool:
-        """True if ``source_id`` is a media server stored for the device's account."""
+    async def _stored_source(
+        self, device_id: str, source_id: str
+    ) -> Optional[MediaServerSource]:
+        """The media server stored under ``source_id`` for the device's account."""
         if not source_id.isdigit() or not self._device_repo or not self._source_repo:
-            return False
+            return None
         device = await self._device_repo.get_by_device_id(device_id)
         account = device.marge_account_uuid if device else None
-        return bool(
-            account and await self._source_repo.get_by_id(account, int(source_id))
-        )
+        if not account:
+            return None
+        return await self._source_repo.get_by_id(account, int(source_id))
 
     async def delete_preset(self, device_id: str, slot: int) -> int:
         """Remove a preset the speaker deleted; returns the number of rows removed."""

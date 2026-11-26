@@ -294,3 +294,93 @@ class TestSetDlnaPreset:
         r = client.get("/api/presets/DEV1")
         assert r.json()[0]["dlna"] is False
         assert r.json()[0]["source_account"] is None
+
+
+# ---------------------------------------------------------------------------
+# GET reads the speaker live (decisions 6, 27; I-2)
+# ---------------------------------------------------------------------------
+
+
+class TestGetPresetsReadsSpeaker:
+    @pytest.fixture
+    def live(self, monkeypatch):
+        from unittest.mock import MagicMock
+
+        from opencloudtouch.presets.service import PresetService
+
+        monkeypatch.delenv("OCT_MOCK_MODE", raising=False)
+        rows: dict[int, Preset] = {}
+        repo = MagicMock()
+        repo.get_preset = AsyncMock(side_effect=lambda _d, n: rows.get(n))
+
+        def _save(p: Preset) -> Preset:
+            p.id = p.preset_number
+            rows[p.preset_number] = p
+            return p
+
+        repo.set_preset = AsyncMock(side_effect=_save)
+        repo.clear_preset = AsyncMock(
+            side_effect=lambda _d, n: int(rows.pop(n, None) is not None)
+        )
+        repo.get_all_presets = AsyncMock(
+            side_effect=lambda _d: [rows[n] for n in sorted(rows)]
+        )
+        device_repo = MagicMock()
+        device_repo.get_by_device_id = AsyncMock(return_value=MagicMock(ip="192.0.2.5"))
+        service = PresetService(repo, device_repo)
+        service._fetch_device_presets = AsyncMock()
+        app.dependency_overrides[get_preset_service] = lambda: service
+        yield service, rows
+        app.dependency_overrides.clear()
+
+    @staticmethod
+    def _speaker(name: str, location: str) -> bytes:
+        return (
+            '<presets><preset id="1"><ContentItem source="TUNEIN" '
+            f'location="{location}"><itemName>{name}</itemName>'
+            "</ContentItem></preset></presets>"
+        ).encode()
+
+    def test_get_presets_reads_speaker_each_call(self, live):
+        service, _ = live
+        service._fetch_device_presets.side_effect = [
+            self._speaker("First", "/v1/s1"),
+            self._speaker("Second", "/v1/s2"),
+        ]
+        client = TestClient(app)
+
+        first = client.get("/api/presets/DEV1").json()
+        second = client.get("/api/presets/DEV1").json()
+
+        assert [p["station_name"] for p in first] == ["First"]
+        assert [p["station_name"] for p in second] == ["Second"]
+        assert service._fetch_device_presets.await_count == 2
+
+    def test_get_presets_speaker_offline_returns_db_rows(self, live, caplog):
+        from opencloudtouch.core.exceptions import DeviceConnectionError
+
+        service, rows = live
+        rows[2] = _make_preset(device_id="DEV1", preset_number=2)
+        service._fetch_device_presets.side_effect = DeviceConnectionError(
+            "192.0.2.5", "offline"
+        )
+
+        response = TestClient(app).get("/api/presets/DEV1")
+
+        assert response.status_code == 200
+        assert [p["preset_number"] for p in response.json()] == [2]
+        assert "speaker presets unreadable" in caplog.text.lower()
+
+    def test_speaker_wins_over_db_row(self, live):
+        service, rows = live
+        rows[1] = _make_preset(
+            device_id="DEV1", station_favicon="http://192.0.2.9/old.png"
+        )
+        rows[4] = _make_preset(device_id="DEV1", preset_number=4)
+        service._fetch_device_presets.return_value = self._speaker("New", "/v1/s9")
+
+        body = TestClient(app).get("/api/presets/DEV1").json()
+
+        assert [(p["preset_number"], p["station_name"]) for p in body] == [(1, "New")]
+        assert body[0]["source"] == "TUNEIN"
+        assert body[0]["station_favicon"] is None

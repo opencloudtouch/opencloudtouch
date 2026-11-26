@@ -991,3 +991,75 @@ class TestDeviceIsSourceOfTruth:
             await service.clear_all_presets("dev-001")
 
         assert [c.args[0] for c in client.remove_preset.await_args_list] == [1, 5]
+
+
+# ---------------------------------------------------------------------------
+# Speaker is the truth, OCT keeps metadata (decisions 6, 9, 27; L3, L5, N2)
+# ---------------------------------------------------------------------------
+
+
+def _oct_radio_row(**overrides) -> Preset:
+    values: dict = dict(
+        device_id="dev-001",
+        preset_number=1,
+        station_uuid="rb-uuid-1",
+        station_name="Example FM",
+        station_url="https://stream.example.org/live",
+        station_homepage="https://example.org",
+        station_favicon="https://example.org/logo.png",
+        source="LOCAL_INTERNET_RADIO",
+    )
+    values.update(overrides)
+    return Preset(**values)
+
+
+class TestSyncKeepsMetadata:
+    @pytest.mark.asyncio
+    async def test_sync_keeps_favicon_when_speaker_has_none(self, service, mock_repo):
+        mock_repo.get_preset = AsyncMock(return_value=_oct_radio_row())
+        xml = _build_presets_xml(
+            {
+                "id": 1,
+                "source": "LOCAL_INTERNET_RADIO",
+                "location": _build_bmx_location("https://stream.example.org/live"),
+                "item_name": "Example FM",
+            }
+        )
+        with patch.object(
+            service, "_fetch_device_presets", AsyncMock(return_value=xml)
+        ):
+            await service.sync_presets_from_device("dev-001")
+
+        stored = mock_repo.set_preset.await_args.args[0]
+        assert stored.station_favicon == "https://example.org/logo.png"
+        # N2: an OCT radio preset keeps its type and identity when loaded back
+        assert (stored.source, stored.station_uuid, stored.station_homepage) == (
+            "LOCAL_INTERNET_RADIO",
+            "rb-uuid-1",
+            "https://example.org",
+        )
+
+    @pytest.mark.asyncio
+    async def test_sync_keeps_unreadable_slot(self, service, mock_repo):
+        """L3: a slot the speaker has but OCT cannot read keeps its OCT row."""
+        bmx_without_data = "http://content.api.bose.io/bmx-adapter/orion/station"
+        xml = _build_presets_xml(
+            {"id": 2, "source": "LOCAL_INTERNET_RADIO", "location": bmx_without_data}
+        )
+        with patch.object(
+            service, "_fetch_device_presets", AsyncMock(return_value=xml)
+        ):
+            assert await service.sync_presets_from_device("dev-001") == 0
+
+        cleared = {c.args[1] for c in mock_repo.clear_preset.await_args_list}
+        assert cleared == {1, 3, 4, 5, 6}
+
+    @pytest.mark.asyncio
+    async def test_get_all_presets_mock_mode_serves_db_rows(self, service, mock_repo):
+        """Mock speakers keep presets only in OCT (mock store_preset is a no-op)."""
+        fetch = AsyncMock()
+        with patch.object(service, "_fetch_device_presets", fetch):
+            await service.get_all_presets("dev-001")
+
+        fetch.assert_not_awaited()
+        mock_repo.get_all_presets.assert_awaited_once_with("dev-001")

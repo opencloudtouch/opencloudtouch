@@ -8,11 +8,14 @@ Repository handles data persistence.
 import asyncio
 import ipaddress
 import logging
+import os
 import socket
 from typing import TYPE_CHECKING, Any, List, Optional
 from urllib.parse import urljoin, urlsplit, urlunsplit
+from xml.etree.ElementTree import ParseError
 
 import httpx
+from defusedxml.ElementTree import fromstring as parse_xml_string
 
 from opencloudtouch.core import error_codes
 from opencloudtouch.core.exceptions import (
@@ -356,17 +359,29 @@ class PresetService:
         return await self.repository.get_preset(device_id, preset_number)
 
     async def get_all_presets(self, device_id: str) -> List[Preset]:
-        """Get all presets for a device.
+        """Get all presets for a device, read live from the speaker first.
 
-        Returns all configured presets (1-6) for the specified device.
+        The speaker is the truth: its /presets is imported on every call. IF the
+        speaker cannot be read THEN the OCT rows are returned unchanged and a
+        warning is logged. Mock speakers keep presets only in OCT (their
+        store_preset is a no-op), so mock mode serves the OCT rows directly.
         Empty slots are not included in the response.
-
-        Args:
-            device_id: Device identifier
-
-        Returns:
-            List of Preset objects
         """
+        if os.getenv("OCT_MOCK_MODE", "false").lower() != "true":
+            try:
+                await self.sync_presets_from_device(device_id)
+            # ValueError covers defusedxml's rejection of unsafe XML
+            except (
+                DeviceNotFoundError,
+                DeviceConnectionError,
+                ParseError,
+                ValueError,
+            ) as exc:
+                logger.warning(
+                    "Speaker presets unreadable for %s, serving OCT rows: %s",
+                    device_id,
+                    type(exc).__name__,
+                )
         return await self.repository.get_all_presets(device_id)
 
     async def clear_preset(self, device_id: str, preset_number: int) -> bool:
@@ -433,11 +448,25 @@ class PresetService:
             extra={"device_id": device_id, "device_ip": device.ip},
         )
 
-        preset_xml = await self._fetch_device_presets(device.ip)
-        parsed_presets = self._parser.parse_presets(device_id, preset_xml)
+        root = parse_xml_string(await self._fetch_device_presets(device.ip))
+        slots_on_device = [elem.get("id") for elem in root.findall("preset")]
+        parsed_presets = [
+            preset
+            for elem in root.findall("preset")
+            if (preset := self._parser.parse_element(elem, device_id))
+        ]
         synced_count = 0
 
         for preset in parsed_presets:
+            existing = await self.repository.get_preset(device_id, preset.preset_number)
+            if existing and existing.station_url == preset.station_url:
+                # Same item: OCT keeps its metadata and identity (decision 9, L5, N2).
+                preset.station_uuid = existing.station_uuid
+                preset.source = existing.source
+                preset.station_homepage = existing.station_homepage
+                preset.station_favicon = (
+                    preset.station_favicon or existing.station_favicon
+                )
             await self.repository.set_preset(preset)
             synced_count += 1
             logger.info(
@@ -452,10 +481,10 @@ class PresetService:
                 },
             )
 
-        # The device is the source of truth: drop OCT slots the device does not have.
-        on_device = {p.preset_number for p in parsed_presets}
+        # The device is the source of truth: drop OCT slots the device does not have;
+        # a slot it has but OCT cannot read keeps its OCT row (L3).
         for slot in range(1, 7):
-            if slot not in on_device:
+            if str(slot) not in slots_on_device:
                 await self.repository.clear_preset(device_id, slot)
 
         logger.info(
