@@ -51,7 +51,7 @@ speaker on every request and keeps only what the speaker cannot hold.
 | Caching | None: no browse cache, no availability cache, no slot cache. Browse lists are paged. A cache is added only after measurements on real media servers show it is needed. |
 | Registration | The Bose way: per server through the speaker's own `setMusicServiceAccount` / `removeMusicServiceAccount`. OCT implements the Marge routes the speaker relays (`POST`/`DELETE .../source`, `GET .../sources`), assigns the source ids and stores them per Marge account and server. The UDN is kept exactly as the speaker spells it. OCT never writes `Sources.xml` for this feature. |
 | `sourcesUpdated` | After each source change OCT sends `<updates deviceID="..."><sourcesUpdated/></updates>` to the speaker (`POST :8090/notification`), best effort. |
-| Provider ids | A registered media server is always announced with provider id 7 (`STORED_MUSIC`). The other default sources keep their old provider ids in `/full` while the speaker's migration version is 0. |
+| Provider ids | In `/full` and `GET .../sources` a registered media server uses the same `STORED_MUSIC` provider id as the speaker's default source list: the old id (50) while the speaker's migration version is 0, the catalogue id 7 from version 1 (serving 7 on version 0 made the speaker file the server as `INVALID_SOURCE`). Only the `POST .../source` answer always says `sourceProviderID` 7. The other default sources keep their old provider ids while the migration version is 0. |
 | Migration service | Each speaker has a migration version (table `speaker_migrations`, no row = 0). The service runs at startup for every known speaker and again when an offline speaker comes back. Steps are ordered, idempotent and logged per speaker; a failed step leaves the old version and disables the DLNA feature for that speaker. The step 0 -> 1 (switch to the catalogue provider ids) is not registered yet, so every speaker stays on version 0. |
 | Availability | A server is `ready` when the speaker lists it as READY in `/sources`, it is in `/listMediaServers` and a browse of its root succeeds; `not_enabled` when OCT has no source for it; otherwise `unavailable`. Error 1602 is retried once. No re-pair loop. |
 | Folder check | Saving a folder whose first child is not audio returns 409 `dlna_folder_no_audio_first`; the user can confirm and save anyway. |
@@ -106,19 +106,24 @@ migration step that keeps them.
   [Troubleshooting](../TROUBLESHOOTING.md#dlna-error-1608--server-not-available)); it can only
   explain it.
 
+### Verified on hardware
+
+- **Registration answer shape:** the speaker accepts
+  `<source><sourceID>N</sourceID><sourceProviderID>7</sourceProviderID><createdOn/><updatedOn/></source>`
+  (201, no error 1022 `MARGE_SET_CRED_FAILED`), writes its own `STORED_MUSIC` entry with the UDN in
+  its own spelling and reports it READY.
+- **`sourcesUpdated` with `deviceID`:** answered with HTTP 200 and triggers the speaker's `/full`
+  fetch; without `deviceID` the speaker answers error 1019 `CLIENT_XML_ERROR`.
+- **Native presets in `/full`:** served as `STORED_MUSIC` items with their stored location and the
+  `{UDN}/0` account, also after the server was removed. A speaker answer 1047
+  `SOURCE_ALREADY_REMOVED` to a removal counts as done. Pressing a preset whose server was removed
+  ends in `INVALID_SOURCE`, and the app shows "Source not available".
+
 ### Not yet verified on hardware
 
-- **Registration answer shape:** the speaker accepted the answer
-  `<source id="N"><createdOn/><sourceproviderid>7</sourceproviderid><updatedOn/></source>`. The
-  implemented answer is
-  `<source><sourceID>N</sourceID><sourceProviderID>7</sourceProviderID><createdOn/><updatedOn/></source>`
-  (the shape of the reference implementations). Whether the speaker accepts it, and whether the
-  source then becomes READY when the UDN keeps the speaker's spelling, is unverified.
-- **`sourcesUpdated` with `deviceID`:** an earlier body without `deviceID` was answered with HTTP
-  500. Whether the speaker accepts the body with `deviceID` is unverified. The speaker refreshed its
-  sources on its own after each Marge source change in the earlier test, so the push is best effort.
-- **Migration step 0 -> 1:** how the speaker keeps AIRPLAY, QPLAY and SPOTIFY when the provider ids
-  change is still to be researched; until then the step stays unregistered.
+- **Migration step 0 -> 1:** not implemented; how the speaker keeps AIRPLAY, QPLAY and SPOTIFY when
+  the provider ids change is still to be researched, so the step stays unregistered.
+- **Shared Marge account:** one account for all speakers is not verified on a speaker yet.
 
 ---
 

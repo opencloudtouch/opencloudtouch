@@ -61,16 +61,19 @@ The speaker stores no source id; it identifies the source by type and account (`
 | `GET .../sources` | the account's stored media-server sources |
 
 Right after a source change the speaker fetches `/sources` and `/full` again by itself. OCT additionally sends
-`<updates deviceID="{device}"><sourcesUpdated/></updates>` to `POST :8090/notification` (best effort, failures are only logged). A body
-without `deviceID` was answered with HTTP 500; whether the speaker accepts the body with `deviceID` is not verified yet.
+`<updates deviceID="{device}"><sourcesUpdated/></updates>` to `POST :8090/notification` (best effort, failures are only logged).
+Verified on hardware: the body with `deviceID` is answered with HTTP 200 and makes the speaker fetch `/full`; a body without `deviceID`
+is answered with error 1019 `CLIENT_XML_ERROR`.
 
-The answer shape above follows the reference implementations and is not verified on a speaker yet. The speaker accepted
-`<source id="N"><createdOn/><sourceproviderid>7</sourceproviderid><updatedOn/></source>` (201) in an earlier test.
+Verified on hardware: the speaker accepts the `POST .../source` answer shape above (201, no error 1022 `MARGE_SET_CRED_FAILED`), then
+writes its own `STORED_MUSIC` entry with the UDN in its own spelling and reports the source READY.
 
 ### Provider ids and the migration version
 
-`/full` lists every stored media server as `STORED_MUSIC` with provider id 7. The other default sources keep the provider ids OCT used
-before. Switching them to the Bose catalogue ids (AUX 9, AIRPLAY 5, SPOTIFY 15, QPLAY 26, TUNEIN 25, LOCAL_INTERNET_RADIO 11) made the
+`/full` and `GET .../sources` list every stored media server as `STORED_MUSIC` with the same provider id as the speaker's default
+`STORED_MUSIC` source: the old id (50) while the speaker's migration version is 0, the catalogue id 7 from version 1. Only the
+`POST .../source` answer always says `sourceProviderID` 7. Serving 7 to a speaker on version 0 made it file the server as
+`INVALID_SOURCE` (verified on hardware). The other default sources keep the provider ids OCT used before. Switching them to the Bose catalogue ids (AUX 9, AIRPLAY 5, SPOTIFY 15, QPLAY 26, TUNEIN 25, LOCAL_INTERNET_RADIO 11) made the
 speaker remove its AIRPLAY, QPLAY and SPOTIFY entries, the ones whose id changed. OCT therefore serves the catalogue ids only to a speaker
 whose migration version is 1 or higher; the step from 0 to 1 is not available yet, so every speaker stays on version 0.
 
