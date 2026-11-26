@@ -85,6 +85,25 @@ class TestEventToSSE:
         assert data["artist"] == "ICY Artist"
         assert data["track"] == "ICY Track"
 
+    def test_source_error_sse_format_has_code_name_severity_no_text(self):
+        event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.SOURCE_ERROR,
+            error_code=1604,
+            error_name="STORED_MUSIC_RENDERER_BAD_FORMAT",
+            error_severity="Unrecoverable",
+            raw_xml="<errorUpdate>Track format is not supported</errorUpdate>",
+        )
+        sse = _event_to_sse(event)
+        assert sse.startswith("event: source_error\n")
+        data = json.loads(sse.split("data: ")[1].strip())
+        assert data == {
+            "device_id": "D1",
+            "code": 1604,
+            "name": "STORED_MUSIC_RENDERER_BAD_FORMAT",
+            "severity": "Unrecoverable",
+        }
+
 
 class TestSnapshotToSSE:
     def test_full_snapshot(self):

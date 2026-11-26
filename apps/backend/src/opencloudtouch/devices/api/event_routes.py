@@ -16,7 +16,7 @@ from fastapi.responses import StreamingResponse
 
 from opencloudtouch.core.dependencies import get_device_state_manager
 from opencloudtouch.devices.state import DeviceStateManager
-from opencloudtouch.devices.websocket.parser import DeviceEvent
+from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +57,16 @@ def _event_to_sse(event: DeviceEvent) -> str:
 
     if event.connection_state is not None:
         data["connection_state"] = event.connection_state.value
+
+    if event.event_type == EventType.SOURCE_ERROR:
+        # the speaker's free text is deliberately not forwarded
+        data.update(
+            {
+                "code": event.error_code,
+                "name": event.error_name,
+                "severity": event.error_severity,
+            }
+        )
 
     return f"event: {event.event_type.value}\ndata: {json.dumps(data)}\n\n"
 

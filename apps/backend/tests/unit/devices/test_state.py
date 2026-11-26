@@ -286,6 +286,21 @@ class TestStateManagerOnEvent:
         assert received.event_type == EventType.PRESETS
 
     @pytest.mark.asyncio
+    async def test_source_error_does_not_touch_now_playing_state(self):
+        mgr = DeviceStateManager()
+        np = NowPlayingInfo(source="STORED_MUSIC", state="PLAY_STATE", track="T")
+        mgr.update_now_playing("D1", np)
+        queue = mgr.subscribe()
+
+        event = DeviceEvent(
+            device_id="D1", event_type=EventType.SOURCE_ERROR, error_code=1604
+        )
+        await mgr.on_event(event)
+
+        assert await queue.get() is event
+        assert mgr.get_state("D1").now_playing is np
+
+    @pytest.mark.asyncio
     async def test_on_event_ignores_now_playing_without_data(self):
         """NOW_PLAYING event with now_playing=None should not crash."""
         mgr = DeviceStateManager()
