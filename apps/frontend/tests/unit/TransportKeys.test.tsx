@@ -61,4 +61,40 @@ describe("TransportKeys", () => {
     render(<TransportKeys {...base} />);
     expect(screen.getByRole("button", { name: "Next track" })).not.toHaveAttribute("aria-disabled");
   });
+  it("controls hidden without settings", () => {
+    const { rerender } = render(<TransportKeys {...base} shuffle={null} repeat={null} />);
+    expect(screen.queryByRole("button", { name: "Shuffle" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Repeat/ })).not.toBeInTheDocument();
+
+    // Radio has no track controls, even when the speaker reports the settings.
+    rerender(<TransportKeys {...base} showSkip={false} shuffle="SHUFFLE_ON" repeat="REPEAT_ALL" />);
+    expect(screen.queryByRole("button", { name: "Shuffle" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Repeat/ })).not.toBeInTheDocument();
+  });
+
+  it("buttons have accessible names and aria-pressed", () => {
+    const onKey = vi.fn();
+    const { rerender } = render(
+      <TransportKeys {...base} onKey={onKey} shuffle="SHUFFLE_OFF" repeat="REPEAT_OFF" />
+    );
+    expect(screen.getByRole("button", { name: "Shuffle" })).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+    expect(screen.getByRole("button", { name: "Repeat: off" })).toBeInTheDocument();
+
+    rerender(<TransportKeys {...base} onKey={onKey} shuffle="SHUFFLE_ON" repeat="REPEAT_ONE" />);
+    expect(screen.getByRole("button", { name: "Shuffle" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Shuffle" }));
+    fireEvent.click(screen.getByRole("button", { name: "Repeat: one" }));
+    expect(onKey.mock.calls.map((c) => c[0])).toEqual(["SHUFFLE", "REPEAT"]);
+  });
+
+  it("shows only the setting the speaker reports and locks it while a key runs", () => {
+    render(<TransportKeys {...base} repeat="REPEAT_ALL" busyKey="REPEAT" />);
+    expect(screen.queryByRole("button", { name: "Shuffle" })).not.toBeInTheDocument();
+    const repeat = screen.getByRole("button", { name: "Repeat: all" });
+    expect(repeat).toBeDisabled();
+    expect(repeat).toHaveAttribute("aria-busy", "true");
+  });
 });

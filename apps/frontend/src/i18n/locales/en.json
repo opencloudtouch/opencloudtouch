@@ -33,6 +33,13 @@
     "noStation": "No station",
     "powerButton": "Power on/off",
     "playbackTitle": "Playback",
+    "shuffle": { "label": "Shuffle" },
+    "repeat": {
+      "label": "Repeat: {{mode}}",
+      "REPEAT_OFF": "off",
+      "REPEAT_ALL": "all",
+      "REPEAT_ONE": "one"
+    },
     "prevTrack": "Previous track",
     "singleTrackNoSkip": "A single track has no queue",
     "nextTrack": "Next track",

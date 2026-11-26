@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "./Icon";
 
-export type TransportKey = "PREV_TRACK" | "PLAY_PAUSE" | "NEXT_TRACK";
+export type TransportKey = "PREV_TRACK" | "PLAY_PAUSE" | "NEXT_TRACK" | "SHUFFLE" | "REPEAT";
 
 interface TransportKeysProps {
   playing: boolean;
@@ -15,6 +15,9 @@ interface TransportKeysProps {
   disabled: boolean;
   busyKey: TransportKey | null;
   onKey: (key: TransportKey) => void;
+  /** Settings the speaker reports; null/absent = not reported, no control. */
+  shuffle?: string | null;
+  repeat?: string | null;
 }
 
 /** Previous / Play-Pause / Next below the now-playing block. The row is 76px high for every source. */
@@ -26,6 +29,8 @@ export default function TransportKeys({
   disabled,
   busyKey,
   onKey,
+  shuffle = null,
+  repeat = null,
 }: Readonly<TransportKeysProps>) {
   const { t } = useTranslation();
 
@@ -62,7 +67,7 @@ export default function TransportKeys({
 
   return (
     <div
-      className="lc-transport dv-keys"
+      className={`lc-transport dv-keys${showSkip ? " dv-keys--tp" : ""}`}
       role="group"
       aria-label={t("player.playbackTitle")}
       data-test="dv-keys"
@@ -92,6 +97,53 @@ export default function TransportKeys({
           false,
           skipDisabled
         )}
+      {showSkip && (shuffle !== null || repeat !== null) && (
+        <div className="tp-row" data-test="dv-modes">
+          {shuffle !== null && (
+            <button
+              type="button"
+              className="tp-key"
+              onClick={() => onKey("SHUFFLE")}
+              disabled={disabled || busyKey !== null}
+              aria-busy={busyKey === "SHUFFLE" || undefined}
+              aria-pressed={shuffle === "SHUFFLE_ON"}
+              aria-label={t("player.shuffle.label")}
+              data-test="dv-SHUFFLE"
+            >
+              {busyKey === "SHUFFLE" ? (
+                <span className="ui-spin">{Icon.Loader(22)}</span>
+              ) : (
+                Icon.Shuffle(22)
+              )}
+            </button>
+          )}
+          {repeat !== null && (
+            <button
+              type="button"
+              // The name carries the mode; the class gives the on-state its ring and dot.
+              className={`tp-key${repeat === "REPEAT_OFF" ? "" : " tp-key--on"}`}
+              onClick={() => onKey("REPEAT")}
+              disabled={disabled || busyKey !== null}
+              aria-busy={busyKey === "REPEAT" || undefined}
+              aria-label={t("player.repeat.label", {
+                mode: t(`player.repeat.${repeat}`, { defaultValue: repeat }),
+              })}
+              data-test="dv-REPEAT"
+            >
+              {busyKey === "REPEAT" ? (
+                <span className="ui-spin">{Icon.Loader(22)}</span>
+              ) : (
+                Icon.Repeat(22)
+              )}
+              {repeat === "REPEAT_ONE" && (
+                <span className="tp-badge" aria-hidden="true">
+                  1
+                </span>
+              )}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

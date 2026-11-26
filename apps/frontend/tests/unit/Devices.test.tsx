@@ -52,6 +52,7 @@ vi.mock("../../src/api/devices", async (importOriginal) => {
     togglePlayPause: vi.fn().mockResolvedValue(undefined),
     nextTrack: vi.fn().mockResolvedValue(undefined),
     prevTrack: vi.fn().mockResolvedValue(undefined),
+    sendKey: vi.fn(),
   };
 });
 
@@ -1406,6 +1407,100 @@ describe("Devices Page", () => {
       expect(
         screen.getByText("Playback is controlled on the connected device.")
       ).toBeInTheDocument();
+    });
+
+    describe("shuffle and repeat", () => {
+      const settings = (shuffle: string | null, repeat: string | null) =>
+        playing("STORED_MUSIC", { shuffle_setting: shuffle, repeat_setting: repeat });
+      const answer = (shuffle: string, repeat: string) => ({
+        message: "ok",
+        device_id: "AABBCC123456",
+        shuffle_setting: shuffle,
+        repeat_setting: repeat,
+      });
+
+      it("shuffle button toggles and sends SHUFFLE_ON/OFF", async () => {
+        mockNowPlayingState = settings("SHUFFLE_OFF", "REPEAT_OFF");
+        vi.mocked(devicesApi.sendKey)
+          .mockResolvedValueOnce(answer("SHUFFLE_ON", "REPEAT_OFF"))
+          .mockResolvedValueOnce(answer("SHUFFLE_OFF", "REPEAT_OFF"));
+        await renderDevices();
+        const shuffle = screen.getByRole("button", { name: "Shuffle" });
+
+        await act(async () => fireEvent.click(shuffle));
+        expect(devicesApi.sendKey).toHaveBeenLastCalledWith("AABBCC123456", "SHUFFLE_ON");
+        expect(shuffle).toHaveAttribute("aria-pressed", "true");
+
+        await act(async () => fireEvent.click(shuffle));
+        expect(devicesApi.sendKey).toHaveBeenLastCalledWith("AABBCC123456", "SHUFFLE_OFF");
+        expect(shuffle).toHaveAttribute("aria-pressed", "false");
+      });
+
+      it("repeat cycles off all one", async () => {
+        mockNowPlayingState = settings("SHUFFLE_OFF", "REPEAT_OFF");
+        vi.mocked(devicesApi.sendKey)
+          .mockResolvedValueOnce(answer("SHUFFLE_OFF", "REPEAT_ALL"))
+          .mockResolvedValueOnce(answer("SHUFFLE_OFF", "REPEAT_ONE"))
+          .mockResolvedValueOnce(answer("SHUFFLE_OFF", "REPEAT_OFF"));
+        await renderDevices();
+
+        for (const [from, wire] of [
+          ["off", "REPEAT_ALL"],
+          ["all", "REPEAT_ONE"],
+          ["one", "REPEAT_OFF"],
+        ]) {
+          await act(async () =>
+            fireEvent.click(screen.getByRole("button", { name: `Repeat: ${from}` }))
+          );
+          expect(devicesApi.sendKey).toHaveBeenLastCalledWith("AABBCC123456", wire);
+        }
+        expect(screen.getByRole("button", { name: "Repeat: off" })).toBeInTheDocument();
+      });
+
+      it("state follows the speaker answer", async () => {
+        mockNowPlayingState = settings("SHUFFLE_OFF", "REPEAT_OFF");
+        // The speaker refuses the change: its read-back wins over the requested value.
+        vi.mocked(devicesApi.sendKey).mockResolvedValueOnce(answer("SHUFFLE_OFF", "REPEAT_OFF"));
+        const { rerender } = render(<Devices devices={mockDevices} />);
+
+        await act(async () => fireEvent.click(screen.getByRole("button", { name: "Shuffle" })));
+        expect(screen.getByRole("button", { name: "Shuffle" })).toHaveAttribute(
+          "aria-pressed",
+          "false"
+        );
+
+        // A newer now_playing event replaces the key answer.
+        mockNowPlayingState = settings("SHUFFLE_ON", "REPEAT_ONE");
+        rerender(<Devices devices={mockDevices} />);
+        expect(screen.getByRole("button", { name: "Shuffle" })).toHaveAttribute(
+          "aria-pressed",
+          "true"
+        );
+        expect(screen.getByRole("button", { name: "Repeat: one" })).toBeInTheDocument();
+      });
+
+      it("controls hidden without settings", async () => {
+        mockNowPlayingState = settings(null, null);
+        await renderDevices();
+        expect(screen.getByRole("button", { name: "Next track" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Shuffle" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /^Repeat/ })).not.toBeInTheDocument();
+      });
+
+      it("failed key keeps state", async () => {
+        mockNowPlayingState = settings("SHUFFLE_ON", "REPEAT_ALL");
+        vi.mocked(devicesApi.sendKey).mockRejectedValueOnce(new Error("offline"));
+        await renderDevices();
+
+        await act(async () => fireEvent.click(screen.getByRole("button", { name: "Repeat: all" })));
+        expect(devicesApi.sendKey).toHaveBeenCalledWith("AABBCC123456", "REPEAT_ONE");
+        expect(screen.getByRole("button", { name: "Repeat: all" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Shuffle" })).toHaveAttribute(
+          "aria-pressed",
+          "true"
+        );
+        expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), "error");
+      });
     });
 
     it("locks source and keys in standby", async () => {

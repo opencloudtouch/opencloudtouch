@@ -396,7 +396,7 @@ describe("Devices API Client", () => {
 
   describe("nextTrack", () => {
     it("sends POST with key=NEXT_TRACK", async () => {
-      mockFetch.mockResolvedValueOnce({ ok: true });
+      mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
 
       await expect(nextTrack("device123")).resolves.toBeUndefined();
 
@@ -420,7 +420,7 @@ describe("Devices API Client", () => {
 
   describe("prevTrack", () => {
     it("sends POST with key=PREV_TRACK", async () => {
-      mockFetch.mockResolvedValueOnce({ ok: true });
+      mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
 
       await expect(prevTrack("device123")).resolves.toBeUndefined();
 

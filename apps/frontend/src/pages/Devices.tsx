@@ -17,6 +17,7 @@ import { Icon } from "../components/Icon";
 import {
   playPreset as playPresetAPI,
   togglePlayPause,
+  sendKey,
   nextTrack,
   prevTrack,
   selectSource,
@@ -48,6 +49,7 @@ interface DevicesProps {
 }
 
 const RADIO_SOURCES = new Set(["INTERNET_RADIO", "LOCAL_INTERNET_RADIO", "TUNEIN"]);
+const REPEAT_CYCLE = ["REPEAT_OFF", "REPEAT_ALL", "REPEAT_ONE"];
 const PRESET_NUMBERS = [1, 2, 3, 4, 5, 6];
 const SOURCE_LABEL_KEYS: Record<DeviceSource, string> = {
   presets: "device.src.presets",
@@ -120,6 +122,15 @@ export default function Devices({
   const [switchFailed, setSwitchFailed] = useState<DeviceSource | null>(null);
   const [keyBusy, setKeyBusy] = useState<TransportKey | null>(null);
   const [announcement, setAnnouncement] = useState("");
+  // The key answer is the speaker's read-back; the next now_playing state (new object) replaces it.
+  const [keyAnswer, setKeyAnswer] = useState<{
+    np: typeof npState;
+    shuffle?: string | null;
+    repeat?: string | null;
+  } | null>(null);
+  const settings = keyAnswer?.np === npState ? keyAnswer : null;
+  const shuffle = (settings ? settings.shuffle : npState?.shuffle_setting) ?? null;
+  const repeat = (settings ? settings.repeat : npState?.repeat_setting) ?? null;
 
   const source = npState?.source;
   const isStandby = source === "STANDBY";
@@ -403,7 +414,21 @@ export default function Devices({
     try {
       if (key === "PREV_TRACK") await prevTrack(deviceId);
       else if (key === "NEXT_TRACK") await nextTrack(deviceId);
-      else await togglePlayPause(deviceId);
+      else if (key === "SHUFFLE" || key === "REPEAT") {
+        const next =
+          key === "REPEAT"
+            ? (REPEAT_CYCLE[(REPEAT_CYCLE.indexOf(repeat ?? "") + 1) % REPEAT_CYCLE.length] ??
+              "REPEAT_OFF")
+            : shuffle === "SHUFFLE_ON"
+              ? "SHUFFLE_OFF"
+              : "SHUFFLE_ON";
+        const answer = await sendKey(deviceId, next);
+        setKeyAnswer({
+          np: npState,
+          shuffle: answer.shuffle_setting,
+          repeat: answer.repeat_setting,
+        });
+      } else await togglePlayPause(deviceId);
     } catch (err) {
       console.error(`[Devices] Key ${key} failed:`, err);
       showToast(getDeviceActionError(t, err, "errors.unknown"), "error");
@@ -574,6 +599,8 @@ export default function Devices({
                     disabled={controlsLocked || switching !== null}
                     busyKey={keyBusy}
                     onKey={handleKey}
+                    shuffle={shuffle}
+                    repeat={repeat}
                   />
 
                   <div
