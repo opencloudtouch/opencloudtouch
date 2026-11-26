@@ -377,6 +377,26 @@ class TestStreamingFullAccountSources:
         migrations.status.assert_awaited_once_with("AABB")
 
     @pytest.mark.asyncio
+    async def test_full_serves_native_dlna_preset_with_stored_source(self):
+        from opencloudtouch.presets.models import Preset
+
+        now = datetime(2026, 11, 1, tzinfo=UTC)
+        stored = MediaServerSource(20000002, "acc", "udn-1", "NAS", now, now)
+        preset = Preset(
+            "AABB", 6, "", "Song", "130032 TRACK", None, None, "STORED_MUSIC", "udn-1/0"
+        )
+        marge = self._marge([stored])
+        marge.get_full_account = AsyncMock(return_value=([preset], []))
+
+        result = await streaming_full_account("acc", marge, None)
+
+        root = ElementTree.fromstring(result.body.decode())
+        entry = root.find("./devices/device/presets/preset")
+        assert entry.findtext("location") == "130032 TRACK"
+        assert entry.find("source").get("id") == "20000002"
+        assert entry.find("source").findtext("sourceproviderid") == "50"
+
+    @pytest.mark.asyncio
     async def test_version_zero_and_no_service_keep_old_ids(self):
         zero = AsyncMock()
         zero.status = AsyncMock(return_value=(0, None))

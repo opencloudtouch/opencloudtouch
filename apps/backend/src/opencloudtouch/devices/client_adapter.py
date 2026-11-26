@@ -37,6 +37,8 @@ logger = logging.getLogger(__name__)
 
 # Transient speaker-side service lookup failure; retried once (hardware T13).
 BROWSE_RETRY_ERROR = 1602
+# /navigate of a 1000+ item folder takes far longer than other calls (T21 4c).
+NAVIGATE_TIMEOUT = 15.0
 
 
 class BoseDeviceClientAdapter(DeviceClient):
@@ -715,10 +717,12 @@ class BoseDeviceClientAdapter(DeviceClient):
 
     # ---- DLNA / STORED_MUSIC Methods ----
 
-    async def _send(self, path: str, body: str | None = None) -> httpx.Response:
+    async def _send(
+        self, path: str, body: str | None = None, timeout: float | None = None
+    ) -> httpx.Response:
         """GET (no body) or POST XML; transport errors raise DeviceConnectionError."""
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with httpx.AsyncClient(timeout=timeout or self.timeout) as client:
                 if body is None:
                     return await client.get(f"{self.base_url}{path}")
                 return await client.post(
@@ -779,7 +783,7 @@ class BoseDeviceClientAdapter(DeviceClient):
         return result
 
     async def _navigate(self, body: str) -> StoredMusicBrowse:
-        response = await self._send("/navigate", body)
+        response = await self._send("/navigate", body, NAVIGATE_TIMEOUT)
         # Speaker errors arrive as HTTP 500 with <errors><error value="N"> (T15).
         error_value = None
         try:

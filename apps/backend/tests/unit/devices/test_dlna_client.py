@@ -86,6 +86,22 @@ async def test_browse_parses_folder_items_verbatim(adapter, http):
     assert track.item_name == "Track One"
 
 
+async def test_browse_uses_long_navigate_timeout(adapter):
+    """Large parents take far longer than the 3 s default (T21 4c)."""
+    from opencloudtouch.devices.client_adapter import NAVIGATE_TIMEOUT
+
+    with patch("httpx.AsyncClient") as cls:
+        client = AsyncMock()
+        client.__aenter__.return_value = client
+        cls.return_value = client
+        client.post.return_value = _response(fx("navigate_folder.xml"))
+        await adapter.browse_stored_music(ACCOUNT)
+        assert cls.call_args.kwargs["timeout"] == NAVIGATE_TIMEOUT > adapter.timeout
+        client.get.return_value = _response(fx("list_media_servers.xml"))
+        await adapter.list_media_servers()
+        assert cls.call_args.kwargs["timeout"] == adapter.timeout
+
+
 async def test_browse_root_has_no_item(adapter, http):
     http.post.return_value = _response(fx("navigate_folder.xml"))
 

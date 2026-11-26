@@ -138,13 +138,20 @@ class DlnaNativeService:
                 if s.source == "STORED_MUSIC" and s.account.endswith("/0")
             ]
             await client.remove_media_server(_speaker_spelling(server_id, accounts))
+            # The speaker's DELETE callback normally removes the row; this is idempotent.
+            account = device.marge_account_uuid
+            deleted = False
+            for row in (
+                await self._source_repo.list_for_account(account) if account else []
+            ):
+                if row.server_id.lower() == server_id.lower() and (
+                    await self._source_repo.delete(row.account_id, row.source_id)
+                ):
+                    deleted = True
+            if deleted:  # no callback (1047): the speaker only syncs on a push (T21)
+                await client.notify_sources_updated(device.device_id)
         finally:
             await client.close()
-        # The speaker's DELETE callback normally removes the row; this is idempotent.
-        account = device.marge_account_uuid
-        for row in await self._source_repo.list_for_account(account) if account else []:
-            if row.server_id.lower() == server_id.lower():
-                await self._source_repo.delete(row.account_id, row.source_id)
 
     async def affected_slots(self, device_id: str, server_id: str) -> list[int]:
         """Preset slots on the speaker that play from this server, read live."""

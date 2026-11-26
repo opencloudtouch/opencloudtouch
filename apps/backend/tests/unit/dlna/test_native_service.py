@@ -270,6 +270,7 @@ async def test_remove_force_removes_and_keeps_presets():
     client.store_preset.assert_not_called()
     client.remove_preset.assert_not_called()
     source_repo.delete.assert_awaited_once_with(ACCOUNT, 20000000)
+    client.notify_sources_updated.assert_awaited_once_with("device-a")
 
 
 async def test_remove_without_slots():
@@ -278,6 +279,7 @@ async def test_remove_without_slots():
     await service.remove("device-a", UDN)
     client.remove_media_server.assert_awaited_once_with(UDN)
     source_repo.delete.assert_not_called()  # callback already removed the row
+    client.notify_sources_updated.assert_not_called()
 
 
 @respx.mock
@@ -296,11 +298,15 @@ async def test_remove_already_removed_1047_deletes_oct_row():
         client = BoseDeviceClientAdapter("http://192.0.2.10:8090")
     client.get_source_list = AsyncMock(return_value=[])
     client.close = AsyncMock()
+    notify = respx.post("http://192.0.2.10:8090/notification").respond(200)
     service, source_repo, *_ = _native(client, rows=[_row()], presets=b"<presets/>")
 
     await service.remove("device-a", UDN)
 
     source_repo.delete.assert_awaited_once_with(ACCOUNT, 20000000)
+    # No DELETE callback means no speaker sync: push it (T21 1b).
+    assert notify.call_count == 1
+    assert b"<sourcesUpdated/>" in notify.calls.last.request.content
 
 
 async def test_affected_slots_reads_live_presets():

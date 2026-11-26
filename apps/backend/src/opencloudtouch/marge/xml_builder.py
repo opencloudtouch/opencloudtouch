@@ -44,8 +44,17 @@ def build_preset_xml(preset: Any) -> ET.Element:
     Returns:
         XML Element for <preset>
     """
+    native = getattr(preset, "is_dlna", False) is True
     # Determine preset type and extract attributes
-    if hasattr(preset, "slot"):
+    if native:
+        # Native DLNA item exactly as the speaker stored it (T21 4i: an Orion URL
+        # in /full overwrote the speaker's slot on every sync).
+        preset_id = str(preset.preset_number)
+        source = "STORED_MUSIC"
+        location = preset.station_url
+        name = preset.station_name
+        image_url = preset.station_favicon or ""
+    elif hasattr(preset, "slot"):
         # SoundTouch preset (mock/test format)
         preset_id = str(preset.slot)
         source = preset.source
@@ -83,9 +92,10 @@ def build_preset_xml(preset: Any) -> ET.Element:
     # ContentItem child element
     content_item = ET.SubElement(preset_elem, "ContentItem")
     content_item.set("source", source)
-    content_item.set("type", "stationurl")
+    if not native:  # the speaker's own STORED_MUSIC items carry no type (T12)
+        content_item.set("type", "stationurl")
     content_item.set("location", location)
-    content_item.set("sourceAccount", "")
+    content_item.set("sourceAccount", preset.source_account if native else "")
     content_item.set("isPresetable", "true")
 
     # itemName
@@ -286,27 +296,48 @@ def build_recent_response_xml(recent: Any) -> ET.Element:
     return element
 
 
-def _item_children(parent: ET.Element, item: ET.Element, now: str) -> None:
-    """Fill the shared preset/recent children from a ``<ContentItem>`` element."""
+def _item_children(
+    parent: ET.Element,
+    item: ET.Element,
+    now: str,
+    stored_sources: list[MediaServerSource] | None = None,
+    catalogue_ids: bool = False,
+) -> None:
+    """Fill the shared preset/recent children from a ``<ContentItem>`` element.
+
+    A STORED_MUSIC item with an account references the account's registered
+    media-server source, else the default STORED_MUSIC source.
+    """
     content = item.find("ContentItem")
     assert content is not None
     ET.SubElement(parent, "containerArt").text = content.findtext("containerArt") or ""
-    ET.SubElement(parent, "contentItemType").text = "stationurl"
+    ET.SubElement(parent, "contentItemType").text = content.get("type", "")
     ET.SubElement(parent, "createdOn").text = now
     ET.SubElement(parent, "location").text = content.get("location", "")
     ET.SubElement(parent, "name").text = content.findtext("itemName") or ""
+    account = content.get("sourceAccount", "")
+    stored = next(
+        (s for s in stored_sources or [] if account and s.account == account), None
+    )
     src = _sources_by_name().get(content.get("source", ""))
-    if src is not None:
-        _source_element(parent, src)
+    if stored is not None:
+        stored_music_source_element(parent, stored, catalogue_ids)
+    elif src is not None:
+        # Radio keeps its old ids; only a native item follows the version (I-1).
+        _source_element(parent, src, catalogue_ids and bool(account))
     ET.SubElement(parent, "updatedOn").text = now
     ET.SubElement(parent, "username")
 
 
-def build_preset_response_xml(preset: Any) -> ET.Element:
+def build_preset_response_xml(
+    preset: Any,
+    stored_sources: list[MediaServerSource] | None = None,
+    catalogue_ids: bool = False,
+) -> ET.Element:
     """One ``<preset buttonNumber>`` entry as the speaker's Marge calls expect it."""
     element = build_preset_xml(preset)
     entry = ET.Element("preset", {"buttonNumber": element.get("id", "")})
-    _item_children(entry, element, _EPOCH)
+    _item_children(entry, element, _EPOCH, stored_sources, catalogue_ids)
     return entry
 
 
@@ -346,7 +377,9 @@ def build_streaming_account_xml(
         ET.SubElement(device, "createdOn").text = now
         preset_list = ET.SubElement(device, "presets")
         for preset in presets or []:
-            preset_list.append(build_preset_response_xml(preset))
+            preset_list.append(
+                build_preset_response_xml(preset, stored_sources, catalogue_ids)
+            )
         device.append(build_recents_response_xml(recents))
         ET.SubElement(device, "updatedOn").text = now
     ET.SubElement(account, "mode").text = "global"
