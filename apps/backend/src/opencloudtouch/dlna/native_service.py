@@ -20,6 +20,7 @@ from opencloudtouch.devices.repository import Device, DeviceRepository
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.marge.source_repository import MargeSourceRepository
 from opencloudtouch.migrations.service import SpeakerMigrationService
+from opencloudtouch.presets.repository import PresetRepository
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,7 @@ class DlnaNativeService:
         ready_timeout: float = 15.0,
         migration_service: SpeakerMigrationService | None = None,
         presets_xml: Callable[[str], Awaitable[bytes]] = _fetch_presets,
+        preset_repo: PresetRepository | None = None,
     ):
         self._source_repo = source_repo
         self._device_repo = device_repo
@@ -77,6 +79,8 @@ class DlnaNativeService:
         self._ready_timeout = ready_timeout
         self._migrations = migration_service
         self._presets_xml = presets_xml
+        # Mock mode only: mock speakers have no /presets, so the OCT rows stand in.
+        self._preset_repo = preset_repo
 
     async def read_state(self, device_id: str, server_id: str) -> NativeState:
         states = await self._read(device_id, server_id)
@@ -147,8 +151,15 @@ class DlnaNativeService:
         return await self._slots(await self._device(device_id), server_id)
 
     async def _slots(self, device: Device, server_id: str) -> list[int]:
-        root = ElementTree.fromstring(await self._presets_xml(device.ip))
         account = f"{server_id}/0".lower()
+        if self._preset_repo is not None:
+            return [
+                p.preset_number
+                for p in await self._preset_repo.get_all_presets(device.device_id)
+                if p.source == "STORED_MUSIC"
+                and (p.source_account or "").lower() == account
+            ]
+        root = ElementTree.fromstring(await self._presets_xml(device.ip))
         return [
             int(preset.get("id", "0"))
             for preset in root.iter("preset")

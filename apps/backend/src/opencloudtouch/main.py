@@ -256,6 +256,7 @@ async def _init_services(
         repos["marge_source_repo"],
         device_repo,
         migration_service=app.state.speaker_migration_service,
+        preset_repo=preset_repo if cfg.mock_mode else None,
     )
     logger.info("DlnaNativeService initialized")
 

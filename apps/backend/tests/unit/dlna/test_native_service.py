@@ -21,6 +21,7 @@ from opencloudtouch.dlna.native_service import (
     _fetch_presets,
 )
 from opencloudtouch.marge.source_repository import MediaServerSource
+from opencloudtouch.presets.models import Preset
 
 ACCOUNT = "00000000-0000-4000-8000-000000000001"
 UDN = "Aa000000-0000-4000-8000-0000000000Bb"
@@ -285,6 +286,31 @@ async def test_affected_slots_reads_live_presets():
     assert await service.affected_slots("device-a", UDN) == [3]
     presets_xml.assert_awaited_with("192.0.2.10")
     assert presets_xml.await_count == 2
+
+
+def _preset(slot: int, source: str, account: str | None) -> Preset:
+    return Preset(
+        "device-a", slot, "uuid", "Item", "loc", source=source, source_account=account
+    )
+
+
+async def test_affected_slots_mock_mode_reads_oct_rows():
+    """Mock speakers keep no /presets: the device's OCT preset rows are used."""
+    presets_xml = AsyncMock()
+    preset_repo = AsyncMock()
+    preset_repo.get_all_presets.return_value = [
+        _preset(2, "TUNEIN", None),
+        _preset(4, "STORED_MUSIC", f"{UDN.lower()}/0"),
+        _preset(6, "STORED_MUSIC", "other-udn/0"),
+    ]
+    device_repo = AsyncMock()
+    device_repo.get_by_device_id.return_value = _device()
+    service = DlnaNativeService(
+        AsyncMock(), device_repo, presets_xml=presets_xml, preset_repo=preset_repo
+    )
+    assert await service.affected_slots("device-a", UDN) == [4]
+    preset_repo.get_all_presets.assert_awaited_with("device-a")
+    presets_xml.assert_not_called()
 
 
 async def test_enable_poll_tolerates_list_failure():

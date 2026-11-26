@@ -440,6 +440,9 @@ class PresetService:
         device = await self.device_repository.get_by_device_id(device_id)
         if not device:
             raise DeviceNotFoundError(device_id)
+        # Mock speakers keep presets only in OCT: there is no /presets to read.
+        if os.getenv("OCT_MOCK_MODE", "false").lower() == "true":
+            return 0
 
         logger.info(
             "Syncing presets from device %s (%s)",
