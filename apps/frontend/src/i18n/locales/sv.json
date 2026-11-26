@@ -33,12 +33,26 @@
     "noStation": "Ingen station",
     "powerButton": "Slå på/av",
     "playbackTitle": "Uppspelning",
+    "shuffle": {
+      "label": "Blanda"
+    },
+    "repeat": {
+      "label": "Upprepa: {{mode}}",
+      "REPEAT_OFF": "av",
+      "REPEAT_ALL": "alla",
+      "REPEAT_ONE": "en"
+    },
     "prevTrack": "Föregående spår",
+    "singleTrackNoSkip": "Ett enskilt spår har ingen kö",
     "nextTrack": "Nästa spår",
     "muteOn": "Slå på ljud",
     "muteOff": "Tysta",
     "prevDevice": "Föregående enhet",
     "nextDevice": "Nästa enhet",
+    "dlna": {
+      "badge": "DLNA",
+      "preset": "Förinställning {{number}}"
+    },
     "source": {
       "bluetooth": "Bluetooth",
       "radio": "Radio",
@@ -54,6 +68,7 @@
     }
   },
   "presets": {
+    "dlnaBadge": "DLNA",
     "presetSaved": "Förinställning {{number}} sparad.",
     "presetDeleted": "Förinställning {{number}} borttagen.",
     "noDevices": "Inga enheter hittades",
@@ -881,6 +896,30 @@
     "bitrate": "Bitrate",
     "homepage": "Hemsida"
   },
+  "devices": {
+    "sourceError": {
+      "notFound": {
+        "title": "Mediaservern hittades inte",
+        "body": "Högtalaren ser inte den här mediaservern just nu. Kontrollera att servern körs och finns i samma nätverk; om två servrar delar en IP-adress kan högtalaren se bara en av dem."
+      },
+      "serviceUnreachable": {
+        "title": "Musiktjänsten nås inte",
+        "body": "Högtalaren kunde inte nå serverns musiktjänst. Försök igen om en stund."
+      },
+      "badFormat": {
+        "title": "Innehållet stöds inte",
+        "body": "Högtalaren kan inte spela upp innehållet i den här mappen (formatet stöds inte)."
+      },
+      "subFolders": {
+        "title": "Mappen kan inte spelas upp i sin helhet",
+        "body": "Den här mappen kan inte spelas upp i sin helhet: det första objektet är ingen låt. Välj en mapp som börjar med låtar."
+      },
+      "generic": {
+        "title": "Uppspelningen kunde inte starta",
+        "body": "Högtalaren kunde inte spela upp det här objektet. Försök igen eller välj ett annat."
+      }
+    }
+  },
   "device": {
     "sourceChoose": "Välj källa",
     "sourceSwitching": "Byter till {{source}}…",
@@ -1032,5 +1071,66 @@
     "pairMembers": "Vänster: {{left}} · Höger: {{right}}",
     "dissolved": "Stereopar ”{{name}}” upplöst",
     "dissolveFailed": "Stereoparet kunde inte upplösas"
+  },
+  "dlna": {
+    "servers": {
+      "loading": "Läser in mediaservrar",
+      "ready": "Redo",
+      "notEnabled": "Inte konfigurerad",
+      "unavailable": "Inte tillgänglig",
+      "enable": "Konfigurera",
+      "enableLabel": "Konfigurera {{name}}",
+      "openLabel": "Öppna {{name}}",
+      "remove": "Ta bort",
+      "removeLabel": "Ta bort {{name}}",
+      "enabled": "{{name}} är konfigurerad.",
+      "enableUnavailable": "{{name}} är inte tillgänglig. Kontrollera att den är påslagen och nåbar och försök sedan igen.",
+      "enableFailed": "{{name}} kunde inte konfigureras. Försök igen.",
+      "empty": "Inga mediaservrar hittades",
+      "emptyText": "Se till att en DLNA-mediaserver körs i ditt nätverk.",
+      "rescan": "Sök igen",
+      "loadError": "Mediaservrarna kunde inte läsas in",
+      "retry": "Försök igen",
+      "migrationFailedTitle": "Mediaservrar kan inte konfigureras på den här högtalaren",
+      "migrationFailedText": "Förberedelsen av högtalaren misslyckades: {{reason}}",
+      "sameHostTitle": "Två servrar på en IP-adress",
+      "sameHostText": "Högtalaren kan se bara en av två servrar som delar en IP-adress. Använd helst en server per IP.",
+      "removeTitle": "Ta bort {{name}}?",
+      "removeText": "Högtalaren kommer inte längre att använda den här mediaservern.",
+      "removeSlots": "Förinställningar på platserna {{slots}} spelar fortfarande från den här servern. De förblir sparade men spelas inte förrän servern har konfigurerats igen.",
+      "removeAnyway": "Ta bort ändå",
+      "removeFailed": "Servern kunde inte tas bort. Försök igen."
+    },
+    "browser": {
+      "breadcrumb": "Mappsökväg",
+      "up": "Upp",
+      "loading": "Läser in mapp",
+      "empty": "Den här mappen är tom",
+      "loadMore": "Läs in fler",
+      "select": "Välj",
+      "selectLabel": "Välj {{title}}",
+      "openLabel": "Öppna mappen {{title}}",
+      "retry": "Försök igen",
+      "error": "Mappen kunde inte läsas in.",
+      "serverNotFound": "Servern hittades inte. Kontrollera att den är påslagen.",
+      "serverTimeout": "Servern svarade inte. Försök igen.",
+      "objectGone": "Den mappen finns inte längre. Den översta nivån visas."
+    },
+    "album": {
+      "open": "Öppna albumvy"
+    },
+    "pane": {
+      "tab": "DLNA",
+      "loading": "Söker efter det sparade objektet",
+      "hint": "Välj en mapp eller låt för förinställning {{number}}.",
+      "allServers": "Alla mediaservrar",
+      "serverGone": "Mediaservern för den här förinställningen är inte längre tillgänglig. Välj en server nedan.",
+      "objectGone": "Det sparade objektet finns inte längre på servern. Du är på den översta nivån."
+    },
+    "save": {
+      "noAudioFirst": "Det första objektet i den här mappen är ingen låt (till exempel en omslagsbild). Högtalaren kanske inte kan spela upp den. Spara ändå?",
+      "saveAnyway": "Spara ändå",
+      "chooseAnother": "Välj en annan mapp"
+    }
   }
 }

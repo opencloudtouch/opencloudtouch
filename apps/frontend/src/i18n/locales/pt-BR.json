@@ -33,12 +33,26 @@
     "noStation": "Sem estação",
     "powerButton": "Ligar/desligar",
     "playbackTitle": "Reprodução",
+    "shuffle": {
+      "label": "Aleatório"
+    },
+    "repeat": {
+      "label": "Repetir: {{mode}}",
+      "REPEAT_OFF": "desligado",
+      "REPEAT_ALL": "todas",
+      "REPEAT_ONE": "uma"
+    },
     "prevTrack": "Faixa anterior",
+    "singleTrackNoSkip": "Uma faixa única não tem fila",
     "nextTrack": "Próxima faixa",
     "muteOn": "Ativar som",
     "muteOff": "Silenciar",
     "prevDevice": "Dispositivo anterior",
     "nextDevice": "Próximo dispositivo",
+    "dlna": {
+      "badge": "DLNA",
+      "preset": "Preset {{number}}"
+    },
     "source": {
       "bluetooth": "Bluetooth",
       "radio": "Rádio",
@@ -54,6 +68,7 @@
     }
   },
   "presets": {
+    "dlnaBadge": "DLNA",
     "presetSaved": "Preset {{number}} salvo.",
     "presetDeleted": "Preset {{number}} excluído.",
     "noDevices": "Nenhum dispositivo encontrado",
@@ -881,6 +896,30 @@
     "bitrate": "Taxa de bits",
     "homepage": "Site"
   },
+  "devices": {
+    "sourceError": {
+      "notFound": {
+        "title": "Servidor de mídia não encontrado",
+        "body": "O alto-falante não está vendo este servidor de mídia agora. Verifique se o servidor está em execução e na mesma rede; se dois servidores compartilham um endereço IP, o alto-falante pode ver apenas um."
+      },
+      "serviceUnreachable": {
+        "title": "Serviço de música inacessível",
+        "body": "O alto-falante não conseguiu acessar o serviço de música do servidor. Tente novamente em instantes."
+      },
+      "badFormat": {
+        "title": "Conteúdo não suportado",
+        "body": "O alto-falante não consegue reproduzir o conteúdo desta pasta (formato não suportado)."
+      },
+      "subFolders": {
+        "title": "A pasta não pode ser reproduzida inteira",
+        "body": "Esta pasta não pode ser reproduzida inteira: o primeiro item não é uma música. Escolha uma pasta que comece com músicas."
+      },
+      "generic": {
+        "title": "Não foi possível iniciar a reprodução",
+        "body": "O alto-falante não conseguiu reproduzir este item. Tente novamente ou escolha outro."
+      }
+    }
+  },
   "device": {
     "sourceChoose": "Escolher fonte",
     "sourceSwitching": "Mudando para {{source}}…",
@@ -1032,5 +1071,66 @@
     "pairMembers": "Esquerdo: {{left}} · Direito: {{right}}",
     "dissolved": "Par estéreo “{{name}}” desfeito",
     "dissolveFailed": "Não foi possível desfazer o par estéreo"
+  },
+  "dlna": {
+    "servers": {
+      "loading": "Carregando servidores de mídia",
+      "ready": "Pronto",
+      "notEnabled": "Não configurado",
+      "unavailable": "Indisponível",
+      "enable": "Configurar",
+      "enableLabel": "Configurar {{name}}",
+      "openLabel": "Abrir {{name}}",
+      "remove": "Remover",
+      "removeLabel": "Remover {{name}}",
+      "enabled": "{{name}} está configurado.",
+      "enableUnavailable": "{{name}} não está disponível. Verifique se está ligado e acessível e tente novamente.",
+      "enableFailed": "Não foi possível configurar {{name}}. Tente novamente.",
+      "empty": "Nenhum servidor de mídia encontrado",
+      "emptyText": "Verifique se há um servidor de mídia DLNA em execução na sua rede.",
+      "rescan": "Buscar novamente",
+      "loadError": "Não foi possível carregar os servidores de mídia",
+      "retry": "Tentar novamente",
+      "migrationFailedTitle": "Não é possível configurar servidores de mídia neste alto-falante",
+      "migrationFailedText": "A preparação do alto-falante falhou: {{reason}}",
+      "sameHostTitle": "Dois servidores em um endereço IP",
+      "sameHostText": "O alto-falante pode ver apenas um de dois servidores que compartilham um endereço IP. Prefira um servidor por IP.",
+      "removeTitle": "Remover {{name}}?",
+      "removeText": "O alto-falante não usará mais este servidor de mídia.",
+      "removeSlots": "Os presets nas posições {{slots}} ainda tocam deste servidor. Eles continuam salvos, mas não vão tocar até o servidor ser configurado novamente.",
+      "removeAnyway": "Remover mesmo assim",
+      "removeFailed": "Não foi possível remover o servidor. Tente novamente."
+    },
+    "browser": {
+      "breadcrumb": "Caminho da pasta",
+      "up": "Subir",
+      "loading": "Carregando pasta",
+      "empty": "Esta pasta está vazia",
+      "loadMore": "Carregar mais",
+      "select": "Selecionar",
+      "selectLabel": "Selecionar {{title}}",
+      "openLabel": "Abrir pasta {{title}}",
+      "retry": "Tentar novamente",
+      "error": "Não foi possível carregar a pasta.",
+      "serverNotFound": "Servidor não encontrado. Verifique se está ligado.",
+      "serverTimeout": "O servidor não respondeu. Tente novamente.",
+      "objectGone": "Essa pasta não existe mais. Mostrando o nível superior."
+    },
+    "album": {
+      "open": "Abrir visualização do álbum"
+    },
+    "pane": {
+      "tab": "DLNA",
+      "loading": "Procurando o item salvo",
+      "hint": "Escolha uma pasta ou música para o preset {{number}}.",
+      "allServers": "Todos os servidores de mídia",
+      "serverGone": "O servidor de mídia deste preset não está mais disponível. Escolha um servidor abaixo.",
+      "objectGone": "O item salvo não existe mais no servidor. Você está no nível superior."
+    },
+    "save": {
+      "noAudioFirst": "O primeiro item desta pasta não é uma música (por exemplo, uma imagem de capa). O alto-falante pode não conseguir reproduzi-lo. Salvar mesmo assim?",
+      "saveAnyway": "Salvar mesmo assim",
+      "chooseAnother": "Escolher outra pasta"
+    }
   }
 }

@@ -33,12 +33,26 @@
     "noStation": "ステーションなし",
     "powerButton": "電源オン/オフ",
     "playbackTitle": "再生",
+    "shuffle": {
+      "label": "シャッフル"
+    },
+    "repeat": {
+      "label": "リピート: {{mode}}",
+      "REPEAT_OFF": "オフ",
+      "REPEAT_ALL": "全曲",
+      "REPEAT_ONE": "1曲"
+    },
     "prevTrack": "前のトラック",
+    "singleTrackNoSkip": "単一のトラックにはキューがありません",
     "nextTrack": "次のトラック",
     "muteOn": "ミュート解除",
     "muteOff": "ミュート",
     "prevDevice": "前のデバイス",
     "nextDevice": "次のデバイス",
+    "dlna": {
+      "badge": "DLNA",
+      "preset": "プリセット{{number}}"
+    },
     "source": {
       "bluetooth": "Bluetooth",
       "radio": "ラジオ",
@@ -54,6 +68,7 @@
     }
   },
   "presets": {
+    "dlnaBadge": "DLNA",
     "presetSaved": "プリセット{{number}}を保存しました。",
     "presetDeleted": "プリセット{{number}}を削除しました。",
     "noDevices": "デバイスが見つかりません",
@@ -881,6 +896,30 @@
     "bitrate": "ビットレート",
     "homepage": "ホームページ"
   },
+  "devices": {
+    "sourceError": {
+      "notFound": {
+        "title": "メディアサーバーが見つかりません",
+        "body": "スピーカーは現在このメディアサーバーを認識できません。サーバーが起動していて同じネットワークにあることを確認してください。2台のサーバーが同じIPアドレスを共有している場合、スピーカーは1台しか認識できないことがあります。"
+      },
+      "serviceUnreachable": {
+        "title": "音楽サービスに接続できません",
+        "body": "スピーカーがサーバーの音楽サービスに接続できませんでした。しばらくしてからもう一度お試しください。"
+      },
+      "badFormat": {
+        "title": "サポートされていないコンテンツ",
+        "body": "スピーカーはこのフォルダーのコンテンツを再生できません（サポートされていない形式）。"
+      },
+      "subFolders": {
+        "title": "フォルダー全体を再生できません",
+        "body": "このフォルダーは全体を再生できません。最初の項目が曲ではありません。曲から始まるフォルダーを選んでください。"
+      },
+      "generic": {
+        "title": "再生を開始できませんでした",
+        "body": "スピーカーはこの項目を再生できませんでした。もう一度試すか、別の項目を選んでください。"
+      }
+    }
+  },
   "device": {
     "sourceChoose": "ソースを選択",
     "sourceSwitching": "{{source}} に切り替え中…",
@@ -1032,5 +1071,66 @@
     "pairMembers": "左: {{left}} · 右: {{right}}",
     "dissolved": "ステレオペア「{{name}}」を解除しました",
     "dissolveFailed": "ステレオペアを解除できませんでした"
+  },
+  "dlna": {
+    "servers": {
+      "loading": "メディアサーバーを読み込み中",
+      "ready": "準備完了",
+      "notEnabled": "未設定",
+      "unavailable": "利用不可",
+      "enable": "設定",
+      "enableLabel": "{{name}}を設定",
+      "openLabel": "{{name}}を開く",
+      "remove": "削除",
+      "removeLabel": "{{name}}を削除",
+      "enabled": "{{name}}を設定しました。",
+      "enableUnavailable": "{{name}}は利用できません。電源が入っていて接続可能か確認してから、もう一度お試しください。",
+      "enableFailed": "{{name}}を設定できませんでした。もう一度お試しください。",
+      "empty": "メディアサーバーが見つかりません",
+      "emptyText": "ネットワーク内でDLNAメディアサーバーが動作していることを確認してください。",
+      "rescan": "再スキャン",
+      "loadError": "メディアサーバーを読み込めませんでした",
+      "retry": "再試行",
+      "migrationFailedTitle": "このスピーカーではメディアサーバーを設定できません",
+      "migrationFailedText": "スピーカーの準備に失敗しました: {{reason}}",
+      "sameHostTitle": "1つのIPアドレスに2台のサーバー",
+      "sameHostText": "IPアドレスを共有する2台のサーバーのうち、スピーカーは1台しか認識できないことがあります。1つのIPにつき1台のサーバーをおすすめします。",
+      "removeTitle": "{{name}}を削除しますか？",
+      "removeText": "スピーカーはこのメディアサーバーを使用しなくなります。",
+      "removeSlots": "スロット{{slots}}のプリセットはまだこのサーバーから再生します。保存は維持されますが、サーバーを再設定するまで再生されません。",
+      "removeAnyway": "それでも削除",
+      "removeFailed": "サーバーを削除できませんでした。もう一度お試しください。"
+    },
+    "browser": {
+      "breadcrumb": "フォルダーのパス",
+      "up": "上へ",
+      "loading": "フォルダーを読み込み中",
+      "empty": "このフォルダーは空です",
+      "loadMore": "さらに読み込む",
+      "select": "選択",
+      "selectLabel": "{{title}}を選択",
+      "openLabel": "フォルダー{{title}}を開く",
+      "retry": "再試行",
+      "error": "フォルダーを読み込めませんでした。",
+      "serverNotFound": "サーバーが見つかりません。電源が入っているか確認してください。",
+      "serverTimeout": "サーバーが応答しませんでした。もう一度お試しください。",
+      "objectGone": "そのフォルダーはもう存在しません。最上位を表示しています。"
+    },
+    "album": {
+      "open": "アルバム表示を開く"
+    },
+    "pane": {
+      "tab": "DLNA",
+      "loading": "保存された項目を検索中",
+      "hint": "プリセット{{number}}のフォルダーまたは曲を選んでください。",
+      "allServers": "すべてのメディアサーバー",
+      "serverGone": "このプリセットのメディアサーバーはもう利用できません。下からサーバーを選んでください。",
+      "objectGone": "保存された項目はサーバー上にもう存在しません。最上位にいます。"
+    },
+    "save": {
+      "noAudioFirst": "このフォルダーの最初の項目は曲ではありません（カバー画像など）。スピーカーが再生できない可能性があります。それでも保存しますか？",
+      "saveAnyway": "それでも保存",
+      "chooseAnother": "別のフォルダーを選ぶ"
+    }
   }
 }

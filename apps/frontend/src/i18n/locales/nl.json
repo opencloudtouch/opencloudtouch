@@ -33,12 +33,26 @@
     "noStation": "Geen station",
     "powerButton": "Aan/uit",
     "playbackTitle": "Weergave",
+    "shuffle": {
+      "label": "Shuffle"
+    },
+    "repeat": {
+      "label": "Herhalen: {{mode}}",
+      "REPEAT_OFF": "uit",
+      "REPEAT_ALL": "alles",
+      "REPEAT_ONE": "één"
+    },
     "prevTrack": "Vorig nummer",
+    "singleTrackNoSkip": "Een los nummer heeft geen wachtrij",
     "nextTrack": "Volgend nummer",
     "muteOn": "Geluid aan",
     "muteOff": "Dempen",
     "prevDevice": "Vorig apparaat",
     "nextDevice": "Volgend apparaat",
+    "dlna": {
+      "badge": "DLNA",
+      "preset": "Preset {{number}}"
+    },
     "source": {
       "bluetooth": "Bluetooth",
       "radio": "Radio",
@@ -54,6 +68,7 @@
     }
   },
   "presets": {
+    "dlnaBadge": "DLNA",
     "presetSaved": "Preset {{number}} opgeslagen.",
     "presetDeleted": "Preset {{number}} verwijderd.",
     "noDevices": "Geen apparaten gevonden",
@@ -881,6 +896,30 @@
     "bitrate": "Bitrate",
     "homepage": "Website"
   },
+  "devices": {
+    "sourceError": {
+      "notFound": {
+        "title": "Mediaserver niet gevonden",
+        "body": "De speaker ziet deze mediaserver op dit moment niet. Controleer of de server draait en in hetzelfde netwerk zit; als twee servers één IP-adres delen, ziet de speaker er mogelijk maar één."
+      },
+      "serviceUnreachable": {
+        "title": "Muziekdienst niet bereikbaar",
+        "body": "De speaker kon de muziekdienst van de server niet bereiken. Probeer het zo opnieuw."
+      },
+      "badFormat": {
+        "title": "Inhoud niet ondersteund",
+        "body": "De speaker kan de inhoud van deze map niet afspelen (formaat niet ondersteund)."
+      },
+      "subFolders": {
+        "title": "Map kan niet in zijn geheel worden afgespeeld",
+        "body": "Deze map kan niet in zijn geheel worden afgespeeld: het eerste item is geen nummer. Kies een map die met nummers begint."
+      },
+      "generic": {
+        "title": "Afspelen kon niet starten",
+        "body": "De speaker kon dit item niet afspelen. Probeer het opnieuw of kies een ander item."
+      }
+    }
+  },
   "device": {
     "sourceChoose": "Bron kiezen",
     "sourceSwitching": "Overschakelen naar {{source}}…",
@@ -1032,5 +1071,66 @@
     "pairMembers": "Links: {{left}} · Rechts: {{right}}",
     "dissolved": "Stereopaar “{{name}}” ontkoppeld",
     "dissolveFailed": "Het stereopaar kon niet worden ontkoppeld"
+  },
+  "dlna": {
+    "servers": {
+      "loading": "Mediaservers laden",
+      "ready": "Gereed",
+      "notEnabled": "Niet ingesteld",
+      "unavailable": "Niet beschikbaar",
+      "enable": "Instellen",
+      "enableLabel": "{{name}} instellen",
+      "openLabel": "{{name}} openen",
+      "remove": "Verwijderen",
+      "removeLabel": "{{name}} verwijderen",
+      "enabled": "{{name}} is ingesteld.",
+      "enableUnavailable": "{{name}} is niet beschikbaar. Controleer of de server aan staat en bereikbaar is en probeer het opnieuw.",
+      "enableFailed": "{{name}} kon niet worden ingesteld. Probeer het opnieuw.",
+      "empty": "Geen mediaservers gevonden",
+      "emptyText": "Zorg dat er een DLNA-mediaserver in je netwerk draait.",
+      "rescan": "Opnieuw zoeken",
+      "loadError": "Mediaservers konden niet worden geladen",
+      "retry": "Opnieuw proberen",
+      "migrationFailedTitle": "Op deze speaker kunnen geen mediaservers worden ingesteld",
+      "migrationFailedText": "Het voorbereiden van de speaker is mislukt: {{reason}}",
+      "sameHostTitle": "Twee servers op één IP-adres",
+      "sameHostText": "De speaker ziet mogelijk maar één van twee servers die een IP-adres delen. Gebruik liever één server per IP.",
+      "removeTitle": "{{name}} verwijderen?",
+      "removeText": "De speaker gebruikt deze mediaserver dan niet meer.",
+      "removeSlots": "Presets op plaatsen {{slots}} spelen nog af van deze server. Ze blijven bewaard, maar spelen pas weer als de server opnieuw is ingesteld.",
+      "removeAnyway": "Toch verwijderen",
+      "removeFailed": "De server kon niet worden verwijderd. Probeer het opnieuw."
+    },
+    "browser": {
+      "breadcrumb": "Mappad",
+      "up": "Omhoog",
+      "loading": "Map laden",
+      "empty": "Deze map is leeg",
+      "loadMore": "Meer laden",
+      "select": "Selecteren",
+      "selectLabel": "{{title}} selecteren",
+      "openLabel": "Map {{title}} openen",
+      "retry": "Opnieuw proberen",
+      "error": "De map kon niet worden geladen.",
+      "serverNotFound": "Server niet gevonden. Controleer of hij aan staat.",
+      "serverTimeout": "De server antwoordde niet. Probeer het opnieuw.",
+      "objectGone": "Die map bestaat niet meer. Het hoogste niveau wordt getoond."
+    },
+    "album": {
+      "open": "Albumweergave openen"
+    },
+    "pane": {
+      "tab": "DLNA",
+      "loading": "Opgeslagen item opzoeken",
+      "hint": "Kies een map of nummer voor preset {{number}}.",
+      "allServers": "Alle mediaservers",
+      "serverGone": "De mediaserver van deze preset is niet meer beschikbaar. Kies hieronder een server.",
+      "objectGone": "Het opgeslagen item bestaat niet meer op de server. Je bent op het hoogste niveau."
+    },
+    "save": {
+      "noAudioFirst": "Het eerste item in deze map is geen nummer (bijvoorbeeld een albumhoes). De speaker kan het mogelijk niet afspelen. Toch opslaan?",
+      "saveAnyway": "Toch opslaan",
+      "chooseAnother": "Andere map kiezen"
+    }
   }
 }

@@ -33,12 +33,26 @@
     "noStation": "Nessuna stazione",
     "powerButton": "Accendi/Spegni",
     "playbackTitle": "Riproduzione",
+    "shuffle": {
+      "label": "Riproduzione casuale"
+    },
+    "repeat": {
+      "label": "Ripeti: {{mode}}",
+      "REPEAT_OFF": "disattivato",
+      "REPEAT_ALL": "tutti",
+      "REPEAT_ONE": "uno"
+    },
     "prevTrack": "Traccia precedente",
+    "singleTrackNoSkip": "Un singolo brano non ha una coda",
     "nextTrack": "Traccia successiva",
     "muteOn": "Riattiva audio",
     "muteOff": "Disattiva audio",
     "prevDevice": "Dispositivo precedente",
     "nextDevice": "Dispositivo successivo",
+    "dlna": {
+      "badge": "DLNA",
+      "preset": "Preset {{number}}"
+    },
     "source": {
       "bluetooth": "Bluetooth",
       "radio": "Radio",
@@ -54,6 +68,7 @@
     }
   },
   "presets": {
+    "dlnaBadge": "DLNA",
     "presetSaved": "Preset {{number}} salvato.",
     "presetDeleted": "Preset {{number}} eliminato.",
     "noDevices": "Nessun dispositivo trovato",
@@ -881,6 +896,30 @@
     "bitrate": "Bitrate",
     "homepage": "Sito web"
   },
+  "devices": {
+    "sourceError": {
+      "notFound": {
+        "title": "Server multimediale non trovato",
+        "body": "L'altoparlante al momento non vede questo server multimediale. Verifica che il server sia in funzione e nella stessa rete; se due server condividono un indirizzo IP, l'altoparlante potrebbe vederne solo uno."
+      },
+      "serviceUnreachable": {
+        "title": "Servizio musicale non raggiungibile",
+        "body": "L'altoparlante non è riuscito a raggiungere il servizio musicale del server. Riprova tra un momento."
+      },
+      "badFormat": {
+        "title": "Contenuto non supportato",
+        "body": "L'altoparlante non può riprodurre il contenuto di questa cartella (formato non supportato)."
+      },
+      "subFolders": {
+        "title": "La cartella non può essere riprodotta per intero",
+        "body": "Questa cartella non può essere riprodotta per intero: il suo primo elemento non è un brano. Scegli una cartella che inizi con dei brani."
+      },
+      "generic": {
+        "title": "Impossibile avviare la riproduzione",
+        "body": "L'altoparlante non è riuscito a riprodurre questo elemento. Riprova o scegline un altro."
+      }
+    }
+  },
   "device": {
     "sourceChoose": "Scegli la sorgente",
     "sourceSwitching": "Passaggio a {{source}}…",
@@ -1032,5 +1071,66 @@
     "pairMembers": "Sinistra: {{left}} · Destra: {{right}}",
     "dissolved": "Coppia stereo «{{name}}» sciolta",
     "dissolveFailed": "Impossibile sciogliere la coppia stereo"
+  },
+  "dlna": {
+    "servers": {
+      "loading": "Caricamento dei server multimediali",
+      "ready": "Pronto",
+      "notEnabled": "Non configurato",
+      "unavailable": "Non disponibile",
+      "enable": "Configura",
+      "enableLabel": "Configura {{name}}",
+      "openLabel": "Apri {{name}}",
+      "remove": "Rimuovi",
+      "removeLabel": "Rimuovi {{name}}",
+      "enabled": "{{name}} è configurato.",
+      "enableUnavailable": "{{name}} non è disponibile. Verifica che sia acceso e raggiungibile, poi riprova.",
+      "enableFailed": "Impossibile configurare {{name}}. Riprova.",
+      "empty": "Nessun server multimediale trovato",
+      "emptyText": "Assicurati che nella tua rete sia in funzione un server multimediale DLNA.",
+      "rescan": "Cerca di nuovo",
+      "loadError": "Impossibile caricare i server multimediali",
+      "retry": "Riprova",
+      "migrationFailedTitle": "Impossibile configurare server multimediali su questo altoparlante",
+      "migrationFailedText": "La preparazione dell'altoparlante non è riuscita: {{reason}}",
+      "sameHostTitle": "Due server sullo stesso indirizzo IP",
+      "sameHostText": "L'altoparlante potrebbe vedere solo uno dei due server che condividono un indirizzo IP. Meglio un server per IP.",
+      "removeTitle": "Rimuovere {{name}}?",
+      "removeText": "L'altoparlante non userà più questo server multimediale.",
+      "removeSlots": "I preset nelle posizioni {{slots}} riproducono ancora da questo server. Restano salvati, ma non suoneranno finché il server non verrà configurato di nuovo.",
+      "removeAnyway": "Rimuovi comunque",
+      "removeFailed": "Impossibile rimuovere il server. Riprova."
+    },
+    "browser": {
+      "breadcrumb": "Percorso cartella",
+      "up": "Su",
+      "loading": "Caricamento cartella",
+      "empty": "Questa cartella è vuota",
+      "loadMore": "Carica altro",
+      "select": "Seleziona",
+      "selectLabel": "Seleziona {{title}}",
+      "openLabel": "Apri cartella {{title}}",
+      "retry": "Riprova",
+      "error": "Impossibile caricare la cartella.",
+      "serverNotFound": "Server non trovato. Verifica che sia acceso.",
+      "serverTimeout": "Il server non ha risposto. Riprova.",
+      "objectGone": "Questa cartella non esiste più. Viene mostrato il livello superiore."
+    },
+    "album": {
+      "open": "Apri vista album"
+    },
+    "pane": {
+      "tab": "DLNA",
+      "loading": "Ricerca dell'elemento salvato",
+      "hint": "Scegli una cartella o un brano per il preset {{number}}.",
+      "allServers": "Tutti i server multimediali",
+      "serverGone": "Il server multimediale di questo preset non è più disponibile. Scegli un server qui sotto.",
+      "objectGone": "L'elemento salvato non esiste più sul server. Sei al livello superiore."
+    },
+    "save": {
+      "noAudioFirst": "Il primo elemento di questa cartella non è un brano (ad esempio un'immagine di copertina). L'altoparlante potrebbe non riuscire a riprodurlo. Salvare comunque?",
+      "saveAnyway": "Salva comunque",
+      "chooseAnother": "Scegli un'altra cartella"
+    }
   }
 }

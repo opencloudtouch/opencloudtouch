@@ -33,12 +33,26 @@
     "noStation": "Kein Sender",
     "powerButton": "Ein/Ausschalten",
     "playbackTitle": "Wiedergabe",
+    "shuffle": {
+      "label": "Zufallswiedergabe"
+    },
+    "repeat": {
+      "label": "Wiederholen: {{mode}}",
+      "REPEAT_OFF": "aus",
+      "REPEAT_ALL": "alle",
+      "REPEAT_ONE": "einen Titel"
+    },
     "prevTrack": "Vorheriger Track",
+    "singleTrackNoSkip": "Ein einzelner Titel hat keine Warteschlange",
     "nextTrack": "Nächster Track",
     "muteOn": "Ton an",
     "muteOff": "Stumm",
     "prevDevice": "Vorheriges Gerät",
     "nextDevice": "Nächstes Gerät",
+    "dlna": {
+      "badge": "DLNA",
+      "preset": "Preset {{number}}"
+    },
     "source": {
       "bluetooth": "Bluetooth",
       "radio": "Radio",
@@ -54,6 +68,7 @@
     }
   },
   "presets": {
+    "dlnaBadge": "DLNA",
     "presetSaved": "Preset {{number}} gespeichert.",
     "presetDeleted": "Preset {{number}} gelöscht.",
     "noDevices": "Keine Geräte gefunden",
@@ -881,6 +896,30 @@
     "bitrate": "Bitrate",
     "homepage": "Homepage"
   },
+  "devices": {
+    "sourceError": {
+      "notFound": {
+        "title": "Medienserver nicht gefunden",
+        "body": "Der Lautsprecher sieht diesen Medienserver gerade nicht. Prüfe, ob der Server läuft und im selben Netzwerk ist; teilen sich zwei Server eine IP-Adresse, sieht der Lautsprecher eventuell nur einen."
+      },
+      "serviceUnreachable": {
+        "title": "Musikdienst nicht erreichbar",
+        "body": "Der Lautsprecher konnte den Musikdienst des Servers nicht erreichen. Versuche es gleich noch einmal."
+      },
+      "badFormat": {
+        "title": "Inhalt nicht unterstützt",
+        "body": "Der Lautsprecher kann den Inhalt dieses Ordners nicht abspielen (Format nicht unterstützt)."
+      },
+      "subFolders": {
+        "title": "Ordner kann nicht als Ganzes abgespielt werden",
+        "body": "Dieser Ordner kann nicht als Ganzes abgespielt werden: Sein erstes Element ist kein Titel. Wähle einen Ordner, der mit Titeln beginnt."
+      },
+      "generic": {
+        "title": "Wiedergabe konnte nicht starten",
+        "body": "Der Lautsprecher konnte dieses Element nicht abspielen. Versuche es erneut oder wähle ein anderes."
+      }
+    }
+  },
   "device": {
     "sourceChoose": "Quelle wählen",
     "sourceSwitching": "Wechsle zu {{source}}…",
@@ -1032,5 +1071,66 @@
     "pairMembers": "Links: {{left}} · Rechts: {{right}}",
     "dissolved": "Stereopaar „{{name}}“ aufgelöst",
     "dissolveFailed": "Das Stereopaar konnte nicht aufgelöst werden"
+  },
+  "dlna": {
+    "servers": {
+      "loading": "Medienserver werden geladen",
+      "ready": "Bereit",
+      "notEnabled": "Nicht eingerichtet",
+      "unavailable": "Nicht verfügbar",
+      "enable": "Einrichten",
+      "enableLabel": "{{name}} einrichten",
+      "openLabel": "{{name}} öffnen",
+      "remove": "Entfernen",
+      "removeLabel": "{{name}} entfernen",
+      "enabled": "{{name}} ist eingerichtet.",
+      "enableUnavailable": "{{name}} ist nicht verfügbar. Prüfe, ob der Server eingeschaltet und erreichbar ist, und versuche es erneut.",
+      "enableFailed": "{{name}} konnte nicht eingerichtet werden. Versuche es erneut.",
+      "empty": "Keine Medienserver gefunden",
+      "emptyText": "Stelle sicher, dass in deinem Netzwerk ein DLNA-Medienserver läuft.",
+      "rescan": "Erneut suchen",
+      "loadError": "Medienserver konnten nicht geladen werden",
+      "retry": "Erneut versuchen",
+      "migrationFailedTitle": "Medienserver können auf diesem Lautsprecher nicht eingerichtet werden",
+      "migrationFailedText": "Die Vorbereitung des Lautsprechers ist fehlgeschlagen: {{reason}}",
+      "sameHostTitle": "Zwei Server auf einer IP-Adresse",
+      "sameHostText": "Der Lautsprecher sieht eventuell nur einen von zwei Servern, die sich eine IP-Adresse teilen. Nutze besser einen Server pro IP.",
+      "removeTitle": "{{name}} entfernen?",
+      "removeText": "Der Lautsprecher nutzt diesen Medienserver dann nicht mehr.",
+      "removeSlots": "Presets auf den Plätzen {{slots}} spielen noch von diesem Server. Sie bleiben gespeichert, spielen aber erst wieder, wenn der Server erneut eingerichtet ist.",
+      "removeAnyway": "Trotzdem entfernen",
+      "removeFailed": "Der Server konnte nicht entfernt werden. Versuche es erneut."
+    },
+    "browser": {
+      "breadcrumb": "Ordnerpfad",
+      "up": "Nach oben",
+      "loading": "Ordner wird geladen",
+      "empty": "Dieser Ordner ist leer",
+      "loadMore": "Mehr laden",
+      "select": "Auswählen",
+      "selectLabel": "{{title}} auswählen",
+      "openLabel": "Ordner {{title}} öffnen",
+      "retry": "Erneut versuchen",
+      "error": "Der Ordner konnte nicht geladen werden.",
+      "serverNotFound": "Server nicht gefunden. Prüfe, ob er eingeschaltet ist.",
+      "serverTimeout": "Der Server hat nicht geantwortet. Versuche es erneut.",
+      "objectGone": "Dieser Ordner existiert nicht mehr. Die oberste Ebene wird angezeigt."
+    },
+    "album": {
+      "open": "Albumansicht öffnen"
+    },
+    "pane": {
+      "tab": "DLNA",
+      "loading": "Gespeichertes Element wird gesucht",
+      "hint": "Wähle einen Ordner oder Titel für Preset {{number}}.",
+      "allServers": "Alle Medienserver",
+      "serverGone": "Der Medienserver dieses Presets ist nicht mehr verfügbar. Wähle unten einen Server.",
+      "objectGone": "Das gespeicherte Element existiert nicht mehr auf dem Server. Du bist auf der obersten Ebene."
+    },
+    "save": {
+      "noAudioFirst": "Das erste Element in diesem Ordner ist kein Titel (zum Beispiel ein Coverbild). Der Lautsprecher kann es eventuell nicht abspielen. Trotzdem speichern?",
+      "saveAnyway": "Trotzdem speichern",
+      "chooseAnother": "Anderen Ordner wählen"
+    }
   }
 }
