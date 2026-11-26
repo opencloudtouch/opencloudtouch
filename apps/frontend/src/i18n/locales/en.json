@@ -40,6 +40,10 @@
     "muteOff": "Mute",
     "prevDevice": "Previous device",
     "nextDevice": "Next device",
+    "dlna": {
+      "badge": "DLNA",
+      "preset": "Preset {{number}}"
+    },
     "source": {
       "bluetooth": "Bluetooth",
       "radio": "Radio",

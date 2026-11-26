@@ -101,7 +101,12 @@ describe("NowPlaying Component", () => {
     const action = <div data-testid="switch">switch</div>;
 
     it("shows the switch in the header and no play overlay on the cover", () => {
-      const nowPlaying = { station: "SWR3", track: "Track", play_status: "PLAY_STATE", source: "INTERNET_RADIO" };
+      const nowPlaying = {
+        station: "SWR3",
+        track: "Track",
+        play_status: "PLAY_STATE",
+        source: "INTERNET_RADIO",
+      };
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} headerAction={action} />);
 
@@ -129,7 +134,9 @@ describe("NowPlaying Component", () => {
     it("replaces the header text while a switch is running", () => {
       const nowPlaying = { station: "SWR3", play_status: "PLAY_STATE", source: "INTERNET_RADIO" };
 
-      render(<NowPlaying nowPlaying={nowPlaying} headerLabel="Switching to AUX…" headerAction={action} />);
+      render(
+        <NowPlaying nowPlaying={nowPlaying} headerLabel="Switching to AUX…" headerAction={action} />
+      );
 
       expect(screen.getByText("Switching to AUX…")).toBeInTheDocument();
       expect(screen.queryByText("SWR3")).not.toBeInTheDocument();
@@ -148,12 +155,19 @@ describe("NowPlaying Component", () => {
       expect(container.querySelector(".np-art--none")).toBeInTheDocument();
       expect(container.querySelector("img")).not.toBeInTheDocument();
 
-      rerender(<NowPlaying nowPlaying={{ track: "T", play_status: "PLAY_STATE", source: "BLUETOOTH" }} />);
+      rerender(
+        <NowPlaying nowPlaying={{ track: "T", play_status: "PLAY_STATE", source: "BLUETOOTH" }} />
+      );
       expect(container.querySelector(".np-art--none")).toBeInTheDocument();
 
       rerender(
         <NowPlaying
-          nowPlaying={{ track: "T", art_url: "http://x/y.jpg", play_status: "PLAY_STATE", source: "BLUETOOTH" }}
+          nowPlaying={{
+            track: "T",
+            art_url: "http://x/y.jpg",
+            play_status: "PLAY_STATE",
+            source: "BLUETOOTH",
+          }}
         />
       );
       expect(container.querySelector(".np-art--none")).not.toBeInTheDocument();
@@ -419,6 +433,41 @@ describe("NowPlaying Component", () => {
       expect(container.querySelector(".np-source.radio")).toBeInTheDocument();
 
       vi.doUnmock("../../src/config/capabilities");
+    });
+  });
+
+  describe("DLNA", () => {
+    const base = { track: "T", play_status: "PLAY_STATE", source: "STORED_MUSIC", dlna: true };
+
+    it("stored music shows the dlna badge", () => {
+      render(<NowPlaying nowPlaying={base} />);
+      expect(screen.getByText("DLNA")).toBeInTheDocument();
+    });
+
+    it("shows preset number when matched", () => {
+      render(<NowPlaying nowPlaying={{ ...base, preset_number: 3 }} />);
+      expect(screen.getByText("DLNA · Preset 3")).toBeInTheDocument();
+    });
+
+    // The backend already puts the matched preset's cover into art_url when the speaker sends none.
+    it("uses artwork then preset cover then fallback", () => {
+      const { container, rerender } = render(
+        <NowPlaying nowPlaying={{ ...base, art_url: "http://x/speaker.jpg" }} />
+      );
+      expect(container.querySelector("img")?.getAttribute("src")).toBe("http://x/speaker.jpg");
+      rerender(<NowPlaying nowPlaying={{ ...base, art_url: "http://x/preset-cover.jpg" }} />);
+      expect(container.querySelector("img")?.getAttribute("src")).toBe("http://x/preset-cover.jpg");
+      rerender(<NowPlaying nowPlaying={base} />);
+      expect(container.querySelector("img")?.getAttribute("src")).toMatch(
+        /\/images\/default-artwork-[1-3]\.jpg/
+      );
+    });
+
+    it("fallback pick is stable within a session", () => {
+      const { container, rerender } = render(<NowPlaying nowPlaying={base} />);
+      const first = container.querySelector("img")?.getAttribute("src");
+      rerender(<NowPlaying nowPlaying={{ ...base, track: "Other" }} />);
+      expect(container.querySelector("img")?.getAttribute("src")).toBe(first);
     });
   });
 });

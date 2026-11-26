@@ -155,6 +155,7 @@ export default function Devices({
         artist: npState.artist,
         play_status: npState.state,
         source: npState.source,
+        preset_number: npState.preset_number,
       }
     : null;
 

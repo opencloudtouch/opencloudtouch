@@ -124,6 +124,9 @@ vi.mock("../../src/hooks/useVolume", () => ({
     toggleMute: vi.fn(),
   }),
 }));
+vi.mock("../../src/hooks/useSourceError", () => ({
+  useSourceError: () => ({ error: null, dismiss: vi.fn() }),
+}));
 vi.mock("../../src/hooks/useNowPlaying", () => ({
   useNowPlaying: () => ({
     nowPlaying: null,

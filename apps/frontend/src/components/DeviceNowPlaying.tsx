@@ -3,6 +3,7 @@
  * One row: artwork or a decorative source icon, title and artist, ellipsized.
  */
 import { useState, type ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import type { NowPlayingState } from "../api/devices";
 import { Icon } from "./Icon";
 import "./DeviceNowPlaying.css";
@@ -18,6 +19,7 @@ const SOURCE_ICONS: Record<string, () => ReactElement> = {
   LOCAL_INTERNET_RADIO: () => Icon.Radio(18),
   BLUETOOTH: () => Icon.Bluetooth(18),
   AUX: () => Icon.Headphones(18),
+  STORED_MUSIC: () => Icon.HardDrive(18),
 };
 
 /** Cover with a fallback: a broken image URL shows the source icon instead of a broken-image glyph. */
@@ -39,13 +41,17 @@ function Art({ url, icon }: { readonly url: string; readonly icon?: () => ReactE
 const PLACEHOLDER = <div className="dnp dnp--empty" aria-hidden="true" />;
 
 export function DeviceNowPlaying({ nowPlaying, loading }: DeviceNowPlayingProps) {
+  const { t } = useTranslation();
   // Only show if actually playing
   if (loading || nowPlaying?.state !== "PLAY_STATE") {
     return PLACEHOLDER;
   }
 
   const title = nowPlaying.track || nowPlaying.station_name;
-  const subtitle = nowPlaying.artist;
+  const subtitle =
+    nowPlaying.source === "STORED_MUSIC" && nowPlaying.preset_number
+      ? `${t("player.dlna.badge")} · ${t("player.dlna.preset", { number: nowPlaying.preset_number })}`
+      : nowPlaying.artist;
 
   // No info available
   if (!title && !subtitle) {

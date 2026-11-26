@@ -25,6 +25,7 @@ export interface NowPlayingData {
   artist?: string;
   play_status?: string;
   source?: string;
+  preset_number?: number | null;
 }
 
 interface NowPlayingProps {
@@ -81,7 +82,7 @@ const SOURCE_BADGE_MAP: Record<string, SourceBadgeConfig> = {
   STORED_MUSIC: {
     className: "streaming",
     titleKey: "player.source.storedMusic",
-    icon: () => Icon.Music(20),
+    icon: () => Icon.HardDrive(20),
   },
 };
 
@@ -160,7 +161,16 @@ function getSourceLabel(t: (key: string) => string, source?: string): string | n
   return key ? t(key) : null;
 }
 
-function getHeaderDisplay(t: (key: string) => string, station?: string, source?: string): string {
+function getHeaderDisplay(
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  station?: string,
+  source?: string,
+  presetNumber?: number | null
+): string {
+  if (source === "STORED_MUSIC") {
+    const badge = t("player.dlna.badge");
+    return presetNumber ? `${badge} · ${t("player.dlna.preset", { number: presetNumber })}` : badge;
+  }
   // For non-radio sources, show source label (e.g. "Bluetooth", "AUX")
   const sourceLabel = getSourceLabel(t, source);
   if (sourceLabel) {
@@ -270,7 +280,9 @@ export default function NowPlaying({ nowPlaying, headerLabel, headerAction }: No
     headerAction && SWITCH_SOURCES.has(nowPlaying.source ?? "")
       ? null
       : getSourceBadge(t, nowPlaying.source);
-  const label = headerLabel ?? getHeaderDisplay(t, nowPlaying.station, nowPlaying.source);
+  const label =
+    headerLabel ??
+    getHeaderDisplay(t, nowPlaying.station, nowPlaying.source, nowPlaying.preset_number);
   // AUX has no cover; Bluetooth often has none: a quiet icon tile instead of a stock picture
   const tile =
     !nowPlaying.art_url && (nowPlaying.source === "AUX" || nowPlaying.source === "BLUETOOTH");
