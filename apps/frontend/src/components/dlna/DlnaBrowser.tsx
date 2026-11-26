@@ -4,6 +4,8 @@ import { Icon } from "../Icon";
 import { isApiErrorInstance } from "../../api/types";
 import type { DlnaItem } from "../../api/dlna";
 import { useDlnaFolder, useDlnaObjectPath } from "../../hooks/useDlna";
+import AlbumViewButton from "./AlbumViewButton";
+import { getLastFolder, setLastFolder } from "./session";
 import "./DlnaBrowser.css";
 
 interface Props {
@@ -41,12 +43,12 @@ export default function DlnaBrowser({
   onPathChange,
 }: Readonly<Props>) {
   const { t } = useTranslation();
+  // Opens at startObjectId, else the folder remembered for this server, else the root.
+  const [start, setStart] = useState(() => startObjectId ?? getLastFolder(serverId) ?? "0");
   // null = the start folder's ancestors are still being resolved
-  const [stack, setStack] = useState<Crumb[] | null>(
-    startObjectId && startObjectId !== "0" ? null : []
-  );
+  const [stack, setStack] = useState<Crumb[] | null>(start === "0" ? [] : null);
   const [notice, setNotice] = useState(false);
-  const startPath = useDlnaObjectPath(serverId, stack === null ? startObjectId : undefined);
+  const startPath = useDlnaObjectPath(serverId, stack === null ? start : undefined);
   // The API path lists the ancestors only; the start folder itself is the last crumb.
   const path =
     stack ??
@@ -62,7 +64,17 @@ export default function DlnaBrowser({
   const go = (next: Crumb[]) => {
     setStack(next);
     setNotice(false);
-    onPathChange?.(next.at(-1)?.object_id ?? "0");
+    const id = next.at(-1)?.object_id ?? "0";
+    setLastFolder(serverId, id);
+    onPathChange?.(id);
+  };
+
+  const openFolder = (id: string) => {
+    setStart(id);
+    setStack(null);
+    setNotice(false);
+    setLastFolder(serverId, id);
+    onPathChange?.(id);
   };
 
   const code = isApiErrorInstance(folder.error) ? folder.error.code : undefined;
@@ -73,8 +85,9 @@ export default function DlnaBrowser({
     if (!gone) return;
     setStack([]);
     setNotice(true);
+    setLastFolder(serverId, "0");
     onPathChange?.("0");
-  }, [gone, onPathChange]);
+  }, [gone, serverId, onPathChange]);
 
   // A library change between pages can repeat an item; the id keeps it once.
   const items = new Map<string, DlnaItem>();
@@ -111,6 +124,7 @@ export default function DlnaBrowser({
           </button>
         ))}
       </nav>
+      <AlbumViewButton serverId={serverId} onOpen={openFolder} />
       {notice && (
         <div className="wz-status wz-status--warning" role="status">
           <span className="wz-icon" aria-hidden="true">

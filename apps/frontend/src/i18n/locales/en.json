@@ -1076,6 +1076,9 @@
       "serverNotFound": "Server not found. Check that it is switched on.",
       "serverTimeout": "The server did not answer. Try again.",
       "objectGone": "That folder no longer exists. Showing the top level."
+    },
+    "album": {
+      "open": "Open album view"
     }
   }
 }

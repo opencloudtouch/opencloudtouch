@@ -50,7 +50,10 @@ const setup = (props: Partial<React.ComponentProps<typeof DlnaBrowser>> = {}) =>
   setupWithContainer(props).onSelect;
 
 describe("DlnaBrowser", () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    sessionStorage.clear();
+  });
 
   it("opens root and shows folders and tracks", async () => {
     vi.mocked(api.browseDlna).mockResolvedValue(
