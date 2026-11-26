@@ -1032,5 +1032,35 @@
     "pairMembers": "Left: {{left}} · Right: {{right}}",
     "dissolved": "Stereo pair “{{name}}” dissolved",
     "dissolveFailed": "The stereo pair could not be dissolved"
+  },
+  "dlna": {
+    "servers": {
+      "loading": "Loading media servers",
+      "ready": "Ready",
+      "notEnabled": "Not set up",
+      "unavailable": "Not available",
+      "enable": "Set up",
+      "enableLabel": "Set up {{name}}",
+      "openLabel": "Open {{name}}",
+      "remove": "Remove",
+      "removeLabel": "Remove {{name}}",
+      "enabled": "{{name}} is set up.",
+      "enableUnavailable": "{{name}} is not available. Check that it is switched on and reachable, then try again.",
+      "enableFailed": "{{name}} could not be set up. Try again.",
+      "empty": "No media servers found",
+      "emptyText": "Make sure a DLNA media server is running in your network.",
+      "rescan": "Rescan",
+      "loadError": "Media servers could not be loaded",
+      "retry": "Retry",
+      "migrationFailedTitle": "Media servers cannot be set up on this speaker",
+      "migrationFailedText": "Preparing the speaker failed: {{reason}}",
+      "sameHostTitle": "Two servers on one IP address",
+      "sameHostText": "The speaker may see only one of two servers that share an IP address. Prefer one server per IP.",
+      "removeTitle": "Remove {{name}}?",
+      "removeText": "The speaker will no longer use this media server.",
+      "removeSlots": "Presets on slots {{slots}} still play from this server. They stay saved but will not play until the server is set up again.",
+      "removeAnyway": "Remove anyway",
+      "removeFailed": "The server could not be removed. Try again."
+    }
   }
 }
