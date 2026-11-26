@@ -29,7 +29,7 @@ from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.websocket.icy_worker import RADIO_SOURCES
 from opencloudtouch.presets.models import Preset
-from opencloudtouch.presets.service import PresetService
+from opencloudtouch.presets.service import PresetService, match_stored_music_preset
 from opencloudtouch.streaming.icy_metadata import IcyMetadata, probe_stream
 from opencloudtouch.streaming.metadata_cache import MISSING, MetadataCache, _Missing
 from opencloudtouch.stereo_pairs.device_info import load_stereo_context, stereo_fields
@@ -527,7 +527,7 @@ async def _enrich_from_presets(
 ) -> Preset | None:
     """Enrich artwork (and DLNA slot) from presets. Returns matched preset or None."""
     if info.source == "STORED_MUSIC":
-        return await _match_stored_music_preset(result, info, device_id, preset_service)
+        return await match_stored_music_preset(result, info, device_id, preset_service)
     if info.source not in RADIO_SOURCES:
         return None
     if not info.station_name:
@@ -554,42 +554,6 @@ async def _enrich_from_presets(
             "[NowPlaying] Preset lookup failed for %s", device_id, exc_info=True
         )
     return None
-
-
-async def _match_stored_music_preset(
-    result: dict[str, object],
-    info: NowPlayingInfo,
-    device_id: str,
-    preset_service: PresetService,
-) -> Preset | None:
-    """Mark the slot whose ContentItem matches location + account (decision 31).
-
-    Never matched by station name; the UDN is compared case-insensitively.
-    """
-    if not info.location or not info.source_account:
-        return None
-    account = info.source_account.casefold()
-    try:
-        presets = await preset_service.get_all_presets(device_id)
-    except Exception:
-        logger.debug(
-            "[NowPlaying] Preset lookup failed for %s", device_id, exc_info=True
-        )
-        return None
-    match = next(
-        (
-            p
-            for p in presets
-            if p.station_url == info.location
-            and (p.source_account or "").casefold() == account
-        ),
-        None,
-    )
-    if match:
-        result["preset_number"] = match.preset_number
-        if not result["artwork_url"] and match.station_favicon:
-            result["artwork_url"] = match.station_favicon
-    return match
 
 
 _OFFLINE_FALLBACK_INFO = NowPlayingInfo(source="", state="STOP_STATE")

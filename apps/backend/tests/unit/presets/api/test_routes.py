@@ -119,6 +119,7 @@ class TestGetDevicePresets:
         r = client.get("/api/presets/DEV1")
         assert r.status_code == 200
         assert len(r.json()) == 2
+        mock_service.get_all_presets.assert_awaited_once_with("DEV1", live=True)
 
     def test_returns_empty_list_when_no_presets(self, client, mock_service):
         mock_service.get_all_presets = AsyncMock(return_value=[])

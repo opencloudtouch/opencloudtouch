@@ -37,9 +37,26 @@ _BROWSE_PAGE = 50
 _BROWSE_BUDGET = 60.0  # seconds for all pages of one save
 
 if TYPE_CHECKING:
+    from opencloudtouch.devices.client import NowPlayingInfo
     from opencloudtouch.dlna.service import DlnaService
 
 logger = logging.getLogger(__name__)
+
+
+async def fetch_device_presets(device_ip: str) -> bytes:
+    """Fetch a speaker's /presets XML.
+
+    Raises:
+        DeviceConnectionError: If the device is unreachable
+    """
+    device_url = f"http://{device_ip}:{SOUNDTOUCH_HTTP_PORT}/presets"  # NOSONAR — Bose devices only support HTTP
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(device_url)
+            response.raise_for_status()
+    except httpx.HTTPError as e:
+        raise DeviceConnectionError(device_ip, str(e)) from e
+    return response.content
 
 
 class PresetService:
@@ -363,7 +380,7 @@ class PresetService:
         from opencloudtouch.dlna.client import DlnaBrowseError
 
         try:
-            server = await dlna._resolve(server_id)
+            server = await dlna.resolve(server_id)
             art = (await dlna.get_object_path(server_id, object_id)).item.album_art_url
         except (DlnaBrowseError, LookupError):
             return None
@@ -385,16 +402,16 @@ class PresetService:
         """
         return await self.repository.get_preset(device_id, preset_number)
 
-    async def get_all_presets(self, device_id: str) -> List[Preset]:
-        """Get all presets for a device, read live from the speaker first.
+    async def get_all_presets(self, device_id: str, live: bool = False) -> List[Preset]:
+        """Get all presets for a device; empty slots are not included.
 
-        The speaker is the truth: its /presets is imported on every call. IF the
-        speaker cannot be read THEN the OCT rows are returned unchanged and a
-        warning is logged. Mock speakers keep presets only in OCT (their
-        store_preset is a no-op), so mock mode serves the OCT rows directly.
-        Empty slots are not included in the response.
+        Internal enrichment and matching read the stored OCT rows only. With
+        ``live`` (the public GET route, I-2) the speaker's /presets is imported
+        first: IF the speaker cannot be read THEN the OCT rows are returned
+        unchanged and a warning is logged. Mock speakers keep presets only in
+        OCT (their store_preset is a no-op), so mock mode never reads them.
         """
-        if os.getenv("OCT_MOCK_MODE", "false").lower() != "true":
+        if live and os.getenv("OCT_MOCK_MODE", "false").lower() != "true":
             try:
                 await self.sync_presets_from_device(device_id)
             # ValueError covers defusedxml's rejection of unsafe XML
@@ -547,23 +564,41 @@ class PresetService:
         finally:
             await client.close()
 
-    async def _fetch_device_presets(self, device_ip: str) -> bytes:
-        """Fetch presets XML from device.
+    _fetch_device_presets = staticmethod(fetch_device_presets)
 
-        Args:
-            device_ip: Device IP address
 
-        Returns:
-            Raw XML response bytes
+async def match_stored_music_preset(
+    result: dict[str, object],
+    info: "NowPlayingInfo",
+    device_id: str,
+    preset_service: PresetService,
+) -> Preset | None:
+    """Mark the slot whose ContentItem matches location + account (decision 31).
 
-        Raises:
-            DeviceConnectionError: If the device is unreachable
-        """
-        device_url = f"http://{device_ip}:{SOUNDTOUCH_HTTP_PORT}/presets"  # NOSONAR — Bose devices only support HTTP
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(device_url)
-                response.raise_for_status()
-        except httpx.HTTPError as e:
-            raise DeviceConnectionError(device_ip, str(e)) from e
-        return response.content
+    Reads the stored rows (no speaker read); never matched by station name; the
+    UDN is compared case-insensitively.
+    """
+    if not info.location or not info.source_account:
+        return None
+    account = info.source_account.casefold()
+    try:
+        presets = await preset_service.get_all_presets(device_id)
+    except Exception:
+        logger.debug(
+            "[NowPlaying] Preset lookup failed for %s", device_id, exc_info=True
+        )
+        return None
+    match = next(
+        (
+            p
+            for p in presets
+            if p.station_url == info.location
+            and (p.source_account or "").casefold() == account
+        ),
+        None,
+    )
+    if match:
+        result["preset_number"] = match.preset_number
+        if not result["artwork_url"] and match.station_favicon:
+            result["artwork_url"] = match.station_favicon
+    return match

@@ -5,7 +5,6 @@ import logging
 from collections.abc import Awaitable, Callable
 from enum import Enum
 
-import httpx
 from defusedxml import ElementTree
 
 from opencloudtouch.core import error_codes
@@ -21,6 +20,7 @@ from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.marge.source_repository import MargeSourceRepository
 from opencloudtouch.migrations.service import SpeakerMigrationService
 from opencloudtouch.presets.repository import PresetRepository
+from opencloudtouch.presets.service import fetch_device_presets
 
 logger = logging.getLogger(__name__)
 
@@ -35,20 +35,6 @@ def _default_client(device: Device) -> DeviceClient:
     return get_device_client(
         f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR - LAN HTTP only
     )
-
-
-async def _fetch_presets(device_ip: str) -> bytes:
-    """Read the speaker's /presets live (same request as PresetService)."""
-    url = (
-        f"http://{device_ip}:{SOUNDTOUCH_HTTP_PORT}/presets"  # NOSONAR - LAN HTTP only
-    )
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-    except httpx.HTTPError as e:
-        raise DeviceConnectionError(device_ip, str(e)) from e
-    return response.content
 
 
 def _speaker_spelling(server_id: str, known: list[str]) -> str:
@@ -68,7 +54,7 @@ class DlnaNativeService:
         poll_interval: float = 0.5,
         ready_timeout: float = 15.0,
         migration_service: SpeakerMigrationService | None = None,
-        presets_xml: Callable[[str], Awaitable[bytes]] = _fetch_presets,
+        presets_xml: Callable[[str], Awaitable[bytes]] = fetch_device_presets,
         preset_repo: PresetRepository | None = None,
     ):
         self._source_repo = source_repo
@@ -152,10 +138,6 @@ class DlnaNativeService:
                 await client.notify_sources_updated(device.device_id)
         finally:
             await client.close()
-
-    async def affected_slots(self, device_id: str, server_id: str) -> list[int]:
-        """Preset slots on the speaker that play from this server, read live."""
-        return await self._slots(await self._device(device_id), server_id)
 
     async def _slots(self, device: Device, server_id: str) -> list[int]:
         account = f"{server_id}/0".lower()

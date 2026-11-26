@@ -57,7 +57,7 @@ def dlna():
     d = MagicMock()
     d.first_child_is_audio = AsyncMock(return_value=True)
     server = DlnaServer(SERVER, "NAS", "http://nas:1/d.xml", "http://nas:1/ctl")
-    d._resolve = AsyncMock(return_value=server)
+    d.resolve = AsyncMock(return_value=server)
     art = DlnaItem("42", "0", "Album", True, album_art_url="http://nas:1/art.jpg")
     d.get_object_path = AsyncMock(return_value=ObjectPath("NAS", art, []))
     return d

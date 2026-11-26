@@ -18,11 +18,10 @@ from opencloudtouch.core.dependencies import (
     get_device_state_manager,
     get_preset_service,
 )
-from opencloudtouch.devices.api.routes import _match_stored_music_preset
 from opencloudtouch.devices.client import NowPlayingInfo
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
-from opencloudtouch.presets.service import PresetService
+from opencloudtouch.presets.service import PresetService, match_stored_music_preset
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +43,7 @@ async def _preset_number(
     """Slot of the playing DLNA item, same lookup as the REST route (decision 31)."""
     if preset_service is None or np is None or np.source != "STORED_MUSIC":
         return None
-    match = await _match_stored_music_preset(
+    match = await match_stored_music_preset(
         {"artwork_url": np.artwork_url}, np, device_id, preset_service
     )
     return match.preset_number if match else None

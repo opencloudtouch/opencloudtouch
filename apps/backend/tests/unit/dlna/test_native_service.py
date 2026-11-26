@@ -18,10 +18,10 @@ from opencloudtouch.devices.repository import Device
 from opencloudtouch.dlna.native_service import (
     DlnaNativeService,
     NativeState,
-    _fetch_presets,
 )
 from opencloudtouch.marge.source_repository import MediaServerSource
 from opencloudtouch.presets.models import Preset
+from opencloudtouch.presets.service import fetch_device_presets
 
 ACCOUNT = "00000000-0000-4000-8000-000000000001"
 UDN = "Aa000000-0000-4000-8000-0000000000Bb"
@@ -309,10 +309,11 @@ async def test_remove_already_removed_1047_deletes_oct_row():
     assert b"<sourcesUpdated/>" in notify.calls.last.request.content
 
 
-async def test_affected_slots_reads_live_presets():
+async def test_remove_reads_slots_live_each_call():
     service, _, presets_xml, _ = _native(_client())
-    assert await service.affected_slots("device-a", UDN) == [3]
-    assert await service.affected_slots("device-a", UDN) == [3]
+    for _ in range(2):
+        with pytest.raises(CodedApiError):
+            await service.remove("device-a", UDN)
     presets_xml.assert_awaited_with("192.0.2.10")
     assert presets_xml.await_count == 2
 
@@ -323,7 +324,7 @@ def _preset(slot: int, source: str, account: str | None) -> Preset:
     )
 
 
-async def test_affected_slots_mock_mode_reads_oct_rows():
+async def test_remove_mock_mode_reads_slots_from_oct_rows():
     """Mock speakers keep no /presets: the device's OCT preset rows are used."""
     presets_xml = AsyncMock()
     preset_repo = AsyncMock()
@@ -337,7 +338,9 @@ async def test_affected_slots_mock_mode_reads_oct_rows():
     service = DlnaNativeService(
         AsyncMock(), device_repo, presets_xml=presets_xml, preset_repo=preset_repo
     )
-    assert await service.affected_slots("device-a", UDN) == [4]
+    with pytest.raises(CodedApiError) as exc:
+        await service.remove("device-a", UDN)
+    assert exc.value.extra == {"slots": [4]}
     preset_repo.get_all_presets.assert_awaited_with("device-a")
     presets_xml.assert_not_called()
 
@@ -359,7 +362,7 @@ async def test_enable_poll_tolerates_list_failure():
 async def test_fetch_presets_reads_speaker_and_maps_errors():
     route = respx.get("http://192.0.2.10:8090/presets")
     route.return_value = httpx.Response(200, content=b"<presets/>")
-    assert await _fetch_presets("192.0.2.10") == b"<presets/>"
+    assert await fetch_device_presets("192.0.2.10") == b"<presets/>"
     route.return_value = httpx.Response(500)
     with pytest.raises(DeviceConnectionError):
-        await _fetch_presets("192.0.2.10")
+        await fetch_device_presets("192.0.2.10")

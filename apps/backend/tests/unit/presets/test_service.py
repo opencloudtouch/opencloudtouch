@@ -905,6 +905,25 @@ async def test_get_all_presets_delegates_to_repository(service, mock_repo):
     mock_repo.get_all_presets.assert_called_once_with("dev-001")
 
 
+@pytest.mark.asyncio
+async def test_get_all_presets_internal_read_skips_speaker(service, real_mode):
+    """Enrichment/matching callers read stored rows, never the speaker (I-2)."""
+    fetch = AsyncMock()
+    with patch.object(service, "_fetch_device_presets", fetch):
+        await service.get_all_presets("dev-001")
+
+    fetch.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_all_presets_live_imports_from_speaker(service, real_mode):
+    fetch = AsyncMock(return_value=b"<presets/>")
+    with patch.object(service, "_fetch_device_presets", fetch):
+        await service.get_all_presets("dev-001", live=True)
+
+    fetch.assert_awaited_once()
+
+
 # ---------------------------------------------------------------------------
 # clear_preset / clear_all_presets
 # ---------------------------------------------------------------------------
@@ -1083,7 +1102,7 @@ class TestSyncKeepsMetadata:
         """Mock speakers keep presets only in OCT (mock store_preset is a no-op)."""
         fetch = AsyncMock()
         with patch.object(service, "_fetch_device_presets", fetch):
-            await service.get_all_presets("dev-001")
+            await service.get_all_presets("dev-001", live=True)
 
         fetch.assert_not_awaited()
         mock_repo.get_all_presets.assert_awaited_once_with("dev-001")

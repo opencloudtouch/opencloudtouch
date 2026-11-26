@@ -128,7 +128,7 @@ async def get_device_presets(
     Empty slots are not included in the response.
     """
     try:
-        presets = await preset_service.get_all_presets(device_id)
+        presets = await preset_service.get_all_presets(device_id, live=True)
 
         logger.debug("Retrieved %d presets for device %s", len(presets), device_id)
 

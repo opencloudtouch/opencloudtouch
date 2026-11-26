@@ -512,7 +512,8 @@ async def put_device_preset(
     name = (root.findtext("name") or root.findtext("username") or "").strip()
     if root.tag != "preset" or not location or not 1 <= slot <= 6:
         return Response(status_code=400)
-    # UNVERIFIED which element carries the account; tolerate both spellings
+    # shortcut: the STORED_MUSIC callback body is not captured yet, so the account
+    # is read from sourceaccount or sourceAccount; pin the element once captured.
     account = (
         root.findtext("sourceaccount") or root.findtext("sourceAccount") or ""
     ).strip()

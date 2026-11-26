@@ -76,7 +76,7 @@ class DlnaService:
         self._cache_expires_at = now + (self.cache_ttl if servers else self.missing_ttl)
         return list(self._servers.values())
 
-    async def _resolve(self, server_id: str) -> DlnaServer:
+    async def resolve(self, server_id: str) -> DlnaServer:
         """Find a server, refreshing discovery only when necessary."""
         async with self._discovery_lock:
             missing_until = self._missing_ids.get(server_id, 0.0)
@@ -108,7 +108,7 @@ class DlnaService:
         requested_count: int = 50,
     ) -> BrowsePage:
         """Browse live (no browse cache); keep folders and audio only."""
-        server = await self._resolve(server_id)
+        server = await self.resolve(server_id)
         page = await self.client.browse(
             server, object_id, starting_index, requested_count
         )
@@ -128,13 +128,13 @@ class DlnaService:
 
     async def first_child_is_audio(self, server_id: str, container_id: str) -> bool:
         """True if the first child of the container is an audio item."""
-        server = await self._resolve(server_id)
+        server = await self.resolve(server_id)
         page = await self.client.browse(server, container_id, 0, 1)
         return bool(page.items) and is_audio_item(page.items[0])
 
     async def get_object_path(self, server_id: str, object_id: str) -> ObjectPath:
         """Object plus its ancestors, read live."""
-        server = await self._resolve(server_id)
+        server = await self.resolve(server_id)
         if object_id == "0":
             return ObjectPath(server.name, DlnaItem("0", "-1", server.name, True), [])
         item = await self.client.get_object(server, object_id)
@@ -153,7 +153,7 @@ class DlnaService:
 
     async def find_album_root(self, server_id: str) -> str | None:
         """First container (breadth-first) directly holding music albums, or None."""
-        server = await self._resolve(server_id)
+        server = await self.resolve(server_id)
         queue = [("0", 0)]
         calls = 0
         while queue and calls < ALBUM_SEARCH_MAX_CALLS:
