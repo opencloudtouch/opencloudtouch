@@ -898,6 +898,10 @@
   },
   "devices": {
     "sourceError": {
+      "notSetUp": {
+        "title": "Źródło niedostępne",
+        "body": "Głośnik nie mógł uruchomić tego presetu, ponieważ jego źródło nie jest skonfigurowane. W przypadku presetu DLNA skonfiguruj ponownie serwer multimediów na karcie DLNA w oknie presetu."
+      },
       "notFound": {
         "title": "Nie znaleziono serwera multimediów",
         "body": "Głośnik w tej chwili nie widzi tego serwera multimediów. Sprawdź, czy serwer działa i jest w tej samej sieci; jeśli dwa serwery mają ten sam adres IP, głośnik może widzieć tylko jeden."

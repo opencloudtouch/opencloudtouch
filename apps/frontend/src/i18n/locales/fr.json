@@ -898,6 +898,10 @@
   },
   "devices": {
     "sourceError": {
+      "notSetUp": {
+        "title": "Source indisponible",
+        "body": "L'enceinte n'a pas pu démarrer ce préréglage car sa source n'est pas configurée. Pour un préréglage DLNA, configure à nouveau son serveur multimédia dans l'onglet DLNA de la boîte de dialogue du préréglage."
+      },
       "notFound": {
         "title": "Serveur multimédia introuvable",
         "body": "L'enceinte ne voit pas ce serveur multimédia pour le moment. Vérifie que le serveur fonctionne et se trouve sur le même réseau ; si deux serveurs partagent une adresse IP, l'enceinte peut n'en voir qu'un seul."

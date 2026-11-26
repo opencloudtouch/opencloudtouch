@@ -898,6 +898,10 @@
   },
   "devices": {
     "sourceError": {
+      "notSetUp": {
+        "title": "Källan är inte tillgänglig",
+        "body": "Högtalaren kunde inte starta den här förinställningen eftersom dess källa inte är konfigurerad. För en DLNA-förinställning konfigurerar du mediaservern igen på fliken DLNA i förinställningsdialogen."
+      },
       "notFound": {
         "title": "Mediaservern hittades inte",
         "body": "Högtalaren ser inte den här mediaservern just nu. Kontrollera att servern körs och finns i samma nätverk; om två servrar delar en IP-adress kan högtalaren se bara en av dem."

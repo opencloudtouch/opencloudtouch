@@ -898,6 +898,10 @@
   },
   "devices": {
     "sourceError": {
+      "notSetUp": {
+        "title": "Sorgente non disponibile",
+        "body": "L'altoparlante non è riuscito ad avviare questo preset perché la sua sorgente non è configurata. Per un preset DLNA, configura di nuovo il suo media server nella scheda DLNA della finestra del preset."
+      },
       "notFound": {
         "title": "Server multimediale non trovato",
         "body": "L'altoparlante al momento non vede questo server multimediale. Verifica che il server sia in funzione e nella stessa rete; se due server condividono un indirizzo IP, l'altoparlante potrebbe vederne solo uno."

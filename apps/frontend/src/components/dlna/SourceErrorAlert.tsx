@@ -2,12 +2,13 @@ import { useTranslation } from "react-i18next";
 import { Icon } from "../Icon";
 
 const KEYS: Record<number, string> = {
+  0: "notSetUp",
   1608: "notFound",
   1602: "serviceUnreachable",
   1604: "badFormat",
   1615: "subFolders",
 };
-const WARNING = new Set([1604, 1615]);
+const WARNING = new Set([0, 1604, 1615]);
 
 interface SourceErrorAlertProps {
   code: number;

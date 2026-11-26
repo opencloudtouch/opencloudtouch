@@ -898,6 +898,10 @@
   },
   "devices": {
     "sourceError": {
+      "notSetUp": {
+        "title": "Quelle nicht verfügbar",
+        "body": "Der Lautsprecher konnte diesen Preset nicht starten, weil seine Quelle nicht eingerichtet ist. Richte bei einem DLNA-Preset den Medienserver im Tab DLNA des Preset-Dialogs erneut ein."
+      },
       "notFound": {
         "title": "Medienserver nicht gefunden",
         "body": "Der Lautsprecher sieht diesen Medienserver gerade nicht. Prüfe, ob der Server läuft und im selben Netzwerk ist; teilen sich zwei Server eine IP-Adresse, sieht der Lautsprecher eventuell nur einen."

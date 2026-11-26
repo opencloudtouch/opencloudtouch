@@ -898,6 +898,10 @@
   },
   "devices": {
     "sourceError": {
+      "notSetUp": {
+        "title": "Fuente no disponible",
+        "body": "El altavoz no pudo iniciar este preset porque su fuente no está configurada. Para un preset DLNA, vuelve a configurar su servidor multimedia en la pestaña DLNA del diálogo del preset."
+      },
       "notFound": {
         "title": "Servidor multimedia no encontrado",
         "body": "El altavoz no ve este servidor multimedia ahora mismo. Comprueba que el servidor esté en marcha y en la misma red; si dos servidores comparten una dirección IP, el altavoz puede ver solo uno."

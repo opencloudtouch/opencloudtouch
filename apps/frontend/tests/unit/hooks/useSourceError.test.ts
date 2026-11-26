@@ -49,4 +49,24 @@ describe("useSourceError", () => {
     act(() => subs.now_playing({ device_id: "D1", state: "PLAY_STATE" }));
     expect(result.current.error).toBeNull();
   });
+
+  it("shows INVALID_SOURCE (code 0) when no specific error is shown", () => {
+    const { result } = renderHook(() => useSourceError("D1"));
+    act(() => subs.source_error({ device_id: "D1", code: 0, name: "INVALID_SOURCE" }));
+    expect(result.current.error).toEqual({ code: 0 });
+  });
+
+  it("keeps a specific error when INVALID_SOURCE follows it", () => {
+    const { result } = renderHook(() => useSourceError("D1"));
+    act(() => subs.source_error({ device_id: "D1", code: 1036 }));
+    act(() => subs.source_error({ device_id: "D1", code: 0, name: "INVALID_SOURCE" }));
+    expect(result.current.error).toEqual({ code: 1036 });
+  });
+
+  it("a specific error replaces a shown INVALID_SOURCE", () => {
+    const { result } = renderHook(() => useSourceError("D1"));
+    act(() => subs.source_error({ device_id: "D1", code: 0, name: "INVALID_SOURCE" }));
+    act(() => subs.source_error({ device_id: "D1", code: 1608 }));
+    expect(result.current.error).toEqual({ code: 1608 });
+  });
 });

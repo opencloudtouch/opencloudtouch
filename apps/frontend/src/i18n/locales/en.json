@@ -896,6 +896,10 @@
   },
   "devices": {
     "sourceError": {
+      "notSetUp": {
+        "title": "Source not available",
+        "body": "The speaker could not start this preset because its source is not set up. For a DLNA preset, set up its media server again in the DLNA tab of the preset dialog."
+      },
       "notFound": {
         "title": "Media server not found",
         "body": "The speaker cannot see this media server right now. Make sure the server is running and in the same network; if two servers share one IP address the speaker may see only one."

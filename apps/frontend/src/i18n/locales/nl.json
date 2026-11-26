@@ -898,6 +898,10 @@
   },
   "devices": {
     "sourceError": {
+      "notSetUp": {
+        "title": "Bron niet beschikbaar",
+        "body": "De speaker kon deze preset niet starten omdat de bron niet is ingesteld. Stel voor een DLNA-preset de mediaserver opnieuw in op het tabblad DLNA van het presetvenster."
+      },
       "notFound": {
         "title": "Mediaserver niet gevonden",
         "body": "De speaker ziet deze mediaserver op dit moment niet. Controleer of de server draait en in hetzelfde netwerk zit; als twee servers één IP-adres delen, ziet de speaker er mogelijk maar één."
