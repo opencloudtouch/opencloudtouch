@@ -18,7 +18,8 @@ export type DeviceEventType =
   | "zone"
   | "group"
   | "connection"
-  | "metadata_enriched";
+  | "metadata_enriched"
+  | "source_error";
 
 export interface DeviceSSEEvent {
   device_id: string;
@@ -92,6 +93,7 @@ export function useDeviceEvents(): UseDeviceEventsReturn {
       "group",
       "connection",
       "metadata_enriched",
+      "source_error",
     ];
 
     const handlers: Record<string, (e: MessageEvent) => void> = {};

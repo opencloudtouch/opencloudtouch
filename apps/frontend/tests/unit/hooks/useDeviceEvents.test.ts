@@ -116,6 +116,22 @@ describe("useDeviceEvents", () => {
     unmount();
   });
 
+  it("dispatches source_error to subscribers", () => {
+    const { result, unmount } = renderHook(() => useDeviceEvents());
+    const es = ControllableEventSource.instances[0];
+    const callback = vi.fn();
+    act(() => {
+      result.current.subscribe("source_error", "DEVICE_001", callback);
+    });
+    act(() => {
+      es.emit("source_error", JSON.stringify({ device_id: "DEVICE_001", code: "1005" }));
+    });
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({ device_id: "DEVICE_001", code: "1005" }),
+    );
+    unmount();
+  });
+
   it("dispatches volume events to matching subscribers", () => {
     const { result, unmount } = renderHook(() => useDeviceEvents());
     const es = ControllableEventSource.instances[0];
