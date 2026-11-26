@@ -362,3 +362,22 @@ class TestErrorUpdate:
 
     def test_unknown_root_still_ignored(self):
         assert parse_event('<somethingElse deviceID="AABB"/>') is None
+
+
+def test_parser_extracts_shuffle_repeat():
+    xml = NOW_PLAYING_XML.replace(
+        "<playStatus>",
+        "<shuffleSetting>SHUFFLE_ON</shuffleSetting>"
+        "<repeatSetting>REPEAT_ONE</repeatSetting><playStatus>",
+    )
+    event = parse_event(xml)
+    assert event is not None and event.now_playing is not None
+    assert event.now_playing.shuffle_setting == "SHUFFLE_ON"
+    assert event.now_playing.repeat_setting == "REPEAT_ONE"
+
+
+def test_parser_settings_absent_are_none():
+    event = parse_event(NOW_PLAYING_XML)
+    assert event is not None and event.now_playing is not None
+    assert event.now_playing.shuffle_setting is None
+    assert event.now_playing.repeat_setting is None

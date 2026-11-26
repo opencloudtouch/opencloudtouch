@@ -988,3 +988,31 @@ class TestPresetFaviconEnrichment:
         # Should not raise
         await mgr.on_event(np_event)
         await asyncio.sleep(0.1)
+
+
+class TestStateManagerCopyKeepsSettings:
+    @pytest.mark.asyncio
+    async def test_state_manager_copy_keeps_settings(self):
+        from unittest.mock import AsyncMock
+
+        manager = DeviceStateManager()
+        manager.set_preset_favicon_callback(
+            AsyncMock(return_value="https://x/logo.png")
+        )
+        published = []
+        manager.on_event = AsyncMock(side_effect=published.append)
+        info = NowPlayingInfo(
+            source="INTERNET_RADIO",
+            state="PLAY_STATE",
+            station_name="R",
+            shuffle_setting="SHUFFLE_ON",
+            repeat_setting="REPEAT_ONE",
+        )
+        await manager._run_preset_favicon_enrichment(
+            DeviceEvent(
+                device_id="D1", event_type=EventType.NOW_PLAYING, now_playing=info
+            )
+        )
+
+        assert published[0].now_playing.shuffle_setting == "SHUFFLE_ON"
+        assert published[0].now_playing.repeat_setting == "REPEAT_ONE"

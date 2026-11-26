@@ -210,6 +210,8 @@ def _parse_now_playing(element: Element) -> NowPlayingInfo:
         artwork_url=artwork_url,
         location=item_attrs.get("location"),
         source_account=item_attrs.get("sourceAccount"),
+        shuffle_setting=_text("shuffleSetting"),
+        repeat_setting=_text("repeatSetting"),
     )
 
 

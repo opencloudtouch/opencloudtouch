@@ -24,7 +24,7 @@ from opencloudtouch.core.exceptions import (
     DeviceNotFoundError,
     DomainValidationError,
 )
-from opencloudtouch.devices.client import NowPlayingInfo
+from opencloudtouch.devices.client import SHUFFLE_REPEAT_KEYS, NowPlayingInfo
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.websocket.icy_worker import RADIO_SOURCES
@@ -335,12 +335,24 @@ async def press_key(
     Example:
         POST /api/devices/AABBCC112233/key?key=PRESET_1&state=both
     """
+    message = {"message": f"Key {key} pressed successfully", "device_id": device_id}
+    if key not in SHUFFLE_REPEAT_KEYS:
+        await _device_op(
+            device_id, "press key", device_service.press_key(device_id, key, state)
+        )
+        return message
+    # Shuffle/repeat always press "both"; the answer is read back (speaker is the truth)
     await _device_op(
-        device_id,
-        "press key",
-        device_service.press_key(device_id, key, state),
+        device_id, "press key", device_service.press_key(device_id, key, "both")
     )
-    return {"message": f"Key {key} pressed successfully", "device_id": device_id}
+    info = await _device_op(
+        device_id, "read back settings", device_service.get_now_playing(device_id)
+    )
+    return {
+        **message,
+        "shuffle_setting": info.shuffle_setting,
+        "repeat_setting": info.repeat_setting,
+    }
 
 
 @router.put(
@@ -583,6 +595,8 @@ def _now_playing_to_dict(info: NowPlayingInfo, *, online: bool) -> dict[str, obj
         "online": online,
         "dlna": info.source == "STORED_MUSIC",
         "preset_number": None,
+        "shuffle_setting": info.shuffle_setting,
+        "repeat_setting": info.repeat_setting,
     }
 
 

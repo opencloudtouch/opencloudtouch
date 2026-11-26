@@ -381,3 +381,19 @@ class TestContentItemParsing:
         status.ContentItem = None
         info = await adapter.get_now_playing()
         assert info.location is None
+
+
+def test_now_playing_dict_includes_settings():
+    from opencloudtouch.devices.api.routes import _now_playing_to_dict
+
+    info = NowPlayingInfo(
+        source="STORED_MUSIC",
+        state="PLAY_STATE",
+        shuffle_setting="SHUFFLE_OFF",
+        repeat_setting="REPEAT_ALL",
+    )
+    result = _now_playing_to_dict(info, online=True)
+    assert result["shuffle_setting"] == "SHUFFLE_OFF"
+    assert result["repeat_setting"] == "REPEAT_ALL"
+    plain = _now_playing_to_dict(NowPlayingInfo(source="AUX", state="X"), online=True)
+    assert plain["shuffle_setting"] is None

@@ -375,3 +375,23 @@ class TestSSEIntegration:
         joined = "".join(messages)
         assert "event: now_playing" in joined
         assert "Test Song" in joined
+
+
+def test_sse_now_playing_includes_settings():
+    info = NowPlayingInfo(
+        source="STORED_MUSIC",
+        state="PLAY_STATE",
+        shuffle_setting="SHUFFLE_ON",
+        repeat_setting="REPEAT_OFF",
+    )
+    event = DeviceEvent(
+        device_id="D2", event_type=EventType.NOW_PLAYING, now_playing=info
+    )
+    data = json.loads(_event_to_sse(event).split("data: ")[1].strip())
+    assert data["shuffle_setting"] == "SHUFFLE_ON"
+    assert data["repeat_setting"] == "REPEAT_OFF"
+
+    snapshot = _snapshot_to_sse("D2", DeviceState(device_id="D2", now_playing=info))
+    np_data = json.loads(snapshot.split("event: now_playing\ndata: ")[1].split("\n")[0])
+    assert np_data["shuffle_setting"] == "SHUFFLE_ON"
+    assert np_data["repeat_setting"] == "REPEAT_OFF"

@@ -124,6 +124,8 @@ class TestNowPlayingCacheFirst:
             "online",
             "dlna",
             "preset_number",
+            "shuffle_setting",
+            "repeat_setting",
         }
         assert set(data.keys()) == expected_keys
 

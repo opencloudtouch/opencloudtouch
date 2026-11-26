@@ -41,6 +41,18 @@ class NowPlayingInfo:
     artwork_url: Optional[str] = None
     location: Optional[str] = None  # ContentItem location (DLNA preset match)
     source_account: Optional[str] = None  # ContentItem sourceAccount
+    shuffle_setting: Optional[str] = None  # SHUFFLE_ON/OFF; None = not supported
+    repeat_setting: Optional[str] = None  # REPEAT_OFF/ALL/ONE; None = not supported
+
+
+# Keys whose result the speaker reports back as shuffle/repeat setting
+SHUFFLE_REPEAT_KEYS = (
+    "SHUFFLE_ON",
+    "SHUFFLE_OFF",
+    "REPEAT_OFF",
+    "REPEAT_ALL",
+    "REPEAT_ONE",
+)
 
 
 @dataclass

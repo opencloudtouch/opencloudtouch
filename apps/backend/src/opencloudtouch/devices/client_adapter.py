@@ -167,6 +167,8 @@ class BoseDeviceClientAdapter(DeviceClient):
                 artwork_url=getattr(now_playing, "ContainerArtUrl", None),
                 location=item.Location if item else None,
                 source_account=item.SourceAccount if item else None,
+                shuffle_setting=getattr(now_playing, "ShuffleSetting", None),
+                repeat_setting=getattr(now_playing, "RepeatSetting", None),
             )
 
         except Exception as e:

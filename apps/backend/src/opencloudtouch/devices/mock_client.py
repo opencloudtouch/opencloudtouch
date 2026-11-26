@@ -5,9 +5,11 @@ Provides deterministic responses that simulate device HTTP API.
 """
 
 import logging
+from dataclasses import replace
 from typing import ClassVar, Optional
 
 from opencloudtouch.devices.client import (
+    SHUFFLE_REPEAT_KEYS,
     BassCapabilities,
     BassInfo,
     DeviceClient,
@@ -108,6 +110,8 @@ class MockDeviceClient(DeviceClient):
 
     # device_id -> registered server ids; class-level because the app builds a client per request
     _MEDIA_SERVERS: ClassVar[dict[str, set[str]]] = {}
+    # device_id -> (shuffle, repeat); class-level for the same reason
+    _SETTINGS: ClassVar[dict[str, tuple[str, str]]] = {}
 
     def __init__(self, device_id: str, ip_address: Optional[str] = None):
         """
@@ -159,7 +163,15 @@ class MockDeviceClient(DeviceClient):
         logger.debug("[MOCK] get_now_playing() for device %s", self.device_id)
         now_playing = self.MOCK_DEVICES[self.device_id]["now_playing"]
         assert isinstance(now_playing, NowPlayingInfo)
-        return now_playing
+        shuffle, repeat = self._SETTINGS.get(
+            self.device_id, ("SHUFFLE_OFF", "REPEAT_OFF")
+        )
+        return replace(now_playing, shuffle_setting=shuffle, repeat_setting=repeat)
+
+    @classmethod
+    def reset_settings(cls) -> None:
+        """Forget pressed shuffle/repeat keys (test isolation)."""
+        cls._SETTINGS.clear()
 
     async def press_key(self, key: str, state: str = "both") -> None:
         """
@@ -179,6 +191,7 @@ class MockDeviceClient(DeviceClient):
             "PLAY",
             "PAUSE",
             "POWER",
+            *SHUFFLE_REPEAT_KEYS,
         ]
         valid_states = ["press", "release", "both"]
 
@@ -197,6 +210,15 @@ class MockDeviceClient(DeviceClient):
             self.device_id,
             extra={"device_id": self.device_id, "key": key, "state": state},
         )
+        if key in SHUFFLE_REPEAT_KEYS:
+            shuffle, repeat = self._SETTINGS.get(
+                self.device_id, ("SHUFFLE_OFF", "REPEAT_OFF")
+            )
+            if key.startswith("SHUFFLE_"):
+                shuffle = key
+            else:
+                repeat = key
+            self._SETTINGS[self.device_id] = (shuffle, repeat)
 
     async def select_source(self, source: str) -> None:
         """Mock source switch."""
