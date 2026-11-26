@@ -115,7 +115,7 @@ paths:
       tags:
       - dlna
       summary: Browse Dlna Server
-      description: Browse a DLNA MediaServer ContentDirectory.
+      description: Browse one page of a media server folder.
       operationId: browse_dlna_server_api_dlna_servers__server_id__browse_get
       parameters:
       - name: server_id
@@ -129,7 +129,59 @@ paths:
         required: false
         schema:
           type: string
+          maxLength: 512
           default: '0'
+          title: Object Id
+      - name: starting_index
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Starting Index
+      - name: requested_count
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Requested Count
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DlnaBrowseResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/servers/{server_id}/first-child-audio:
+    get:
+      tags:
+      - dlna
+      summary: First Child Audio
+      description: Tell whether a folder starts with an audio item (playable as preset).
+      operationId: first_child_audio_api_dlna_servers__server_id__first_child_audio_get
+      parameters:
+      - name: server_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Server Id
+      - name: object_id
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 512
           title: Object Id
       responses:
         '200':
@@ -137,10 +189,167 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Browse Dlna Server Api Dlna Servers  Server Id  Browse
-                  Get
+                $ref: '#/components/schemas/FirstChildAudio'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/servers/{server_id}/objects/path:
+    get:
+      tags:
+      - dlna
+      summary: Get Dlna Object Path
+      description: Ancestor folders of a saved object, read live (edit prefill).
+      operationId: get_dlna_object_path_api_dlna_servers__server_id__objects_path_get
+      parameters:
+      - name: server_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Server Id
+      - name: object_id
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 512
+          title: Object Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DlnaObjectPath'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/servers/{server_id}/album-root:
+    get:
+      tags:
+      - dlna
+      summary: Get Dlna Album Root
+      description: Locate the folder holding a server's albums (album view link).
+      operationId: get_dlna_album_root_api_dlna_servers__server_id__album_root_get
+      parameters:
+      - name: server_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Server Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DlnaAlbumRoot'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/native:
+    get:
+      tags:
+      - dlna
+      summary: List Native Servers
+      description: Discovered servers plus registered ones, with live states (decision
+        32).
+      operationId: list_native_servers_api_dlna_native_get
+      parameters:
+      - name: device_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NativeServerList'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/native/{device_id}/servers/{server_id}:
+    put:
+      tags:
+      - dlna
+      summary: Enable Native Server
+      description: Register a server on the speaker; UNAVAILABLE is a state, not an
+        error.
+      operationId: enable_native_server_api_dlna_native__device_id__servers__server_id__put
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: server_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Server Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NativeServer'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - dlna
+      summary: Remove Native Server
+      description: Remove a server; 409 with the live slot list unless ``force`` (decision
+        29).
+      operationId: remove_native_server_api_dlna_native__device_id__servers__server_id__delete
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: server_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Server Id
+      - name: force
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Force
+      responses:
+        '204':
+          description: Successful Response
         '422':
           description: Validation Error
           content:
@@ -360,7 +569,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/KeyPressResponse'
         '422':
           description: Validation Error
           content:
@@ -425,10 +635,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Get Now Playing Api Devices  Device Id  Now Playing
-                  Get
+                $ref: '#/components/schemas/NowPlayingResponse'
         '422':
           description: Validation Error
           content:
@@ -607,6 +814,32 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PresetSetRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresetResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/presets/dlna:
+    post:
+      tags:
+      - presets
+      summary: Set Dlna Preset
+      description: Save a DLNA folder/track as a native preset (409 unless confirmed).
+      operationId: set_dlna_preset_api_presets_dlna_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresetDlnaRequest'
         required: true
       responses:
         '201':
@@ -4224,6 +4457,189 @@ components:
       type: object
       title: DiagnosticsRequest
       description: Request body for diagnostics download (no GitHub token needed).
+    DlnaAlbumRoot:
+      properties:
+        object_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Object Id
+      type: object
+      required:
+      - object_id
+      title: DlnaAlbumRoot
+    DlnaBrowseResponse:
+      properties:
+        server_id:
+          type: string
+          title: Server Id
+        object_id:
+          type: string
+          title: Object Id
+        items:
+          items:
+            $ref: '#/components/schemas/DlnaItem'
+          type: array
+          title: Items
+        starting_index:
+          type: integer
+          title: Starting Index
+        number_returned:
+          type: integer
+          title: Number Returned
+        total_matches:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total Matches
+        next_index:
+          type: integer
+          title: Next Index
+        has_more:
+          type: boolean
+          title: Has More
+      type: object
+      required:
+      - server_id
+      - object_id
+      - items
+      - starting_index
+      - number_returned
+      - total_matches
+      - next_index
+      - has_more
+      title: DlnaBrowseResponse
+    DlnaItem:
+      properties:
+        id:
+          type: string
+          title: Id
+        parent_id:
+          type: string
+          title: Parent Id
+        title:
+          type: string
+          title: Title
+        is_container:
+          type: boolean
+          title: Is Container
+        resource_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resource Url
+        media_class:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Media Class
+        artist:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artist
+        album:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Album
+        genre:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Genre
+        creator:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Creator
+        album_art_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Album Art Url
+        duration:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Duration
+        size:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Size
+        bitrate:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Bitrate
+        sample_frequency:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Sample Frequency
+        audio_channels:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Audio Channels
+        protocol_info:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Protocol Info
+      type: object
+      required:
+      - id
+      - parent_id
+      - title
+      - is_container
+      title: DlnaItem
+      description: A DLNA ContentDirectory item or container.
+    DlnaObjectPath:
+      properties:
+        server_id:
+          type: string
+          title: Server Id
+        server_name:
+          type: string
+          title: Server Name
+        object_id:
+          type: string
+          title: Object Id
+        title:
+          type: string
+          title: Title
+        is_container:
+          type: boolean
+          title: Is Container
+        path:
+          items:
+            $ref: '#/components/schemas/DlnaPathEntry'
+          type: array
+          title: Path
+      type: object
+      required:
+      - server_id
+      - server_name
+      - object_id
+      - title
+      - is_container
+      - path
+      title: DlnaObjectPath
+    DlnaPathEntry:
+      properties:
+        object_id:
+          type: string
+          title: Object Id
+        title:
+          type: string
+          title: Title
+      type: object
+      required:
+      - object_id
+      - title
+      title: DlnaPathEntry
     EnablePermanentSSHRequest:
       properties:
         device_id:
@@ -4307,6 +4723,15 @@ components:
       - success
       title: FinalizeResponse
       description: Response from device finalization.
+    FirstChildAudio:
+      properties:
+        first_child_is_audio:
+          type: boolean
+          title: First Child Is Audio
+      type: object
+      required:
+      - first_child_is_audio
+      title: FirstChildAudio
     FrontendLogEntry:
       properties:
         timestamp:
@@ -4416,6 +4841,30 @@ components:
       - message
       title: HostsModifyResponse
       description: Response with hosts modification result.
+    KeyPressResponse:
+      properties:
+        message:
+          type: string
+          title: Message
+        device_id:
+          type: string
+          title: Device Id
+        shuffle_setting:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Shuffle Setting
+        repeat_setting:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Repeat Setting
+      type: object
+      required:
+      - message
+      - device_id
+      title: KeyPressResponse
+      description: Key press answer; shuffle/repeat keys add the settings read back.
     LogDownloadRequest:
       properties:
         frontend_logs:
@@ -4487,6 +4936,128 @@ components:
       - device_ids
       title: ModifyMembersRequest
       description: Request to add or remove zone members.
+    NativeServer:
+      properties:
+        server_id:
+          type: string
+          title: Server Id
+        name:
+          type: string
+          title: Name
+        state:
+          type: string
+          enum:
+          - not_enabled
+          - ready
+          - unavailable
+          title: State
+        discovered:
+          type: boolean
+          title: Discovered
+        host:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Host
+      type: object
+      required:
+      - server_id
+      - name
+      - state
+      - discovered
+      - host
+      title: NativeServer
+    NativeServerList:
+      properties:
+        servers:
+          items:
+            $ref: '#/components/schemas/NativeServer'
+          type: array
+          title: Servers
+        migration_failed:
+          type: boolean
+          title: Migration Failed
+        migration_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Migration Reason
+      type: object
+      required:
+      - servers
+      - migration_failed
+      - migration_reason
+      title: NativeServerList
+    NowPlayingResponse:
+      properties:
+        source:
+          type: string
+          title: Source
+        state:
+          type: string
+          title: State
+        station_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Station Name
+        artist:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artist
+        track:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Track
+        album:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Album
+        artwork_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artwork Url
+        online:
+          type: boolean
+          title: Online
+        dlna:
+          type: boolean
+          title: Dlna
+        preset_number:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Preset Number
+        shuffle_setting:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Shuffle Setting
+        repeat_setting:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Repeat Setting
+      type: object
+      required:
+      - source
+      - state
+      - station_name
+      - artist
+      - track
+      - album
+      - artwork_url
+      - online
+      - dlna
+      - preset_number
+      - shuffle_setting
+      - repeat_setting
+      title: NowPlayingResponse
+      description: Current playback status (`online` False = last known state).
     NtpPatchRequest:
       properties:
         device_ip:
@@ -4630,6 +5201,40 @@ components:
       - message
       title: PortCheckResponse
       description: Response with port check results.
+    PresetDlnaRequest:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+        preset_number:
+          type: integer
+          maximum: 6.0
+          minimum: 1.0
+          title: Preset Number
+          description: Preset number (1-6)
+        server_id:
+          type: string
+          title: Server Id
+        parent_id:
+          type: string
+          title: Parent Id
+          default: '0'
+        object_id:
+          type: string
+          title: Object Id
+        confirm:
+          type: boolean
+          title: Confirm
+          description: Save a folder without audio first
+          default: false
+      type: object
+      required:
+      - device_id
+      - preset_number
+      - server_id
+      - object_id
+      title: PresetDlnaRequest
+      description: Request model for saving a DLNA folder/track as a native preset.
     PresetResponse:
       properties:
         id:
@@ -4665,6 +5270,15 @@ components:
           - type: string
           - type: 'null'
           title: Source
+        source_account:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Account
+        dlna:
+          type: boolean
+          title: Dlna
+          default: false
         created_at:
           type: string
           title: Created At

@@ -9,6 +9,7 @@ from opencloudtouch.core.dependencies import DlnaServiceDep
 from opencloudtouch.core.exceptions import raise_coded
 from opencloudtouch.dlna.client import DlnaBrowseError
 from opencloudtouch.dlna.errors import classify
+from opencloudtouch.dlna.models import DlnaItem
 
 router = APIRouter(prefix="/api/dlna", tags=["dlna"])
 
@@ -16,7 +17,7 @@ router = APIRouter(prefix="/api/dlna", tags=["dlna"])
 class DlnaBrowseResponse(BaseModel):
     server_id: str
     object_id: str
-    items: list[dict]
+    items: list[DlnaItem]
     starting_index: int
     number_returned: int
     total_matches: int | None
@@ -78,7 +79,7 @@ async def browse_dlna_server(
     return DlnaBrowseResponse(
         server_id=server_id,
         object_id=object_id,
-        items=[asdict(item) for item in page.items],
+        items=page.items,
         starting_index=starting_index,
         number_returned=page.number_returned,
         total_matches=page.total_matches,

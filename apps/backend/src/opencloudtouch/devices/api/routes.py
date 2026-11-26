@@ -307,7 +307,20 @@ async def set_device_bass(
     }
 
 
-@router.post("/{device_id}/key")
+class KeyPressResponse(BaseModel):
+    """Key press answer; shuffle/repeat keys add the settings read back."""
+
+    message: str
+    device_id: str
+    shuffle_setting: str | None = None
+    repeat_setting: str | None = None
+
+
+@router.post(
+    "/{device_id}/key",
+    response_model=KeyPressResponse,
+    response_model_exclude_unset=True,  # other keys keep the two-field answer
+)
 async def press_key(
     device_id: str,
     key: str,
@@ -628,7 +641,24 @@ def _sync_enriched_state(
         )
 
 
-@router.get("/{device_id}/now-playing")
+class NowPlayingResponse(BaseModel):
+    """Current playback status (`online` False = last known state)."""
+
+    source: str
+    state: str
+    station_name: str | None
+    artist: str | None
+    track: str | None
+    album: str | None
+    artwork_url: str | None
+    online: bool
+    dlna: bool
+    preset_number: int | None
+    shuffle_setting: str | None
+    repeat_setting: str | None
+
+
+@router.get("/{device_id}/now-playing", response_model=NowPlayingResponse)
 async def get_now_playing(
     device_id: str,
     device_service: Annotated[DeviceService, Depends(get_device_service)],
