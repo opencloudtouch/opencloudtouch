@@ -1,10 +1,11 @@
-﻿"""
+"""
 Device API Routes
 CRUD endpoints for device management. Discovery endpoints extracted to discovery_routes.py.
 """
 
 import logging
 from collections.abc import Awaitable
+from dataclasses import replace
 from typing import Annotated, Literal, TypeVar
 
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -499,7 +500,9 @@ async def _enrich_from_presets(
     device_id: str,
     preset_service: PresetService,
 ) -> Preset | None:
-    """Enrich artwork from preset DB for radio sources. Returns matched preset or None."""
+    """Enrich artwork (and DLNA slot) from presets. Returns matched preset or None."""
+    if info.source == "STORED_MUSIC":
+        return await _match_stored_music_preset(result, info, device_id, preset_service)
     if info.source not in RADIO_SOURCES:
         return None
     if not info.station_name:
@@ -528,6 +531,42 @@ async def _enrich_from_presets(
     return None
 
 
+async def _match_stored_music_preset(
+    result: dict[str, object],
+    info: NowPlayingInfo,
+    device_id: str,
+    preset_service: PresetService,
+) -> Preset | None:
+    """Mark the slot whose ContentItem matches location + account (decision 31).
+
+    Never matched by station name; the UDN is compared case-insensitively.
+    """
+    if not info.location or not info.source_account:
+        return None
+    account = info.source_account.casefold()
+    try:
+        presets = await preset_service.get_all_presets(device_id)
+    except Exception:
+        logger.debug(
+            "[NowPlaying] Preset lookup failed for %s", device_id, exc_info=True
+        )
+        return None
+    match = next(
+        (
+            p
+            for p in presets
+            if p.station_url == info.location
+            and (p.source_account or "").casefold() == account
+        ),
+        None,
+    )
+    if match:
+        result["preset_number"] = match.preset_number
+        if not result["artwork_url"] and match.station_favicon:
+            result["artwork_url"] = match.station_favicon
+    return match
+
+
 _OFFLINE_FALLBACK_INFO = NowPlayingInfo(source="", state="STOP_STATE")
 
 
@@ -542,6 +581,8 @@ def _now_playing_to_dict(info: NowPlayingInfo, *, online: bool) -> dict[str, obj
         "album": info.album,
         "artwork_url": info.artwork_url,
         "online": online,
+        "dlna": info.source == "STORED_MUSIC",
+        "preset_number": None,
     }
 
 
@@ -556,13 +597,10 @@ def _sync_enriched_state(
     Keeps SSE snapshots (which read from the cache) in sync with what
     _enrich_from_presets/_enrich_from_icy just added to *result*.
     """
-    enriched_info = NowPlayingInfo(
-        source=info.source,
-        state=info.state,
-        station_name=info.station_name,
+    enriched_info = replace(
+        info,
         artist=str(result["artist"]) if result.get("artist") else info.artist,
         track=str(result["track"]) if result.get("track") else info.track,
-        album=info.album,
         artwork_url=(
             str(result["artwork_url"])
             if result.get("artwork_url")
@@ -618,8 +656,10 @@ async def get_now_playing(
 
     # Enrich from preset DB and ICY metadata for radio sources
     matched_preset = await _enrich_from_presets(result, info, device_id, preset_service)
-    if matched_preset and (
-        not info.artist or not info.track or not result["artwork_url"]
+    if (
+        matched_preset
+        and info.source in RADIO_SOURCES
+        and (not info.artist or not info.track or not result["artwork_url"])
     ):
         await _enrich_from_icy(
             result,

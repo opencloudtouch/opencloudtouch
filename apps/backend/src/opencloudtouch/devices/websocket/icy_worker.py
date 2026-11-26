@@ -17,9 +17,9 @@ from __future__ import annotations
 import logging
 import time
 from collections import OrderedDict
+from dataclasses import replace
 from typing import Awaitable, Callable
 
-from opencloudtouch.devices.client import NowPlayingInfo
 from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
 from opencloudtouch.streaming.icy_metadata import IcyMetadata, probe_stream
 
@@ -156,13 +156,10 @@ class IcyWorker:
         )
 
         # Build enriched NowPlayingInfo with ICY data merged
-        enriched = NowPlayingInfo(
-            source=info.source,
-            state=info.state,
-            station_name=info.station_name,
+        enriched = replace(
+            info,
             artist=icy.artist or info.artist,
             track=icy.track or info.track,
-            album=info.album,
             artwork_url=icy.station_logo_url or info.artwork_url,
         )
 
@@ -222,13 +219,10 @@ class IcyWorker:
             icy.track,
         )
 
-        enriched = NowPlayingInfo(
-            source=info.source,
-            state=info.state,
-            station_name=info.station_name,
+        enriched = replace(
+            info,
             artist=icy.artist or info.artist,
             track=icy.track or info.track,
-            album=info.album,
             artwork_url=icy.station_logo_url or info.artwork_url,
         )
 

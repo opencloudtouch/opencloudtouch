@@ -14,9 +14,15 @@ from typing import Annotated, AsyncGenerator
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
-from opencloudtouch.core.dependencies import get_device_state_manager
+from opencloudtouch.core.dependencies import (
+    get_device_state_manager,
+    get_preset_service,
+)
+from opencloudtouch.devices.api.routes import _match_stored_music_preset
+from opencloudtouch.devices.client import NowPlayingInfo
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
+from opencloudtouch.presets.service import PresetService
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +31,26 @@ event_router = APIRouter(tags=["Events"])
 _KEEPALIVE_INTERVAL = 15  # seconds
 
 
-def _event_to_sse(event: DeviceEvent) -> str:
+def _dlna_fields(np: NowPlayingInfo, preset_number: int | None) -> dict[str, object]:
+    """DLNA fields of the REST now-playing shape."""
+    return {"dlna": np.source == "STORED_MUSIC", "preset_number": preset_number}
+
+
+async def _preset_number(
+    device_id: str,
+    np: NowPlayingInfo | None,
+    preset_service: PresetService | None,
+) -> int | None:
+    """Slot of the playing DLNA item, same lookup as the REST route (decision 31)."""
+    if preset_service is None or np is None or np.source != "STORED_MUSIC":
+        return None
+    match = await _match_stored_music_preset(
+        {"artwork_url": np.artwork_url}, np, device_id, preset_service
+    )
+    return match.preset_number if match else None
+
+
+def _event_to_sse(event: DeviceEvent, preset_number: int | None = None) -> str:
     """Format a ``DeviceEvent`` as an SSE message.
 
     The ``event:`` field is the event type name (e.g. ``volume``).
@@ -43,6 +68,7 @@ def _event_to_sse(event: DeviceEvent) -> str:
                 "track": event.now_playing.track,
                 "album": event.now_playing.album,
                 "artwork_url": event.now_playing.artwork_url,
+                **_dlna_fields(event.now_playing, preset_number),
             }
         )
 
@@ -71,7 +97,7 @@ def _event_to_sse(event: DeviceEvent) -> str:
     return f"event: {event.event_type.value}\ndata: {json.dumps(data)}\n\n"
 
 
-def _snapshot_to_sse(device_id: str, state) -> str:
+def _snapshot_to_sse(device_id: str, state, preset_number: int | None = None) -> str:
     """Format initial snapshot for a device as SSE messages."""
     messages = ""
 
@@ -86,6 +112,7 @@ def _snapshot_to_sse(device_id: str, state) -> str:
             "track": np.track,
             "album": np.album,
             "artwork_url": np.artwork_url,
+            **_dlna_fields(np, preset_number),
         }
         messages += f"event: now_playing\ndata: {json.dumps(data)}\n\n"
 
@@ -105,13 +132,15 @@ def _snapshot_to_sse(device_id: str, state) -> str:
 async def _stream_events(
     request: Request,
     state_manager: DeviceStateManager,
+    preset_service: PresetService | None = None,
 ) -> AsyncGenerator[str, None]:
     """Generate SSE messages from the device state manager event bus."""
     queue = state_manager.subscribe()
     try:
         # 2.3.2: Initial snapshot for all known devices
         for device_id, state in state_manager.get_all_states().items():
-            snapshot = _snapshot_to_sse(device_id, state)
+            slot = await _preset_number(device_id, state.now_playing, preset_service)
+            snapshot = _snapshot_to_sse(device_id, state, slot)
             if snapshot:
                 yield snapshot
 
@@ -124,7 +153,10 @@ async def _stream_events(
                 event: DeviceEvent = await asyncio.wait_for(
                     queue.get(), timeout=_KEEPALIVE_INTERVAL
                 )
-                sse_msg = _event_to_sse(event)
+                slot = await _preset_number(
+                    event.device_id, event.now_playing, preset_service
+                )
+                sse_msg = _event_to_sse(event, slot)
                 logger.debug(
                     "SSE → %s for device %s",
                     event.event_type.value,
@@ -146,6 +178,7 @@ async def _stream_events(
 async def device_event_stream(
     request: Request,
     state_manager: Annotated[DeviceStateManager, Depends(get_device_state_manager)],
+    preset_service: Annotated[PresetService, Depends(get_preset_service)],
 ):
     """Stream device events via Server-Sent Events.
 
@@ -153,7 +186,7 @@ async def device_event_stream(
     real-time updates. A keepalive comment is sent every 15 seconds.
     """
     return StreamingResponse(
-        _stream_events(request, state_manager),
+        _stream_events(request, state_manager, preset_service),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

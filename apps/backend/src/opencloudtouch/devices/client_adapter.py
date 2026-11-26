@@ -155,6 +155,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             # BoseClient uses: PLAY_STATE, PAUSE_STATE, STOP_STATE, BUFFERING_STATE
             state = now_playing.PlayStatus or "STOP_STATE"
             source = now_playing.Source or "UNKNOWN"
+            item = getattr(now_playing, "ContentItem", None)
 
             return NowPlayingInfo(
                 source=source,
@@ -164,6 +165,8 @@ class BoseDeviceClientAdapter(DeviceClient):
                 track=getattr(now_playing, "Track", None),
                 album=getattr(now_playing, "Album", None),
                 artwork_url=getattr(now_playing, "ContainerArtUrl", None),
+                location=item.Location if item else None,
+                source_account=item.SourceAccount if item else None,
             )
 
         except Exception as e:

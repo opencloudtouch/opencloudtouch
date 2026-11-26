@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias
 
 from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
@@ -355,15 +355,7 @@ class DeviceStateManager:
             favicon_url,
         )
 
-        enriched = NowPlayingInfo(
-            source=info.source,
-            state=info.state,
-            station_name=info.station_name,
-            artist=info.artist,
-            track=info.track,
-            album=info.album,
-            artwork_url=favicon_url,
-        )
+        enriched = replace(info, artwork_url=favicon_url)
         enriched_event = DeviceEvent(
             device_id=event.device_id,
             event_type=EventType.METADATA_ENRICHED,

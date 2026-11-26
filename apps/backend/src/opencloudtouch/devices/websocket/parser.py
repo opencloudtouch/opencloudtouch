@@ -197,6 +197,8 @@ def _parse_now_playing(element: Element) -> NowPlayingInfo:
     art_el = np.find("art")
     if art_el is not None and art_el.text:
         artwork_url = art_el.text
+    item = np.find("ContentItem")
+    item_attrs = item.attrib if item is not None else {}
 
     return NowPlayingInfo(
         source=source,
@@ -206,6 +208,8 @@ def _parse_now_playing(element: Element) -> NowPlayingInfo:
         track=_text("track"),
         album=_text("album"),
         artwork_url=artwork_url,
+        location=item_attrs.get("location"),
+        source_account=item_attrs.get("sourceAccount"),
     )
 
 

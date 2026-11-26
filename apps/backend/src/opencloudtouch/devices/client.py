@@ -39,6 +39,8 @@ class NowPlayingInfo:
     track: Optional[str] = None
     album: Optional[str] = None
     artwork_url: Optional[str] = None
+    location: Optional[str] = None  # ContentItem location (DLNA preset match)
+    source_account: Optional[str] = None  # ContentItem sourceAccount
 
 
 @dataclass
