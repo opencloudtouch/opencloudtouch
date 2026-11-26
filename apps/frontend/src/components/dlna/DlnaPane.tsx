@@ -4,6 +4,7 @@ import { getFirstChildAudio, saveDlnaPreset, type DlnaItem } from "../../api/dln
 import { isApiErrorInstance } from "../../api/types";
 import { userErrorMessage } from "../../utils/errorMessages";
 import { Icon } from "../Icon";
+import type { Preset } from "../PresetRow";
 import DlnaBrowser from "./DlnaBrowser";
 import DlnaServerList from "./DlnaServerList";
 import { resolveDlnaPrefill, type DlnaPrefill } from "./resolveDlnaPrefill";
@@ -11,11 +12,7 @@ import { resolveDlnaPrefill, type DlnaPrefill } from "./resolveDlnaPrefill";
 interface Props {
   deviceId: string;
   presetNumber: number;
-  existingPreset?: {
-    dlna?: boolean;
-    source_account?: string | null;
-    station_url?: string;
-  } | null;
+  existingPreset?: Pick<Preset, "dlna" | "source_account" | "station_url"> | null;
   onSaved: () => void;
 }
 

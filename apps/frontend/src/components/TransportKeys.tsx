@@ -8,6 +8,8 @@ interface TransportKeysProps {
   playing: boolean;
   /** Previous/next only exist for sources that know tracks (Bluetooth, AirPlay, streaming). */
   showSkip: boolean;
+  /** A single track has no queue: previous/next stay visible but inactive. */
+  skipDisabled?: boolean;
   /** AUX: the playback is controlled on the connected device. */
   noControl: boolean;
   disabled: boolean;
@@ -19,6 +21,7 @@ interface TransportKeysProps {
 export default function TransportKeys({
   playing,
   showSkip,
+  skipDisabled = false,
   noControl,
   disabled,
   busyKey,
@@ -39,13 +42,16 @@ export default function TransportKeys({
     icon: ReactElement,
     spinner: ReactElement,
     label: string,
-    primary = false
+    primary = false,
+    inactive = false
   ) => (
     <button
       type="button"
       className={`lc-key${primary ? " lc-key--primary" : ""}`}
-      onClick={() => onKey(id)}
+      onClick={inactive ? undefined : () => onKey(id)}
       disabled={disabled || busyKey !== null}
+      aria-disabled={inactive || undefined}
+      title={inactive ? t("player.singleTrackNoSkip") : undefined}
       aria-busy={busyKey === id || undefined}
       aria-label={label}
       data-test={`dv-${id}`}
@@ -61,7 +67,15 @@ export default function TransportKeys({
       aria-label={t("player.playbackTitle")}
       data-test="dv-keys"
     >
-      {showSkip && key("PREV_TRACK", Icon.SkipBack(24), Icon.Loader(24), t("player.prevTrack"))}
+      {showSkip &&
+        key(
+          "PREV_TRACK",
+          Icon.SkipBack(24),
+          Icon.Loader(24),
+          t("player.prevTrack"),
+          false,
+          skipDisabled
+        )}
       {key(
         "PLAY_PAUSE",
         playing ? Icon.Pause(32) : Icon.Play(32),
@@ -69,7 +83,15 @@ export default function TransportKeys({
         playing ? t("player.pause") : t("player.play"),
         true
       )}
-      {showSkip && key("NEXT_TRACK", Icon.SkipForward(24), Icon.Loader(24), t("player.nextTrack"))}
+      {showSkip &&
+        key(
+          "NEXT_TRACK",
+          Icon.SkipForward(24),
+          Icon.Loader(24),
+          t("player.nextTrack"),
+          false,
+          skipDisabled
+        )}
     </div>
   );
 }

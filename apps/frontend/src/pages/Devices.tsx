@@ -121,6 +121,7 @@ export default function Devices({
   const source = npState?.source;
   const isStandby = source === "STANDBY";
   const isRadio = !!source && RADIO_SOURCES.has(source);
+  const isDlna = !!npState?.dlna;
   const currentSource = toDeviceSource(source);
   const isPlaying = npState?.state === "PLAY_STATE";
 
@@ -226,7 +227,12 @@ export default function Devices({
     if (num === startingPreset) return "starting";
     if (num === failedPreset) return "failed";
     const preset = presets[num];
-    if (!preset || !isRadio || npState?.station_name !== preset.station_name) return "idle";
+    if (!preset) return "idle";
+    // DLNA: the speaker reports no location, so the backend-matched slot decides (equal names stay unambiguous)
+    const matches = isDlna
+      ? npState?.preset_number === num
+      : isRadio && npState?.station_name === preset.station_name;
+    if (!matches) return "idle";
     if (npState?.state === "PLAY_STATE") return "playing";
     // A radio stream cannot really pause: many devices report STOP_STATE with the station still selected
     if (npState?.state === "PAUSE_STATE" || npState?.state === "STOP_STATE") return "paused";
@@ -549,6 +555,10 @@ export default function Devices({
                   <TransportKeys
                     playing={isPlaying}
                     showSkip={!!source && !isRadio && !isStandby && source !== "AUX"}
+                    skipDisabled={
+                      isDlna &&
+                      !!presets[npState?.preset_number ?? 0]?.station_url?.endsWith(" TRACK")
+                    }
                     noControl={source === "AUX"}
                     disabled={controlsLocked || switching !== null}
                     busyKey={keyBusy}

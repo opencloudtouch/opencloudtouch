@@ -33,9 +33,7 @@ describe("TransportKeys", () => {
   it("shows a note instead of keys for AUX", () => {
     render(<TransportKeys {...base} noControl />);
 
-    expect(
-      screen.getByText("Playback is controlled on the connected device.")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Playback is controlled on the connected device.")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
@@ -44,10 +42,23 @@ describe("TransportKeys", () => {
     for (const button of screen.getAllByRole("button")) expect(button).toBeDisabled();
 
     rerender(<TransportKeys {...base} busyKey="NEXT_TRACK" />);
-    expect(screen.getByRole("button", { name: "Next track" })).toHaveAttribute(
-      "aria-busy",
-      "true"
-    );
+    expect(screen.getByRole("button", { name: "Next track" })).toHaveAttribute("aria-busy", "true");
     expect(screen.getByRole("button", { name: "Play" })).toBeDisabled();
+  });
+
+  it("disables skip with a hint for a single track", () => {
+    const onKey = vi.fn();
+    render(<TransportKeys {...base} skipDisabled onKey={onKey} />);
+    const next = screen.getByRole("button", { name: "Next track" });
+    expect(next).toHaveAttribute("aria-disabled", "true");
+    expect(next).toHaveAttribute("title", "A single track has no queue");
+    fireEvent.click(next);
+    fireEvent.click(screen.getByRole("button", { name: "Previous track" }));
+    expect(onKey).not.toHaveBeenCalled();
+  });
+
+  it("keeps skip enabled by default", () => {
+    render(<TransportKeys {...base} />);
+    expect(screen.getByRole("button", { name: "Next track" })).not.toHaveAttribute("aria-disabled");
   });
 });

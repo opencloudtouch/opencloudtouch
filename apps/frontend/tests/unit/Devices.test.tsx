@@ -80,6 +80,7 @@ vi.mock("../../src/hooks/useNowPlaying", () => ({
   }),
 }));
 
+import { clearDeviceDataCache } from "../../src/utils/deviceDataCache";
 import * as presetsApi from "../../src/api/presets";
 import * as devicesApi from "../../src/api/devices";
 import type { PresetResponse } from "../../src/api/presets";
@@ -1507,7 +1508,10 @@ describe("Devices Page", () => {
       it("keeps every control usable, including AUX and the transport keys", async () => {
         await renderPair();
 
-        expect(screen.getByRole("button", { name: "AUX" })).not.toHaveAttribute("aria-disabled", "true");
+        expect(screen.getByRole("button", { name: "AUX" })).not.toHaveAttribute(
+          "aria-disabled",
+          "true"
+        );
         expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled();
         expect(document.getElementById("dv-slave-hint")).toBeNull();
       });
@@ -1565,6 +1569,63 @@ describe("Devices Page", () => {
       expect(screen.queryByTestId("now-playing")).not.toBeInTheDocument();
       expect(screen.queryByTestId("preset-list")).not.toBeInTheDocument();
       expect(screen.queryByTestId("volume-slider")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("DLNA presets", () => {
+    beforeEach(() => {
+      clearDeviceDataCache();
+      _resetOfflineStore();
+    });
+    const dlnaPreset = (n: number, url: string) => ({
+      id: n,
+      device_id: "AABBCC123456",
+      preset_number: n,
+      station_uuid: `u${n}`,
+      station_name: "Same Name",
+      station_url: url,
+      source: "STORED_MUSIC",
+      dlna: true,
+      created_at: "2024-01-01T00:00:00Z",
+      updated_at: "2024-01-01T00:00:00Z",
+    });
+    const renderWith = async (url2: string) => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([
+        dlnaPreset(1, "http://srv/a"),
+        dlnaPreset(2, url2),
+      ]);
+      mockNowPlayingState = {
+        source: "STORED_MUSIC",
+        state: "PLAY_STATE",
+        station_name: "Same Name",
+        dlna: true,
+        preset_number: 2,
+      };
+      await act(async () => {
+        render(<Devices devices={mockDevices} />);
+      });
+      await waitFor(() => expect(screen.getByTestId("preset-2-name")).toBeInTheDocument());
+    };
+
+    it("only the matching slot is playing", async () => {
+      await renderWith("http://srv/b");
+      expect(screen.getByTestId("preset-2-play")).toHaveAttribute("data-state", "playing");
+      expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "idle");
+    });
+
+    it("track preset disables skip", async () => {
+      await renderWith("http://srv/b TRACK");
+      expect(screen.getByRole("button", { name: "Next track" })).toHaveAttribute(
+        "aria-disabled",
+        "true"
+      );
+    });
+
+    it("folder preset keeps skip enabled", async () => {
+      await renderWith("http://srv/b");
+      expect(screen.getByRole("button", { name: "Next track" })).not.toHaveAttribute(
+        "aria-disabled"
+      );
     });
   });
 });

@@ -9,6 +9,8 @@ export interface Preset {
   station_url?: string;
   station_favicon?: string;
   source?: string; // TUNEIN, INTERNET_RADIO, LOCAL_INTERNET_RADIO, etc.
+  dlna?: boolean;
+  source_account?: string | null;
 }
 
 export type PresetRowState = "idle" | "playing" | "paused" | "starting" | "failed";
@@ -98,7 +100,7 @@ export default function PresetRow({
         <span className="pr-num" aria-hidden="true">
           {number}
         </span>
-        <div className="pb-logo" aria-hidden="true">
+        <div className="pb-logo" aria-hidden={preset.dlna ? undefined : true}>
           {preset.station_favicon ? (
             <img
               src={preset.station_favicon}
@@ -107,15 +109,22 @@ export default function PresetRow({
               onError={handleFaviconError}
             />
           ) : null}
-          <span
-            className="pb-avatar"
-            style={{
-              backgroundColor: getAvatarColor(name),
-              display: preset.station_favicon ? "none" : "flex",
-            }}
-          >
-            {getStationInitials(name)}
-          </span>
+          {preset.dlna && !preset.station_favicon ? (
+            <span className="pb-dlna">
+              <span aria-hidden="true">{Icon.HardDrive(22)}</span>
+              <span className="visually-hidden">{t("presets.dlnaBadge")}</span>
+            </span>
+          ) : (
+            <span
+              className="pb-avatar"
+              style={{
+                backgroundColor: getAvatarColor(name),
+                display: preset.station_favicon ? "none" : "flex",
+              }}
+            >
+              {getStationInitials(name)}
+            </span>
+          )}
         </div>
         <span className="pr-txt">
           <span className="pr-name">{name}</span>

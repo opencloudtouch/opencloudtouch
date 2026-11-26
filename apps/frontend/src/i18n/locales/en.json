@@ -34,6 +34,7 @@
     "powerButton": "Power on/off",
     "playbackTitle": "Playback",
     "prevTrack": "Previous track",
+    "singleTrackNoSkip": "A single track has no queue",
     "nextTrack": "Next track",
     "muteOn": "Unmute",
     "muteOff": "Mute",
@@ -54,6 +55,7 @@
     }
   },
   "presets": {
+    "dlnaBadge": "DLNA",
     "presetSaved": "Preset {{number}} saved.",
     "presetDeleted": "Preset {{number}} deleted.",
     "noDevices": "No devices found",

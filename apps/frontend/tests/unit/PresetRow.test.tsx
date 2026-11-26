@@ -48,7 +48,13 @@ describe("PresetRow", () => {
   it("ignores taps while the preset is starting (busy)", () => {
     const onToggle = vi.fn();
     render(
-      <PresetRow number={1} preset={preset} state="starting" onToggle={onToggle} onChange={vi.fn()} />
+      <PresetRow
+        number={1}
+        preset={preset}
+        state="starting"
+        onToggle={onToggle}
+        onChange={vi.fn()}
+      />
     );
 
     const main = screen.getByRole("button", { name: "Play preset 1: SWR3" });
@@ -90,5 +96,43 @@ describe("PresetRow", () => {
     fireEvent.click(screen.getByRole("button", { name: "Assign preset 4" }));
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: /Change station/ })).not.toBeInTheDocument();
+  });
+
+  it("dlna preset shows cover or the dlna badge and no DLNA label", () => {
+    const { rerender, container } = render(
+      <PresetRow
+        number={1}
+        preset={{ station_name: "Album", dlna: true }}
+        state="idle"
+        onToggle={vi.fn()}
+        onChange={vi.fn()}
+      />
+    );
+    expect(container.querySelector(".pb-dlna")).toBeInTheDocument();
+    expect(screen.getByText("DLNA", { selector: ".visually-hidden" })).toBeInTheDocument();
+    expect(
+      screen.queryByText("DLNA", { selector: ".pr-name, .pr-name *, .pr-state *" })
+    ).toBeNull();
+
+    rerender(
+      <PresetRow
+        number={1}
+        preset={{ station_name: "Album", dlna: true, station_favicon: "http://x/c.png" }}
+        state="idle"
+        onToggle={vi.fn()}
+        onChange={vi.fn()}
+      />
+    );
+    expect(container.querySelector(".pb-favicon")).toBeInTheDocument();
+    expect(container.querySelector(".pb-dlna")).not.toBeInTheDocument();
+  });
+
+  it("non-dlna rows unchanged", () => {
+    const { container } = render(
+      <PresetRow number={1} preset={preset} state="idle" onToggle={vi.fn()} onChange={vi.fn()} />
+    );
+    expect(container.querySelector(".pb-dlna")).not.toBeInTheDocument();
+    expect(container.querySelector(".pb-avatar")).toBeInTheDocument();
+    expect(screen.queryByText("DLNA")).not.toBeInTheDocument();
   });
 });

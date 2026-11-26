@@ -237,6 +237,9 @@ export interface NowPlayingState {
   track?: string;
   album?: string;
   artwork_url?: string;
+  /** DLNA item playing; `preset_number` is the matching slot (null when none). */
+  dlna?: boolean;
+  preset_number?: number | null;
   /** False when the device is unreachable; fields above are then the last known state. */
   online?: boolean;
 }
