@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _ICY_POLL_INTERVAL = 3.0  # seconds
+_INVALID_SOURCE = "INVALID_SOURCE"
 
 
 @dataclass
@@ -235,6 +236,7 @@ class DeviceStateManager:
         Updates local state *and* publishes to subscribers.
         For ``now_playing`` radio events, fires ICY probe in background.
         """
+        entered_invalid_source = False
         if event.event_type == EventType.NOW_PLAYING and event.now_playing:
             logger.debug(
                 "ws.now_playing %s source=%s station=%s artist=%s track=%s state=%s",
@@ -252,6 +254,14 @@ class DeviceStateManager:
                     "track": event.now_playing.track,
                     "play_state": event.now_playing.state,
                 },
+            )
+            previous = self.get_state(event.device_id)
+            previous_np = previous.now_playing if previous else None
+            # T23: a preset whose server is gone fails silently (no errorUpdate).
+            entered_invalid_source = (
+                event.now_playing.source == _INVALID_SOURCE
+                and previous_np is not None
+                and previous_np.source != _INVALID_SOURCE
             )
             self.update_now_playing(event.device_id, event.now_playing)
         elif event.event_type == EventType.VOLUME and event.volume:
@@ -298,6 +308,16 @@ class DeviceStateManager:
             )
 
         await self._throttle.submit(event)
+
+        if entered_invalid_source:
+            await self.publish(
+                DeviceEvent(
+                    device_id=event.device_id,
+                    event_type=EventType.SOURCE_ERROR,
+                    error_code=0,
+                    error_name=_INVALID_SOURCE,
+                )
+            )
 
         # Fire preset-favicon + ICY probe in background for radio events
         if event.event_type == EventType.NOW_PLAYING and event.now_playing:

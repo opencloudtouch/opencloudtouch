@@ -300,6 +300,62 @@ class TestStateManagerOnEvent:
         assert await queue.get() is event
         assert mgr.get_state("D1").now_playing is np
 
+    @staticmethod
+    async def _press(mgr, source):
+        np = NowPlayingInfo(source=source, state="STOP_STATE")
+        await mgr.on_event(
+            DeviceEvent(
+                device_id="D1", event_type=EventType.NOW_PLAYING, now_playing=np
+            )
+        )
+
+    @staticmethod
+    def _source_errors(mgr, queue):
+        events = []
+        while not queue.empty():
+            events.append(queue.get_nowait())
+        return [e for e in events if e.event_type == EventType.SOURCE_ERROR]
+
+    @pytest.mark.asyncio
+    async def test_transition_to_invalid_source_publishes_one_source_error(self):
+        """T23: a native preset whose server is gone ends silently in INVALID_SOURCE."""
+        mgr = DeviceStateManager()
+        await self._press(mgr, "AUX")
+        queue = mgr.subscribe()
+
+        await self._press(mgr, "INVALID_SOURCE")
+
+        errors = self._source_errors(mgr, queue)
+        assert len(errors) == 1
+        assert errors[0].device_id == "D1"
+        assert errors[0].error_code == 0
+        assert errors[0].error_name == "INVALID_SOURCE"
+        assert errors[0].error_severity == ""
+        assert mgr.get_state("D1").now_playing.source == "INVALID_SOURCE"
+
+    @pytest.mark.asyncio
+    async def test_repeated_invalid_source_publishes_no_further_error(self):
+        mgr = DeviceStateManager()
+        await self._press(mgr, "AUX")
+        await self._press(mgr, "INVALID_SOURCE")
+        queue = mgr.subscribe()
+
+        await self._press(mgr, "INVALID_SOURCE")
+
+        assert self._source_errors(mgr, queue) == []
+
+    @pytest.mark.asyncio
+    async def test_normal_transitions_and_first_state_publish_no_source_error(self):
+        mgr = DeviceStateManager()
+        queue = mgr.subscribe()
+
+        await self._press(mgr, "INVALID_SOURCE")  # first known state, no transition
+        await self._press(mgr, "AUX")
+        await self._press(mgr, "STORED_MUSIC")
+        await self._press(mgr, "STANDBY")
+
+        assert self._source_errors(mgr, queue) == []
+
     @pytest.mark.asyncio
     async def test_on_event_ignores_now_playing_without_data(self):
         """NOW_PLAYING event with now_playing=None should not crash."""
