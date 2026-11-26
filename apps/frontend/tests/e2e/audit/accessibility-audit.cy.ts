@@ -287,6 +287,29 @@ describe("Accessibility Audit — WCAG 2.1 AA", () => {
       );
     });
 
+    it("Preset-Dialog — DLNA-Tab", () => {
+      setupMockApiWithDevices();
+      cy.intercept("GET", `/api/presets/${DEVICE_ID_1}`, { body: [] });
+      cy.intercept("GET", "/api/dlna/native*", {
+        body: {
+          servers: [
+            { server_id: "srv-1", name: "Mock Media Server", state: "ready", discovered: true, host: "192.168.1.50" },
+            { server_id: "srv-2", name: "Second Server", state: "not_enabled", discovered: true, host: "192.168.1.51" },
+            { server_id: "srv-3", name: "Old Server", state: "unavailable", discovered: false, host: null },
+          ],
+          migration_failed: false,
+          migration_reason: null,
+        },
+      });
+      cy.visit("/");
+      cy.get('[data-testid="preset-empty-1"]', { timeout: 8000 }).click();
+      cy.get('[data-test="dlna-mode"]').click();
+      cy.get(".dsl-row").should("have.length", 3);
+      cy.injectAxe();
+      // Unlike the other entries this one fails on serious/critical violations.
+      cy.checkA11y(undefined, { ...AXE_OPTIONS, includedImpacts: ["serious", "critical"] });
+    });
+
     it("Presets — Leerer Zustand", () => {
       setupMockApiEmpty();
       cy.intercept("GET", "/api/devices", { body: { devices: MOCK_DEVICES, count: MOCK_DEVICES.length } });
