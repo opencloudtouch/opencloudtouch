@@ -11,6 +11,9 @@
   --color-accent: #0066cc;
   --color-accent-hover: #0052a3;
   --color-disabled: #4d4d4d;
+  /* Text, icons and borders of every disabled control: dim, but still visible (2.9:1 on the card).
+     --color-disabled is too dark for that and also serves as an ordinary border color. */
+  --color-disabled-fg: #6b6b6b;
 
   /* ─── Wizard component variable aliases ───────────────────────────────────
      Wizard CSS files use a separate naming convention. Bridge them here so
@@ -100,7 +103,9 @@ button {
 
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.3;
+}
+button:disabled:not([aria-busy="true"]) {
+  color: var(--color-disabled-fg);
 }
 
 button:active:not(:disabled) {

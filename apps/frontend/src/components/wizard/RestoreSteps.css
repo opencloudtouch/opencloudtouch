@@ -443,7 +443,3 @@
   font-weight: 600;
   color: var(--color-text-primary, inherit);
 }
-.device-reboot-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}

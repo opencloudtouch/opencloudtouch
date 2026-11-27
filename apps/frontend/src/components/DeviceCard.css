@@ -153,19 +153,13 @@
   border-color: var(--color-accent-hover);
 }
 .lc-transport .lc-key:disabled:not([aria-busy="true"]) {
-  opacity: 1;
   background: transparent;
-  border-color: var(--border-color);
-  color: var(--color-text-secondary);
-  cursor: not-allowed;
+  border-color: var(--color-disabled-fg);
 }
 .lc-transport .lc-key--primary:disabled:not([aria-busy="true"]) {
   background: var(--surface-color);
-  border-color: var(--border-color);
-  color: var(--color-text-secondary);
 }
 .lc-key[aria-busy="true"]:disabled {
-  opacity: 1;
   cursor: progress;
 }
 .lc-transport .lc-key:focus-visible {
@@ -307,18 +301,15 @@
 }
 .tp-key:disabled:not([aria-busy="true"]) {
   background: transparent;
-  border-color: var(--border-color);
-  color: var(--text-secondary);
-  cursor: not-allowed;
+  border-color: var(--color-disabled-fg);
 }
 .tp-key[aria-pressed="true"]:disabled:not([aria-busy="true"]),
 .tp-key--on:disabled:not([aria-busy="true"]) {
   background: var(--surface-color);
-  box-shadow: inset 0 0 0 1px var(--border-color);
+  box-shadow: inset 0 0 0 1px var(--color-disabled-fg);
 }
 .tp-key[aria-busy="true"]:disabled {
   cursor: progress;
-  opacity: 1;
 }
 /* repeat one: decorative "1" badge */
 .tp-badge {
@@ -340,7 +331,7 @@
   pointer-events: none;
 }
 .tp-key:disabled .tp-badge {
-  background: var(--text-secondary);
+  background: var(--color-disabled-fg);
   color: var(--surface-color);
 }
 
