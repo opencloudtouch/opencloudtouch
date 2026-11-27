@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../Icon";
 import { isApiErrorInstance } from "../../api/types";
@@ -105,11 +105,24 @@ export default function DlnaBrowser({
     return () => io.disconnect();
   }, [canObserve, hasNextPage, isFetchingNextPage, pageFailed, fetchNextPage]);
 
+  const rootRef = useRef<HTMLDivElement>(null);
+  // Going down starts the next folder at the top, once its first page replaces the dimmed list.
+  const toTopRef = useRef(false);
+  useLayoutEffect(() => {
+    if (stale || !folder.data || !toTopRef.current) return;
+    toTopRef.current = false;
+    let el = rootRef.current?.parentElement;
+    while (el && !/auto|scroll/.test(getComputedStyle(el).overflowY)) el = el.parentElement;
+    if (el) el.scrollTop = 0;
+  }, [stale, folder.data]);
+
   // Going up focuses the folder the way back started from; going down focuses nothing.
   const go = (next: Crumb[]) => {
+    const back = path[next.length]?.object_id;
     setStack(next);
     setNotice(false);
-    setFocusId(path[next.length]?.object_id);
+    setFocusId(back);
+    toTopRef.current = !back;
     onPathChange?.(next.at(-1)?.object_id ?? "0");
   };
 
@@ -119,6 +132,7 @@ export default function DlnaBrowser({
     setStack(null);
     setNotice(false);
     setFocusId(undefined);
+    toTopRef.current = true;
     onPathChange?.(id);
   };
 
@@ -155,7 +169,7 @@ export default function DlnaBrowser({
       ? list.find((it) => !it.is_container)
       : undefined;
   return (
-    <div className="dlb">
+    <div className="dlb" ref={rootRef}>
       <nav className="dlb-crumbs" aria-label={t("dlna.browser.breadcrumb")}>
         {path.length > 0 && (
           <button

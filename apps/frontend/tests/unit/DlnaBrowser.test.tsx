@@ -239,6 +239,35 @@ describe("DlnaBrowser", () => {
     expect(scroll.mock.contexts.at(-1)).toBe(rock);
   });
 
+  it("opening a folder scrolls to the top once it shows; going up keeps the position", async () => {
+    let resolveFolder: (p: api.DlnaBrowsePage) => void = () => {};
+    vi.mocked(api.browseDlna).mockImplementation((_s, objectId) =>
+      objectId === "f1"
+        ? new Promise((r) => (resolveFolder = r))
+        : Promise.resolve(page([folderItem("f1", "Rock")]))
+    );
+    const { container } = setupWithContainer();
+    let top = 500;
+    container.style.overflowY = "auto";
+    Object.defineProperty(container, "scrollTop", {
+      configurable: true,
+      get: () => top,
+      set: (v: number) => (top = v),
+    });
+    await userEvent.click(await screen.findByRole("button", { name: "Open folder Rock" }));
+    // The dimmed previous list does not jump while the next folder loads.
+    expect(top).toBe(500);
+    resolveFolder(page([track("t1", "Inside")]));
+    expect(await screen.findByText("Inside")).toBeInTheDocument();
+    expect(top).toBe(0);
+
+    top = 300;
+    await userEvent.click(screen.getByRole("button", { name: "Up" }));
+    const rock = await screen.findByRole("button", { name: "Select Rock" });
+    await waitFor(() => expect(rock).toHaveFocus());
+    expect(top).toBe(300);
+  });
+
   describe("filter", () => {
     const filterBox = () => screen.getByRole("searchbox", { name: "Filter this folder" });
 
