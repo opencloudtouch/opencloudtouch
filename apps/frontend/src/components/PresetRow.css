@@ -106,6 +106,16 @@
   white-space: nowrap;
   overflow: hidden;
 }
+.pr-artist {
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font-weight: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pr-artist:not(:last-child) {
+  margin-right: 6px;
+}
 .pr-state > span:last-child {
   overflow: hidden;
   text-overflow: ellipsis;

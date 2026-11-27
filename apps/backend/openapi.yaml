@@ -5277,6 +5277,13 @@ components:
           - type: 'null'
           title: Artwork Url
           description: album_art_url from OCT's browse; skips the path lookup
+        artist:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Artist
+          description: Artist of the item from OCT's browse
       type: object
       required:
       - device_id
@@ -5325,6 +5332,11 @@ components:
           - type: string
           - type: 'null'
           title: Source Account
+        station_artist:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Station Artist
         dlna:
           type: boolean
           title: Dlna

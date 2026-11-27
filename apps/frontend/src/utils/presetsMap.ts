@@ -16,6 +16,7 @@ export function buildPresetsMap(
       source: p.source,
       dlna: p.dlna,
       source_account: p.source_account,
+      station_artist: p.station_artist,
     };
   });
   return map;

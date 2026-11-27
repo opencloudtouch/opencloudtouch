@@ -44,6 +44,9 @@ class PresetDlnaRequest(BaseModel):
     artwork_url: str | None = Field(
         None, description="album_art_url from OCT's browse; skips the path lookup"
     )
+    artist: str | None = Field(
+        None, max_length=500, description="Artist of the item from OCT's browse"
+    )
 
 
 class PresetResponse(BaseModel):
@@ -59,6 +62,7 @@ class PresetResponse(BaseModel):
     station_favicon: Optional[str]
     source: Optional[str]
     source_account: Optional[str] = None
+    station_artist: Optional[str] = None
     dlna: bool = False
     created_at: str
     updated_at: str
@@ -120,6 +124,7 @@ async def set_dlna_preset(
         request.confirm,
         index=request.index,
         artwork_url=request.artwork_url,
+        artist=request.artist,
     )
     return PresetResponse(**preset.to_dict(), dlna=preset.is_dlna)
 

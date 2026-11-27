@@ -14,10 +14,15 @@ describe("buildPresetsMap", () => {
         source: "STORED_MUSIC",
         source_account: "uuid:abc/0",
         dlna: true,
+        station_artist: "Some Artist",
         created_at: "",
         updated_at: "",
       },
     ]);
-    expect(map[3]).toMatchObject({ dlna: true, source_account: "uuid:abc/0" });
+    expect(map[3]).toMatchObject({
+      dlna: true,
+      source_account: "uuid:abc/0",
+      station_artist: "Some Artist",
+    });
   });
 });

@@ -187,6 +187,8 @@ class MargeService:
                 else None,
             )
             if imported:
+                if existing and existing.station_url == location:
+                    imported.station_artist = existing.station_artist
                 return await self._preset_repo.set_preset(imported)
         station_url, art = _station_from_location(source, location, name)
         return await self._preset_repo.set_preset(

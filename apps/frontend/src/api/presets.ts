@@ -29,6 +29,7 @@ export interface PresetResponse {
   station_homepage?: string;
   station_favicon?: string;
   source_account?: string | null;
+  station_artist?: string | null;
   dlna?: boolean;
   created_at: string;
   updated_at: string;

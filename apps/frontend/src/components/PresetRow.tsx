@@ -12,6 +12,8 @@ export interface Preset {
   source?: string; // TUNEIN, INTERNET_RADIO, LOCAL_INTERNET_RADIO, etc.
   dlna?: boolean;
   source_account?: string | null;
+  /** DLNA track artist, shown muted on the second line. */
+  station_artist?: string | null;
 }
 
 export type PresetRowState = "idle" | "playing" | "paused" | "starting" | "failed" | "saving";
@@ -123,7 +125,9 @@ export default function PresetRow({
         </div>
         <span className="pr-txt">
           <span className="pr-name">{name}</span>
+          {/* Line 2 is always rendered with a fixed height: rows never change height. */}
           <span className="pr-state" aria-hidden="true">
+            {preset.station_artist && <span className="pr-artist">{preset.station_artist}</span>}
             {state === "playing" && (
               <>
                 {Icon.Volume2(16)}

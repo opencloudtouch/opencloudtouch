@@ -580,6 +580,7 @@ async def test_migrations_add_columns_to_existing_db():
             assert preset.station_name == "Radio"
             assert preset.source == "TUNEIN"
             assert preset.source_account is None
+            assert preset.station_artist is None
         finally:
             await repo.close()
 
@@ -614,3 +615,20 @@ async def test_roundtrip_source_account(preset_repo):
         )
     )
     assert (await preset_repo.get_preset("dev1", 3)).source_account is None
+
+
+@pytest.mark.asyncio
+async def test_roundtrip_station_artist(preset_repo):
+    row = Preset(
+        device_id="dev1",
+        preset_number=4,
+        station_uuid="STORED_MUSIC_4",
+        station_name="Track",
+        station_url="1$7 TRACK",
+        source="STORED_MUSIC",
+        station_artist="Some Artist",
+    )
+    await preset_repo.set_preset(row)
+    assert (await preset_repo.get_preset("dev1", 4)).station_artist == "Some Artist"
+    [stored] = await preset_repo.get_all_presets("dev1")
+    assert stored.to_dict()["station_artist"] == "Some Artist"

@@ -3922,6 +3922,11 @@ export interface components {
        * @description album_art_url from OCT's browse; skips the path lookup
        */
       artwork_url?: string | null;
+      /**
+       * Artist
+       * @description Artist of the item from OCT's browse
+       */
+      artist?: string | null;
     };
     /**
      * PresetResponse
@@ -3948,6 +3953,8 @@ export interface components {
       source: string | null;
       /** Source Account */
       source_account?: string | null;
+      /** Station Artist */
+      station_artist?: string | null;
       /**
        * Dlna
        * @default false

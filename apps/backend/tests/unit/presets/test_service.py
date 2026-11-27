@@ -1306,3 +1306,27 @@ async def test_background_refresh_does_not_publish_an_unchanged_list(service):
     await service.refresh_from_device("dev-001", [])
 
     service.on_presets_changed.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_import_keeps_the_artist_of_an_unchanged_item(service, mock_repo):
+    existing = _dlna_row()
+    existing.station_artist = "Some Artist"
+    mock_repo.get_preset = AsyncMock(return_value=existing)
+    root = ET.fromstring(_stored_music_xml(existing.source_account))
+
+    await service._import_presets("dev-001", root)
+
+    assert mock_repo.set_preset.await_args.args[0].station_artist == "Some Artist"
+
+
+@pytest.mark.asyncio
+async def test_import_drops_the_artist_of_a_changed_item(service, mock_repo):
+    existing = _dlna_row(location="other")
+    existing.station_artist = "Some Artist"
+    mock_repo.get_preset = AsyncMock(return_value=existing)
+    root = ET.fromstring(_stored_music_xml(existing.source_account))
+
+    await service._import_presets("dev-001", root)
+
+    assert mock_repo.set_preset.await_args.args[0].station_artist is None

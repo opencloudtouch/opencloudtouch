@@ -173,4 +173,28 @@ describe("PresetRow", () => {
     expect(container.querySelector(".pb-favicon")).toHaveAttribute("src", "http://x/new.png");
     expect(container.querySelector(".pb-avatar")).not.toBeInTheDocument();
   });
+
+  it.each([
+    ["no artist, no state", null, "idle"],
+    ["artist only", "Some Artist", "idle"],
+    ["state only", null, "playing"],
+    ["artist and state", "Some Artist", "playing"],
+  ] as const)("always reserves line 2 below the title (%s)", (_case, artist, state) => {
+    render(
+      <PresetRow
+        number={4}
+        preset={{ station_name: "Track", dlna: true, station_artist: artist }}
+        state={state}
+        onToggle={vi.fn()}
+        onChange={vi.fn()}
+      />
+    );
+    const title = screen.getByText("Track");
+    const line2 = title.nextElementSibling;
+    expect(line2).toHaveClass("pr-state");
+    const artistEl = line2?.querySelector(".pr-artist");
+    if (artist) expect(artistEl).toHaveTextContent(artist);
+    else expect(artistEl).toBeNull();
+    if (state === "playing") expect(line2).toHaveTextContent("Playing");
+  });
 });

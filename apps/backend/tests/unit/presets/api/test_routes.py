@@ -284,7 +284,15 @@ class TestSetDlnaPreset:
         assert r.json()["dlna"] is True
         assert r.json()["source_account"] == "uuid:abc/0"
         mock_service.set_dlna_preset.assert_awaited_once_with(
-            "DEV1", 1, "uuid:abc", "0", "42", False, index=None, artwork_url=None
+            "DEV1",
+            1,
+            "uuid:abc",
+            "0",
+            "42",
+            False,
+            index=None,
+            artwork_url=None,
+            artist=None,
         )
 
     def test_post_dlna_passes_index_and_artwork_hints(self, client, mock_service):
@@ -293,7 +301,12 @@ class TestSetDlnaPreset:
                 source="STORED_MUSIC", source_account="uuid:abc/0"
             )
         )
-        payload = {**self._PAYLOAD, "index": 12, "artwork_url": "http://nas/a.jpg"}
+        payload = {
+            **self._PAYLOAD,
+            "index": 12,
+            "artwork_url": "http://nas/a.jpg",
+            "artist": "Some Artist",
+        }
         r = client.post("/api/presets/dlna", json=payload)
         assert r.status_code == 201
         mock_service.set_dlna_preset.assert_awaited_once_with(
@@ -305,6 +318,7 @@ class TestSetDlnaPreset:
             False,
             index=12,
             artwork_url="http://nas/a.jpg",
+            artist="Some Artist",
         )
 
     def test_slot_out_of_range_422(self, client):

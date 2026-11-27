@@ -279,6 +279,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
           source: saved.source ?? undefined,
           dlna: saved.dlna,
           source_account: saved.source_account,
+          station_artist: saved.station_artist,
         },
       }));
       return true;

@@ -288,12 +288,14 @@ class PresetService:
         confirm: bool = False,
         index: int | None = None,
         artwork_url: str | None = None,
+        artist: str | None = None,
     ) -> Preset:
         """Save a DLNA folder/track as a native preset (speaker first, then DB).
 
         The ContentItem is stored exactly as the speaker's /navigate returned it.
         ``index`` (position in OCT's browse) and ``artwork_url`` are optional
         hints that save the slow speaker paging and server path lookup.
+        ``artist`` (from OCT's browse) is shown under the title on the device card.
 
         Raises:
             DeviceNotFoundError: If the device is unknown
@@ -345,6 +347,7 @@ class PresetService:
                 station_favicon=artwork,
                 source="STORED_MUSIC",
                 source_account=item.source_account,
+                station_artist=artist or None,
             )
         )
         await self._publish_all(device_id)
@@ -611,6 +614,7 @@ class PresetService:
                 preset.station_uuid = existing.station_uuid
                 preset.source = existing.source
                 preset.station_homepage = existing.station_homepage
+                preset.station_artist = existing.station_artist
                 preset.station_favicon = (
                     preset.station_favicon or existing.station_favicon
                 )

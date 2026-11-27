@@ -23,6 +23,7 @@ class Preset:
         station_favicon: Optional[str] = None,
         source: Optional[str] = None,
         source_account: Optional[str] = None,
+        station_artist: Optional[str] = None,
         created_at: Optional[datetime] = None,
         updated_at: Optional[datetime] = None,
         id: Optional[int] = None,
@@ -40,6 +41,7 @@ class Preset:
             station_favicon: Optional station favicon URL
             source: Preset source type (TUNEIN, INTERNET_RADIO, LOCAL_INTERNET_RADIO, etc.)
             source_account: Speaker-reported source account (DLNA: "<UDN>/0")
+            station_artist: Optional artist of a DLNA track, shown under the title
             created_at: Creation timestamp
             updated_at: Last update timestamp
             id: Database primary key (optional)
@@ -60,6 +62,7 @@ class Preset:
         self.station_favicon = station_favicon
         self.source = source
         self.source_account = source_account
+        self.station_artist = station_artist
         self.created_at = created_at or datetime.now(UTC)
         self.updated_at = updated_at or datetime.now(UTC)
 
@@ -76,6 +79,7 @@ class Preset:
             "station_favicon": self.station_favicon,
             "source": self.source,
             "source_account": self.source_account,
+            "station_artist": self.station_artist,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

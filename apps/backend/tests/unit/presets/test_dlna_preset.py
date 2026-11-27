@@ -319,3 +319,16 @@ async def test_save_publishes_the_full_list(service, speaker, repo):
     service.on_presets_changed.assert_awaited_once_with(
         "D1", [{"preset_number": 2, "dlna": True}]
     )
+
+
+@pytest.mark.asyncio
+async def test_save_stores_the_artist(service, speaker, repo):
+    preset = await _save(service, artist="Some Artist")
+    assert repo.set_preset.await_args.args[0].station_artist == "Some Artist"
+    assert preset.to_dict()["station_artist"] == "Some Artist"
+
+
+@pytest.mark.asyncio
+async def test_save_without_artist_stores_none(service, speaker, repo):
+    await _save(service, artist="")
+    assert repo.set_preset.await_args.args[0].station_artist is None

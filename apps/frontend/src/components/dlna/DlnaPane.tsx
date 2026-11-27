@@ -84,6 +84,7 @@ export default function DlnaPane({
       object_id: sel.item.id,
       index: sel.index,
       ...(sel.item.album_art_url && { artwork_url: sel.item.album_art_url }),
+      ...(sel.item.artist && { artist: sel.item.artist }),
       ...(confirm && { confirm }),
     });
   };

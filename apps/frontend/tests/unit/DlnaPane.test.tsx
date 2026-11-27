@@ -125,6 +125,15 @@ describe("DlnaPane", () => {
     expect(api.getFirstChildAudio).not.toHaveBeenCalled();
   });
 
+  it("sends the artist of an item that has one", async () => {
+    vi.mocked(api.browseDlna).mockResolvedValue(
+      page([{ ...item("t1", "Song", false), artist: "Some Artist" }])
+    );
+    const onSave = setup();
+    await openAndSelect("Song");
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ artist: "Some Artist" }));
+  });
+
   it("sends the cover of an item that has one", async () => {
     vi.mocked(api.browseDlna).mockResolvedValue(
       page([{ ...item("t1", "Song", false), album_art_url: "http://nas.example/art.jpg" }])
