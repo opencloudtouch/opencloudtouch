@@ -3902,6 +3902,16 @@ export interface components {
        * @default false
        */
       confirm: boolean;
+      /**
+       * Index
+       * @description 0-based position in OCT's browse of the parent (hint)
+       */
+      index?: number | null;
+      /**
+       * Artwork Url
+       * @description album_art_url from OCT's browse; skips the path lookup
+       */
+      artwork_url?: string | null;
     };
     /**
      * PresetResponse

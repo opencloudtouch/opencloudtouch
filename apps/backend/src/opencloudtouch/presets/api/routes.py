@@ -38,6 +38,12 @@ class PresetDlnaRequest(BaseModel):
     parent_id: str = "0"
     object_id: str
     confirm: bool = Field(False, description="Save a folder without audio first")
+    index: int | None = Field(
+        None, ge=0, description="0-based position in OCT's browse of the parent (hint)"
+    )
+    artwork_url: str | None = Field(
+        None, description="album_art_url from OCT's browse; skips the path lookup"
+    )
 
 
 class PresetResponse(BaseModel):
@@ -112,6 +118,8 @@ async def set_dlna_preset(
         request.parent_id,
         request.object_id,
         request.confirm,
+        index=request.index,
+        artwork_url=request.artwork_url,
     )
     return PresetResponse(**preset.to_dict(), dlna=preset.is_dlna)
 

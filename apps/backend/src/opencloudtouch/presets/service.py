@@ -35,6 +35,7 @@ from opencloudtouch.presets.repository import PresetRepository
 # and blocked the speaker's next /navigate (T22 2a/2b).
 _BROWSE_PAGE = 50
 _BROWSE_BUDGET = 60.0  # seconds for all pages of one save
+_INDEX_SLACK = 5  # the speaker may hide items, so an index hint starts a bit earlier
 
 if TYPE_CHECKING:
     from opencloudtouch.devices.client import NowPlayingInfo
@@ -266,10 +267,14 @@ class PresetService:
         parent_id: str,
         object_id: str,
         confirm: bool = False,
+        index: int | None = None,
+        artwork_url: str | None = None,
     ) -> Preset:
         """Save a DLNA folder/track as a native preset (speaker first, then DB).
 
         The ContentItem is stored exactly as the speaker's /navigate returned it.
+        ``index`` (position in OCT's browse) and ``artwork_url`` are optional
+        hints that save the slow speaker paging and server path lookup.
 
         Raises:
             DeviceNotFoundError: If the device is unknown
@@ -289,7 +294,7 @@ class PresetService:
         client = get_device_client(base_url)
         try:
             item = await self._find_speaker_item(
-                client, server_id, parent_id, object_id
+                client, server_id, parent_id, object_id, index
             )
             if (
                 item.is_directory
@@ -304,7 +309,9 @@ class PresetService:
                     "Folder does not start with an audio item",
                     extra={"title": item.item_name},
                 )
-            artwork = await self._dlna_artwork(self.dlna_service, server_id, object_id)
+            artwork = await self._dlna_artwork(
+                self.dlna_service, server_id, object_id, artwork_url
+            )
             await client.store_native_preset(preset_number, item, artwork or "")
         finally:
             await client.close()
@@ -336,14 +343,20 @@ class PresetService:
 
     @staticmethod
     async def _find_speaker_item(
-        client: Any, server_id: str, parent_id: str, object_id: str
+        client: Any,
+        server_id: str,
+        parent_id: str,
+        object_id: str,
+        index: int | None = None,
     ) -> StoredMusicItem:
         """Find the speaker's own ContentItem for the object, page by page.
 
+        An ``index`` hint tries its page first, then the full scan from 1.
         1602 is retried in the client.
         """
         deadline = time.monotonic() + _BROWSE_BUDGET
-        start = 1
+        start = 1 if index is None else max(1, index + 1 - _INDEX_SLACK)
+        hinted = start > 1
         while True:
             if time.monotonic() > deadline:
                 raise_coded(
@@ -364,6 +377,9 @@ class PresetService:
             for item in browse.items:
                 if item.location.removesuffix(" TRACK") == object_id:
                     return item
+            if hinted:  # the hint is wrong: correctness rests on the full scan
+                start, hinted = 1, False
+                continue
             start += _BROWSE_PAGE
             # shortcut: without <totalItems>, a page shortened by skipped items
             # ends the search early; the real speaker reports the total.
@@ -374,14 +390,21 @@ class PresetService:
 
     @staticmethod
     async def _dlna_artwork(
-        dlna: "DlnaService", server_id: str, object_id: str
+        dlna: "DlnaService",
+        server_id: str,
+        object_id: str,
+        artwork_url: str | None = None,
     ) -> Optional[str]:
         """Cover URL of the object if it is on the media server's own host."""
         from opencloudtouch.dlna.client import DlnaBrowseError
 
         try:
             server = await dlna.resolve(server_id)
-            art = (await dlna.get_object_path(server_id, object_id)).item.album_art_url
+            art = artwork_url
+            if art is None:  # the full path walk is slow; the browse list has it
+                art = (
+                    await dlna.get_object_path(server_id, object_id)
+                ).item.album_art_url
         except (DlnaBrowseError, LookupError):
             return None
         parts = urlsplit(art or "")

@@ -5245,6 +5245,19 @@ components:
           title: Confirm
           description: Save a folder without audio first
           default: false
+        index:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Index
+          description: 0-based position in OCT's browse of the parent (hint)
+        artwork_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artwork Url
+          description: album_art_url from OCT's browse; skips the path lookup
       type: object
       required:
       - device_id

@@ -260,3 +260,47 @@ async def test_paging_over_time_budget_is_504(service, speaker, repo):
     assert (exc.value.status_code, exc.value.code) == (504, "dlna_server_timeout")
     assert speaker.browse_stored_music.await_count == 1
     repo.set_preset.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_given_artwork_url_skips_the_object_path(service, speaker, dlna):
+    preset = await _save(service, artwork_url="http://nas:1/given.jpg")
+    dlna.get_object_path.assert_not_awaited()
+    assert preset.station_favicon == "http://nas:1/given.jpg"
+    assert speaker.store_native_preset.await_args.args[2] == "http://nas:1/given.jpg"
+
+
+@pytest.mark.asyncio
+async def test_given_artwork_url_on_foreign_host_is_dropped(service, speaker, dlna):
+    preset = await _save(service, artwork_url="http://evil:1/a.jpg")
+    dlna.get_object_path.assert_not_awaited()
+    assert preset.station_favicon is None
+
+
+@pytest.mark.asyncio
+async def test_index_hint_starts_at_its_page(service, speaker):
+    speaker.browse_stored_music.return_value = StoredMusicBrowse(
+        _page(0, 10) + [_item("42")], total=1447
+    )
+    await _save(service, parent_id="32", index=700)
+    speaker.browse_stored_music.assert_awaited_once_with(f"{SERVER}/0", "32", 696, 50)
+
+
+@pytest.mark.asyncio
+async def test_index_hint_miss_falls_back_to_the_full_scan(service, speaker):
+    speaker.browse_stored_music.side_effect = [
+        StoredMusicBrowse(_page(0, 50), total=1447),
+        StoredMusicBrowse(_page(50, 10) + [_item("42")], total=1447),
+    ]
+    preset = await _save(service, parent_id="32", index=700)
+    assert [c.args[2] for c in speaker.browse_stored_music.await_args_list] == [
+        696,
+        1,
+    ]
+    assert preset.station_url == "42"
+
+
+@pytest.mark.asyncio
+async def test_small_index_hint_is_the_plain_scan(service, speaker):
+    await _save(service, index=2)
+    speaker.browse_stored_music.assert_awaited_once_with(f"{SERVER}/0", None, 1, 50)
