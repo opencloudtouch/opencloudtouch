@@ -1751,5 +1751,21 @@ describe("Devices Page", () => {
       fireEvent.click(within(alert).getByRole("button"));
       expect(mockDismissSourceError).toHaveBeenCalledTimes(1);
     });
+
+    const sources = ["STORED_MUSIC", "INTERNET_RADIO", "LOCAL_INTERNET_RADIO", "TUNEIN"];
+    const decoderCases: [string, number][] = [...sources, "BLUETOOTH", "AUX", "STANDBY"].flatMap(
+      (source) => [1652, 3102].map((code): [string, number] => [source, code])
+    );
+    it.each(decoderCases)(
+      "shows the bad-format alert in source %s for decoder error %i",
+      async (source, code) => {
+        mockNowPlayingState = { source, state: "STOP_STATE" };
+        mockSourceError = { code };
+        await renderDevices();
+        const alert = screen.getByTestId("source-error");
+        expect(alert).toHaveTextContent(i18next.t("devices.sourceError.badFormat.title"));
+        expect(alert).toHaveClass("wz-status--warning");
+      }
+    );
   });
 });
