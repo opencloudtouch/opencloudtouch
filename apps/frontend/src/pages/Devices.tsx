@@ -251,15 +251,16 @@ export default function Devices({
     [devices, setSearchParams]
   );
 
-  // The preset the speaker plays. DLNA: the speaker reports no location, so the backend-matched
-  // slot decides (equal names stay unambiguous).
+  // The preset the speaker plays: the backend matches the playing ContentItem for every source, so a
+  // renamed station still finds its slot. Only without a backend slot does a radio name match decide.
+  const slot = npState?.preset_number ?? null;
   const matchedPreset =
     PRESET_NUMBERS.find(
       (n) =>
         !!presets[n] &&
-        (isDlna
-          ? npState?.preset_number === n
-          : isRadio && npState?.station_name === presets[n]?.station_name)
+        (slot !== null
+          ? slot === n
+          : !isDlna && isRadio && npState?.station_name === presets[n]?.station_name)
     ) ?? null;
   const settled = useSettledPresetState(deviceId, matchedPreset, npState?.state, sourceError);
 

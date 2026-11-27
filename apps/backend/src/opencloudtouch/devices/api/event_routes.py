@@ -21,7 +21,11 @@ from opencloudtouch.core.dependencies import (
 from opencloudtouch.devices.client import NowPlayingInfo
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
-from opencloudtouch.presets.service import PresetService, match_stored_music_preset
+from opencloudtouch.presets.service import (
+    PresetService,
+    match_content_item_preset,
+    match_stored_music_preset,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +35,7 @@ _KEEPALIVE_INTERVAL = 15  # seconds
 
 
 def _dlna_fields(np: NowPlayingInfo, preset_number: int | None) -> dict[str, object]:
-    """DLNA fields of the REST now-playing shape."""
+    """DLNA flag and preset slot of the REST now-playing shape."""
     return {"dlna": np.is_dlna, "preset_number": preset_number}
 
 
@@ -40,12 +44,15 @@ async def _preset_number(
     np: NowPlayingInfo | None,
     preset_service: PresetService | None,
 ) -> int | None:
-    """Slot of the playing DLNA item, same lookup as the REST route (decision 31)."""
-    if preset_service is None or np is None or np.source != "STORED_MUSIC":
+    """Slot of the playing item, same lookup as the REST route (decision 31, T3)."""
+    if preset_service is None or np is None:
         return None
-    match = await match_stored_music_preset(
-        {"artwork_url": np.artwork_url}, np, device_id, preset_service
-    )
+    if np.source == "STORED_MUSIC":
+        match = await match_stored_music_preset(
+            {"artwork_url": np.artwork_url}, np, device_id, preset_service
+        )
+    else:
+        match = await match_content_item_preset(np, device_id, preset_service)
     return match.preset_number if match else None
 
 

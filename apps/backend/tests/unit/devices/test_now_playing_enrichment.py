@@ -620,3 +620,99 @@ class TestRouteLookupFailure:
 
         assert r.status_code == 200
         assert r.json()["preset_number"] is None
+
+
+_STATION = "http://oct.test/stations/preset/abc-123.mp3"
+
+
+class TestContentItemPresetSlot:
+    """T3: every source with a ContentItem gets its slot by source + location."""
+
+    def test_radio_slot_matches_although_the_stored_name_is_stale(
+        self, client, mock_device_service, mock_preset_service
+    ):
+        mock_device_service.get_now_playing = AsyncMock(
+            return_value=_make_now_playing(
+                source="TUNEIN",
+                station_name="Renamed Station",
+                location="/v1/playback/station/s42",
+            )
+        )
+        mock_preset_service.get_all_presets = AsyncMock(
+            return_value=[
+                _make_preset(
+                    preset_number=4,
+                    station_name="Old Name",
+                    station_url="/v1/playback/station/s42",
+                    source="TUNEIN",
+                )
+            ]
+        )
+
+        with patch(
+            "opencloudtouch.devices.api.routes.probe_stream",
+            AsyncMock(return_value=None),
+        ):
+            body = client.get("/api/devices/DEV1/now-playing").json()
+
+        assert body["preset_number"] == 4
+
+    @pytest.mark.asyncio
+    async def test_oct_preset_with_stream_url_matches_by_station_uuid(self):
+        from opencloudtouch.presets.service import match_content_item_preset
+
+        service = AsyncMock()
+        service.get_all_presets.return_value = [
+            _make_preset(
+                preset_number=2,
+                station_uuid="abc-123",
+                station_url="http://stream.example/live",
+                source="LOCAL_INTERNET_RADIO",
+            )
+        ]
+        info = _make_now_playing(source="LOCAL_INTERNET_RADIO", location=_STATION)
+
+        match = await match_content_item_preset(info, "DEV1", service)
+
+        assert match is not None and match.preset_number == 2
+
+    @pytest.mark.asyncio
+    async def test_other_source_or_account_does_not_match(self):
+        from opencloudtouch.presets.service import match_content_item_preset
+
+        service = AsyncMock()
+        service.get_all_presets.return_value = [
+            _make_preset(station_url=_STATION, source="TUNEIN"),
+            _make_preset(
+                station_url=_STATION,
+                source="LOCAL_INTERNET_RADIO",
+                source_account="other",
+            ),
+        ]
+        info = _make_now_playing(
+            source="LOCAL_INTERNET_RADIO", location=_STATION, source_account="mine"
+        )
+
+        assert await match_content_item_preset(info, "DEV1", service) is None
+        assert (
+            await match_content_item_preset(
+                _make_now_playing(source="TUNEIN"), "DEV1", service
+            )
+            is None
+        )  # no location, no match
+
+    @pytest.mark.asyncio
+    async def test_sse_marks_the_radio_slot(self):
+        from opencloudtouch.devices.api.event_routes import _preset_number
+
+        service = AsyncMock()
+        service.get_all_presets.return_value = [
+            _make_preset(
+                preset_number=5, station_url=_STATION, source="LOCAL_INTERNET_RADIO"
+            )
+        ]
+        info = _make_now_playing(
+            source="LOCAL_INTERNET_RADIO", station_name="Other", location=_STATION
+        )
+
+        assert await _preset_number("DEV1", info, service) == 5

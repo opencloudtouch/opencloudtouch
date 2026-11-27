@@ -1445,6 +1445,56 @@ describe("Devices Page", () => {
       expect(report("PLAY_STATE")).toBe("playing");
     });
 
+    it("a renamed radio station still plays its row by the backend slot", async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
+      mockNowPlayingState = playing("TUNEIN", { station_name: "SWR3", preset_number: 2 });
+      await renderDevices();
+
+      await waitFor(() =>
+        expect(screen.getByTestId("preset-2-play")).toHaveAttribute("data-state", "playing")
+      );
+      // The name matches row 1, but the backend's slot decides
+      expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "idle");
+    });
+
+    it("a preset changed elsewhere goes from starting to playing, not to nothing", async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
+      const view = render(<Devices devices={mockDevices} />);
+      await waitFor(() => expect(screen.getByTestId("preset-2-play")).toBeInTheDocument());
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("preset-2-play"));
+      });
+      expect(screen.getByTestId("preset-2-play")).toHaveAttribute("data-state", "starting");
+
+      // The stored name "NDR 2" is stale: the speaker plays the station under a new name
+      const report = (state: string) => {
+        mockNowPlayingState = {
+          source: "LOCAL_INTERNET_RADIO",
+          state,
+          station_name: "Changed In Another App",
+          preset_number: 2,
+        };
+        view.rerender(<Devices devices={mockDevices} />);
+        return screen.getByTestId("preset-2-play").getAttribute("data-state");
+      };
+      expect(report("BUFFERING_STATE")).toBe("starting");
+      expect(report("PLAY_STATE")).toBe("playing");
+    });
+
+    it("falls back to the station name when the backend found no slot", async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
+      mockNowPlayingState = playing("INTERNET_RADIO", {
+        station_name: "NDR 2",
+        preset_number: null,
+      });
+      await renderDevices();
+
+      await waitFor(() =>
+        expect(screen.getByTestId("preset-2-play")).toHaveAttribute("data-state", "playing")
+      );
+    });
+
     it("a pause from the row shows paused at once", async () => {
       vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
       mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });

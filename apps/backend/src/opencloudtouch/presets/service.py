@@ -27,7 +27,7 @@ from opencloudtouch.devices.client import StoredMusicItem
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.presets.models import Preset
-from opencloudtouch.presets.parser import DevicePresetParser
+from opencloudtouch.presets.parser import DevicePresetParser, oct_station_uuid
 from opencloudtouch.presets.repository import PresetRepository
 
 # Small /navigate pages: one 1000-item request of a 1447-item parent took > 15 s
@@ -679,3 +679,36 @@ async def match_stored_music_preset(
         if not result["artwork_url"] and match.station_favicon:
             result["artwork_url"] = match.station_favicon
     return match
+
+
+async def match_content_item_preset(
+    info: "NowPlayingInfo", device_id: str, preset_service: PresetService
+) -> Preset | None:
+    """Slot whose stored ContentItem is the playing one, for every non-DLNA source.
+
+    Compares source and location (and the account when both carry one) with the
+    stored rows; never the station name, which another app may have changed. An
+    OCT radio preset stored with its stream URL matches by its station UUID.
+    """
+    if not info.location:
+        return None
+    try:
+        presets = await preset_service.get_all_presets(device_id)
+    except Exception:
+        logger.debug(
+            "[NowPlaying] Preset lookup failed for %s", device_id, exc_info=True
+        )
+        return None
+    uuid = oct_station_uuid(info.location)
+    account = (info.source_account or "").casefold()
+
+    def _same(p: Preset) -> bool:
+        if p.source != info.source:
+            return False
+        if account and p.source_account and p.source_account.casefold() != account:
+            return False
+        return p.station_url == info.location or (
+            uuid is not None and p.station_uuid == uuid
+        )
+
+    return next((p for p in presets if _same(p)), None)

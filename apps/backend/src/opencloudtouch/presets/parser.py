@@ -207,8 +207,8 @@ class DevicePresetParser:
             Tuple of (station_uuid, station_url, preset_source, station_name),
             or None if the UUID cannot be extracted.
         """
-        uuid_match = re.search(r"/stations/preset/([^/.]+)", location)
-        if not uuid_match:
+        station_uuid = oct_station_uuid(location)
+        if not station_uuid:
             logger.warning(
                 "Skipping preset %d: Invalid LOCAL_INTERNET_RADIO location: %s",
                 preset_number,
@@ -216,7 +216,6 @@ class DevicePresetParser:
             )
             return None
 
-        station_uuid = uuid_match.group(1)
         logger.debug(
             "Importing LOCAL_INTERNET_RADIO preset %d: %s (uuid: %s)",
             preset_number,
@@ -224,6 +223,12 @@ class DevicePresetParser:
             station_uuid,
         )
         return station_uuid, location, "LOCAL_INTERNET_RADIO", station_name
+
+
+def oct_station_uuid(location: str) -> Optional[str]:
+    """Station UUID of an OCT descriptor URL ``.../stations/preset/{uuid}.mp3``."""
+    match = re.search(r"/stations/preset/([^/.]+)", location)
+    return match.group(1) if match else None
 
 
 def preset_from_content_item(

@@ -30,7 +30,11 @@ from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.websocket.connection import ConnectionState
 from opencloudtouch.devices.websocket.icy_worker import RADIO_SOURCES
 from opencloudtouch.presets.models import Preset
-from opencloudtouch.presets.service import PresetService, match_stored_music_preset
+from opencloudtouch.presets.service import (
+    PresetService,
+    match_content_item_preset,
+    match_stored_music_preset,
+)
 from opencloudtouch.streaming.icy_metadata import IcyMetadata, probe_stream
 from opencloudtouch.streaming.metadata_cache import MISSING, MetadataCache, _Missing
 from opencloudtouch.stereo_pairs.device_info import load_stereo_context, stereo_fields
@@ -526,9 +530,16 @@ async def _enrich_from_presets(
     device_id: str,
     preset_service: PresetService,
 ) -> Preset | None:
-    """Enrich artwork (and DLNA slot) from presets. Returns matched preset or None."""
+    """Enrich artwork and the preset slot from presets. Returns matched preset or None."""
     if info.source == "STORED_MUSIC":
         return await match_stored_music_preset(result, info, device_id, preset_service)
+    match = await match_content_item_preset(info, device_id, preset_service)
+    if match:
+        result["preset_number"] = match.preset_number
+        if not result["artwork_url"] and match.station_favicon:
+            result["artwork_url"] = match.station_favicon
+        return match
+    # Fallback without a ContentItem match: artwork by station name, no slot
     if info.source not in RADIO_SOURCES:
         return None
     if not info.station_name:
