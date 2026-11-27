@@ -46,6 +46,17 @@
   justify-content: flex-start;
   gap: var(--space-sm);
 }
+/* A track shows its artist on a second, quieter line; both lines cut off with an ellipsis. */
+.dlb-line {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dlb-artist {
+  color: var(--color-text-secondary);
+  font-size: var(--fs-small);
+}
 .dlb-empty {
   margin: 0;
 }

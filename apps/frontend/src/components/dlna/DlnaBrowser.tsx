@@ -240,8 +240,8 @@ export default function DlnaBrowser({
                 </button>
               ) : (
                 <span className="dlb-title">
-                  {item.title}
-                  {item.artist && <small> {item.artist}</small>}
+                  <span className="dlb-line">{item.title}</span>
+                  {item.artist && <small className="dlb-line dlb-artist">{item.artist}</small>}
                 </span>
               )}
               <button

@@ -263,6 +263,18 @@ describe("DlnaBrowser", () => {
       expect(screen.queryByRole("list")).not.toBeInTheDocument();
     });
 
+    it("shows the artist on its own line under the title", async () => {
+      vi.mocked(api.browseDlna).mockResolvedValue(
+        page([{ ...track("t1", "Song"), artist: "The Band" }])
+      );
+      setup();
+      const title = await screen.findByText("Song");
+      const artist = screen.getByText("The Band");
+      expect(title).toHaveClass("dlb-line");
+      expect(artist).toHaveClass("dlb-line", "dlb-artist");
+      expect(artist.previousElementSibling).toBe(title);
+    });
+
     it("loads every remaining page while the filter is set", async () => {
       vi.mocked(api.browseDlna)
         .mockResolvedValueOnce(page([track("t1", "One")], true, 1))
