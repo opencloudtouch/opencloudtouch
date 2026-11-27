@@ -783,6 +783,7 @@ export default function Devices({
           <ul className="rp-info-list">
             <li>{t("presets.infoItem1")}</li>
             <li>{t("presets.infoItem2")}</li>
+            <li>{t("presets.infoItem7")}</li>
             <li>{t("presets.infoItem3")}</li>
             <li>{t("presets.infoItem5")}</li>
             <li>{t("presets.infoItem6")}</li>
