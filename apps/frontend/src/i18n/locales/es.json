@@ -1119,6 +1119,8 @@
       "loadMore": "Cargar más",
       "select": "Seleccionar",
       "selectLabel": "Seleccionar {{title}}",
+      "selectFolderLabel": "Seleccionar carpeta completa {{title}}",
+      "wholeFolder": "Carpeta completa como preset",
       "openLabel": "Abrir carpeta {{title}}",
       "retry": "Reintentar",
       "error": "No se pudo cargar la carpeta.",

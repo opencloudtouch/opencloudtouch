@@ -1119,6 +1119,8 @@
       "loadMore": "Wczytaj więcej",
       "select": "Wybierz",
       "selectLabel": "Wybierz {{title}}",
+      "selectFolderLabel": "Wybierz cały folder {{title}}",
+      "wholeFolder": "Cały folder jako preset",
       "openLabel": "Otwórz folder {{title}}",
       "retry": "Spróbuj ponownie",
       "error": "Nie udało się wczytać folderu.",

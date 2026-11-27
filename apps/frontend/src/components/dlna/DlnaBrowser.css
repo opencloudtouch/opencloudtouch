@@ -49,6 +49,12 @@ button.dlb-crumb:hover {
   padding: var(--space-sm) 0;
   border-bottom: 1px solid var(--color-border);
 }
+/* The open folder as a preset: its own tinted block above the track list. */
+.dlb-folder {
+  padding: var(--space-sm);
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-tertiary);
+}
 .dlb-cover {
   width: 40px;
   height: 40px;

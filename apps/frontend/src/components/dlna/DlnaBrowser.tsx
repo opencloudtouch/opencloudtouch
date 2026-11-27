@@ -13,8 +13,8 @@ interface Props {
   startObjectId?: string;
   /** Row that gets keyboard focus and is centred on arrival (the saved object when editing). */
   focusObjectId?: string;
-  /** index: the item's 0-based position in the folder across the loaded pages. */
-  onSelect: (item: DlnaItem, parentId: string, index: number) => void;
+  /** index: the item's 0-based position in the folder; absent for the open folder itself. */
+  onSelect: (item: DlnaItem, parentId: string, index?: number) => void;
   onPathChange?: (objectId: string) => void;
   /** Disables the select buttons while the parent saves a selection. */
   busy?: boolean;
@@ -148,6 +148,12 @@ export default function DlnaBrowser({
     : list;
 
   const crumbs = [{ object_id: "0", title: serverName }, ...path];
+  // A folder with tracks can be saved itself, without going back up to its parent.
+  const current = path.at(-1);
+  const wholeFolder =
+    current && current.object_id === objectId && !stale && !needle
+      ? list.find((it) => !it.is_container)
+      : undefined;
   return (
     <div className="dlb">
       <nav className="dlb-crumbs" aria-label={t("dlna.browser.breadcrumb")}>
@@ -228,6 +234,35 @@ export default function DlnaBrowser({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
+      )}
+      {current && wholeFolder && (
+        <div className="dlb-row dlb-folder">
+          <Cover url={wholeFolder.album_art_url} />
+          <span className="dlb-title">
+            <span className="dlb-line">{current.title}</span>
+            <small className="dlb-line dlb-artist">{t("dlna.browser.wholeFolder")}</small>
+          </span>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            aria-label={t("dlna.browser.selectFolderLabel", { title: current.title })}
+            disabled={busy}
+            onClick={() =>
+              onSelect(
+                {
+                  id: current.object_id,
+                  parent_id: path.at(-2)?.object_id ?? "0",
+                  title: current.title,
+                  is_container: true,
+                  album_art_url: wholeFolder.album_art_url,
+                },
+                path.at(-2)?.object_id ?? "0"
+              )
+            }
+          >
+            {t("dlna.browser.select")}
+          </button>
+        </div>
       )}
       {list.length > 0 && shown.length === 0 && (!hasNextPage || pageFailed) && (
         <p className="dlb-empty" role="status">

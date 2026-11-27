@@ -19,7 +19,7 @@ interface Props {
 interface Selection {
   item: DlnaItem;
   parentId: string;
-  index: number;
+  index?: number;
 }
 
 interface Warning extends Selection {
@@ -82,14 +82,14 @@ export default function DlnaPane({
       server_id: server.id,
       parent_id: sel.parentId,
       object_id: sel.item.id,
-      index: sel.index,
+      ...(sel.index !== undefined && { index: sel.index }),
       ...(sel.item.album_art_url && { artwork_url: sel.item.album_art_url }),
       ...(sel.item.artist && { artist: sel.item.artist }),
       ...(confirm && { confirm }),
     });
   };
 
-  const select = async (item: DlnaItem, parentId: string, index: number) => {
+  const select = async (item: DlnaItem, parentId: string, index?: number) => {
     const sel = { item, parentId, index };
     if (item.is_container && server) {
       setBusy(true);

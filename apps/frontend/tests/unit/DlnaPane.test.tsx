@@ -254,4 +254,27 @@ describe("DlnaPane", () => {
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(screen.queryByText("Saving to preset 2 …")).not.toBeInTheDocument();
   });
+
+  it("saves the open folder from its whole-folder entry without an index", async () => {
+    vi.mocked(api.getFirstChildAudio).mockResolvedValue(true);
+    vi.mocked(api.browseDlna).mockImplementation(async (_s, objectId) =>
+      objectId === "f1"
+        ? page([item("t1", "Song", false)])
+        : page([item("f1", "Album", true), item("t0", "Loose", false)])
+    );
+    const onSave = setup();
+    await userEvent.click(await screen.findByRole("button", { name: "Open Nas" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open folder Album" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Select whole folder Album" }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(api.getFirstChildAudio).toHaveBeenCalledWith("s1", "f1");
+    expect(onSave).toHaveBeenCalledWith({
+      device_id: "dev1",
+      preset_number: 2,
+      server_id: "s1",
+      parent_id: "0",
+      object_id: "f1",
+      confirm: true,
+    });
+  });
 });

@@ -427,4 +427,60 @@ describe("DlnaBrowser", () => {
     await userEvent.hover(await screen.findByRole("button", { name: "Open folder Rock" }));
     expect(api.browseDlna).toHaveBeenCalledTimes(1);
   });
+
+  describe("whole folder entry", () => {
+    const entry = (title: string) =>
+      screen.queryByRole("button", { name: `Select whole folder ${title}` });
+    const nested = () =>
+      vi.mocked(api.browseDlna).mockImplementation(async (_s, objectId) => {
+        if (objectId === "f1") return page([folderItem("f2", "Album")]);
+        if (objectId === "f2")
+          return page([
+            folderItem("f3", "Bonus"),
+            { ...track("t1", "Song"), album_art_url: "http://nas.example/a.jpg" },
+          ]);
+        return page([folderItem("f1", "Rock"), track("t0", "Loose")]);
+      });
+
+    it("shows only in a folder with tracks below the root and selects that folder", async () => {
+      nested();
+      const onSelect = setup();
+      await screen.findByText("Loose");
+      expect(entry("Nas")).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Open folder Rock" }));
+      await screen.findByRole("button", { name: "Open folder Album" });
+      expect(entry("Rock")).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Open folder Album" }));
+      await screen.findByText("Song");
+      expect(screen.getByText("Whole folder as preset")).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Select whole folder Album" }));
+      expect(onSelect).toHaveBeenCalledWith(
+        {
+          id: "f2",
+          parent_id: "f1",
+          title: "Album",
+          is_container: true,
+          album_art_url: "http://nas.example/a.jpg",
+        },
+        "f1"
+      );
+    });
+
+    it("hides while a filter text is entered and is disabled while busy", async () => {
+      nested();
+      vi.mocked(api.getDlnaObjectPath).mockResolvedValue({
+        server_id: "s1",
+        server_name: "Nas",
+        object_id: "f2",
+        title: "Album",
+        is_container: true,
+        path: [],
+      });
+      setup({ startObjectId: "f2", busy: true });
+      await screen.findByText("Song");
+      await waitFor(() => expect(entry("Album")).toBeDisabled());
+      await userEvent.type(screen.getByRole("searchbox"), "so");
+      expect(entry("Album")).not.toBeInTheDocument();
+    });
+  });
 });

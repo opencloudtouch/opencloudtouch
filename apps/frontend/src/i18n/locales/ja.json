@@ -1119,6 +1119,8 @@
       "loadMore": "さらに読み込む",
       "select": "選択",
       "selectLabel": "{{title}}を選択",
+      "selectFolderLabel": "フォルダ全体 {{title}} を選択",
+      "wholeFolder": "フォルダ全体をプリセットに",
       "openLabel": "フォルダー{{title}}を開く",
       "retry": "再試行",
       "error": "フォルダーを読み込めませんでした。",
