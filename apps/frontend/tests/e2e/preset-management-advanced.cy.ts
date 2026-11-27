@@ -346,12 +346,11 @@ describe("Preset Management Advanced", () => {
     });
 
     it("should disable interactions during loading", () => {
-      cy.intercept("POST", `/api/presets/set`, (req) => {
-        // Delay response by 1 second to simulate slow network
-        req.on("response", (res) => {
-          res.setDelay(1000);
-        });
-      }).as("slowSetPreset");
+      cy.intercept("POST", `/api/presets/set`, (req) =>
+        // Delay the request, not the response: the server pushes the new preset list over SSE
+        // as soon as it writes, which would end the loading state before a delayed response
+        new Promise<void>((resolve) => setTimeout(resolve, 1000)).then(() => req.continue())
+      ).as("slowSetPreset");
 
       // Start preset assignment
       cy.get(".pr--empty .pr-main").first().scrollIntoView().should("be.visible").click();
