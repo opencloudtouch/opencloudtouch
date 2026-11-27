@@ -1,0 +1,10 @@
+.dlp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.dlp-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}

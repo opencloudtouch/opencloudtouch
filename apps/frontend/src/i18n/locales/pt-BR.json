@@ -1136,7 +1136,8 @@
     "save": {
       "noAudioFirst": "O primeiro item desta pasta não é uma música (por exemplo, uma imagem de capa). O alto-falante pode não conseguir reproduzi-lo. Salvar mesmo assim?",
       "saveAnyway": "Salvar mesmo assim",
-      "chooseAnother": "Escolher outra pasta"
+      "chooseAnother": "Escolher outra pasta",
+      "saving": "Salvando no preset {{number}} …"
     }
   }
 }

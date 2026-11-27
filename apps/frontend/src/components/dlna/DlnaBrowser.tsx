@@ -16,6 +16,8 @@ interface Props {
   focusObjectId?: string;
   onSelect: (item: DlnaItem, parentId: string) => void;
   onPathChange?: (objectId: string) => void;
+  /** Disables the select buttons while the parent saves a selection. */
+  busy?: boolean;
 }
 
 interface Crumb {
@@ -44,6 +46,7 @@ export default function DlnaBrowser({
   focusObjectId,
   onSelect,
   onPathChange,
+  busy = false,
 }: Readonly<Props>) {
   const { t } = useTranslation();
   // Opens at startObjectId, else the folder remembered for this server, else the root.
@@ -199,6 +202,7 @@ export default function DlnaBrowser({
                 className="btn btn-secondary"
                 aria-label={t("dlna.browser.selectLabel", { title: item.title })}
                 autoFocus={item.id === focusObjectId}
+                disabled={busy}
                 onClick={() => onSelect(item, objectId)}
               >
                 {t("dlna.browser.select")}

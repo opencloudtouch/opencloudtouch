@@ -1136,7 +1136,8 @@
     "save": {
       "noAudioFirst": "Het eerste item in deze map is geen nummer (bijvoorbeeld een albumhoes). De speaker kan het mogelijk niet afspelen. Toch opslaan?",
       "saveAnyway": "Toch opslaan",
-      "chooseAnother": "Andere map kiezen"
+      "chooseAnother": "Andere map kiezen",
+      "saving": "Opslaan op preset {{number}} …"
     }
   }
 }

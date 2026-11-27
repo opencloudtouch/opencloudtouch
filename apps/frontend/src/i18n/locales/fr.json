@@ -1136,7 +1136,8 @@
     "save": {
       "noAudioFirst": "Le premier élément de ce dossier n'est pas un titre (par exemple une pochette). L'enceinte risque de ne pas pouvoir le lire. Enregistrer quand même ?",
       "saveAnyway": "Enregistrer quand même",
-      "chooseAnother": "Choisir un autre dossier"
+      "chooseAnother": "Choisir un autre dossier",
+      "saving": "Enregistrement sur le préréglage {{number}} …"
     }
   }
 }

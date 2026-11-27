@@ -1136,7 +1136,8 @@
     "save": {
       "noAudioFirst": "Det första objektet i den här mappen är ingen låt (till exempel en omslagsbild). Högtalaren kanske inte kan spela upp den. Spara ändå?",
       "saveAnyway": "Spara ändå",
-      "chooseAnother": "Välj en annan mapp"
+      "chooseAnother": "Välj en annan mapp",
+      "saving": "Sparar på förinställning {{number}} …"
     }
   }
 }

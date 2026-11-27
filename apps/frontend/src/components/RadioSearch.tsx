@@ -618,7 +618,7 @@ export default function RadioSearch({
 
           {searchMode === "dlna" && deviceId && _presetNumber ? (
             <section
-              className="rs-scroll"
+              className="rs-scroll rs-dlna"
               tabIndex={0} // NOSONAR(S6845): scrollable region must be keyboard-focusable (WCAG 2.1.1)
               aria-label={t("dlna.pane.tab")}
             >

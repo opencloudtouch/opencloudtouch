@@ -1136,7 +1136,8 @@
     "save": {
       "noAudioFirst": "Il primo elemento di questa cartella non è un brano (ad esempio un'immagine di copertina). L'altoparlante potrebbe non riuscire a riprodurlo. Salvare comunque?",
       "saveAnyway": "Salva comunque",
-      "chooseAnother": "Scegli un'altra cartella"
+      "chooseAnother": "Scegli un'altra cartella",
+      "saving": "Salvataggio sul preset {{number}} …"
     }
   }
 }

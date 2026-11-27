@@ -1136,7 +1136,8 @@
     "save": {
       "noAudioFirst": "Pierwszy element w tym folderze nie jest utworem (np. obraz okładki). Głośnik może nie być w stanie go odtworzyć. Zapisać mimo to?",
       "saveAnyway": "Zapisz mimo to",
-      "chooseAnother": "Wybierz inny folder"
+      "chooseAnother": "Wybierz inny folder",
+      "saving": "Zapisywanie w presecie {{number}} …"
     }
   }
 }

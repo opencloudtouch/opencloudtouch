@@ -63,6 +63,9 @@
   padding: 0 var(--space-md) var(--space-md) 20px;
   border-top: 1px solid var(--border-color);
 }
+.rs-dlna {
+  padding-top: var(--space-md);
+}
 .rs-scroll:focus-visible {
   outline-offset: -2px;
 }

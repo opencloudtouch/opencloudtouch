@@ -1136,7 +1136,8 @@
     "save": {
       "noAudioFirst": "El primer elemento de esta carpeta no es una canción (por ejemplo, una imagen de portada). Puede que el altavoz no pueda reproducirlo. ¿Guardar de todos modos?",
       "saveAnyway": "Guardar de todos modos",
-      "chooseAnother": "Elegir otra carpeta"
+      "chooseAnother": "Elegir otra carpeta",
+      "saving": "Guardando en el preset {{number}} …"
     }
   }
 }

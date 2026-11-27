@@ -205,4 +205,17 @@ describe("DlnaPane", () => {
     expect(await screen.findByRole("button", { name: "Open Nas" })).toBeInTheDocument();
     expect(api.browseDlna).not.toHaveBeenCalled();
   });
+
+  it("shows a busy status and disables select buttons while saving", async () => {
+    let resolve!: (v: api.PresetResponse) => void;
+    vi.mocked(api.saveDlnaPreset).mockReturnValue(new Promise((r) => (resolve = r)));
+    const onSaved = setup();
+    await openAndSelect("Song");
+    expect(await screen.findByText("Saving to preset 2 …")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select Song" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Select Album" })).toBeDisabled();
+    resolve(saved);
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(screen.queryByText("Saving to preset 2 …")).not.toBeInTheDocument();
+  });
 });

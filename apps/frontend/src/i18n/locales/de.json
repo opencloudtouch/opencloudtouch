@@ -1136,7 +1136,8 @@
     "save": {
       "noAudioFirst": "Das erste Element in diesem Ordner ist kein Titel (zum Beispiel ein Coverbild). Der Lautsprecher kann es eventuell nicht abspielen. Trotzdem speichern?",
       "saveAnyway": "Trotzdem speichern",
-      "chooseAnother": "Anderen Ordner wählen"
+      "chooseAnother": "Anderen Ordner wählen",
+      "saving": "Wird auf Preset {{number}} gespeichert …"
     }
   }
 }

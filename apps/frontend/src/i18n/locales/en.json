@@ -1134,7 +1134,8 @@
     "save": {
       "noAudioFirst": "The first item in this folder is not a song (for example a cover image). The speaker may not be able to play it. Save anyway?",
       "saveAnyway": "Save anyway",
-      "chooseAnother": "Choose another folder"
+      "chooseAnother": "Choose another folder",
+      "saving": "Saving to preset {{number}} …"
     }
   }
 }

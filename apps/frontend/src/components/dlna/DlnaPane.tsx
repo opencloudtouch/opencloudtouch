@@ -8,6 +8,7 @@ import type { Preset } from "../PresetRow";
 import DlnaBrowser from "./DlnaBrowser";
 import DlnaServerList from "./DlnaServerList";
 import { resolveDlnaPrefill, type DlnaPrefill } from "./resolveDlnaPrefill";
+import "./DlnaPane.css";
 
 interface Props {
   deviceId: string;
@@ -37,6 +38,7 @@ export default function DlnaPane({
   const [server, setServer] = useState<{ id: string; name: string } | null>(null);
   const [warn, setWarn] = useState<Selection | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!editing) return;
@@ -54,7 +56,7 @@ export default function DlnaPane({
 
   if (!prefill) {
     return (
-      <div role="status" aria-busy="true">
+      <div className="dlp-loading" role="status" aria-busy="true">
         <span className="spinner-small" aria-hidden="true" /> {t("dlna.pane.loading")}
       </div>
     );
@@ -64,6 +66,7 @@ export default function DlnaPane({
     if (!server) return;
     setSaveError(null);
     setWarn(null);
+    setBusy(true);
     try {
       await saveDlnaPreset({
         device_id: deviceId,
@@ -77,14 +80,19 @@ export default function DlnaPane({
     } catch (err) {
       if (isApiErrorInstance(err) && err.code === "dlna_folder_no_audio_first") setWarn(sel);
       else setSaveError(userErrorMessage(err));
+    } finally {
+      setBusy(false);
     }
   };
 
   const select = async (item: DlnaItem, parentId: string) => {
     const sel = { item, parentId };
     if (item.is_container && server) {
+      setBusy(true);
       // A failed check falls through: the backend answers 409 for such a folder anyway.
-      const audioFirst = await getFirstChildAudio(server.id, item.id).catch(() => true);
+      const audioFirst = await getFirstChildAudio(server.id, item.id)
+        .catch(() => true)
+        .finally(() => setBusy(false));
       if (!audioFirst) {
         setSaveError(null);
         setWarn(sel);
@@ -128,10 +136,17 @@ export default function DlnaPane({
             startObjectId={resumeHere ? prefill.startObjectId : undefined}
             focusObjectId={resumeHere ? prefill.focusId : undefined}
             onSelect={(item, parentId) => void select(item, parentId)}
+            busy={busy}
           />
         </>
       ) : (
         <DlnaServerList deviceId={deviceId} onOpenServer={(id, name) => setServer({ id, name })} />
+      )}
+      {busy && (
+        <div className="dlp-loading" role="status" aria-live="polite">
+          <span className="spinner-small" aria-hidden="true" />{" "}
+          {t("dlna.save.saving", { number: presetNumber })}
+        </div>
       )}
       {warn && (
         <div className="wz-status wz-status--warning" role="alert">
