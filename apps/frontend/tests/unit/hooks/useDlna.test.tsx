@@ -43,6 +43,22 @@ describe("useDlna", () => {
     expect(api.enableNativeServer).toHaveBeenCalledWith("d", "s");
   });
 
+  it("useNativeServers without discovery uses its own query; enable refetches both", async () => {
+    vi.mocked(api.getNativeServers).mockResolvedValue(list);
+    vi.mocked(api.enableNativeServer).mockResolvedValue(server);
+    const wrapper = createQueryWrapper(createTestQueryClient());
+    const full = renderHook(() => useNativeServers("d"), { wrapper });
+    const quick = renderHook(() => useNativeServers("d", false), { wrapper });
+    await waitFor(() => expect(full.result.current.isSuccess).toBe(true));
+    await waitFor(() => expect(quick.result.current.isSuccess).toBe(true));
+    expect(api.getNativeServers).toHaveBeenCalledWith("d", expect.anything(), true);
+    expect(api.getNativeServers).toHaveBeenCalledWith("d", expect.anything(), false);
+
+    const enable = renderHook(() => useEnableNativeServer("d"), { wrapper });
+    await act(() => enable.result.current.mutateAsync("s"));
+    await waitFor(() => expect(api.getNativeServers).toHaveBeenCalledTimes(4));
+  });
+
   it("useDisableNativeServer passes force and refetches", async () => {
     vi.mocked(api.getNativeServers).mockResolvedValue(list);
     vi.mocked(api.disableNativeServer).mockResolvedValue(undefined);

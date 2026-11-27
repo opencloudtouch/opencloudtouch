@@ -1079,6 +1079,8 @@
   "dlna": {
     "servers": {
       "loading": "Läser in mediaservrar",
+      "searching": "Söker efter fler mediaservrar …",
+      "searchFailed": "Sökningen efter fler mediaservrar misslyckades.",
       "ready": "Redo",
       "notEnabled": "Inte konfigurerad",
       "unavailable": "Inte tillgänglig",

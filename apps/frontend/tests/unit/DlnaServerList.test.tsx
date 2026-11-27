@@ -79,10 +79,14 @@ describe("DlnaServerList", () => {
   });
 
   it("enable calls the API and refreshes the list", async () => {
-    vi.mocked(api.getNativeServers)
-      .mockResolvedValueOnce(list([native("b", "Beta", "not_enabled")]))
-      .mockResolvedValue(list([native("b", "Beta", "ready")]));
-    vi.mocked(api.enableNativeServer).mockResolvedValue(native("b", "Beta", "ready"));
+    let enabled = false;
+    vi.mocked(api.getNativeServers).mockImplementation(async () =>
+      list([native("b", "Beta", enabled ? "ready" : "not_enabled")])
+    );
+    vi.mocked(api.enableNativeServer).mockImplementation(async () => {
+      enabled = true;
+      return native("b", "Beta", "ready");
+    });
     setup();
     await userEvent.click(await screen.findByRole("button", { name: "Set up Beta" }));
     expect(api.enableNativeServer).toHaveBeenCalledWith("dev1", "b");
@@ -157,16 +161,62 @@ describe("DlnaServerList", () => {
     setup();
     expect(await screen.findByText("No media servers found")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Rescan" }));
-    await waitFor(() => expect(api.getNativeServers).toHaveBeenCalledTimes(2));
+    // Quick and full list on mount, then the rescan of the full list.
+    await waitFor(() => expect(api.getNativeServers).toHaveBeenCalledTimes(3));
   });
 
   it("error state shows an alert with retry", async () => {
-    vi.mocked(api.getNativeServers).mockRejectedValueOnce(new Error("x"));
-    vi.mocked(api.getNativeServers).mockResolvedValue(list([]));
+    let fail = true;
+    vi.mocked(api.getNativeServers).mockImplementation(async () => {
+      if (fail) throw new Error("x");
+      return list([]);
+    });
     setup();
     expect(await screen.findByRole("alert")).toBeInTheDocument();
+    fail = false;
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(await screen.findByText("No media servers found")).toBeInTheDocument();
+  });
+
+  it("shows the known servers at once, ready first, while the search runs", async () => {
+    let finish: (value: api.NativeServerList) => void = () => {};
+    vi.mocked(api.getNativeServers).mockImplementation((_id, _signal, discover) =>
+      discover === false
+        ? Promise.resolve(
+            list([native("b", "Beta", "not_enabled", "10.0.0.2"), native("a", "Alpha", "ready")])
+          )
+        : new Promise((resolve) => (finish = resolve))
+    );
+    setup();
+    expect(await screen.findByText(/Searching for more media servers/)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
+    expect(screen.getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+      expect.stringContaining("Alpha"),
+      expect.stringContaining("Beta"),
+    ]);
+
+    finish(list([native("a", "Alpha", "ready"), native("n", "New", "not_enabled", "10.0.0.9")]));
+    expect(await screen.findByText("New")).toBeInTheDocument();
+    expect(screen.queryByText("Beta")).not.toBeInTheDocument();
+    expect(screen.queryByText("Searching for more media servers …")).not.toBeInTheDocument();
+  });
+
+  it("a failed search keeps the known servers and offers a retry", async () => {
+    let fail = true;
+    vi.mocked(api.getNativeServers).mockImplementation(async (_id, _signal, discover) => {
+      if (discover !== false && fail) throw new Error("x");
+      return list([
+        native(discover === false ? "a" : "n", discover === false ? "Alpha" : "New", "ready"),
+      ]);
+    });
+    setup();
+    expect(await screen.findByText("Alpha")).toBeInTheDocument();
+    expect(
+      await screen.findByText("The search for more media servers failed.")
+    ).toBeInTheDocument();
+    fail = false;
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByText("New")).toBeInTheDocument();
   });
 
   it("offline speaker shows the offline banner", async () => {

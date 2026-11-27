@@ -1077,6 +1077,8 @@
   "dlna": {
     "servers": {
       "loading": "Loading media servers",
+      "searching": "Searching for more media servers …",
+      "searchFailed": "The search for more media servers failed.",
       "ready": "Ready",
       "notEnabled": "Not set up",
       "unavailable": "Not available",

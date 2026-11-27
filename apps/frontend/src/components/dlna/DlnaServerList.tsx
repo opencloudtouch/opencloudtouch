@@ -22,19 +22,22 @@ const STATE_KEY = {
 export default function DlnaServerList({ deviceId, onOpenServer }: Readonly<Props>) {
   const { t } = useTranslation();
   const native = useNativeServers(deviceId);
+  const quick = useNativeServers(deviceId, false);
   const enable = useEnableNativeServer(deviceId);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
   const [removing, setRemoving] = useState<{ id: string; name: string } | null>(null);
 
-  if (native.isLoading) {
+  // The quick list of known servers shows until the full search answers; an empty one waits.
+  const data = native.data ?? (quick.data?.servers.length ? quick.data : undefined);
+  if (!data && (native.isLoading || quick.isLoading)) {
     return (
       <div role="status" aria-busy="true" className="dsl-loading">
         <span className="spinner-small" aria-hidden="true" /> {t("dlna.servers.loading")}
       </div>
     );
   }
-  if (native.error) {
+  if (!data && native.error) {
     if (isApiErrorInstance(native.error) && native.error.code === "device_unreachable") {
       return <DeviceOfflineBanner />;
     }
@@ -53,7 +56,13 @@ export default function DlnaServerList({ deviceId, onOpenServer }: Readonly<Prop
     );
   }
 
-  const { servers = [], migration_failed = false, migration_reason = null } = native.data ?? {};
+  const { servers: listed = [], migration_failed = false, migration_reason = null } = data ?? {};
+  // Set-up servers first, otherwise in the backend's order (sort is stable).
+  const servers = [...listed].sort(
+    (a, b) => Number(b.state === "ready") - Number(a.state === "ready")
+  );
+  const searching = !native.data && native.isFetching;
+  const searchFailed = !native.data && !native.isFetching && native.error !== null;
   if (servers.length === 0) {
     return (
       <div className="dsl-empty">
@@ -152,6 +161,19 @@ export default function DlnaServerList({ deviceId, onOpenServer }: Readonly<Prop
           );
         })}
       </ul>
+      {searching && (
+        <div role="status" aria-live="polite" className="dsl-loading">
+          <span className="spinner-small" aria-hidden="true" /> {t("dlna.servers.searching")}
+        </div>
+      )}
+      {searchFailed && (
+        <div className="dsl-loading">
+          <span className="ui-small">{t("dlna.servers.searchFailed")}</span>
+          <button type="button" className="btn btn-secondary" onClick={() => void native.refetch()}>
+            {t("dlna.servers.retry")}
+          </button>
+        </div>
+      )}
       <div aria-live="polite">
         {message && !message.error && <p className="ui-small">{message.text}</p>}
       </div>

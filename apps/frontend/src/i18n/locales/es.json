@@ -1079,6 +1079,8 @@
   "dlna": {
     "servers": {
       "loading": "Cargando servidores multimedia",
+      "searching": "Buscando más servidores multimedia …",
+      "searchFailed": "La búsqueda de más servidores multimedia ha fallado.",
       "ready": "Listo",
       "notEnabled": "Sin configurar",
       "unavailable": "No disponible",

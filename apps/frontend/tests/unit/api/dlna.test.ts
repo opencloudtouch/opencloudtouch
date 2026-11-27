@@ -102,6 +102,12 @@ describe("dlna api", () => {
     expect(calledUrl(f)).toContain("/api/dlna/native?device_id=d");
   });
 
+  it("getNativeServers without discovery asks for the known servers only", async () => {
+    const f = stubFetch(200, { servers: [], migration_failed: false, migration_reason: null });
+    await getNativeServers("d", undefined, false);
+    expect(calledUrl(f)).toContain("/api/dlna/native?device_id=d&discover=false");
+  });
+
   it("enableNativeServer puts and returns the server state", async () => {
     const server = {
       server_id: "s",

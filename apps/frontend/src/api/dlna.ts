@@ -82,15 +82,18 @@ export async function getFirstChildAudio(
   return body.first_child_is_audio;
 }
 
-/** Live server states plus the speaker's migration state (migration_failed disables enable). */
+/**
+ * Live server states plus the speaker's migration state (migration_failed disables enable).
+ * discover=false answers at once from the known servers instead of a ~6 s SSDP search.
+ */
 export async function getNativeServers(
   deviceId: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  discover = true
 ): Promise<NativeServerList> {
-  const response = await fetch(
-    `${API_BASE_URL}/api/dlna/native?${new URLSearchParams({ device_id: deviceId })}`,
-    { signal }
-  );
+  const query = new URLSearchParams({ device_id: deviceId });
+  if (!discover) query.set("discover", "false");
+  const response = await fetch(`${API_BASE_URL}/api/dlna/native?${query}`, { signal });
   await throwIfNotOk(response, "Failed to load media server state");
   return response.json();
 }

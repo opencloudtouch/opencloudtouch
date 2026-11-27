@@ -23,10 +23,11 @@ export function useDlnaServers() {
   });
 }
 
-export function useNativeServers(deviceId: string) {
+/** discover=false is the quick list of known servers; both share the invalidated key prefix. */
+export function useNativeServers(deviceId: string, discover = true) {
   return useQuery({
-    queryKey: ["dlna", "native", deviceId],
-    queryFn: ({ signal }) => getNativeServers(deviceId, signal),
+    queryKey: ["dlna", "native", deviceId, discover],
+    queryFn: ({ signal }) => getNativeServers(deviceId, signal, discover),
     staleTime: 0,
     gcTime: GC_TIME_MS,
   });

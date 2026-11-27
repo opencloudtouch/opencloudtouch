@@ -1079,6 +1079,8 @@
   "dlna": {
     "servers": {
       "loading": "Mediaservers laden",
+      "searching": "Er wordt naar meer mediaservers gezocht …",
+      "searchFailed": "Het zoeken naar meer mediaservers is mislukt.",
       "ready": "Gereed",
       "notEnabled": "Niet ingesteld",
       "unavailable": "Niet beschikbaar",

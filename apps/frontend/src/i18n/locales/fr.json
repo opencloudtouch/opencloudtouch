@@ -1079,6 +1079,8 @@
   "dlna": {
     "servers": {
       "loading": "Chargement des serveurs multimédias",
+      "searching": "Recherche d’autres serveurs multimédias …",
+      "searchFailed": "La recherche d’autres serveurs multimédias a échoué.",
       "ready": "Prêt",
       "notEnabled": "Non configuré",
       "unavailable": "Indisponible",
