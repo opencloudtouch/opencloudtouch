@@ -1135,8 +1135,9 @@
     },
     "save": {
       "noAudioFirst": "Das erste Element in diesem Ordner ist kein Titel (zum Beispiel ein Coverbild). Der Lautsprecher kann es eventuell nicht abspielen. Trotzdem speichern?",
+      "hiResFlac": "Dieser Titel ist ein hochauflösender FLAC ({{khz}} kHz). Der Lautsprecher kann ihn nicht abspielen; wandle ihn auf dem Medienserver in 16 Bit/48 kHz oder weniger um.",
       "saveAnyway": "Trotzdem speichern",
-      "chooseAnother": "Anderen Ordner wählen",
+      "chooseAnother": "Etwas anderes wählen",
       "saving": "Wird auf Preset {{number}} gespeichert …"
     }
   }

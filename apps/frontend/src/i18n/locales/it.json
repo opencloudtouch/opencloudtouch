@@ -1135,8 +1135,9 @@
     },
     "save": {
       "noAudioFirst": "Il primo elemento di questa cartella non è un brano (ad esempio un'immagine di copertina). L'altoparlante potrebbe non riuscire a riprodurlo. Salvare comunque?",
+      "hiResFlac": "Questo brano è un FLAC ad alta risoluzione ({{khz}} kHz). Il diffusore non può riprodurlo; convertilo a 16 bit/48 kHz o meno sul media server.",
       "saveAnyway": "Salva comunque",
-      "chooseAnother": "Scegli un'altra cartella",
+      "chooseAnother": "Scegli altro",
       "saving": "Salvataggio sul preset {{number}} …"
     }
   }

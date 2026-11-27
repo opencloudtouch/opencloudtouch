@@ -7,8 +7,11 @@ const KEYS: Record<number, string> = {
   1602: "serviceUnreachable",
   1604: "badFormat",
   1615: "subFolders",
+  // Decoder errors: the speaker cannot decode the file (e.g. hi-res FLAC).
+  1652: "badFormat",
+  3102: "badFormat",
 };
-const WARNING = new Set([0, 1604, 1615]);
+const WARNING = new Set([0, 1604, 1615, 1652, 3102]);
 
 interface SourceErrorAlertProps {
   code: number;

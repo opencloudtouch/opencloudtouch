@@ -1133,8 +1133,9 @@
     },
     "save": {
       "noAudioFirst": "The first item in this folder is not a song (for example a cover image). The speaker may not be able to play it. Save anyway?",
+      "hiResFlac": "This track is a high-resolution FLAC ({{khz}} kHz). The speaker cannot play it; convert it to 16 bit/48 kHz or less on the media server.",
       "saveAnyway": "Save anyway",
-      "chooseAnother": "Choose another folder",
+      "chooseAnother": "Choose something else",
       "saving": "Saving to preset {{number}} …"
     }
   }

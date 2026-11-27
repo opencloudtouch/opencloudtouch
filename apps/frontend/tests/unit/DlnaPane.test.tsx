@@ -117,7 +117,7 @@ describe("DlnaPane", () => {
     vi.mocked(api.getFirstChildAudio).mockResolvedValue(false);
     const onSaved = setup();
     await openAndSelect("Album");
-    await userEvent.click(await screen.findByRole("button", { name: "Choose another folder" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Choose something else" }));
     expect(screen.queryByText(warning)).not.toBeInTheDocument();
     expect(api.saveDlnaPreset).not.toHaveBeenCalled();
     expect(onSaved).not.toHaveBeenCalled();
@@ -139,6 +139,45 @@ describe("DlnaPane", () => {
     await openAndSelect("Song");
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
     expect(api.getFirstChildAudio).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [96000, "96"],
+    [88200, "88.2"],
+  ])("hi-res FLAC track (%i Hz) warns first and saves without confirm", async (hz, khz) => {
+    vi.mocked(api.browseDlna).mockResolvedValue(
+      page([
+        {
+          ...item("t1", "Song", false),
+          protocol_info: "http-get:*:audio/flac:DLNA.ORG_PN=FLAC",
+          sample_frequency: hz,
+        },
+      ])
+    );
+    const onSaved = setup();
+    await openAndSelect("Song");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      `This track is a high-resolution FLAC (${khz} kHz).`
+    );
+    expect(api.saveDlnaPreset).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Save anyway" }));
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(api.saveDlnaPreset).toHaveBeenCalledWith(expect.not.objectContaining({ confirm: true }));
+  });
+
+  it("FLAC track at 48 kHz saves directly", async () => {
+    vi.mocked(api.browseDlna).mockResolvedValue(
+      page([
+        {
+          ...item("t1", "Song", false),
+          protocol_info: "http-get:*:audio/flac:*",
+          sample_frequency: 48000,
+        },
+      ])
+    );
+    const onSaved = setup();
+    await openAndSelect("Song");
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
   });
 
   it("a speaker error on save shows the inline error", async () => {

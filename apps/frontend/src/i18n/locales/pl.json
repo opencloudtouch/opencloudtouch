@@ -1135,8 +1135,9 @@
     },
     "save": {
       "noAudioFirst": "Pierwszy element w tym folderze nie jest utworem (np. obraz okładki). Głośnik może nie być w stanie go odtworzyć. Zapisać mimo to?",
+      "hiResFlac": "Ten utwór to plik FLAC wysokiej rozdzielczości ({{khz}} kHz). Głośnik nie może go odtworzyć; przekonwertuj go na serwerze multimediów do 16 bitów/48 kHz lub mniej.",
       "saveAnyway": "Zapisz mimo to",
-      "chooseAnother": "Wybierz inny folder",
+      "chooseAnother": "Wybierz coś innego",
       "saving": "Zapisywanie w presecie {{number}} …"
     }
   }

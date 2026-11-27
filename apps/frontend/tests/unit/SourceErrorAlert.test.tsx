@@ -8,6 +8,8 @@ describe("SourceErrorAlert", () => {
     [1608, "devices.sourceError.notFound.title"],
     [1602, "devices.sourceError.serviceUnreachable.title"],
     [1604, "devices.sourceError.badFormat.title"],
+    [1652, "devices.sourceError.badFormat.title"],
+    [3102, "devices.sourceError.badFormat.title"],
     [1615, "devices.sourceError.subFolders.title"],
     [1699, "devices.sourceError.generic.title"],
     [0, "devices.sourceError.notSetUp.title"],
@@ -18,8 +20,12 @@ describe("SourceErrorAlert", () => {
     expect(alert).toHaveTextContent(i18next.t(key.replace(".title", ".body")));
   });
 
-  it("uses the warning style for 1604, 1615 and INVALID_SOURCE (0), error otherwise", () => {
+  it("uses the warning style for decoder errors, 1615 and INVALID_SOURCE (0), error otherwise", () => {
     const { rerender } = render(<SourceErrorAlert code={1604} onDismiss={vi.fn()} />);
+    expect(screen.getByRole("alert")).toHaveClass("wz-status--warning");
+    rerender(<SourceErrorAlert code={1652} onDismiss={vi.fn()} />);
+    expect(screen.getByRole("alert")).toHaveClass("wz-status--warning");
+    rerender(<SourceErrorAlert code={3102} onDismiss={vi.fn()} />);
     expect(screen.getByRole("alert")).toHaveClass("wz-status--warning");
     rerender(<SourceErrorAlert code={0} onDismiss={vi.fn()} />);
     expect(screen.getByRole("alert")).toHaveClass("wz-status--warning");

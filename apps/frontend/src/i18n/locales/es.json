@@ -1135,8 +1135,9 @@
     },
     "save": {
       "noAudioFirst": "El primer elemento de esta carpeta no es una canción (por ejemplo, una imagen de portada). Puede que el altavoz no pueda reproducirlo. ¿Guardar de todos modos?",
+      "hiResFlac": "Esta pista es un FLAC de alta resolución ({{khz}} kHz). El altavoz no puede reproducirla; conviértela a 16 bits/48 kHz o menos en el servidor multimedia.",
       "saveAnyway": "Guardar de todos modos",
-      "chooseAnother": "Elegir otra carpeta",
+      "chooseAnother": "Elegir otra cosa",
       "saving": "Guardando en el preset {{number}} …"
     }
   }

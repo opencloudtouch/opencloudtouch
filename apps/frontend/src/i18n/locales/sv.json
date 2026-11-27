@@ -1135,8 +1135,9 @@
     },
     "save": {
       "noAudioFirst": "Det första objektet i den här mappen är ingen låt (till exempel en omslagsbild). Högtalaren kanske inte kan spela upp den. Spara ändå?",
+      "hiResFlac": "Det här spåret är en högupplöst FLAC ({{khz}} kHz). Högtalaren kan inte spela upp det; konvertera det till 16 bitar/48 kHz eller lägre på mediaservern.",
       "saveAnyway": "Spara ändå",
-      "chooseAnother": "Välj en annan mapp",
+      "chooseAnother": "Välj något annat",
       "saving": "Sparar på förinställning {{number}} …"
     }
   }

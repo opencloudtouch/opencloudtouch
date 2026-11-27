@@ -22,6 +22,15 @@ interface Selection {
   parentId: string;
 }
 
+interface Warning extends Selection {
+  reason: "noAudioFirst" | "hiResFlac";
+}
+
+/** Measured on a SoundTouch 10: FLAC above 48 kHz fails with a decoder error. */
+const isHiResFlac = (item: DlnaItem) =>
+  (item.protocol_info?.split(":")[2] ?? "").toLowerCase() === "audio/flac" &&
+  (item.sample_frequency ?? 0) > 48000;
+
 /** DLNA tab of the preset dialog: server list -> browser -> save the selected item to the slot. */
 export default function DlnaPane({
   deviceId,
@@ -36,7 +45,7 @@ export default function DlnaPane({
   // null = the saved location is still being resolved
   const [prefill, setPrefill] = useState<DlnaPrefill | null>(editing ? null : { server: null });
   const [server, setServer] = useState<{ id: string; name: string } | null>(null);
-  const [warn, setWarn] = useState<Selection | null>(null);
+  const [warn, setWarn] = useState<Warning | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -78,7 +87,8 @@ export default function DlnaPane({
       });
       onSaved();
     } catch (err) {
-      if (isApiErrorInstance(err) && err.code === "dlna_folder_no_audio_first") setWarn(sel);
+      if (isApiErrorInstance(err) && err.code === "dlna_folder_no_audio_first")
+        setWarn({ ...sel, reason: "noAudioFirst" });
       else setSaveError(userErrorMessage(err));
     } finally {
       setBusy(false);
@@ -95,9 +105,13 @@ export default function DlnaPane({
         .finally(() => setBusy(false));
       if (!audioFirst) {
         setSaveError(null);
-        setWarn(sel);
+        setWarn({ ...sel, reason: "noAudioFirst" });
         return;
       }
+    } else if (isHiResFlac(item)) {
+      setSaveError(null);
+      setWarn({ ...sel, reason: "hiResFlac" });
+      return;
     }
     await save(sel);
   };
@@ -154,9 +168,15 @@ export default function DlnaPane({
             {Icon.Alert(22)}
           </span>
           <div className="wz-status-body">
-            <p className="wz-status-text">{t("dlna.save.noAudioFirst")}</p>
+            <p className="wz-status-text">
+              {t(`dlna.save.${warn.reason}`, { khz: (warn.item.sample_frequency ?? 0) / 1000 })}
+            </p>
           </div>
-          <button type="button" className="btn btn-primary" onClick={() => void save(warn, true)}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => void save(warn, warn.reason === "noAudioFirst")}
+          >
             {t("dlna.save.saveAnyway")}
           </button>
           <button type="button" className="btn btn-secondary" onClick={() => setWarn(null)}>

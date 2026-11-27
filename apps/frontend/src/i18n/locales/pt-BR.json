@@ -1135,8 +1135,9 @@
     },
     "save": {
       "noAudioFirst": "O primeiro item desta pasta não é uma música (por exemplo, uma imagem de capa). O alto-falante pode não conseguir reproduzi-lo. Salvar mesmo assim?",
+      "hiResFlac": "Esta faixa é um FLAC de alta resolução ({{khz}} kHz). O alto-falante não consegue reproduzi-la; converta-a para 16 bits/48 kHz ou menos no servidor de mídia.",
       "saveAnyway": "Salvar mesmo assim",
-      "chooseAnother": "Escolher outra pasta",
+      "chooseAnother": "Escolher outra coisa",
       "saving": "Salvando no preset {{number}} …"
     }
   }

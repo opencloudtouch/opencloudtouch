@@ -1135,8 +1135,9 @@
     },
     "save": {
       "noAudioFirst": "Le premier élément de ce dossier n'est pas un titre (par exemple une pochette). L'enceinte risque de ne pas pouvoir le lire. Enregistrer quand même ?",
+      "hiResFlac": "Ce titre est un FLAC haute résolution ({{khz}} kHz). L'enceinte ne peut pas le lire ; convertissez-le en 16 bits/48 kHz ou moins sur le serveur multimédia.",
       "saveAnyway": "Enregistrer quand même",
-      "chooseAnother": "Choisir un autre dossier",
+      "chooseAnother": "Choisir autre chose",
       "saving": "Enregistrement sur le préréglage {{number}} …"
     }
   }
