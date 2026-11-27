@@ -64,12 +64,14 @@ export default function DlnaBrowser({
   const objectId = path.at(-1)?.object_id ?? "0";
   const folder = useDlnaFolder(serverId, objectId);
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = folder;
+  // A failed next page stops the auto-load: the button below retries it on demand.
+  const pageFailed = folder.isError && !!folder.data;
   const sentinelRef = useRef<HTMLDivElement>(null);
   // Old browsers and jsdom lack the observer: they keep the "Load more" button.
   const canObserve = typeof IntersectionObserver !== "undefined";
   useEffect(() => {
     const el = sentinelRef.current;
-    if (!el || !canObserve || !hasNextPage || isFetchingNextPage) return;
+    if (!el || !canObserve || !hasNextPage || isFetchingNextPage || pageFailed) return;
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) void fetchNextPage();
@@ -78,7 +80,7 @@ export default function DlnaBrowser({
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [canObserve, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [canObserve, hasNextPage, isFetchingNextPage, pageFailed, fetchNextPage]);
 
   const go = (next: Crumb[]) => {
     setStack(next);
@@ -210,8 +212,13 @@ export default function DlnaBrowser({
           <span className="spinner-small" aria-hidden="true" /> {t("dlna.browser.loading")}
         </div>
       )}
+      {pageFailed && (
+        <p className="ui-small" role="alert">
+          {t(`dlna.browser.${(code && ERROR_KEY[code]) || "error"}`)}
+        </p>
+      )}
       {hasNextPage &&
-        (canObserve ? (
+        (canObserve && !pageFailed ? (
           <div ref={sentinelRef} aria-hidden="true" />
         ) : (
           <button

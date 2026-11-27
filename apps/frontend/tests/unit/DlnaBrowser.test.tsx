@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -50,6 +50,8 @@ const setup = (props: Partial<React.ComponentProps<typeof DlnaBrowser>> = {}) =>
   setupWithContainer(props).onSelect;
 
 describe("DlnaBrowser", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   beforeEach(() => {
     vi.resetAllMocks();
     sessionStorage.clear();
@@ -101,7 +103,34 @@ describe("DlnaBrowser", () => {
     resolveNext(page([track("t2", "Two")]));
     expect(await screen.findByText("Two")).toBeInTheDocument();
     expect(api.browseDlna).toHaveBeenLastCalledWith("s1", "0", 1, undefined, expect.anything());
-    vi.unstubAllGlobals();
+  });
+
+  it("stops loading on scroll after a failed page and offers the button instead", async () => {
+    let fire: () => void = () => {};
+    let created = 0;
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(cb: IntersectionObserverCallback) {
+          created += 1;
+          fire = () => cb([{ isIntersecting: true } as IntersectionObserverEntry], this as never);
+        }
+        observe() {}
+        disconnect() {}
+      }
+    );
+    vi.mocked(api.browseDlna)
+      .mockResolvedValueOnce(page([track("t1", "One")], true, 1))
+      .mockRejectedValueOnce(new Error("boom"));
+    setup();
+    expect(await screen.findByText("One")).toBeInTheDocument();
+    fire();
+    expect(await screen.findByText("The folder could not be loaded.")).toBeInTheDocument();
+    const observersAfterFailure = created;
+    expect(screen.getByRole("button", { name: "Load more" })).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(created).toBe(observersAfterFailure);
+    expect(api.browseDlna).toHaveBeenCalledTimes(2);
   });
 
   const twoLevels = () =>

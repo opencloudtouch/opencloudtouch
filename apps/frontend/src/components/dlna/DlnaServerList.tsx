@@ -113,17 +113,8 @@ export default function DlnaServerList({ deviceId, onOpenServer }: Readonly<Prop
           const openable = state === "ready" && s.discovered;
           return (
             <li key={s.server_id} className="dsl-row" data-state={state}>
-              {openable ? (
-                <button
-                  type="button"
-                  className="dsl-name btn btn-ghost"
-                  onClick={() => onOpenServer(s.server_id, s.name)}
-                >
-                  {s.name} {Icon.ChevronRight(18)}
-                </button>
-              ) : (
-                <span className="dsl-name">{s.name}</span>
-              )}
+              {/* One action per row: the Open button below opens a ready server. */}
+              <span className="dsl-name">{s.name}</span>
               <span className="dsl-state ui-small">{t(`dlna.servers.${STATE_KEY[state]}`)}</span>
               {state === "not_enabled" && (
                 <button
