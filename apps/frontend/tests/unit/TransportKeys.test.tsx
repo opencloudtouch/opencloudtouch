@@ -74,10 +74,10 @@ describe("TransportKeys", () => {
     expect(onKey).not.toHaveBeenCalled();
   });
 
-  it("radio shows all keys with the reported settings enabled", () => {
+  it("radio shows all keys but disables skip, shuffle and repeat", () => {
     render(<TransportKeys {...base} showSkip={false} shuffle="SHUFFLE_ON" repeat="REPEAT_ALL" />);
-    expect(screen.getByRole("button", { name: "Shuffle" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Repeat: all" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Shuffle" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Repeat: all" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Next track" })).toBeDisabled();
   });
 

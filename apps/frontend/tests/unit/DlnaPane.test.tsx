@@ -142,28 +142,34 @@ describe("DlnaPane", () => {
   });
 
   it.each([
-    [96000, "96"],
-    [88200, "88.2"],
-  ])("hi-res FLAC track (%i Hz) warns first and saves without confirm", async (hz, khz) => {
-    vi.mocked(api.browseDlna).mockResolvedValue(
-      page([
-        {
-          ...item("t1", "Song", false),
-          protocol_info: "http-get:*:audio/flac:DLNA.ORG_PN=FLAC",
-          sample_frequency: hz,
-        },
-      ])
-    );
-    const onSaved = setup();
-    await openAndSelect("Song");
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      `This track is a high-resolution FLAC (${khz} kHz).`
-    );
-    expect(api.saveDlnaPreset).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole("button", { name: "Save anyway" }));
-    await waitFor(() => expect(onSaved).toHaveBeenCalled());
-    expect(api.saveDlnaPreset).toHaveBeenCalledWith(expect.not.objectContaining({ confirm: true }));
-  });
+    [96000, "96", "audio/flac"],
+    [88200, "88.2", "audio/flac"],
+    [96000, "96", "audio/x-flac"],
+  ])(
+    "hi-res FLAC track (%i Hz = %s kHz, %s) warns first and saves without confirm",
+    async (hz, khz, mime) => {
+      vi.mocked(api.browseDlna).mockResolvedValue(
+        page([
+          {
+            ...item("t1", "Song", false),
+            protocol_info: `http-get:*:${mime}:DLNA.ORG_PN=FLAC`,
+            sample_frequency: hz,
+          },
+        ])
+      );
+      const onSaved = setup();
+      await openAndSelect("Song");
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        `This track is a high-resolution FLAC (${khz} kHz).`
+      );
+      expect(api.saveDlnaPreset).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByRole("button", { name: "Save anyway" }));
+      await waitFor(() => expect(onSaved).toHaveBeenCalled());
+      expect(api.saveDlnaPreset).toHaveBeenCalledWith(
+        expect.not.objectContaining({ confirm: true })
+      );
+    }
+  );
 
   it("FLAC track at 48 kHz saves directly", async () => {
     vi.mocked(api.browseDlna).mockResolvedValue(

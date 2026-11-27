@@ -28,8 +28,10 @@ interface Warning extends Selection {
 
 /** Measured on a SoundTouch 10: FLAC above 48 kHz fails with a decoder error. */
 const isHiResFlac = (item: DlnaItem) =>
-  (item.protocol_info?.split(":")[2] ?? "").toLowerCase() === "audio/flac" &&
-  (item.sample_frequency ?? 0) > 48000;
+  // MiniDLNA/ReadyMedia report audio/x-flac, Gerbera audio/flac.
+  ["audio/flac", "audio/x-flac"].includes(
+    (item.protocol_info?.split(":")[2] ?? "").toLowerCase()
+  ) && (item.sample_frequency ?? 0) > 48000;
 
 /** DLNA tab of the preset dialog: server list -> browser -> save the selected item to the slot. */
 export default function DlnaPane({

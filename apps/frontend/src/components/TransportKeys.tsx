@@ -103,7 +103,7 @@ export default function TransportKeys({
           type="button"
           className="tp-key"
           onClick={() => onKey("SHUFFLE")}
-          disabled={shuffle === null || disabled || busyKey !== null}
+          disabled={!showSkip || shuffle === null || disabled || busyKey !== null}
           aria-busy={busyKey === "SHUFFLE" || undefined}
           aria-pressed={shuffle === "SHUFFLE_ON"}
           aria-label={t("player.shuffle.label")}
@@ -120,7 +120,7 @@ export default function TransportKeys({
           // The name carries the mode; the class gives the on-state its ring and dot.
           className={`tp-key${repeat === null || repeat === "REPEAT_OFF" ? "" : " tp-key--on"}`}
           onClick={() => onKey("REPEAT")}
-          disabled={repeat === null || disabled || busyKey !== null}
+          disabled={!showSkip || repeat === null || disabled || busyKey !== null}
           aria-busy={busyKey === "REPEAT" || undefined}
           aria-label={t("player.repeat.label", {
             mode: t(`player.repeat.${repeat ?? "REPEAT_OFF"}`, { defaultValue: repeat }),
