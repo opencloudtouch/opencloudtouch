@@ -87,6 +87,23 @@ describe("PresetRow", () => {
     expect(onChange).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    ["an occupied", preset],
+    ["an empty", null],
+  ])("%s row shows the saving progress and ignores taps while it saves", (_label, p) => {
+    const onToggle = vi.fn();
+    const onChange = vi.fn();
+    render(
+      <PresetRow number={3} preset={p} state="saving" onToggle={onToggle} onChange={onChange} />
+    );
+    expect(screen.getByText("Saving to preset 3 …")).toBeInTheDocument();
+    const main = screen.getByTestId(p ? "preset-play-3" : "preset-empty-3");
+    expect(main).toHaveAttribute("aria-busy", "true");
+    fireEvent.click(main);
+    expect(onToggle).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("an empty row goes straight to the assignment", () => {
     const onChange = vi.fn();
     render(

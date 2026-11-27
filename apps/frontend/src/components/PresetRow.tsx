@@ -14,7 +14,7 @@ export interface Preset {
   source_account?: string | null;
 }
 
-export type PresetRowState = "idle" | "playing" | "paused" | "starting" | "failed";
+export type PresetRowState = "idle" | "playing" | "paused" | "starting" | "failed" | "saving";
 
 interface PresetRowProps {
   number: number;
@@ -40,6 +40,13 @@ export default function PresetRow({
   const { t } = useTranslation();
   // Keyed by URL: a new logo URL is tried again without a remount.
   const [failedLogo, setFailedLogo] = useState<string | null>(null);
+  const saving = state === "saving";
+  const savingLine = saving && (
+    <>
+      <span className="ui-spin">{Icon.Loader(16)}</span>
+      <span>{t("dlna.save.saving", { number })}</span>
+    </>
+  );
 
   if (!preset) {
     return (
@@ -47,7 +54,9 @@ export default function PresetRow({
         <button
           type="button"
           className="pr-main"
-          onClick={onChange}
+          onClick={saving ? undefined : onChange}
+          aria-disabled={saving || undefined}
+          aria-busy={saving || undefined}
           aria-label={`${t("presets.assignPreset")} ${number}`}
           data-testid={`preset-empty-${number}`}
         >
@@ -61,7 +70,9 @@ export default function PresetRow({
               </span>
               {t("presets.assignPreset")}
             </span>
-            <span className="pr-state" />
+            <span className="pr-state" aria-hidden="true">
+              {savingLine}
+            </span>
           </span>
         </button>
       </div>
@@ -71,7 +82,7 @@ export default function PresetRow({
   const name = preset.station_name;
   const logo = preset.station_favicon;
   const showLogo = !!logo && logo !== failedLogo;
-  const busy = state === "starting";
+  const busy = state === "starting" || saving;
   const label =
     state === "playing"
       ? t("device.presetPause", { n: number, name })
@@ -131,6 +142,7 @@ export default function PresetRow({
                 <span>{t("device.prStarting")}</span>
               </>
             )}
+            {savingLine}
             {state === "failed" && (
               <>
                 {Icon.CircleX(16)}

@@ -8,6 +8,7 @@ import StationDetail from "./StationDetail";
 import ConfirmDialog from "./ConfirmDialog";
 import Modal from "./Modal";
 import DlnaPane from "./dlna/DlnaPane";
+import type { DlnaSaveRequest } from "../api/dlna";
 import { nativeServersQuery } from "../hooks/useDlna";
 import { Icon } from "./Icon";
 import "./RadioSearch.css";
@@ -49,9 +50,9 @@ interface RadioSearchProps {
   presetNumber?: number | null;
   hasExistingPreset?: boolean;
   existingPreset?: ExistingPreset | null;
-  /** Enables the DLNA tab; onDlnaSaved runs after a DLNA preset was saved. */
+  /** Enables the DLNA tab; onDlnaSave gets the selection and the dialog closes (the page saves). */
   deviceId?: string;
-  onDlnaSaved?: () => void;
+  onDlnaSave?: (request: DlnaSaveRequest) => void;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
@@ -394,7 +395,7 @@ export default function RadioSearch({
   hasExistingPreset,
   existingPreset,
   deviceId,
-  onDlnaSaved,
+  onDlnaSave,
 }: RadioSearchProps) {
   const { t } = useTranslation();
   const [searchMode, setSearchMode] = useState<SearchMode>("provider");
@@ -638,8 +639,8 @@ export default function RadioSearch({
                 deviceId={deviceId}
                 presetNumber={_presetNumber}
                 existingPreset={existingPreset}
-                onSaved={() => {
-                  onDlnaSaved?.();
+                onSave={(request) => {
+                  onDlnaSave?.(request);
                   onClose?.();
                 }}
               />

@@ -13,7 +13,8 @@ interface Props {
   startObjectId?: string;
   /** Row that gets keyboard focus and is centred on arrival (the saved object when editing). */
   focusObjectId?: string;
-  onSelect: (item: DlnaItem, parentId: string) => void;
+  /** index: the item's 0-based position in the folder across the loaded pages. */
+  onSelect: (item: DlnaItem, parentId: string, index: number) => void;
   onPathChange?: (objectId: string) => void;
   /** Disables the select buttons while the parent saves a selection. */
   busy?: boolean;
@@ -218,6 +219,11 @@ export default function DlnaBrowser({
           {t("dlna.browser.noMatches")}
         </p>
       )}
+      {stale && (
+        <div className="dlb-loading" role="status" aria-live="polite">
+          <span className="spinner-small" aria-hidden="true" /> {t("dlna.browser.loading")}
+        </div>
+      )}
       {shown.length > 0 && (
         <ul className={`dlb-list${stale ? " dlb-list--stale" : ""}`} inert={stale}>
           {shown.map((item) => (
@@ -244,7 +250,7 @@ export default function DlnaBrowser({
                 aria-label={t("dlna.browser.selectLabel", { title: item.title })}
                 ref={item.id === focusId ? focusRow : undefined}
                 disabled={busy}
-                onClick={() => onSelect(item, objectId)}
+                onClick={() => onSelect(item, objectId, list.indexOf(item))}
               >
                 {t("dlna.browser.select")}
               </button>

@@ -16,6 +16,8 @@ import {
   getDevicePresets,
   syncPresetsFromDevice,
 } from "../api/presets";
+import { saveDlnaPreset, type DlnaSaveRequest } from "../api/dlna";
+import { userErrorMessage } from "../utils/errorMessages";
 import { isDeviceOffline } from "../api/offlineDeviceStore";
 import { getCachedDeviceData, setCachedDeviceData } from "../utils/deviceDataCache";
 import { buildPresetsMap } from "../utils/presetsMap";
@@ -41,6 +43,8 @@ export interface UsePresetsResult {
   syncPresets: () => Promise<boolean>;
   assignStation: (presetNumber: number, station: RadioStation, deviceId: string) => Promise<void>;
   removePreset: (presetNumber: number, deviceId: string) => Promise<void>;
+  /** Resolves to true when the DLNA item was saved, false when it failed (the error is set). */
+  saveDlna: (request: DlnaSaveRequest) => Promise<boolean>;
 }
 
 export function usePresets(deviceId: string | undefined): UsePresetsResult {
@@ -233,7 +237,35 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
     }
   };
 
+  // ------------------------------------------------------------------
+  // Save a DLNA item to a preset slot
+  // ------------------------------------------------------------------
+  const saveDlna = async (request: DlnaSaveRequest): Promise<boolean> => {
+    setError(null);
+    try {
+      const saved = await saveDlnaPreset(request);
+      setPresets((prev) => ({
+        ...prev,
+        [saved.preset_number]: {
+          station_uuid: saved.station_uuid,
+          station_name: saved.station_name,
+          station_url: saved.station_url,
+          station_favicon: saved.station_favicon ?? undefined,
+          source: saved.source ?? undefined,
+          dlna: saved.dlna,
+          source_account: saved.source_account,
+        },
+      }));
+      return true;
+    } catch (err) {
+      console.error("[usePresets] Failed to save media preset:", err);
+      setError(userErrorMessage(err));
+      return false;
+    }
+  };
+
   return {
+    saveDlna,
     presets,
     loading,
     syncing,

@@ -40,6 +40,7 @@ import "../components/StereoPairCard.css";
 import "./Devices.css";
 import { pickDevice, setLastDeviceId } from "../utils/lastDevice";
 import { getDeviceActionError } from "../utils/apiErrors";
+import type { DlnaSaveRequest } from "../api/dlna";
 
 interface DevicesProps {
   devices?: Device[];
@@ -103,8 +104,17 @@ export default function Devices({
   );
   const deviceOffline = currentDevice ? isDeviceOffline(currentDevice.device_id) : false;
 
-  const { presets, loading, syncing, error, clearError, syncPresets, assignStation, removePreset } =
-    usePresets(deviceId);
+  const {
+    presets,
+    loading,
+    syncing,
+    error,
+    clearError,
+    syncPresets,
+    assignStation,
+    removePreset,
+    saveDlna,
+  } = usePresets(deviceId);
   const { show: showVolumeToast } = useToast();
   const { volume, muted, setDeviceVolume, toggleMute } = useVolume(deviceId, (message) =>
     showVolumeToast(message, "error")
@@ -118,6 +128,8 @@ export default function Devices({
   const [clearingPreset, setClearingPreset] = useState<number | null>(null);
   const [startingPreset, setStartingPreset] = useState<number | null>(null);
   const [failedPreset, setFailedPreset] = useState<number | null>(null);
+  // A DLNA save runs here, not in the dialog: closing the dialog must not cancel it.
+  const [savingPreset, setSavingPreset] = useState<{ deviceId: string; num: number } | null>(null);
   const [switching, setSwitching] = useState<DeviceSource | null>(null);
   const [switchFailed, setSwitchFailed] = useState<DeviceSource | null>(null);
   const [keyBusy, setKeyBusy] = useState<TransportKey | null>(null);
@@ -240,6 +252,8 @@ export default function Devices({
 
   // Which row shows which state: the running station decides, a start or a failure in progress overrides
   const presetState = (num: number): PresetRowState => {
+    if (savingPreset && savingPreset.deviceId === deviceId && savingPreset.num === num)
+      return "saving";
     if (num === startingPreset) return "starting";
     if (num === failedPreset) return "failed";
     const preset = presets[num];
@@ -300,6 +314,15 @@ export default function Devices({
       setAssigningPreset(null);
       setSearchOpen(false);
     }
+  };
+
+  // The row shows the progress; a failure leaves the old slot and fills the preset error box.
+  const handleDlnaSave = async (request: DlnaSaveRequest) => {
+    const num = request.preset_number;
+    setSavingPreset({ deviceId: request.device_id, num });
+    setAnnouncement(t("dlna.save.saving", { number: num }));
+    if (await saveDlna(request)) showToast(t("presets.presetSaved", { number: num }), "success");
+    setSavingPreset((s) => (s?.deviceId === request.device_id && s.num === num ? null : s));
   };
 
   const handleConfirmClear = async () => {
@@ -767,10 +790,7 @@ export default function Devices({
         hasExistingPreset={assigningPreset !== null && !!presets[assigningPreset]}
         existingPreset={assigningPreset !== null ? presets[assigningPreset] : null}
         deviceId={deviceId}
-        onDlnaSaved={() => {
-          showToast(t("presets.presetSaved", { number: assigningPreset }), "success");
-          void syncPresets();
-        }}
+        onDlnaSave={(request) => void handleDlnaSave(request)}
       />
 
       {/* Confirm Clear Dialog */}

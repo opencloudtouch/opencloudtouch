@@ -336,11 +336,30 @@ describe("DlnaBrowser", () => {
     expect(container.querySelector(".dlb-cover--icon")).not.toBeNull();
   });
 
-  it("selects an item with its parent id", async () => {
-    vi.mocked(api.browseDlna).mockResolvedValue(page([track("t1", "Song")]));
+  it("selects an item with its parent id and its position across the loaded pages", async () => {
+    vi.mocked(api.browseDlna)
+      .mockResolvedValueOnce(page([track("t1", "One")], true, 1))
+      .mockResolvedValueOnce(page([track("t2", "Two")]));
     const onSelect = setup();
-    await userEvent.click(await screen.findByRole("button", { name: "Select Song" }));
-    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "t1" }), "0");
+    await userEvent.click(await screen.findByRole("button", { name: "Load more" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Select Two" }));
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "t2" }), "0", 1);
+  });
+
+  it("says the next folder is loading while the previous one is shown dimmed", async () => {
+    let resolveRock: (p: api.DlnaBrowsePage) => void = () => {};
+    vi.mocked(api.browseDlna)
+      .mockResolvedValueOnce(page([folderItem("f1", "Rock")]))
+      .mockReturnValueOnce(new Promise((r) => (resolveRock = r)));
+    const { container } = setupWithContainer();
+    await userEvent.click(await screen.findByRole("button", { name: "Open folder Rock" }));
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent("Loading folder");
+    expect(status).toHaveAttribute("aria-live", "polite");
+    expect(container.querySelector(".dlb-list--stale")).not.toBeNull();
+    resolveRock(page([track("t1", "Song")]));
+    expect(await screen.findByText("Song")).toBeInTheDocument();
+    expect(screen.queryByText("Loading folder")).not.toBeInTheDocument();
   });
 
   it("empty folder message", async () => {

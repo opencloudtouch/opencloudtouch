@@ -9,7 +9,7 @@ vi.mock("../../src/api/dlna");
 
 function setup(props: Partial<React.ComponentProps<typeof RadioSearch>> = {}) {
   const onClose = vi.fn();
-  const onDlnaSaved = vi.fn();
+  const onDlnaSave = vi.fn();
   const view = render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -20,12 +20,12 @@ function setup(props: Partial<React.ComponentProps<typeof RadioSearch>> = {}) {
         onStationSelect={vi.fn()}
         presetNumber={3}
         deviceId="dev1"
-        onDlnaSaved={onDlnaSaved}
+        onDlnaSave={onDlnaSave}
         {...props}
       />
     </QueryClientProvider>
   );
-  return { onClose, onDlnaSaved, rerender: view.rerender };
+  return { onClose, onDlnaSave, rerender: view.rerender };
 }
 
 const dlnaPreset = {
@@ -94,12 +94,12 @@ describe("RadioSearch DLNA tab", () => {
   });
 
   it("cancel changes nothing", async () => {
-    const { onClose, onDlnaSaved } = setup();
+    const { onClose, onDlnaSave } = setup();
     await userEvent.click(screen.getByRole("button", { name: "DLNA" }));
     await userEvent.click(screen.getAllByRole("button", { name: /close/i })[0]);
     expect(onClose).toHaveBeenCalled();
     expect(api.saveDlnaPreset).not.toHaveBeenCalled();
-    expect(onDlnaSaved).not.toHaveBeenCalled();
+    expect(onDlnaSave).not.toHaveBeenCalled();
   });
 
   it("a DLNA save notifies the page and closes the dialog", async () => {
@@ -118,11 +118,11 @@ describe("RadioSearch DLNA tab", () => {
       next_index: 1,
       has_more: false,
     });
-    const { onClose, onDlnaSaved } = setup();
+    const { onClose, onDlnaSave } = setup();
     await userEvent.click(screen.getByRole("button", { name: "DLNA" }));
     await userEvent.click(await screen.findByRole("button", { name: "Open Nas" }));
     await userEvent.click(await screen.findByRole("button", { name: "Select Song" }));
-    expect(onDlnaSaved).toHaveBeenCalled();
+    expect(onDlnaSave).toHaveBeenCalledWith(expect.objectContaining({ object_id: "t1", index: 0 }));
     expect(onClose).toHaveBeenCalled();
   });
 });

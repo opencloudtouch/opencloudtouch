@@ -31,39 +31,19 @@ const nas: api.NativeServer = {
   discovered: true,
   host: null,
 };
-const saved: api.PresetResponse = {
-  id: 1,
-  device_id: "dev1",
-  preset_number: 2,
-  station_uuid: "f1",
-  station_name: "Album",
-  station_url: "f1",
-  station_homepage: null,
-  station_favicon: null,
-  source: "STORED_MUSIC",
-  source_account: "s1/0",
-  dlna: true,
-  created_at: "",
-  updated_at: "",
-};
 const notFound = (code: string) => new ApiError("nope", { status: 404, code });
 const warning =
   "The first item in this folder is not a song (for example a cover image). The speaker may not be able to play it. Save anyway?";
 
 function setup(existingPreset?: React.ComponentProps<typeof DlnaPane>["existingPreset"]) {
-  const onSaved = vi.fn();
+  const onSave = vi.fn();
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <DlnaPane
-        deviceId="dev1"
-        presetNumber={2}
-        existingPreset={existingPreset}
-        onSaved={onSaved}
-      />
+      <DlnaPane deviceId="dev1" presetNumber={2} existingPreset={existingPreset} onSave={onSave} />
     </QueryClientProvider>
   );
-  return onSaved;
+  return onSave;
 }
 
 describe("DlnaPane", () => {
@@ -78,7 +58,6 @@ describe("DlnaPane", () => {
     vi.mocked(api.browseDlna).mockResolvedValue(
       page([item("f1", "Album", true), item("t1", "Song", false)])
     );
-    vi.mocked(api.saveDlnaPreset).mockResolvedValue(saved);
   });
 
   async function openAndSelect(title: string) {
@@ -86,59 +65,75 @@ describe("DlnaPane", () => {
     await userEvent.click(await screen.findByRole("button", { name: `Select ${title}` }));
   }
 
-  it("dlna tab saves a folder with audio first without a warning", async () => {
+  it("a folder whose check found audio first is handed over with index and confirm", async () => {
     vi.mocked(api.getFirstChildAudio).mockResolvedValue(true);
-    const onSaved = setup();
+    const onSave = setup();
     await openAndSelect("Album");
-    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(api.getFirstChildAudio).toHaveBeenCalledWith("s1", "f1");
-    expect(api.saveDlnaPreset).toHaveBeenCalledWith({
+    expect(onSave).toHaveBeenCalledWith({
       device_id: "dev1",
       preset_number: 2,
       server_id: "s1",
       parent_id: "0",
       object_id: "f1",
+      index: 0,
+      confirm: true,
     });
     expect(screen.queryByText(warning)).not.toBeInTheDocument();
+    expect(api.saveDlnaPreset).not.toHaveBeenCalled();
+  });
+
+  it("a failed audio-first check hands the folder over without confirm", async () => {
+    vi.mocked(api.getFirstChildAudio).mockRejectedValue(new Error("timeout"));
+    const onSave = setup();
+    await openAndSelect("Album");
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0]?.[0]).not.toHaveProperty("confirm");
   });
 
   it("folder without audio first shows the pre-save warning and saves with confirm", async () => {
     vi.mocked(api.getFirstChildAudio).mockResolvedValue(false);
-    const onSaved = setup();
+    const onSave = setup();
     await openAndSelect("Album");
     expect(await screen.findByRole("alert")).toHaveTextContent(warning);
-    expect(api.saveDlnaPreset).not.toHaveBeenCalled();
+    expect(onSave).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Save anyway" }));
-    await waitFor(() => expect(onSaved).toHaveBeenCalled());
-    expect(api.saveDlnaPreset).toHaveBeenCalledWith(expect.objectContaining({ confirm: true }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ confirm: true }));
   });
 
   it("choose another folder closes the warning without saving", async () => {
     vi.mocked(api.getFirstChildAudio).mockResolvedValue(false);
-    const onSaved = setup();
+    const onSave = setup();
     await openAndSelect("Album");
     await userEvent.click(await screen.findByRole("button", { name: "Choose something else" }));
     expect(screen.queryByText(warning)).not.toBeInTheDocument();
-    expect(api.saveDlnaPreset).not.toHaveBeenCalled();
-    expect(onSaved).not.toHaveBeenCalled();
+    expect(onSave).not.toHaveBeenCalled();
   });
 
-  it("409 from the server shows the same warning", async () => {
-    vi.mocked(api.getFirstChildAudio).mockResolvedValue(true);
-    vi.mocked(api.saveDlnaPreset).mockRejectedValueOnce(
-      new ApiError("conflict", { status: 409, code: "dlna_folder_no_audio_first" })
-    );
-    const onSaved = setup();
-    await openAndSelect("Album");
-    expect(await screen.findByText(warning)).toBeInTheDocument();
-    expect(onSaved).not.toHaveBeenCalled();
-  });
-
-  it("track saves directly", async () => {
-    const onSaved = setup();
+  it("track is handed over directly with its position and without confirm or cover", async () => {
+    const onSave = setup();
     await openAndSelect("Song");
-    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith({
+      device_id: "dev1",
+      preset_number: 2,
+      server_id: "s1",
+      parent_id: "0",
+      object_id: "t1",
+      index: 1,
+    });
     expect(api.getFirstChildAudio).not.toHaveBeenCalled();
+  });
+
+  it("sends the cover of an item that has one", async () => {
+    vi.mocked(api.browseDlna).mockResolvedValue(
+      page([{ ...item("t1", "Song", false), album_art_url: "http://nas.example/art.jpg" }])
+    );
+    const onSave = setup();
+    await openAndSelect("Song");
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ index: 0, artwork_url: "http://nas.example/art.jpg" })
+    );
   });
 
   it.each([
@@ -157,17 +152,14 @@ describe("DlnaPane", () => {
           },
         ])
       );
-      const onSaved = setup();
+      const onSave = setup();
       await openAndSelect("Song");
       expect(await screen.findByRole("alert")).toHaveTextContent(
         `This track is a high-resolution FLAC (${khz} kHz).`
       );
-      expect(api.saveDlnaPreset).not.toHaveBeenCalled();
+      expect(onSave).not.toHaveBeenCalled();
       await userEvent.click(screen.getByRole("button", { name: "Save anyway" }));
-      await waitFor(() => expect(onSaved).toHaveBeenCalled());
-      expect(api.saveDlnaPreset).toHaveBeenCalledWith(
-        expect.not.objectContaining({ confirm: true })
-      );
+      expect(onSave).toHaveBeenCalledWith(expect.not.objectContaining({ confirm: true }));
     }
   );
 
@@ -181,19 +173,9 @@ describe("DlnaPane", () => {
         },
       ])
     );
-    const onSaved = setup();
+    const onSave = setup();
     await openAndSelect("Song");
-    await waitFor(() => expect(onSaved).toHaveBeenCalled());
-  });
-
-  it("a speaker error on save shows the inline error", async () => {
-    vi.mocked(api.saveDlnaPreset).mockRejectedValueOnce(
-      new ApiError("Speaker refused the preset", { status: 502, code: "device_error" })
-    );
-    const onSaved = setup();
-    await openAndSelect("Song");
-    expect(await screen.findByRole("alert")).toBeInTheDocument();
-    expect(onSaved).not.toHaveBeenCalled();
+    expect(onSave).toHaveBeenCalled();
   });
 
   it("editing a dlna preset opens the dlna tab at the parent folder with the row focused", async () => {
@@ -251,16 +233,16 @@ describe("DlnaPane", () => {
     expect(api.browseDlna).not.toHaveBeenCalled();
   });
 
-  it("shows a busy status and disables select buttons while saving", async () => {
-    let resolve!: (v: api.PresetResponse) => void;
-    vi.mocked(api.saveDlnaPreset).mockReturnValue(new Promise((r) => (resolve = r)));
-    const onSaved = setup();
-    await openAndSelect("Song");
+  it("shows a busy status and disables select buttons while the folder is checked", async () => {
+    let resolve!: (v: boolean) => void;
+    vi.mocked(api.getFirstChildAudio).mockReturnValue(new Promise((r) => (resolve = r)));
+    const onSave = setup();
+    await openAndSelect("Album");
     expect(await screen.findByText("Saving to preset 2 …")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Select Song" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Select Album" })).toBeDisabled();
-    resolve(saved);
-    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    resolve(true);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(screen.queryByText("Saving to preset 2 …")).not.toBeInTheDocument();
   });
 });

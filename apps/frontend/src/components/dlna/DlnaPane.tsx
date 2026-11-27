@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getFirstChildAudio, saveDlnaPreset, type DlnaItem } from "../../api/dlna";
-import { isApiErrorInstance } from "../../api/types";
-import { userErrorMessage } from "../../utils/errorMessages";
+import { getFirstChildAudio, type DlnaItem, type DlnaSaveRequest } from "../../api/dlna";
 import { Icon } from "../Icon";
 import type { Preset } from "../PresetRow";
 import DlnaBrowser from "./DlnaBrowser";
@@ -14,12 +12,14 @@ interface Props {
   deviceId: string;
   presetNumber: number;
   existingPreset?: Pick<Preset, "dlna" | "source_account" | "station_url"> | null;
-  onSaved: () => void;
+  /** The page saves: the dialog closes at once and the slot shows the progress. */
+  onSave: (request: DlnaSaveRequest) => void;
 }
 
 interface Selection {
   item: DlnaItem;
   parentId: string;
+  index: number;
 }
 
 interface Warning extends Selection {
@@ -33,12 +33,12 @@ const isHiResFlac = (item: DlnaItem) =>
     (item.protocol_info?.split(":")[2] ?? "").toLowerCase()
   ) && (item.sample_frequency ?? 0) > 48000;
 
-/** DLNA tab of the preset dialog: server list -> browser -> save the selected item to the slot. */
+/** DLNA tab of the preset dialog: server list -> browser -> hand the selected item to the page. */
 export default function DlnaPane({
   deviceId,
   presetNumber,
   existingPreset,
-  onSaved,
+  onSave,
 }: Readonly<Props>) {
   const { t } = useTranslation();
   const editing = !!existingPreset?.dlna;
@@ -48,7 +48,6 @@ export default function DlnaPane({
   const [prefill, setPrefill] = useState<DlnaPrefill | null>(editing ? null : { server: null });
   const [server, setServer] = useState<{ id: string; name: string } | null>(null);
   const [warn, setWarn] = useState<Warning | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -73,49 +72,38 @@ export default function DlnaPane({
     );
   }
 
-  const save = async (sel: Selection, confirm = false) => {
+  // index and cover let the backend skip its own lookups; confirm skips its audio-first check.
+  const save = (sel: Selection, confirm = false) => {
     if (!server) return;
-    setSaveError(null);
     setWarn(null);
-    setBusy(true);
-    try {
-      await saveDlnaPreset({
-        device_id: deviceId,
-        preset_number: presetNumber,
-        server_id: server.id,
-        parent_id: sel.parentId,
-        object_id: sel.item.id,
-        ...(confirm && { confirm }),
-      });
-      onSaved();
-    } catch (err) {
-      if (isApiErrorInstance(err) && err.code === "dlna_folder_no_audio_first")
-        setWarn({ ...sel, reason: "noAudioFirst" });
-      else setSaveError(userErrorMessage(err));
-    } finally {
-      setBusy(false);
-    }
+    onSave({
+      device_id: deviceId,
+      preset_number: presetNumber,
+      server_id: server.id,
+      parent_id: sel.parentId,
+      object_id: sel.item.id,
+      index: sel.index,
+      ...(sel.item.album_art_url && { artwork_url: sel.item.album_art_url }),
+      ...(confirm && { confirm }),
+    });
   };
 
-  const select = async (item: DlnaItem, parentId: string) => {
-    const sel = { item, parentId };
+  const select = async (item: DlnaItem, parentId: string, index: number) => {
+    const sel = { item, parentId, index };
     if (item.is_container && server) {
       setBusy(true);
-      // A failed check falls through: the backend answers 409 for such a folder anyway.
+      // A failed check (null) saves without confirm: the backend then checks the folder itself.
       const audioFirst = await getFirstChildAudio(server.id, item.id)
-        .catch(() => true)
+        .catch(() => null)
         .finally(() => setBusy(false));
-      if (!audioFirst) {
-        setSaveError(null);
+      if (audioFirst === false) {
         setWarn({ ...sel, reason: "noAudioFirst" });
         return;
       }
+      save(sel, audioFirst === true);
     } else if (isHiResFlac(item)) {
-      setSaveError(null);
       setWarn({ ...sel, reason: "hiResFlac" });
-      return;
-    }
-    await save(sel);
+    } else save(sel);
   };
 
   const resumeHere = server !== null && server.id === prefill.server?.id;
@@ -151,7 +139,7 @@ export default function DlnaPane({
             serverName={server.name}
             startObjectId={resumeHere ? prefill.startObjectId : undefined}
             focusObjectId={resumeHere ? prefill.focusId : undefined}
-            onSelect={(item, parentId) => void select(item, parentId)}
+            onSelect={(item, parentId, index) => void select(item, parentId, index)}
             busy={busy}
           />
         </>
@@ -177,23 +165,13 @@ export default function DlnaPane({
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => void save(warn, warn.reason === "noAudioFirst")}
+            onClick={() => save(warn, warn.reason === "noAudioFirst")}
           >
             {t("dlna.save.saveAnyway")}
           </button>
           <button type="button" className="btn btn-secondary" onClick={() => setWarn(null)}>
             {t("dlna.save.chooseAnother")}
           </button>
-        </div>
-      )}
-      {saveError && (
-        <div className="wz-status wz-status--error" role="alert">
-          <span className="wz-icon" aria-hidden="true">
-            {Icon.CircleX(22)}
-          </span>
-          <div className="wz-status-body">
-            <p className="wz-status-text">{saveError}</p>
-          </div>
         </div>
       )}
     </div>

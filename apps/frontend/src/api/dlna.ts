@@ -16,6 +16,7 @@ export type NativeServer = Schemas["NativeServer"];
 export type NativeServerList = Schemas["NativeServerList"];
 export type DlnaPresetRequest = Schemas["PresetDlnaRequest"];
 export type PresetResponse = Schemas["PresetResponse"];
+export type DlnaSaveRequest = Omit<DlnaPresetRequest, "confirm"> & { confirm?: boolean };
 
 export const DLNA_PAGE_SIZE = 50;
 
@@ -120,9 +121,7 @@ export async function disableNativeServer(
 }
 
 /** 409 dlna_folder_no_audio_first carries extra.title; resend with confirm: true to save anyway. */
-export async function saveDlnaPreset(
-  request: Omit<DlnaPresetRequest, "confirm"> & { confirm?: boolean }
-): Promise<PresetResponse> {
+export async function saveDlnaPreset(request: DlnaSaveRequest): Promise<PresetResponse> {
   const response = await fetch(`${API_BASE_URL}/api/presets/dlna`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

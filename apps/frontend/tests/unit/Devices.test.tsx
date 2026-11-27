@@ -33,6 +33,8 @@ vi.mock("../../src/api/stereoPairs", async (importOriginal) => ({
   dissolveStereoPair: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("../../src/api/dlna", () => ({ saveDlnaPreset: vi.fn() }));
+
 // Mock API module
 vi.mock("../../src/api/presets", () => ({
   getDevicePresets: vi.fn(),
@@ -90,6 +92,8 @@ vi.mock("../../src/hooks/useSourceError", () => ({
 import { clearDeviceDataCache } from "../../src/utils/deviceDataCache";
 import * as presetsApi from "../../src/api/presets";
 import * as devicesApi from "../../src/api/devices";
+import * as dlnaApi from "../../src/api/dlna";
+import { ApiError } from "../../src/api/types";
 import type { PresetResponse } from "../../src/api/presets";
 import type { ReactNode } from "react";
 
@@ -209,9 +213,19 @@ vi.mock("../../src/components/RadioSearch", () => ({
     onStationSelect,
     onDelete,
     hasExistingPreset,
+    presetNumber,
+    onDlnaSave,
   }: {
     isOpen: boolean;
     onClose: () => void;
+    presetNumber?: number | null;
+    onDlnaSave?: (request: {
+      device_id: string;
+      preset_number: number;
+      server_id: string;
+      parent_id: string;
+      object_id: string;
+    }) => void;
     onStationSelect: (station: {
       stationuuid: string;
       name: string;
@@ -247,6 +261,21 @@ vi.mock("../../src/components/RadioSearch", () => ({
           data-testid="select-station"
         >
           Select Test Radio
+        </button>
+        <button
+          onClick={() => {
+            onDlnaSave?.({
+              device_id: "AABBCC123456",
+              preset_number: presetNumber ?? 0,
+              server_id: "s1",
+              parent_id: "0",
+              object_id: "f1",
+            });
+            onClose();
+          }}
+          data-testid="dlna-save"
+        >
+          Save DLNA
         </button>
         {hasExistingPreset && onDelete && (
           <button onClick={onDelete} data-testid="search-delete-preset">
@@ -1728,6 +1757,74 @@ describe("Devices Page", () => {
       expect(screen.getByRole("button", { name: "Next track" })).not.toHaveAttribute(
         "aria-disabled"
       );
+    });
+  });
+
+  describe("DLNA save outside the dialog", () => {
+    const radioRow = {
+      id: 1,
+      device_id: "AABBCC123456",
+      preset_number: 1,
+      station_uuid: "u1",
+      station_name: "SWR3",
+      station_url: "http://a",
+      created_at: "2024-01-01T00:00:00Z",
+      updated_at: "2024-01-01T00:00:00Z",
+    };
+    const savedAlbum = {
+      ...radioRow,
+      station_uuid: "f1",
+      station_name: "Album",
+      station_url: "f1",
+      station_homepage: null,
+      station_favicon: null,
+      source: "STORED_MUSIC",
+      source_account: "s1/0",
+      dlna: true,
+    };
+    const startSave = async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([radioRow]);
+      await act(async () => {
+        render(<Devices devices={mockDevices} />);
+      });
+      await waitFor(() => expect(screen.getByTestId("preset-1-name")).toHaveTextContent("SWR3"));
+      fireEvent.click(screen.getByTestId("preset-1-change"));
+      fireEvent.click(screen.getByTestId("dlna-save"));
+    };
+
+    it("closes the dialog at once, shows the saving row and then the new preset", async () => {
+      let resolve: (v: typeof savedAlbum) => void = () => {};
+      vi.mocked(dlnaApi.saveDlnaPreset).mockReturnValue(new Promise((r) => (resolve = r)));
+      await startSave();
+
+      expect(screen.queryByTestId("radio-search-modal")).not.toBeInTheDocument();
+      expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "saving");
+      expect(dlnaApi.saveDlnaPreset).toHaveBeenCalledWith(
+        expect.objectContaining({ preset_number: 1, object_id: "f1" })
+      );
+
+      await act(async () => resolve(savedAlbum));
+      expect(screen.getByTestId("preset-1-name")).toHaveTextContent("Album");
+      expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "idle");
+      expect(mockShowToast).toHaveBeenCalledWith("Preset 1 saved.", "success");
+      expect(screen.queryByTestId("error-message")).not.toBeInTheDocument();
+    });
+
+    it("a failed save restores the row and shows the error in the preset error box", async () => {
+      let reject: (e: unknown) => void = () => {};
+      vi.mocked(dlnaApi.saveDlnaPreset).mockReturnValue(new Promise((_r, j) => (reject = j)));
+      await startSave();
+      expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "saving");
+
+      await act(async () =>
+        reject(new ApiError("unreachable", { status: 503, code: "device_unreachable" }))
+      );
+      expect(screen.getByTestId("preset-1-name")).toHaveTextContent("SWR3");
+      expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "idle");
+      expect(screen.getByTestId("error-message")).toHaveTextContent(
+        i18next.t("errors.api.device_unreachable")
+      );
+      expect(mockShowToast).not.toHaveBeenCalledWith(expect.anything(), "success");
     });
   });
 
