@@ -87,7 +87,10 @@ describe("DlnaServerList", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Set up Beta" }));
     expect(api.enableNativeServer).toHaveBeenCalledWith("dev1", "b");
     expect(await screen.findByText("Ready")).toBeInTheDocument();
-    expect(screen.getByText("Beta is set up.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Beta is set up. Open the server to choose a folder or title.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open Beta" })).toHaveTextContent("Open");
   });
 
   it("enable that ends unavailable shows the not-available hint", async () => {
@@ -104,6 +107,18 @@ describe("DlnaServerList", () => {
     setup();
     await userEvent.click(await screen.findByRole("button", { name: "Set up Beta" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Beta could not be set up");
+  });
+
+  it("enable without a speaker account explains the missing setup", async () => {
+    vi.mocked(api.getNativeServers).mockResolvedValue(list([native("b", "Beta", "not_enabled")]));
+    vi.mocked(api.enableNativeServer).mockRejectedValue(
+      new ApiError("x", { status: 409, code: "dlna_speaker_no_account" })
+    );
+    setup();
+    await userEvent.click(await screen.findByRole("button", { name: "Set up Beta" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Beta could not be set up: the speaker has no OpenCloudTouch account yet."
+    );
   });
 
   it("migration failure shows the reason and disables enable", async () => {

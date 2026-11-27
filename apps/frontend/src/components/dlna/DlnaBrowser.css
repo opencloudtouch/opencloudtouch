@@ -34,12 +34,14 @@
   align-items: center;
   justify-content: center;
 }
-.dlb-title {
+/* Row scope beats the centring of .btn: icon and name start at the left. */
+.dlb-row .dlb-title {
   flex: 1;
   min-width: 0;
   overflow-wrap: anywhere;
   text-align: left;
   justify-content: flex-start;
+  gap: var(--space-sm);
 }
 .dlb-empty {
   margin: 0;

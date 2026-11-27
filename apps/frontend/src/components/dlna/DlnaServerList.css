@@ -16,12 +16,14 @@
   padding: var(--space-sm) 0;
   border-bottom: 1px solid var(--color-border);
 }
-.dsl-name {
+/* Row scope beats the centring of .btn: the name and its chevron start at the left. */
+.dsl-row .dsl-name {
   flex: 1;
   min-width: 0;
   overflow-wrap: anywhere;
   text-align: left;
   justify-content: flex-start;
+  gap: var(--space-sm);
 }
 .dsl-empty {
   display: flex;

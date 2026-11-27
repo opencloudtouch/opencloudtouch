@@ -51,7 +51,11 @@ describe("RadioSearch DLNA tab", () => {
     expect(screen.getByRole("searchbox")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "DLNA" }));
     expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
-    expect(await screen.findByText(/Choose a folder or song for preset 3/)).toBeInTheDocument();
+    const hint = await screen.findByText(/Choose a folder or song for preset 3/);
+    // The pane scrolls inside the dialog like the other modes.
+    const region = screen.getByRole("region", { name: "DLNA" });
+    expect(region).toHaveClass("rs-scroll");
+    expect(region).toContainElement(hint);
   });
 
   it("has no DLNA tab without a device", () => {

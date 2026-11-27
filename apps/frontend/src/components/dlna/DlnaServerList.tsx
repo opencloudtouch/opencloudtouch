@@ -79,8 +79,12 @@ export default function DlnaServerList({ deviceId, onOpenServer }: Readonly<Prop
         text: t(ok ? "dlna.servers.enabled" : "dlna.servers.enableUnavailable", { name }),
         error: !ok,
       });
-    } catch {
-      setMessage({ text: t("dlna.servers.enableFailed", { name }), error: true });
+    } catch (err) {
+      const noAccount = isApiErrorInstance(err) && err.code === "dlna_speaker_no_account";
+      setMessage({
+        text: t(noAccount ? "dlna.servers.enableNoAccount" : "dlna.servers.enableFailed", { name }),
+        error: true,
+      });
     } finally {
       setBusyId(null);
     }
@@ -106,16 +110,16 @@ export default function DlnaServerList({ deviceId, onOpenServer }: Readonly<Prop
           // Registered but not discovered: the speaker's state counts (decision 6), but OCT
           // cannot browse it, so it is not openable and stays removable (decision 32).
           const state = s.discovered || s.state === "ready" ? s.state : "unavailable";
+          const openable = state === "ready" && s.discovered;
           return (
             <li key={s.server_id} className="dsl-row" data-state={state}>
-              {state === "ready" && s.discovered ? (
+              {openable ? (
                 <button
                   type="button"
                   className="dsl-name btn btn-ghost"
-                  aria-label={t("dlna.servers.openLabel", { name: s.name })}
                   onClick={() => onOpenServer(s.server_id, s.name)}
                 >
-                  {s.name}
+                  {s.name} {Icon.ChevronRight(18)}
                 </button>
               ) : (
                 <span className="dsl-name">{s.name}</span>
@@ -131,6 +135,16 @@ export default function DlnaServerList({ deviceId, onOpenServer }: Readonly<Prop
                   onClick={() => void doEnable(s.server_id, s.name)}
                 >
                   {t("dlna.servers.enable")}
+                </button>
+              )}
+              {openable && (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  aria-label={t("dlna.servers.openLabel", { name: s.name })}
+                  onClick={() => onOpenServer(s.server_id, s.name)}
+                >
+                  {t("dlna.servers.open")}
                 </button>
               )}
               {(state === "unavailable" || !s.discovered) && (

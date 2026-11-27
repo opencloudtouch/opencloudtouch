@@ -617,15 +617,21 @@ export default function RadioSearch({
           />
 
           {searchMode === "dlna" && deviceId && _presetNumber ? (
-            <DlnaPane
-              deviceId={deviceId}
-              presetNumber={_presetNumber}
-              existingPreset={existingPreset}
-              onSaved={() => {
-                onDlnaSaved?.();
-                onClose?.();
-              }}
-            />
+            <section
+              className="rs-scroll"
+              tabIndex={0} // NOSONAR(S6845): scrollable region must be keyboard-focusable (WCAG 2.1.1)
+              aria-label={t("dlna.pane.tab")}
+            >
+              <DlnaPane
+                deviceId={deviceId}
+                presetNumber={_presetNumber}
+                existingPreset={existingPreset}
+                onSaved={() => {
+                  onDlnaSaved?.();
+                  onClose?.();
+                }}
+              />
+            </section>
           ) : null}
 
           <div className="rs-field" hidden={searchMode === "dlna"}>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../Icon";
 import { isApiErrorInstance } from "../../api/types";
@@ -63,6 +63,22 @@ export default function DlnaBrowser({
       : []);
   const objectId = path.at(-1)?.object_id ?? "0";
   const folder = useDlnaFolder(serverId, objectId);
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = folder;
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  // Old browsers and jsdom lack the observer: they keep the "Load more" button.
+  const canObserve = typeof IntersectionObserver !== "undefined";
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !canObserve || !hasNextPage || isFetchingNextPage) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) void fetchNextPage();
+      },
+      { rootMargin: "200px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [canObserve, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const go = (next: Crumb[]) => {
     setStack(next);
@@ -189,16 +205,24 @@ export default function DlnaBrowser({
           ))}
         </ul>
       )}
-      {folder.hasNextPage && (
-        <button
-          type="button"
-          className="btn btn-secondary"
-          disabled={folder.isFetchingNextPage}
-          onClick={() => void folder.fetchNextPage()}
-        >
-          {t("dlna.browser.loadMore")}
-        </button>
+      {isFetchingNextPage && (
+        <div className="dlb-loading" role="status" aria-live="polite">
+          <span className="spinner-small" aria-hidden="true" /> {t("dlna.browser.loading")}
+        </div>
       )}
+      {hasNextPage &&
+        (canObserve ? (
+          <div ref={sentinelRef} aria-hidden="true" />
+        ) : (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={isFetchingNextPage}
+            onClick={() => void fetchNextPage()}
+          >
+            {t("dlna.browser.loadMore")}
+          </button>
+        ))}
     </div>
   );
 }

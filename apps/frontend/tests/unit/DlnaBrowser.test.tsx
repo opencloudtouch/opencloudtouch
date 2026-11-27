@@ -77,6 +77,33 @@ describe("DlnaBrowser", () => {
     expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
   });
 
+  it("loads the next page when the list end scrolls into view", async () => {
+    let fire: () => void = () => {};
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(cb: IntersectionObserverCallback) {
+          fire = () => cb([{ isIntersecting: true } as IntersectionObserverEntry], this as never);
+        }
+        observe() {}
+        disconnect() {}
+      }
+    );
+    let resolveNext: (p: api.DlnaBrowsePage) => void = () => {};
+    vi.mocked(api.browseDlna)
+      .mockResolvedValueOnce(page([track("t1", "One")], true, 1))
+      .mockReturnValueOnce(new Promise((r) => (resolveNext = r)));
+    setup();
+    expect(await screen.findByText("One")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
+    fire();
+    expect(await screen.findByText("Loading folder")).toBeInTheDocument();
+    resolveNext(page([track("t2", "Two")]));
+    expect(await screen.findByText("Two")).toBeInTheDocument();
+    expect(api.browseDlna).toHaveBeenLastCalledWith("s1", "0", 1, undefined, expect.anything());
+    vi.unstubAllGlobals();
+  });
+
   const twoLevels = () =>
     vi
       .mocked(api.browseDlna)

@@ -36,6 +36,21 @@ describe("AlbumViewButton", () => {
     expect(onOpen).toHaveBeenCalledWith("albums");
   });
 
+  it("album button shows a busy state during the lookup", async () => {
+    let resolve: (id: string | null) => void = () => {};
+    vi.mocked(api.getAlbumRoot).mockReturnValue(new Promise((r) => (resolve = r)));
+    const onOpen = vi.fn();
+    const { container } = render(<AlbumViewButton serverId="s1" onOpen={onOpen} />);
+    const button = screen.getByRole("button", { name: "Open album view" });
+    await userEvent.click(button);
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(container.querySelector(".spinner-small")).not.toBeNull();
+    resolve("albums");
+    await vi.waitFor(() => expect(onOpen).toHaveBeenCalledWith("albums"));
+    expect(button).not.toBeDisabled();
+  });
+
   it("album button hidden when no album root", async () => {
     vi.mocked(api.getAlbumRoot).mockResolvedValue(null);
     const onOpen = vi.fn();

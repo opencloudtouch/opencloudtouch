@@ -196,6 +196,9 @@
   gap: 6px;
   padding: 0 var(--space-md) 12px 20px;
 }
+.rs-field[hidden] {
+  display: none;
+}
 .rs-url-field {
   display: flex;
   flex-direction: column;
