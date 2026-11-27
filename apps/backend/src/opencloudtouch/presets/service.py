@@ -275,7 +275,7 @@ class PresetService:
             device_id,
             station_name,
         )
-
+        await self._publish_all(device_id)
         return saved_preset
 
     async def set_dlna_preset(
@@ -335,7 +335,7 @@ class PresetService:
         finally:
             await client.close()
 
-        return await self.repository.set_preset(
+        saved = await self.repository.set_preset(
             Preset(
                 device_id=device_id,
                 preset_number=preset_number,
@@ -347,6 +347,8 @@ class PresetService:
                 source_account=item.source_account,
             )
         )
+        await self._publish_all(device_id)
+        return saved
 
     @staticmethod
     async def _dlna(call: Any) -> Any:
@@ -458,7 +460,7 @@ class PresetService:
             return
         self._refreshing.add(device_id)
         try:
-            await self.sync_presets_from_device(device_id)
+            await self._sync_from_device(device_id)
             presets = await self.repository.get_all_presets(device_id)
             if _content(presets) != _content(shown):
                 await self._publish(device_id, presets)
@@ -478,6 +480,10 @@ class PresetService:
                 device_id, [preset_payload(p) for p in presets]
             )
 
+    async def _publish_all(self, device_id: str) -> None:
+        """Push the device's stored preset list, e.g. after an OCT write."""
+        await self._publish(device_id, await self.repository.get_all_presets(device_id))
+
     async def clear_preset(self, device_id: str, preset_number: int) -> bool:
         """Clear a specific preset for a device.
 
@@ -495,7 +501,7 @@ class PresetService:
             logger.info(  # NOSONAR
                 "Cleared preset %d for device %s", preset_number, device_id
             )
-
+        await self._publish_all(device_id)
         return bool(result)
 
     async def clear_all_presets(self, device_id: str) -> int:
@@ -512,10 +518,16 @@ class PresetService:
         count = await self.repository.clear_all_presets(device_id)
 
         logger.info("Cleared %d presets for device %s", count, device_id)  # NOSONAR
-
+        await self._publish_all(device_id)
         return count
 
     async def sync_presets_from_device(self, device_id: str) -> int:
+        """Sync presets from the speaker (see ``_sync_from_device``) and publish them."""
+        count = await self._sync_from_device(device_id)
+        await self._publish_all(device_id)
+        return count
+
+    async def _sync_from_device(self, device_id: str) -> int:
         """Sync presets from physical device to OCT database.
 
         Fetches presets from device's /presets endpoint and imports them into OCT.
@@ -552,7 +564,7 @@ class PresetService:
         """Import a speaker's presetsUpdated event and push the full list via SSE.
 
         The event carries the speaker's whole <presets> list. If it cannot be
-        read, the background sync from the speaker runs instead.
+        read, the sync from the speaker runs instead. The list is always published.
         """
         try:
             updated = parse_xml_string(raw_xml).find("presetsUpdated")
@@ -565,11 +577,22 @@ class PresetService:
             if presets_root is None and updated.find("preset") is not None:
                 presets_root = updated
         if presets_root is None:
-            shown = await self.repository.get_all_presets(device_id)
-            await self.refresh_from_device(device_id, shown)
-            return
-        await self._import_presets(device_id, presets_root)
-        await self._publish(device_id, await self.repository.get_all_presets(device_id))
+            logger.info(
+                "presetsUpdated for %s unreadable: syncing from speaker", device_id
+            )
+            try:
+                await self._sync_from_device(device_id)
+            except Exception as exc:
+                logger.warning(
+                    "Speaker presets unreadable for %s, keeping OCT rows: %s",
+                    device_id,
+                    type(exc).__name__,
+                )
+        else:
+            logger.info("presetsUpdated for %s parsed from the event", device_id)
+            await self._import_presets(device_id, presets_root)
+        # Always publish: OCT's own save already updated the DB, so a diff hides it.
+        await self._publish_all(device_id)
 
     async def _import_presets(self, device_id: str, root: Any) -> int:
         """Store a speaker's <presets> list as the device's OCT rows (the one importer)."""

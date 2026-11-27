@@ -304,3 +304,18 @@ async def test_index_hint_miss_falls_back_to_the_full_scan(service, speaker):
 async def test_small_index_hint_is_the_plain_scan(service, speaker):
     await _save(service, index=2)
     speaker.browse_stored_music.assert_awaited_once_with(f"{SERVER}/0", None, 1, 50)
+
+
+@pytest.mark.asyncio
+async def test_save_publishes_the_full_list(service, speaker, repo):
+    row = MagicMock()
+    row.to_dict.return_value = {"preset_number": 2}
+    row.is_dlna = True
+    repo.get_all_presets = AsyncMock(return_value=[row])
+    service.on_presets_changed = AsyncMock()
+
+    await _save(service)
+
+    service.on_presets_changed.assert_awaited_once_with(
+        "D1", [{"preset_number": 2, "dlna": True}]
+    )

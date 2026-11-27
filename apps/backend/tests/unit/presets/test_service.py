@@ -926,7 +926,7 @@ async def test_refresh_runs_one_sync_per_device_at_a_time(service, real_mode):
         await gate.wait()
         return 0
 
-    with patch.object(service, "sync_presets_from_device", _sync):
+    with patch.object(service, "_sync_from_device", _sync):
         first = asyncio.create_task(service.refresh_from_device("dev-001", []))
         await asyncio.sleep(0)
         await service.refresh_from_device("dev-001", [])  # returns at once
@@ -940,7 +940,7 @@ async def test_refresh_runs_one_sync_per_device_at_a_time(service, real_mode):
 async def test_refresh_failure_is_logged_not_raised(service, real_mode, caplog):
     service.on_presets_changed = AsyncMock()
     failing = AsyncMock(side_effect=RuntimeError("boom"))
-    with patch.object(service, "sync_presets_from_device", failing):
+    with patch.object(service, "_sync_from_device", failing):
         await service.refresh_from_device("dev-001", [])
 
     assert "speaker presets unreadable" in caplog.text.lower()
@@ -1220,13 +1220,89 @@ async def test_presets_event_imports_the_list_and_publishes_it(service, mock_rep
 
 
 @pytest.mark.asyncio
-async def test_unreadable_presets_event_syncs_from_the_speaker(service, real_mode):
+async def test_unreadable_presets_event_syncs_and_always_publishes(
+    service, real_mode, mock_repo, caplog
+):
+    """The fallback sync finds the DB unchanged (OCT saved first): still publish."""
+    row = _oct_radio_row()
+    mock_repo.get_all_presets = AsyncMock(return_value=[row])
     service.on_presets_changed = AsyncMock()
-    refresh = AsyncMock()
-    with patch.object(service, "refresh_from_device", refresh):
+    sync = AsyncMock(return_value=1)
+    with caplog.at_level("INFO"), patch.object(service, "_sync_from_device", sync):
         await service.apply_presets_event(
             "dev-001", '<updates deviceID="dev-001"><presetsUpdated/></updates>'
         )
 
-    refresh.assert_awaited_once_with("dev-001", [])
+    sync.assert_awaited_once_with("dev-001")
+    service.on_presets_changed.assert_awaited_once_with(
+        "dev-001", [{**row.to_dict(), "dlna": False}]
+    )
+    events = [r.message for r in caplog.records if "presetsUpdated" in r.message]
+    assert events == ["presetsUpdated for dev-001 unreadable: syncing from speaker"]
+
+
+@pytest.mark.asyncio
+async def test_failed_fallback_sync_still_publishes_the_oct_rows(
+    service, real_mode, mock_repo
+):
+    service.on_presets_changed = AsyncMock()
+    failing = AsyncMock(side_effect=DeviceConnectionError("192.0.2.1", "down"))
+    with patch.object(service, "_sync_from_device", failing):
+        await service.apply_presets_event("dev-001", "not xml")
+
+    service.on_presets_changed.assert_awaited_once_with("dev-001", [])
+
+
+@pytest.mark.asyncio
+async def test_parsed_presets_event_logs_once_without_xml(service, mock_repo, caplog):
+    service.on_presets_changed = AsyncMock()
+    with caplog.at_level("INFO"):
+        await service.apply_presets_event("dev-001", _PRESETS_EVENT)
+
+    events = [r.message for r in caplog.records if "presetsUpdated" in r.message]
+    assert events == ["presetsUpdated for dev-001 parsed from the event"]
+    assert all("<" not in r.message for r in caplog.records)
+
+
+# ---------------------------------------------------------------------------
+# OCT's own preset writes publish the full list (second browser tab, R1)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_set_preset_publishes_the_full_list(service, mock_repo):
+    row = _oct_radio_row()
+    mock_repo.get_all_presets = AsyncMock(return_value=[row])
+    service.on_presets_changed = AsyncMock()
+
+    await service.set_preset("dev-001", 1, "s-1", "Radio", "http://r.example/s")
+
+    service.on_presets_changed.assert_awaited_once_with(
+        "dev-001", [{**row.to_dict(), "dlna": False}]
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda s: s.clear_preset("dev-001", 1),
+        lambda s: s.clear_all_presets("dev-001"),
+        lambda s: s.sync_presets_from_device("dev-001"),
+    ],
+)
+async def test_other_oct_writes_publish_the_full_list(service, call):
+    service.on_presets_changed = AsyncMock()
+
+    await call(service)
+
+    service.on_presets_changed.assert_awaited_once_with("dev-001", [])
+
+
+@pytest.mark.asyncio
+async def test_background_refresh_does_not_publish_an_unchanged_list(service):
+    service.on_presets_changed = AsyncMock()
+
+    await service.refresh_from_device("dev-001", [])
+
     service.on_presets_changed.assert_not_awaited()
