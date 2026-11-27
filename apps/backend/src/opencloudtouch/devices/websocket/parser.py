@@ -212,6 +212,8 @@ def _parse_now_playing(element: Element) -> NowPlayingInfo:
         source_account=item_attrs.get("sourceAccount"),
         shuffle_setting=_text("shuffleSetting"),
         repeat_setting=_text("repeatSetting"),
+        skip_enabled=np.find("skipEnabled") is not None,
+        skip_previous_enabled=np.find("skipPreviousEnabled") is not None,
     )
 
 

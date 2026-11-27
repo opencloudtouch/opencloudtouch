@@ -574,6 +574,8 @@ def _now_playing_to_dict(info: NowPlayingInfo, *, online: bool) -> dict[str, obj
         "preset_number": None,
         "shuffle_setting": info.shuffle_setting,
         "repeat_setting": info.repeat_setting,
+        "skip_enabled": info.skip_enabled,
+        "skip_previous_enabled": info.skip_previous_enabled,
     }
 
 
@@ -620,6 +622,8 @@ class NowPlayingResponse(BaseModel):
     preset_number: int | None
     shuffle_setting: str | None
     repeat_setting: str | None
+    skip_enabled: bool
+    skip_previous_enabled: bool
 
 
 @router.get("/{device_id}/now-playing", response_model=NowPlayingResponse)

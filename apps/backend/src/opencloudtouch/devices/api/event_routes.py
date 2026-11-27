@@ -69,6 +69,8 @@ def _event_to_sse(event: DeviceEvent, preset_number: int | None = None) -> str:
                 "artwork_url": event.now_playing.artwork_url,
                 "shuffle_setting": event.now_playing.shuffle_setting,
                 "repeat_setting": event.now_playing.repeat_setting,
+                "skip_enabled": event.now_playing.skip_enabled,
+                "skip_previous_enabled": event.now_playing.skip_previous_enabled,
                 **_dlna_fields(event.now_playing, preset_number),
             }
         )
@@ -115,6 +117,8 @@ def _snapshot_to_sse(device_id: str, state, preset_number: int | None = None) ->
             "artwork_url": np.artwork_url,
             "shuffle_setting": np.shuffle_setting,
             "repeat_setting": np.repeat_setting,
+            "skip_enabled": np.skip_enabled,
+            "skip_previous_enabled": np.skip_previous_enabled,
             **_dlna_fields(np, preset_number),
         }
         messages += f"event: now_playing\ndata: {json.dumps(data)}\n\n"

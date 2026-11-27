@@ -126,6 +126,8 @@ class TestNowPlayingCacheFirst:
             "preset_number",
             "shuffle_setting",
             "repeat_setting",
+            "skip_enabled",
+            "skip_previous_enabled",
         }
         assert set(data.keys()) == expected_keys
 

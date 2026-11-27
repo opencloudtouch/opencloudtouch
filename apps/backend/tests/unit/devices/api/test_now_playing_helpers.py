@@ -409,9 +409,12 @@ def test_now_playing_dict_includes_settings():
         state="PLAY_STATE",
         shuffle_setting="SHUFFLE_OFF",
         repeat_setting="REPEAT_ALL",
+        skip_enabled=True,
     )
     result = _now_playing_to_dict(info, online=True)
     assert result["shuffle_setting"] == "SHUFFLE_OFF"
     assert result["repeat_setting"] == "REPEAT_ALL"
+    assert result["skip_enabled"] is True
+    assert result["skip_previous_enabled"] is False
     plain = _now_playing_to_dict(NowPlayingInfo(source="AUX", state="X"), online=True)
     assert plain["shuffle_setting"] is None

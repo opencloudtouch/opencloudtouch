@@ -171,6 +171,11 @@ class BoseDeviceClientAdapter(DeviceClient):
                 source_account=item.SourceAccount if item else None,
                 shuffle_setting=getattr(now_playing, "ShuffleSetting", None),
                 repeat_setting=getattr(now_playing, "RepeatSetting", None),
+                # library gives None for an absent marker
+                skip_enabled=getattr(now_playing, "IsSkipEnabled", None) is True,
+                skip_previous_enabled=(
+                    getattr(now_playing, "IsSkipPreviousEnabled", None) is True
+                ),
             )
 
         except Exception as e:

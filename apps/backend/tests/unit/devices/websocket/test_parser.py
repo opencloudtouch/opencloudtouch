@@ -381,3 +381,21 @@ def test_parser_settings_absent_are_none():
     assert event is not None and event.now_playing is not None
     assert event.now_playing.shuffle_setting is None
     assert event.now_playing.repeat_setting is None
+    assert event.now_playing.skip_enabled is False
+    assert event.now_playing.skip_previous_enabled is False
+
+
+def test_parser_extracts_skip_markers():
+    xml = NOW_PLAYING_XML.replace("<playStatus>", "<skipPreviousEnabled /><playStatus>")
+    event = parse_event(xml)
+    assert event is not None and event.now_playing is not None
+    assert event.now_playing.skip_enabled is False
+    assert event.now_playing.skip_previous_enabled is True
+    both = parse_event(
+        NOW_PLAYING_XML.replace(
+            "<playStatus>", "<skipEnabled /><skipPreviousEnabled /><playStatus>"
+        )
+    )
+    assert both is not None and both.now_playing is not None
+    assert both.now_playing.skip_enabled is True
+    assert both.now_playing.skip_previous_enabled is True

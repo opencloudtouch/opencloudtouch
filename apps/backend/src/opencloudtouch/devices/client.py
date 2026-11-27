@@ -43,6 +43,8 @@ class NowPlayingInfo:
     source_account: Optional[str] = None  # ContentItem sourceAccount
     shuffle_setting: Optional[str] = None  # SHUFFLE_ON/OFF; None = not supported
     repeat_setting: Optional[str] = None  # REPEAT_OFF/ALL/ONE; None = not supported
+    skip_enabled: bool = False  # <skipEnabled /> marker: Next is possible
+    skip_previous_enabled: bool = False  # <skipPreviousEnabled /> marker
 
     @property
     def is_dlna(self) -> bool:

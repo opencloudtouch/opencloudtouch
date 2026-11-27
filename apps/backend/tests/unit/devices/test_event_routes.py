@@ -383,6 +383,7 @@ def test_sse_now_playing_includes_settings():
         state="PLAY_STATE",
         shuffle_setting="SHUFFLE_ON",
         repeat_setting="REPEAT_OFF",
+        skip_previous_enabled=True,
     )
     event = DeviceEvent(
         device_id="D2", event_type=EventType.NOW_PLAYING, now_playing=info
@@ -390,8 +391,12 @@ def test_sse_now_playing_includes_settings():
     data = json.loads(_event_to_sse(event).split("data: ")[1].strip())
     assert data["shuffle_setting"] == "SHUFFLE_ON"
     assert data["repeat_setting"] == "REPEAT_OFF"
+    assert data["skip_enabled"] is False
+    assert data["skip_previous_enabled"] is True
 
     snapshot = _snapshot_to_sse("D2", DeviceState(device_id="D2", now_playing=info))
     np_data = json.loads(snapshot.split("event: now_playing\ndata: ")[1].split("\n")[0])
     assert np_data["shuffle_setting"] == "SHUFFLE_ON"
     assert np_data["repeat_setting"] == "REPEAT_OFF"
+    assert np_data["skip_enabled"] is False
+    assert np_data["skip_previous_enabled"] is True

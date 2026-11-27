@@ -397,6 +397,21 @@ class TestShuffleRepeatRead:
         assert result.repeat_setting == "REPEAT_ALL"
 
     @pytest.mark.asyncio
+    async def test_now_playing_reads_skip_flags(self):
+        client = _make_client()
+        status = MagicMock()
+        status.PlayStatus = "PLAY_STATE"
+        status.Source = "STORED_MUSIC"
+        status.IsSkipEnabled = None  # library: absent marker
+        status.IsSkipPreviousEnabled = True
+        client._client.GetNowPlayingStatus.return_value = status
+
+        result = await client.get_now_playing()
+
+        assert result.skip_enabled is False
+        assert result.skip_previous_enabled is True
+
+    @pytest.mark.asyncio
     async def test_now_playing_without_settings_is_none(self):
         client = _make_client()
         status = MagicMock()

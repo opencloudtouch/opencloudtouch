@@ -3764,6 +3764,10 @@ export interface components {
       shuffle_setting: string | null;
       /** Repeat Setting */
       repeat_setting: string | null;
+      /** Skip Enabled */
+      skip_enabled: boolean;
+      /** Skip Previous Enabled */
+      skip_previous_enabled: boolean;
     };
     /**
      * NtpPatchRequest

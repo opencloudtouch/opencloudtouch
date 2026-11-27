@@ -5052,6 +5052,12 @@ components:
           - type: string
           - type: 'null'
           title: Repeat Setting
+        skip_enabled:
+          type: boolean
+          title: Skip Enabled
+        skip_previous_enabled:
+          type: boolean
+          title: Skip Previous Enabled
       type: object
       required:
       - source
@@ -5066,6 +5072,8 @@ components:
       - preset_number
       - shuffle_setting
       - repeat_setting
+      - skip_enabled
+      - skip_previous_enabled
       title: NowPlayingResponse
       description: Current playback status (`online` False = last known state).
     NtpPatchRequest:
