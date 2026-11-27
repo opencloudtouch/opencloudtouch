@@ -135,4 +135,25 @@ describe("PresetRow", () => {
     expect(container.querySelector(".pb-avatar")).toBeInTheDocument();
     expect(screen.queryByText("DLNA")).not.toBeInTheDocument();
   });
+  it("a broken logo falls back to the avatar and a new logo URL shows again without remount", () => {
+    const row = (favicon: string) => (
+      <PresetRow
+        number={1}
+        preset={{ station_name: "SWR3", station_favicon: favicon }}
+        state="idle"
+        onToggle={vi.fn()}
+        onChange={vi.fn()}
+      />
+    );
+    const { rerender, container } = render(row("http://x/broken.png"));
+    const broken = container.querySelector(".pb-favicon");
+    expect(broken).not.toBeNull();
+    if (broken) fireEvent.error(broken);
+    expect(container.querySelector(".pb-favicon")).not.toBeInTheDocument();
+    expect(container.querySelector(".pb-avatar")).toBeVisible();
+
+    rerender(row("http://x/new.png"));
+    expect(container.querySelector(".pb-favicon")).toHaveAttribute("src", "http://x/new.png");
+    expect(container.querySelector(".pb-avatar")).not.toBeInTheDocument();
+  });
 });

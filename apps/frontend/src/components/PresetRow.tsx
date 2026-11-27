@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import { Icon } from "./Icon";
@@ -27,15 +28,6 @@ interface PresetRowProps {
   onChange: () => void;
 }
 
-function handleFaviconError(e: React.SyntheticEvent<HTMLImageElement>) {
-  (e.target as HTMLImageElement).style.display = "none";
-  const parent = (e.target as HTMLImageElement).parentElement;
-  if (parent) {
-    const fallback = parent.querySelector(".pb-avatar") as HTMLElement;
-    if (fallback) fallback.style.display = "flex";
-  }
-}
-
 /** One of the six preset rows: a toggle with a state line and its own small "change" button. */
 export default function PresetRow({
   number,
@@ -46,6 +38,8 @@ export default function PresetRow({
   onChange,
 }: Readonly<PresetRowProps>) {
   const { t } = useTranslation();
+  // Keyed by URL: a new logo URL is tried again without a remount.
+  const [failedLogo, setFailedLogo] = useState<string | null>(null);
 
   if (!preset) {
     return (
@@ -75,6 +69,8 @@ export default function PresetRow({
   }
 
   const name = preset.station_name;
+  const logo = preset.station_favicon;
+  const showLogo = !!logo && logo !== failedLogo;
   const busy = state === "starting";
   const label =
     state === "playing"
@@ -101,27 +97,15 @@ export default function PresetRow({
           {number}
         </span>
         <div className="pb-logo" aria-hidden={preset.dlna ? undefined : true}>
-          {preset.station_favicon ? (
-            <img
-              src={preset.station_favicon}
-              alt=""
-              className="pb-favicon"
-              onError={handleFaviconError}
-            />
-          ) : null}
-          {preset.dlna && !preset.station_favicon ? (
+          {showLogo ? (
+            <img src={logo} alt="" className="pb-favicon" onError={() => setFailedLogo(logo)} />
+          ) : preset.dlna ? (
             <span className="pb-dlna">
               <span aria-hidden="true">{Icon.HardDrive(22)}</span>
               <span className="visually-hidden">{t("presets.dlnaBadge")}</span>
             </span>
           ) : (
-            <span
-              className="pb-avatar"
-              style={{
-                backgroundColor: getAvatarColor(name),
-                display: preset.station_favicon ? "none" : "flex",
-              }}
-            >
+            <span className="pb-avatar" style={{ backgroundColor: getAvatarColor(name) }}>
               {getStationInitials(name)}
             </span>
           )}
