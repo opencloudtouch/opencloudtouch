@@ -17,6 +17,18 @@ vi.mock("../../../src/api/presets", () => ({
   clearPreset: (...args: unknown[]) => mockClearPresetAPI(...args),
 }));
 
+type Cb = (d: Record<string, unknown> & { device_id: string }) => void;
+const subs: Record<string, Cb> = {};
+// stable like the real context value, otherwise the hook's effect re-runs on every render
+const ctx = {
+  subscribe: (type: string, _id: string, cb: Cb) => {
+    subs[type] = cb;
+    return () => delete subs[type];
+  },
+  connected: true,
+};
+vi.mock("../../../src/contexts/DeviceEventContext", () => ({ useDeviceEventContext: () => ctx }));
+
 const mockIsDeviceOffline = vi.fn();
 vi.mock("../../../src/api/offlineDeviceStore", () => ({
   isDeviceOffline: (...args: unknown[]) => mockIsDeviceOffline(...args),
@@ -208,5 +220,38 @@ describe("usePresets", () => {
 
     expect(mockClearPresetAPI).toHaveBeenCalledWith("ST10-001", 1);
     expect(result.current.presets[1]).toBeUndefined();
+  });
+
+  it("replaces the presets with the list of a presets event, without a reload", async () => {
+    mockGetDevicePresets.mockResolvedValue([MOCK_PRESET]);
+    const { result } = renderHook(() => usePresets("ST10-001"));
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+      await vi.runAllTimersAsync();
+    });
+
+    act(() =>
+      subs.presets({
+        device_id: "ST10-001",
+        presets: [{ ...MOCK_PRESET, preset_number: 3, station_name: "Changed elsewhere" }],
+      })
+    );
+
+    expect(result.current.presets[1]).toBeUndefined();
+    expect(result.current.presets[3]?.station_name).toBe("Changed elsewhere");
+    expect(mockGetDevicePresets).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a presets event without a list", async () => {
+    mockGetDevicePresets.mockResolvedValue([MOCK_PRESET]);
+    const { result } = renderHook(() => usePresets("ST10-001"));
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+      await vi.runAllTimersAsync();
+    });
+
+    act(() => subs.presets({ device_id: "ST10-001" }));
+
+    expect(result.current.presets[1]?.station_name).toBe("Radio X");
   });
 });

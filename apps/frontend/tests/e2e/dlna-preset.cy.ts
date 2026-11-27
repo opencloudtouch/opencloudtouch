@@ -147,6 +147,41 @@ ${event}`,
     cy.get('[data-testid="source-error"]').should("not.exist");
   });
 
+  it("shows a preset list pushed by the SSE presets event without a reload", () => {
+    const preset = {
+      id: 2,
+      device_id: deviceId,
+      preset_number: 2,
+      station_uuid: "pushed-2",
+      station_name: "Pushed Station",
+      station_url: "http://stream.example/pushed",
+      source: "TUNEIN",
+      dlna: false,
+      created_at: "2026-01-01T00:00:00",
+      updated_at: "2026-01-01T00:00:00",
+    };
+    let send = false;
+    cy.intercept("GET", "**/api/events/device-stream*", (request) => {
+      const event = send
+        ? `event: presets
+data: ${JSON.stringify({ device_id: deviceId, presets: [preset] })}
+
+`
+        : "";
+      send = false;
+      request.reply({
+        headers: { "Content-Type": "text/event-stream" },
+        body: `retry: 500
+${event}`,
+      });
+    });
+    cy.visit("/");
+    cy.get('[data-testid="preset-1"]', { timeout: 15000 }).then(() => {
+      send = true;
+    });
+    cy.get('[data-testid="preset-2"]', { timeout: 15000 }).should("contain.text", "Pushed Station");
+  });
+
   it("reaches every DLNA dialog control by focus and completes the flow", () => {
     // Cypress cannot synthesize the native Enter-to-click default action, so each control must be a
     // focusable native button that is then activated.

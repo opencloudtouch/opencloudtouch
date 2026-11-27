@@ -297,11 +297,11 @@ class TestKnownWebSocketEvents:
         assert event.event_type == EventType.UNKNOWN
         assert event.now_playing is None
 
-    def test_recents_updated_parsed_as_presets(self):
+    def test_recents_updated_is_not_a_presets_event(self):
         xml = '<updates deviceID="AABB11223344"><recentsUpdated/></updates>'
         event = parse_event(xml)
         assert event is not None
-        assert event.event_type == EventType.PRESETS
+        assert event.event_type == EventType.UNKNOWN
 
     def test_soundtouch_sdk_info_ignored_silently(self):
         xml = '<SoundTouchSdkInfo serverVersion="4" serverBuild="trunk"/>'

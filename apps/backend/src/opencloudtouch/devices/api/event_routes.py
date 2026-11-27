@@ -194,6 +194,11 @@ async def device_event_stream(
 
     Pushes an initial snapshot of all known device states, then streams
     real-time updates. A keepalive comment is sent every 15 seconds.
+
+    Event ``presets`` carries ``{"device_id": str, "presets": [...]}``: the
+    device's full preset list in the shape of GET /api/presets/{device_id}.
+    It follows a preset change on the speaker and a background sync that found
+    a difference.
     """
     return StreamingResponse(
         _stream_events(request, state_manager, preset_service),

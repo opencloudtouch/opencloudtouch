@@ -371,6 +371,9 @@ async def _init_websocket_pipeline(
         )
 
     app.state.preset_service.on_presets_changed = _publish_presets
+    app.state.device_state_manager.set_presets_callback(
+        app.state.preset_service.apply_presets_event
+    )
     logger.info("DeviceStateManager initialized (with ICY worker + periodic polling)")
 
     # WebSocket manager — connects to SoundTouch device WS ports

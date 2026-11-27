@@ -47,7 +47,7 @@ _TAG_MAP: dict[str, EventType] = {
     "groupUpdated": EventType.GROUP,
     "connectionStateUpdated": EventType.CONNECTION,
     "bassUpdated": EventType.BASS,
-    "recentsUpdated": EventType.PRESETS,
+    # recentsUpdated is not mapped: it arrives as UNKNOWN and is not forwarded
 }
 
 # Root elements that are not <updates> but known and harmless

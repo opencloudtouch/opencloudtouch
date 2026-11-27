@@ -2831,6 +2831,11 @@ export interface paths {
      *
      *     Pushes an initial snapshot of all known device states, then streams
      *     real-time updates. A keepalive comment is sent every 15 seconds.
+     *
+     *     Event ``presets`` carries ``{"device_id": str, "presets": [...]}``: the
+     *     device's full preset list in the shape of GET /api/presets/{device_id}.
+     *     It follows a preset change on the speaker and a background sync that found
+     *     a difference.
      */
     get: operations["device_event_stream_api_events_device_stream_get"];
     put?: never;

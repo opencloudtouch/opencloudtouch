@@ -11,7 +11,7 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, field, replace
-from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Coroutine, TypeAlias
 
 from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
 from opencloudtouch.devices.websocket.connection import ConnectionState
@@ -65,6 +65,7 @@ class DeviceStateManager:
         self._get_preset_favicon: DeviceStateManager.get_preset_favicon_type | None = (
             None
         )
+        self._on_presets: Callable[[str, str], Awaitable[None]] | None = None
 
     def set_icy_worker(self, worker: IcyWorker) -> None:
         """Attach an ICY metadata worker for radio enrichment."""
@@ -73,6 +74,10 @@ class DeviceStateManager:
     def set_preset_favicon_callback(self, callback: get_preset_favicon_type) -> None:
         """Set callback for resolving preset favicon URLs."""
         self._get_preset_favicon = callback
+
+    def set_presets_callback(self, callback: Callable[[str, str], Awaitable[None]]) -> None:
+        """Set the handler (device_id, raw_xml) for a speaker's presetsUpdated event."""
+        self._on_presets = callback
 
     def start_icy_polling(self) -> None:
         """Start periodic ICY metadata polling for radio-playing devices."""
@@ -294,6 +299,11 @@ class DeviceStateManager:
                 },
             )
             self.update_now_playing(event.device_id, event.now_playing)
+        elif event.event_type == EventType.PRESETS:
+            # The handler imports the list and publishes it with the payload
+            if self._on_presets is not None:
+                self._spawn(self._handle_presets(event))
+            return
         elif event.event_type == EventType.UNKNOWN:
             logger.debug(
                 "Device %s dropping unknown event (not forwarded to SSE)",
@@ -323,9 +333,23 @@ class DeviceStateManager:
         if event.event_type == EventType.NOW_PLAYING and event.now_playing:
             state = self.get_state(event.device_id)
             generation = state.playback_generation if state else 0
-            task = asyncio.create_task(self._run_enrichment_pipeline(event, generation))
-            self._background_tasks.add(task)
-            task.add_done_callback(self._background_tasks.discard)
+            self._spawn(self._run_enrichment_pipeline(event, generation))
+
+    def _spawn(self, coro: Coroutine[Any, Any, None]) -> None:
+        """Run *coro* in the background, keeping a reference until it ends."""
+        task = asyncio.create_task(coro)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+
+    async def _handle_presets(self, event: DeviceEvent) -> None:
+        """Hand a presetsUpdated event to the preset handler; never raises."""
+        assert self._on_presets is not None
+        try:
+            await self._on_presets(event.device_id, event.raw_xml)
+        except Exception:
+            logger.warning(
+                "Presets event for %s not applied", event.device_id, exc_info=True
+            )
 
     async def _run_enrichment_pipeline(
         self, event: DeviceEvent, generation: int

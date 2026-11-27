@@ -546,6 +546,33 @@ class PresetService:
         )
 
         root = parse_xml_string(await self._fetch_device_presets(device.ip))
+        return await self._import_presets(device_id, root)
+
+    async def apply_presets_event(self, device_id: str, raw_xml: str) -> None:
+        """Import a speaker's presetsUpdated event and push the full list via SSE.
+
+        The event carries the speaker's whole <presets> list. If it cannot be
+        read, the background sync from the speaker runs instead.
+        """
+        try:
+            updated = parse_xml_string(raw_xml).find("presetsUpdated")
+        except Exception:  # defusedxml raises ParseError or ValueError subclasses
+            updated = None
+        presets_root = None
+        if updated is not None:
+            # <presets> wrapper as in GET /presets; tolerate <preset> children directly
+            presets_root = updated.find("presets")
+            if presets_root is None and updated.find("preset") is not None:
+                presets_root = updated
+        if presets_root is None:
+            shown = await self.repository.get_all_presets(device_id)
+            await self.refresh_from_device(device_id, shown)
+            return
+        await self._import_presets(device_id, presets_root)
+        await self._publish(device_id, await self.repository.get_all_presets(device_id))
+
+    async def _import_presets(self, device_id: str, root: Any) -> int:
+        """Store a speaker's <presets> list as the device's OCT rows (the one importer)."""
         slots_on_device = [elem.get("id") for elem in root.findall("preset")]
         parsed_presets = [
             preset

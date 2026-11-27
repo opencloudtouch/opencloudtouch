@@ -60,6 +60,16 @@ class TestEventToSSE:
         data = json.loads(sse.split("data: ")[1].strip())
         assert data["device_id"] == "D3"
 
+    def test_presets_event_carries_the_full_list(self):
+        presets = [{"preset_number": 1, "station_name": "A", "dlna": False}]
+        event = DeviceEvent(
+            device_id="D3", event_type=EventType.PRESETS, presets=presets
+        )
+        sse = _event_to_sse(event)
+        assert sse.startswith("event: presets\n")
+        data = json.loads(sse.split("data: ")[1].strip())
+        assert data == {"device_id": "D3", "presets": presets}
+
     def test_metadata_enriched_event(self):
         """metadata_enriched should format like now_playing with enriched type."""
         event = DeviceEvent(

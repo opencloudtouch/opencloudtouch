@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -274,16 +274,42 @@ class TestStateManagerOnEvent:
         assert received is event
 
     @pytest.mark.asyncio
-    async def test_on_event_unknown_type_still_publishes(self):
-        """Unknown event types should still be published (e.g. presets, zone)."""
+    async def test_on_event_unhandled_type_still_publishes(self):
+        """Event types without state (e.g. zone) are still published."""
         mgr = DeviceStateManager()
         queue = mgr.subscribe()
 
-        event = DeviceEvent(device_id="D1", event_type=EventType.PRESETS)
+        event = DeviceEvent(device_id="D1", event_type=EventType.ZONE)
         await mgr.on_event(event)
 
         received = await queue.get()
-        assert received.event_type == EventType.PRESETS
+        assert received.event_type == EventType.ZONE
+
+    @pytest.mark.asyncio
+    async def test_presets_event_goes_to_the_handler_not_to_sse(self):
+        """The handler imports the list and publishes it with its payload (T2)."""
+        mgr = DeviceStateManager()
+        queue = mgr.subscribe()
+        handler = AsyncMock()
+        mgr.set_presets_callback(handler)
+
+        await mgr.on_event(
+            DeviceEvent(device_id="D1", event_type=EventType.PRESETS, raw_xml="<x/>")
+        )
+        await asyncio.gather(*mgr._background_tasks)
+
+        handler.assert_awaited_once_with("D1", "<x/>")
+        assert queue.empty()
+
+    @pytest.mark.asyncio
+    async def test_failing_presets_handler_is_logged(self, caplog):
+        mgr = DeviceStateManager()
+        mgr.set_presets_callback(AsyncMock(side_effect=RuntimeError("db")))
+
+        await mgr.on_event(DeviceEvent(device_id="D1", event_type=EventType.PRESETS))
+        await asyncio.gather(*mgr._background_tasks)
+
+        assert "presets event for d1 not applied" in caplog.text.lower()
 
     @pytest.mark.asyncio
     async def test_source_error_does_not_touch_now_playing_state(self):

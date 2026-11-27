@@ -1178,3 +1178,55 @@ async def test_sync_keeps_oct_account_for_empty_stored_music_account(
     saved: Preset = mock_repo.set_preset.call_args[0][0]
     assert saved.source_account == expected
     assert saved.is_dlna is (expected is not None)
+
+
+# ---------------------------------------------------------------------------
+# apply_presets_event — the speaker's presetsUpdated websocket event (T2)
+# ---------------------------------------------------------------------------
+
+_PRESETS_EVENT = (
+    '<updates deviceID="dev-001"><presetsUpdated><presets>'
+    '<preset id="2"><ContentItem source="TUNEIN" location="/v1/playback/station/s1">'
+    "<itemName>New Station</itemName></ContentItem></preset>"
+    "</presets></presetsUpdated></updates>"
+)
+
+
+@pytest.mark.asyncio
+async def test_presets_event_imports_the_list_and_publishes_it(service, mock_repo):
+    stored = Preset(
+        device_id="dev-001",
+        preset_number=2,
+        station_uuid="tunein_/v1/playback/station/s1",
+        station_name="New Station",
+        station_url="/v1/playback/station/s1",
+        source="TUNEIN",
+    )
+    mock_repo.get_all_presets = AsyncMock(return_value=[stored])
+    service.on_presets_changed = AsyncMock()
+    fetch = AsyncMock()
+
+    with patch.object(service, "_fetch_device_presets", fetch):
+        await service.apply_presets_event("dev-001", _PRESETS_EVENT)
+
+    saved = mock_repo.set_preset.await_args.args[0]
+    assert (saved.preset_number, saved.station_name) == (2, "New Station")
+    cleared = {c.args[1] for c in mock_repo.clear_preset.await_args_list}
+    assert cleared == {1, 3, 4, 5, 6}
+    fetch.assert_not_awaited()
+    device_id, payload = service.on_presets_changed.await_args.args
+    assert device_id == "dev-001"
+    assert payload == [{**stored.to_dict(), "dlna": False}]
+
+
+@pytest.mark.asyncio
+async def test_unreadable_presets_event_syncs_from_the_speaker(service, real_mode):
+    service.on_presets_changed = AsyncMock()
+    refresh = AsyncMock()
+    with patch.object(service, "refresh_from_device", refresh):
+        await service.apply_presets_event(
+            "dev-001", '<updates deviceID="dev-001"><presetsUpdated/></updates>'
+        )
+
+    refresh.assert_awaited_once_with("dev-001", [])
+    service.on_presets_changed.assert_not_awaited()

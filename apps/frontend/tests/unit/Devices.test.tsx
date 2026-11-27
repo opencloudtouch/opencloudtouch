@@ -83,6 +83,20 @@ vi.mock("../../src/hooks/useNowPlaying", () => ({
   }),
 }));
 
+// SSE device events: the tests push events through the captured callbacks
+type SseCallback = (data: Record<string, unknown> & { device_id: string }) => void;
+const sseSubs: Record<string, SseCallback> = {};
+const mockDeviceEvents = {
+  subscribe: (type: string, _id: string, cb: SseCallback) => {
+    sseSubs[type] = cb;
+    return () => delete sseSubs[type];
+  },
+  connected: true,
+};
+vi.mock("../../src/contexts/DeviceEventContext", () => ({
+  useDeviceEventContext: () => mockDeviceEvents,
+}));
+
 let mockSourceError: { code: number } | null = null;
 const mockDismissSourceError = vi.fn();
 vi.mock("../../src/hooks/useSourceError", () => ({
@@ -1340,6 +1354,22 @@ describe("Devices Page", () => {
       await waitFor(() => {
         expect(window.localStorage.getItem("oct.lastPreset.AABBCC123456")).toBe("2");
       });
+    });
+
+    it("a preset changed on the speaker updates its row without a reload", async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
+      await renderDevices();
+      await waitFor(() => expect(screen.getByTestId("preset-2-name")).toHaveTextContent("NDR 2"));
+
+      act(() =>
+        sseSubs.presets({
+          device_id: "AABBCC123456",
+          presets: [presetRows[0], { ...presetRows[1], station_name: "Radio Neu" }],
+        })
+      );
+
+      expect(screen.getByTestId("preset-2-name")).toHaveTextContent("Radio Neu");
+      expect(presetsApi.getDevicePresets).toHaveBeenCalledTimes(1);
     });
 
     it("a preset row toggles: start, pause, resume", async () => {

@@ -15,7 +15,9 @@ import {
   clearPreset as clearPresetAPI,
   getDevicePresets,
   syncPresetsFromDevice,
+  type PresetResponse,
 } from "../api/presets";
+import { useDeviceEventContext } from "../contexts/DeviceEventContext";
 import { saveDlnaPreset, type DlnaSaveRequest } from "../api/dlna";
 import { userErrorMessage } from "../utils/errorMessages";
 import { isDeviceOffline } from "../api/offlineDeviceStore";
@@ -28,6 +30,20 @@ import { octDebug } from "../utils/debug";
 // --------------------------------------------------------------------------
 
 const EMPTY_PRESETS: Record<number, Preset> = {};
+
+/** The `presets` SSE payload: the full list in the shape of GET /api/presets/{device_id}. */
+function isPresetList(value: unknown): value is PresetResponse[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (p) =>
+        typeof p === "object" &&
+        p !== null &&
+        "preset_number" in p &&
+        typeof p.preset_number === "number"
+    )
+  );
+}
 
 // --------------------------------------------------------------------------
 // Hook
@@ -144,6 +160,15 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
 
     return () => clearTimeout(timer);
   }, [deviceId, setPresets]);
+
+  // A preset changed on the speaker (another app, a background sync): the backend pushes the full list
+  const { subscribe } = useDeviceEventContext();
+  useEffect(() => {
+    if (!deviceId) return;
+    return subscribe("presets", deviceId, (data) => {
+      if (isPresetList(data.presets)) setPresets(buildPresetsMap(data.presets));
+    });
+  }, [deviceId, subscribe, setPresets]);
 
   // ------------------------------------------------------------------
   // Manual sync
