@@ -65,7 +65,7 @@ export default function DlnaBrowser({
   const folder = useDlnaFolder(serverId, objectId);
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = folder;
   // A failed next page stops the auto-load: the button below retries it on demand.
-  const pageFailed = folder.isError && !!folder.data;
+  const pageFailed = folder.isFetchNextPageError;
   const sentinelRef = useRef<HTMLDivElement>(null);
   // Old browsers and jsdom lack the observer: they keep the "Load more" button.
   const canObserve = typeof IntersectionObserver !== "undefined";

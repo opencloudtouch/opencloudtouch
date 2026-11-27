@@ -106,32 +106,31 @@ describe("DlnaBrowser", () => {
   });
 
   it("stops loading on scroll after a failed page and offers the button instead", async () => {
-    let fire: () => void = () => {};
-    let created = 0;
+    // Like a real observer: every observe() of a visible sentinel reports it at once.
     vi.stubGlobal(
       "IntersectionObserver",
       class {
-        constructor(cb: IntersectionObserverCallback) {
-          created += 1;
-          fire = () => cb([{ isIntersecting: true } as IntersectionObserverEntry], this as never);
+        constructor(private cb: IntersectionObserverCallback) {}
+        observe() {
+          this.cb([{ isIntersecting: true } as IntersectionObserverEntry], this as never);
         }
-        observe() {}
         disconnect() {}
       }
     );
     vi.mocked(api.browseDlna)
       .mockResolvedValueOnce(page([track("t1", "One")], true, 1))
-      .mockRejectedValueOnce(new Error("boom"));
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockResolvedValue(page([track("t2", "Two")]));
     setup();
-    expect(await screen.findByText("One")).toBeInTheDocument();
-    fire();
     expect(await screen.findByText("The folder could not be loaded.")).toBeInTheDocument();
-    const observersAfterFailure = created;
     expect(screen.getByRole("button", { name: "Load more" })).toBeInTheDocument();
     await new Promise((r) => setTimeout(r, 50));
-    expect(created).toBe(observersAfterFailure);
     expect(api.browseDlna).toHaveBeenCalledTimes(2);
+    await userEvent.click(screen.getByRole("button", { name: "Load more" }));
+    expect(await screen.findByText("Two")).toBeInTheDocument();
+    expect(screen.queryByText("The folder could not be loaded.")).not.toBeInTheDocument();
   });
+
 
   const twoLevels = () =>
     vi
