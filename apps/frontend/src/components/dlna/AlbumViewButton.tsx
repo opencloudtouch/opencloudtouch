@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../Icon";
 import { getAlbumRoot } from "../../api/dlna";
@@ -6,25 +6,41 @@ import { getAlbumRoot } from "../../api/dlna";
 interface Props {
   serverId: string;
   onOpen: (objectId: string) => void;
+  /** The browser's current folder: a navigation to another one cancels a pending lookup. */
+  folderId: string;
+  onBusyChange?: (busy: boolean) => void;
 }
 
 /** Jumps to the server's album folder; looked up on click only, hidden when the server has none. */
-export default function AlbumViewButton({ serverId, onOpen }: Readonly<Props>) {
+export default function AlbumViewButton({
+  serverId,
+  onOpen,
+  folderId,
+  onBusyChange,
+}: Readonly<Props>) {
   const { t } = useTranslation();
   const [none, setNone] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<AbortController | null>(null);
+  const busy = pending !== null;
+  useEffect(() => onBusyChange?.(busy), [busy, onBusyChange]);
+  // The last action wins: another navigation (or unmount) aborts the lookup.
+  useEffect(() => () => pending?.abort(), [pending, folderId]);
   if (none) return null;
 
   const press = async () => {
-    setBusy(true);
+    const lookup = new AbortController();
+    const done = () => setPending((p) => (p === lookup ? null : p));
+    lookup.signal.addEventListener("abort", done);
+    setPending(lookup);
     try {
-      const id = await getAlbumRoot(serverId);
+      const id = await getAlbumRoot(serverId, lookup.signal);
+      if (lookup.signal.aborted) return;
       if (id === null) setNone(true);
       else onOpen(id);
     } catch {
-      // lookup failed: the button stays, the user can press it again
+      // lookup failed or was cancelled: the button stays, the user can press it again
     } finally {
-      setBusy(false);
+      done();
     }
   };
 

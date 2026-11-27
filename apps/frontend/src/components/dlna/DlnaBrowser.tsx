@@ -54,6 +54,8 @@ export default function DlnaBrowser({
   // null = the start folder's ancestors are still being resolved
   const [stack, setStack] = useState<Crumb[] | null>(start === "0" ? [] : null);
   const [notice, setNotice] = useState(false);
+  // A pending album lookup is the latest action: the folder's loading state hides meanwhile.
+  const [albumBusy, setAlbumBusy] = useState(false);
   // The saved object on arrival, after going up the folder the user came from.
   const [focusId, setFocusId] = useState(focusObjectId);
   const startPath = useDlnaObjectPath(serverId, stack === null ? start : undefined);
@@ -175,7 +177,12 @@ export default function DlnaBrowser({
           </button>
         ))}
       </nav>
-      <AlbumViewButton serverId={serverId} onOpen={openFolder} />
+      <AlbumViewButton
+        serverId={serverId}
+        onOpen={openFolder}
+        folderId={objectId}
+        onBusyChange={setAlbumBusy}
+      />
       {notice && (
         <div className="wz-status wz-status--warning" role="status">
           <span className="wz-icon" aria-hidden="true">
@@ -186,7 +193,7 @@ export default function DlnaBrowser({
           </div>
         </div>
       )}
-      {(folder.isLoading || startPath.isLoading) && (
+      {(folder.isLoading || startPath.isLoading) && !albumBusy && (
         <div className="dlb-loading" role="status" aria-busy="true">
           <span className="spinner-small" aria-hidden="true" /> {t("dlna.browser.loading")}
         </div>
@@ -219,7 +226,7 @@ export default function DlnaBrowser({
           {t("dlna.browser.noMatches")}
         </p>
       )}
-      {stale && (
+      {stale && !albumBusy && (
         <div className="dlb-loading" role="status" aria-live="polite">
           <span className="spinner-small" aria-hidden="true" /> {t("dlna.browser.loading")}
         </div>
