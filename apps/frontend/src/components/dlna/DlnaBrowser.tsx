@@ -236,7 +236,7 @@ export default function DlnaBrowser({
         />
       )}
       {current && wholeFolder && (
-        <div className="dlb-row dlb-folder">
+        <div className="dlb-row dlb-row--folder">
           <Cover url={wholeFolder.album_art_url} />
           <span className="dlb-title">
             <span className="dlb-line">{current.title}</span>
