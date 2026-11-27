@@ -102,6 +102,7 @@
       "tag": "ex. Rock, Jazz, pop…"
     },
     "searchTitle": "Rechercher des stations radio",
+    "dialogTitle": "Attribuer le préréglage {{number}}",
     "loadMore": "Charger plus",
     "loadingMore": "Chargement...",
     "maxReached": "Maximum ({{count}}) atteint",

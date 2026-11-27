@@ -100,6 +100,7 @@
       "tag": "e.g. Rock, Jazz, pop…"
     },
     "searchTitle": "Search Radio Stations",
+    "dialogTitle": "Set preset {{number}}",
     "loadMore": "Load more",
     "loadingMore": "Loading...",
     "maxReached": "Maximum ({{count}}) reached",

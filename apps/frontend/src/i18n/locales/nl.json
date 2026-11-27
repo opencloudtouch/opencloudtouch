@@ -102,6 +102,7 @@
       "tag": "bijv. Rock, Jazz, pop…"
     },
     "searchTitle": "Zoek radiostations",
+    "dialogTitle": "Preset {{number}} instellen",
     "loadMore": "Meer laden",
     "loadingMore": "Laden...",
     "maxReached": "Maximum ({{count}}) bereikt",

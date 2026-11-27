@@ -102,6 +102,7 @@
       "tag": "p. ej. Rock, Jazz, pop…"
     },
     "searchTitle": "Buscar emisoras de radio",
+    "dialogTitle": "Asignar preset {{number}}",
     "loadMore": "Cargar más",
     "loadingMore": "Cargando...",
     "maxReached": "Máximo ({{count}}) alcanzado",

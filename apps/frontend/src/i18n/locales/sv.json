@@ -102,6 +102,7 @@
       "tag": "t.ex. Rock, Jazz, pop…"
     },
     "searchTitle": "Sök radiostationer",
+    "dialogTitle": "Ställ in förinställning {{number}}",
     "loadMore": "Ladda fler",
     "loadingMore": "Laddar...",
     "maxReached": "Maximum ({{count}}) nått",

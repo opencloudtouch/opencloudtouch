@@ -102,6 +102,7 @@
       "tag": "z.B. rock, jazz, pop…"
     },
     "searchTitle": "Radiosender suchen",
+    "dialogTitle": "Preset {{number}} belegen",
     "loadMore": "Mehr anzeigen",
     "loadingMore": "Lädt...",
     "maxReached": "Maximum ({{count}}) erreicht",

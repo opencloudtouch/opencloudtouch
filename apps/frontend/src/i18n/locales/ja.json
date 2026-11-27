@@ -102,6 +102,7 @@
       "tag": "例：Rock、Jazz、pop…"
     },
     "searchTitle": "ラジオ局を検索",
+    "dialogTitle": "プリセット{{number}}を設定",
     "loadMore": "もっと読み込む",
     "loadingMore": "読み込み中...",
     "maxReached": "最大件数 ({{count}}) に到達",

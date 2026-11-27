@@ -102,6 +102,7 @@
       "tag": "es. Rock, Jazz, pop…"
     },
     "searchTitle": "Cerca stazioni radio",
+    "dialogTitle": "Assegna preset {{number}}",
     "loadMore": "Carica altro",
     "loadingMore": "Caricamento...",
     "maxReached": "Massimo ({{count}}) raggiunto",

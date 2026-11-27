@@ -398,6 +398,10 @@ export default function RadioSearch({
   onDlnaSave,
 }: RadioSearchProps) {
   const { t } = useTranslation();
+  // The dialog sets a slot from a station search, a stream URL or DLNA, not just a search
+  const title = _presetNumber
+    ? t("presets.dialogTitle", { number: _presetNumber })
+    : t("presets.searchTitle");
   const [searchMode, setSearchMode] = useState<SearchMode>("provider");
   const [query, setQuery] = useState("");
   const [manualUrl, setManualUrl] = useState("");
@@ -561,7 +565,7 @@ export default function RadioSearch({
         <>
           <div className="rs-head rs-head--detail">
             <h2 id="rs-title" className="dlg-title">
-              {t("presets.searchTitle")}
+              {title}
             </h2>
             <button
               className="btn btn-ghost btn-icon dlg-close"
@@ -592,7 +596,7 @@ export default function RadioSearch({
         <>
           <div className="rs-head">
             <h2 id="rs-title" className="dlg-title">
-              {t("presets.searchTitle")}
+              {title}
             </h2>
             <button
               className="btn btn-ghost btn-icon dlg-close rs-close"
