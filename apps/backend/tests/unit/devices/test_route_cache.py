@@ -104,7 +104,9 @@ class TestNowPlayingCacheFirst:
         assert data["skip_enabled"] is True
         mock_device_service.get_now_playing.assert_not_called()
 
-    def test_live_read_fills_the_cache(self, client, state_manager, mock_device_service):
+    def test_live_read_fills_the_cache(
+        self, client, state_manager, mock_device_service
+    ):
         client.get("/api/devices/D1/now-playing")
         client.get("/api/devices/D1/now-playing")
 
@@ -124,7 +126,9 @@ class TestNowPlayingCacheFirst:
         data = client.get("/api/devices/D1/now-playing").json()
 
         assert data["track"] == "HTTP Track"
-        assert state_manager.get_state("D1").connection_state == ConnectionState.CONNECTED
+        assert (
+            state_manager.get_state("D1").connection_state == ConnectionState.CONNECTED
+        )
 
     def test_response_format_identical(self, client, state_manager):
         """Cache hit response format must match pre-cache format."""

@@ -55,8 +55,7 @@ def _content(presets: List[Preset]) -> list[dict[str, Any]]:
     """Preset payloads without the timestamps every import rewrites."""
     stamps = ("created_at", "updated_at")
     return [
-        {k: v for k, v in preset_payload(p).items() if k not in stamps}
-        for p in presets
+        {k: v for k, v in preset_payload(p).items() if k not in stamps} for p in presets
     ]
 
 

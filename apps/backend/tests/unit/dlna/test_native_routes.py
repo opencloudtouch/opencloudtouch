@@ -68,7 +68,6 @@ def test_list_unions_discovered_and_registered(deps):
     native.read_states.assert_awaited_once_with("device-a")
 
 
-
 def test_list_without_discovery_uses_known_servers_with_live_states(deps):
     client, native, dlna, _ = deps
     dlna.known_servers.return_value = [_server(OTHER, "Other", "192.0.2.21")]

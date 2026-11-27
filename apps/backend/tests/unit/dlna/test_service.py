@@ -28,7 +28,6 @@ async def test_get_servers():
     assert result == [server]
 
 
-
 @pytest.mark.asyncio
 async def test_known_servers_returns_cache_without_discovery():
     server = DlnaServer(

@@ -75,7 +75,9 @@ class DeviceStateManager:
         """Set callback for resolving preset favicon URLs."""
         self._get_preset_favicon = callback
 
-    def set_presets_callback(self, callback: Callable[[str, str], Awaitable[None]]) -> None:
+    def set_presets_callback(
+        self, callback: Callable[[str, str], Awaitable[None]]
+    ) -> None:
         """Set the handler (device_id, raw_xml) for a speaker's presetsUpdated event."""
         self._on_presets = callback
 

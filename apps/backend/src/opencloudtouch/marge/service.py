@@ -182,9 +182,11 @@ class MargeService:
                 location,
                 account,
                 name,
-                existing.station_favicon
-                if existing and existing.station_url == location
-                else None,
+                (
+                    existing.station_favicon
+                    if existing and existing.station_url == location
+                    else None
+                ),
             )
             if imported:
                 if existing and existing.station_url == location:
@@ -267,7 +269,9 @@ class MargeService:
                 await client.notify_sources_updated(device.device_id)
             finally:
                 await client.close()
-        except Exception as exc:  # noqa: BLE001 - a failed push must not fail the request
+        except (
+            Exception
+        ) as exc:  # noqa: BLE001 - a failed push must not fail the request
             logger.warning(
                 "[MARGE/SOURCE] sourcesUpdated push failed: %s", type(exc).__name__
             )

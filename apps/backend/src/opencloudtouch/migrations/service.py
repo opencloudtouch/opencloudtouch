@@ -49,7 +49,9 @@ class SpeakerMigrationService:
                 started = time.monotonic()
                 try:
                     await self._steps[version](device)
-                except Exception as exc:  # noqa: BLE001 - a step failure must not stop OCT
+                except (
+                    Exception
+                ) as exc:  # noqa: BLE001 - a step failure must not stop OCT
                     reason = f"{type(exc).__name__}: {exc}"
                     await self._repo.set_error(device_id, reason)
                     logger.warning(

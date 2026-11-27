@@ -285,9 +285,9 @@ class TestMigration:
 
         result = await preset_repo.get_preset("device_migration", 1)
         assert result is not None
-        assert result.source == "INTERNET_RADIO", (
-            "BUG-34: source field should be stored and retrieved correctly."
-        )
+        assert (
+            result.source == "INTERNET_RADIO"
+        ), "BUG-34: source field should be stored and retrieved correctly."
 
     @pytest.mark.asyncio
     async def test_adds_source_column_to_existing_db(self):
@@ -338,9 +338,9 @@ class TestMigration:
                 cursor = await db.execute("PRAGMA table_info(presets)")
                 rows = await cursor.fetchall()
                 col_names = [row[1] for row in rows]
-                assert "source" in col_names, (
-                    f"BUG-34: After migration, 'source' column must exist. Columns: {col_names}"
-                )
+                assert (
+                    "source" in col_names
+                ), f"BUG-34: After migration, 'source' column must exist. Columns: {col_names}"
 
                 # Write to source column via raw SQL (avoids the new schema's id column issue)
                 await db.execute(
@@ -355,9 +355,9 @@ class TestMigration:
                 )
                 row = await cursor.fetchone()
                 assert row is not None, "Old row must still be present after migration"
-                assert row[0] == "TUNEIN", (
-                    f"BUG-34: source column must be writable after migration. Got: {row[0]}"
-                )
+                assert (
+                    row[0] == "TUNEIN"
+                ), f"BUG-34: source column must be writable after migration. Got: {row[0]}"
 
             await repo.close()
 
@@ -487,9 +487,9 @@ class TestSchemaVersions:
                     "SELECT version FROM schema_versions WHERE version = 1"
                 )
                 row = await cursor.fetchone()
-                assert row is not None, (
-                    "Migration v1 must be recorded even when column already existed"
-                )
+                assert (
+                    row is not None
+                ), "Migration v1 must be recorded even when column already existed"
 
             await repo.close()
         """Legacy DB (without schema_versions or source column) must be migrated
@@ -523,18 +523,18 @@ class TestSchemaVersions:
                 cursor = await db.execute("PRAGMA table_info(presets)")
                 rows = await cursor.fetchall()
                 col_names = [r[1] for r in rows]
-                assert "source" in col_names, (
-                    "REFACT-007: source column must exist after migrating legacy DB"
-                )
+                assert (
+                    "source" in col_names
+                ), "REFACT-007: source column must exist after migrating legacy DB"
 
                 # Migration must be recorded
                 cursor = await db.execute(
                     "SELECT version, applied_at FROM schema_versions WHERE version = 1"
                 )
                 row = await cursor.fetchone()
-                assert row is not None, (
-                    "REFACT-007: Migration v1 must be recorded in schema_versions"
-                )
+                assert (
+                    row is not None
+                ), "REFACT-007: Migration v1 must be recorded in schema_versions"
                 assert row[1] is not None, "applied_at timestamp must be set"
 
             await repo.close()
