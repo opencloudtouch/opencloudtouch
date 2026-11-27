@@ -510,6 +510,10 @@ export interface paths {
     /**
      * Get Now Playing
      * @description Get current playback status for a device.
+     *
+     *     Answers from the websocket-fed state cache (nowPlaying events carry
+     *     shuffle/repeat and the skip markers too); the speaker is read only when
+     *     there is no state yet or the device was marked offline.
      */
     get: operations["get_now_playing_api_devices__device_id__now_playing_get"];
     put?: never;
@@ -658,8 +662,9 @@ export interface paths {
      * Get Device Presets
      * @description Get all presets for a device.
      *
-     *     Returns all configured presets (1-6) for the specified device.
-     *     Empty slots are not included in the response.
+     *     Answers at once from the OCT database; empty slots are not included. After
+     *     the response OCT reads the speaker's presets and, if they differ, pushes the
+     *     new list as SSE event ``presets`` on /api/events/device-stream.
      */
     get: operations["get_device_presets_api_presets__device_id__get"];
     put?: never;

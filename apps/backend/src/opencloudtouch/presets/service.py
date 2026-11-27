@@ -11,9 +11,8 @@ import logging
 import os
 import socket
 import time
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, List, Optional
 from urllib.parse import urljoin, urlsplit, urlunsplit
-from xml.etree.ElementTree import ParseError
 
 import httpx
 from defusedxml.ElementTree import fromstring as parse_xml_string
@@ -42,6 +41,23 @@ if TYPE_CHECKING:
     from opencloudtouch.dlna.service import DlnaService
 
 logger = logging.getLogger(__name__)
+
+# Receives the device id and its full preset list (the GET /api/presets shape)
+PresetsListener = Callable[[str, list[dict[str, Any]]], Awaitable[None]]
+
+
+def preset_payload(preset: Preset) -> dict[str, Any]:
+    """One preset in the shape GET /api/presets/{device_id} returns."""
+    return {**preset.to_dict(), "dlna": preset.is_dlna}
+
+
+def _content(presets: List[Preset]) -> list[dict[str, Any]]:
+    """Preset payloads without the timestamps every import rewrites."""
+    stamps = ("created_at", "updated_at")
+    return [
+        {k: v for k, v in preset_payload(p).items() if k not in stamps}
+        for p in presets
+    ]
 
 
 async def fetch_device_presets(device_ip: str) -> bytes:
@@ -84,6 +100,9 @@ class PresetService:
         self.device_repository = device_repository
         self.dlna_service = dlna_service
         self._parser = DevicePresetParser()
+        # Set at startup: pushes a changed preset list to the SSE device stream
+        self.on_presets_changed: PresetsListener | None = None
+        self._refreshing: set[str] = set()
 
     @staticmethod
     async def _validate_stream_url(
@@ -425,31 +444,39 @@ class PresetService:
         """
         return await self.repository.get_preset(device_id, preset_number)
 
-    async def get_all_presets(self, device_id: str, live: bool = False) -> List[Preset]:
-        """Get all presets for a device; empty slots are not included.
-
-        Internal enrichment and matching read the stored OCT rows only. With
-        ``live`` (the public GET route, I-2) the speaker's /presets is imported
-        first: IF the speaker cannot be read THEN the OCT rows are returned
-        unchanged and a warning is logged. Mock speakers keep presets only in
-        OCT (their store_preset is a no-op), so mock mode never reads them.
-        """
-        if live and os.getenv("OCT_MOCK_MODE", "false").lower() != "true":
-            try:
-                await self.sync_presets_from_device(device_id)
-            # ValueError covers defusedxml's rejection of unsafe XML
-            except (
-                DeviceNotFoundError,
-                DeviceConnectionError,
-                ParseError,
-                ValueError,
-            ) as exc:
-                logger.warning(
-                    "Speaker presets unreadable for %s, serving OCT rows: %s",
-                    device_id,
-                    type(exc).__name__,
-                )
+    async def get_all_presets(self, device_id: str) -> List[Preset]:
+        """Get the stored presets of a device; empty slots are not included."""
         return await self.repository.get_all_presets(device_id)
+
+    async def refresh_from_device(self, device_id: str, shown: List[Preset]) -> None:
+        """Background sync after a GET: publish the list if it differs from *shown*.
+
+        At most one sync per device is in flight; failures are logged as warnings
+        and never raised. Mock speakers keep presets only in OCT (sync is a no-op).
+        """
+        if device_id in self._refreshing:
+            return
+        self._refreshing.add(device_id)
+        try:
+            await self.sync_presets_from_device(device_id)
+            presets = await self.repository.get_all_presets(device_id)
+            if _content(presets) != _content(shown):
+                await self._publish(device_id, presets)
+        except Exception as exc:
+            logger.warning(
+                "Speaker presets unreadable for %s, keeping OCT rows: %s",
+                device_id,
+                type(exc).__name__,
+            )
+        finally:
+            self._refreshing.discard(device_id)
+
+    async def _publish(self, device_id: str, presets: List[Preset]) -> None:
+        """Push the full preset list of a device to the SSE device stream."""
+        if self.on_presets_changed is not None:
+            await self.on_presets_changed(
+                device_id, [preset_payload(p) for p in presets]
+            )
 
     async def clear_preset(self, device_id: str, preset_number: int) -> bool:
         """Clear a specific preset for a device.

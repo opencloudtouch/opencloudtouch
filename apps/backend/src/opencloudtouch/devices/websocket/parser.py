@@ -10,7 +10,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 from xml.etree.ElementTree import Element
 
 from defusedxml import ElementTree as ET
@@ -66,6 +66,7 @@ class DeviceEvent:
     error_code: int | None = None  # SOURCE_ERROR only
     error_name: str = ""
     error_severity: str = ""
+    presets: list[dict[str, Any]] | None = None  # PRESETS: full list, REST shape
     raw_xml: str = ""
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 

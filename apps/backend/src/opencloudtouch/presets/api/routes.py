@@ -3,7 +3,7 @@
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi import Path as FastAPIPath
 from pydantic import BaseModel, Field
 
@@ -126,17 +126,22 @@ async def set_dlna_preset(
 
 @router.get("/{device_id}", response_model=List[PresetResponse])
 async def get_device_presets(
+    background_tasks: BackgroundTasks,
     device_id: str = FastAPIPath(..., description="Device identifier"),
     preset_service: PresetService = Depends(get_preset_service),
 ):
     """
     Get all presets for a device.
 
-    Returns all configured presets (1-6) for the specified device.
-    Empty slots are not included in the response.
+    Answers at once from the OCT database; empty slots are not included. After
+    the response OCT reads the speaker's presets and, if they differ, pushes the
+    new list as SSE event ``presets`` on /api/events/device-stream.
     """
     try:
-        presets = await preset_service.get_all_presets(device_id, live=True)
+        presets = await preset_service.get_all_presets(device_id)
+        background_tasks.add_task(
+            preset_service.refresh_from_device, device_id, presets
+        )
 
         logger.debug("Retrieved %d presets for device %s", len(presets), device_id)
 

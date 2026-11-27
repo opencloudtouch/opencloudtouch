@@ -27,6 +27,7 @@ from opencloudtouch.core.exceptions import (
 from opencloudtouch.devices.client import SHUFFLE_REPEAT_KEYS, NowPlayingInfo
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.state import DeviceStateManager
+from opencloudtouch.devices.websocket.connection import ConnectionState
 from opencloudtouch.devices.websocket.icy_worker import RADIO_SOURCES
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.service import PresetService, match_stored_music_preset
@@ -633,10 +634,18 @@ async def get_now_playing(
     preset_service: Annotated[PresetService, Depends(get_preset_service)],
     state_manager: Annotated[DeviceStateManager, Depends(get_device_state_manager)],
 ) -> dict[str, object]:
-    """Get current playback status for a device."""
-    cfg = get_config()
+    """Get current playback status for a device.
+
+    Answers from the websocket-fed state cache (nowPlaying events carry
+    shuffle/repeat and the skip markers too); the speaker is read only when
+    there is no state yet or the device was marked offline.
+    """
     cached = state_manager.get_state(device_id)
-    if cached and cached.now_playing and cached.is_fresh(cfg.state_cache_max_age):
+    if (
+        cached
+        and cached.now_playing
+        and cached.connection_state != ConnectionState.FAILED
+    ):
         info = cached.now_playing
     else:
         try:
@@ -656,6 +665,8 @@ async def get_now_playing(
                 else _OFFLINE_FALLBACK_INFO
             )
             return _now_playing_to_dict(fallback, online=False)
+        state_manager.update_now_playing(device_id, info)
+        state_manager.update_connection(device_id, ConnectionState.CONNECTED)
     result = _now_playing_to_dict(info, online=True)
 
     # Filter out non-image artwork URLs (e.g. station homepages)

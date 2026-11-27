@@ -630,7 +630,14 @@ paths:
       tags:
       - Devices
       summary: Get Now Playing
-      description: Get current playback status for a device.
+      description: 'Get current playback status for a device.
+
+
+        Answers from the websocket-fed state cache (nowPlaying events carry
+
+        shuffle/repeat and the skip markers too); the speaker is read only when
+
+        there is no state yet or the device was marked offline.'
       operationId: get_now_playing_api_devices__device_id__now_playing_get
       parameters:
       - name: device_id
@@ -872,9 +879,12 @@ paths:
       description: 'Get all presets for a device.
 
 
-        Returns all configured presets (1-6) for the specified device.
+        Answers at once from the OCT database; empty slots are not included. After
 
-        Empty slots are not included in the response.'
+        the response OCT reads the speaker''s presets and, if they differ, pushes
+        the
+
+        new list as SSE event ``presets`` on /api/events/device-stream.'
       operationId: get_device_presets_api_presets__device_id__get
       parameters:
       - name: device_id

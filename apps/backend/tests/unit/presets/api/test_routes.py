@@ -119,7 +119,8 @@ class TestGetDevicePresets:
         r = client.get("/api/presets/DEV1")
         assert r.status_code == 200
         assert len(r.json()) == 2
-        mock_service.get_all_presets.assert_awaited_once_with("DEV1", live=True)
+        mock_service.get_all_presets.assert_awaited_once_with("DEV1")
+        mock_service.refresh_from_device.assert_awaited_once()
 
     def test_returns_empty_list_when_no_presets(self, client, mock_service):
         mock_service.get_all_presets = AsyncMock(return_value=[])
@@ -318,11 +319,11 @@ class TestSetDlnaPreset:
 
 
 # ---------------------------------------------------------------------------
-# GET reads the speaker live (decisions 6, 27; I-2)
+# GET answers from the DB, then syncs the speaker in the background (T1)
 # ---------------------------------------------------------------------------
 
 
-class TestGetPresetsReadsSpeaker:
+class TestGetPresetsCacheFirst:
     @pytest.fixture
     def live(self, monkeypatch):
         from unittest.mock import MagicMock
@@ -350,6 +351,7 @@ class TestGetPresetsReadsSpeaker:
         device_repo.get_by_device_id = AsyncMock(return_value=MagicMock(ip="192.0.2.5"))
         service = PresetService(repo, device_repo)
         service._fetch_device_presets = AsyncMock()
+        service.on_presets_changed = AsyncMock()
         app.dependency_overrides[get_preset_service] = lambda: service
         yield service, rows
         app.dependency_overrides.clear()
@@ -362,20 +364,31 @@ class TestGetPresetsReadsSpeaker:
             "</ContentItem></preset></presets>"
         ).encode()
 
-    def test_get_presets_reads_speaker_each_call(self, live):
+    def test_get_answers_from_db_and_publishes_the_speaker_list(self, live):
+        service, rows = live
+        rows[1] = _make_preset(device_id="DEV1", station_name="Old")
+        service._fetch_device_presets.return_value = self._speaker("New", "/v1/s9")
+
+        body = TestClient(app).get("/api/presets/DEV1").json()
+
+        assert [p["station_name"] for p in body] == ["Old"]
+        service.on_presets_changed.assert_awaited_once()
+        device_id, pushed = service.on_presets_changed.await_args.args
+        assert device_id == "DEV1"
+        assert [(p["preset_number"], p["station_name"]) for p in pushed] == [(1, "New")]
+        assert pushed[0]["dlna"] is False
+
+    def test_get_publishes_nothing_when_the_speaker_matches(self, live):
         service, _ = live
-        service._fetch_device_presets.side_effect = [
-            self._speaker("First", "/v1/s1"),
-            self._speaker("Second", "/v1/s2"),
-        ]
+        service._fetch_device_presets.return_value = self._speaker("Same", "/v1/s1")
         client = TestClient(app)
+        client.get("/api/presets/DEV1")  # imports the speaker list
+        service.on_presets_changed.reset_mock()
 
-        first = client.get("/api/presets/DEV1").json()
-        second = client.get("/api/presets/DEV1").json()
+        body = client.get("/api/presets/DEV1").json()
 
-        assert [p["station_name"] for p in first] == ["First"]
-        assert [p["station_name"] for p in second] == ["Second"]
-        assert service._fetch_device_presets.await_count == 2
+        assert [p["station_name"] for p in body] == ["Same"]
+        service.on_presets_changed.assert_not_awaited()
 
     def test_get_presets_speaker_offline_returns_db_rows(self, live, caplog):
         from opencloudtouch.core.exceptions import DeviceConnectionError
@@ -391,17 +404,4 @@ class TestGetPresetsReadsSpeaker:
         assert response.status_code == 200
         assert [p["preset_number"] for p in response.json()] == [2]
         assert "speaker presets unreadable" in caplog.text.lower()
-
-    def test_speaker_wins_over_db_row(self, live):
-        service, rows = live
-        rows[1] = _make_preset(
-            device_id="DEV1", station_favicon="http://192.0.2.9/old.png"
-        )
-        rows[4] = _make_preset(device_id="DEV1", preset_number=4)
-        service._fetch_device_presets.return_value = self._speaker("New", "/v1/s9")
-
-        body = TestClient(app).get("/api/presets/DEV1").json()
-
-        assert [(p["preset_number"], p["station_name"]) for p in body] == [(1, "New")]
-        assert body[0]["source"] == "TUNEIN"
-        assert body[0]["station_favicon"] is None
+        service.on_presets_changed.assert_not_awaited()

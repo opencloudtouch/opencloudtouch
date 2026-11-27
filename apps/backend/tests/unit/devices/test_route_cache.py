@@ -83,20 +83,48 @@ class TestNowPlayingCacheFirst:
         assert data["track"] == "HTTP Track"
         mock_device_service.get_now_playing.assert_called_once()
 
-    def test_stale_cache_falls_back_to_http(
+    def test_old_cache_still_answers(self, client, state_manager, mock_device_service):
+        """Steady playback sends no events: an old state still answers (T1)."""
+        np = NowPlayingInfo(
+            source="RADIO",
+            state="PLAY_STATE",
+            track="Old",
+            shuffle_setting="SHUFFLE_OFF",
+            repeat_setting="REPEAT_ALL",
+            skip_enabled=True,
+        )
+        state_manager.update_now_playing("D1", np)
+        state_manager._states["D1"].last_update = time.time() - 3600
+
+        data = client.get("/api/devices/D1/now-playing").json()
+
+        assert data["track"] == "Old"
+        assert data["shuffle_setting"] == "SHUFFLE_OFF"
+        assert data["repeat_setting"] == "REPEAT_ALL"
+        assert data["skip_enabled"] is True
+        mock_device_service.get_now_playing.assert_not_called()
+
+    def test_live_read_fills_the_cache(self, client, state_manager, mock_device_service):
+        client.get("/api/devices/D1/now-playing")
+        client.get("/api/devices/D1/now-playing")
+
+        mock_device_service.get_now_playing.assert_called_once()
+        assert state_manager.get_state("D1").now_playing.track == "HTTP Track"
+
+    def test_offline_marked_device_reads_live(
         self, client, state_manager, mock_device_service
     ):
-        """Stale cache (age > max_age) should fall back to HTTP."""
-        np = NowPlayingInfo(source="RADIO", state="PLAY_STATE", track="Old")
-        state_manager.update_now_playing("D1", np)
-        # Age the state beyond max_age
-        state_manager._states["D1"].last_update = time.time() - 20
+        from opencloudtouch.devices.websocket.connection import ConnectionState
 
-        resp = client.get("/api/devices/D1/now-playing")
-        assert resp.status_code == 200
-        data = resp.json()
+        state_manager.update_now_playing(
+            "D1", NowPlayingInfo(source="RADIO", state="PLAY_STATE", track="Old")
+        )
+        state_manager.update_connection("D1", ConnectionState.FAILED)
+
+        data = client.get("/api/devices/D1/now-playing").json()
+
         assert data["track"] == "HTTP Track"
-        mock_device_service.get_now_playing.assert_called_once()
+        assert state_manager.get_state("D1").connection_state == ConnectionState.CONNECTED
 
     def test_response_format_identical(self, client, state_manager):
         """Cache hit response format must match pre-cache format."""

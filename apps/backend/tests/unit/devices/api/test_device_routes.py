@@ -1066,9 +1066,10 @@ class TestNowPlayingEndpoint:
                 station_name="Jazz FM",
             ),
         )
-        # Force the cached entry to be stale so the route actually re-queries
-        # the device instead of short-circuiting on the fresh-cache path.
-        state_manager.get_state("DEV123").last_update -= 999_999
+        # A device marked offline re-queries the speaker instead of the cache.
+        from opencloudtouch.devices.websocket.connection import ConnectionState
+
+        state_manager.update_connection("DEV123", ConnectionState.FAILED)
 
         mock_device_service.get_now_playing = AsyncMock(
             side_effect=DeviceConnectionError("192.168.1.50", "Connection refused")

@@ -87,6 +87,9 @@ def _event_to_sse(event: DeviceEvent, preset_number: int | None = None) -> str:
     if event.connection_state is not None:
         data["connection_state"] = event.connection_state.value
 
+    if event.presets is not None:
+        data["presets"] = event.presets
+
     if event.event_type == EventType.SOURCE_ERROR:
         # the speaker's free text is deliberately not forwarded
         data.update(

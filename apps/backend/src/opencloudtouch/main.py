@@ -53,6 +53,7 @@ from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.services.sync_service import DeviceSyncService
 from opencloudtouch.devices.startup_check import StartupCheck
 from opencloudtouch.devices.state import DeviceStateManager
+from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
 from opencloudtouch.marge.routes import router as marge_router
 from opencloudtouch.marge.service import MargeService
 from opencloudtouch.marge.source_repository import MargeSourceRepository
@@ -363,6 +364,13 @@ async def _init_websocket_pipeline(
         _make_preset_lookup(app, logger, "station_favicon"),
     )
     app.state.device_state_manager.start_icy_polling()
+
+    async def _publish_presets(device_id: str, presets: list[dict]) -> None:
+        await app.state.device_state_manager.publish(
+            DeviceEvent(device_id, EventType.PRESETS, presets=presets)
+        )
+
+    app.state.preset_service.on_presets_changed = _publish_presets
     logger.info("DeviceStateManager initialized (with ICY worker + periodic polling)")
 
     # WebSocket manager — connects to SoundTouch device WS ports

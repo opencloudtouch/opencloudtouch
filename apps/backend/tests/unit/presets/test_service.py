@@ -916,12 +916,35 @@ async def test_get_all_presets_internal_read_skips_speaker(service, real_mode):
 
 
 @pytest.mark.asyncio
-async def test_get_all_presets_live_imports_from_speaker(service, real_mode):
-    fetch = AsyncMock(return_value=b"<presets/>")
-    with patch.object(service, "_fetch_device_presets", fetch):
-        await service.get_all_presets("dev-001", live=True)
+async def test_refresh_runs_one_sync_per_device_at_a_time(service, real_mode):
+    gate = asyncio.Event()
+    calls = 0
 
-    fetch.assert_awaited_once()
+    async def _sync(_device_id):
+        nonlocal calls
+        calls += 1
+        await gate.wait()
+        return 0
+
+    with patch.object(service, "sync_presets_from_device", _sync):
+        first = asyncio.create_task(service.refresh_from_device("dev-001", []))
+        await asyncio.sleep(0)
+        await service.refresh_from_device("dev-001", [])  # returns at once
+        gate.set()
+        await first
+
+    assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_refresh_failure_is_logged_not_raised(service, real_mode, caplog):
+    service.on_presets_changed = AsyncMock()
+    failing = AsyncMock(side_effect=RuntimeError("boom"))
+    with patch.object(service, "sync_presets_from_device", failing):
+        await service.refresh_from_device("dev-001", [])
+
+    assert "speaker presets unreadable" in caplog.text.lower()
+    service.on_presets_changed.assert_not_awaited()
 
 
 # ---------------------------------------------------------------------------
@@ -1098,14 +1121,15 @@ class TestSyncKeepsMetadata:
         assert cleared == {1, 3, 4, 5, 6}
 
     @pytest.mark.asyncio
-    async def test_get_all_presets_mock_mode_serves_db_rows(self, service, mock_repo):
+    async def test_refresh_mock_mode_never_reads_the_speaker(self, service):
         """Mock speakers keep presets only in OCT (mock store_preset is a no-op)."""
         fetch = AsyncMock()
+        service.on_presets_changed = AsyncMock()
         with patch.object(service, "_fetch_device_presets", fetch):
-            await service.get_all_presets("dev-001", live=True)
+            await service.refresh_from_device("dev-001", [])
 
         fetch.assert_not_awaited()
-        mock_repo.get_all_presets.assert_awaited_once_with("dev-001")
+        service.on_presets_changed.assert_not_awaited()
 
 
 # ---------------------------------------------------------------------------
