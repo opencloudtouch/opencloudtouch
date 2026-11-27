@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Profiler } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import DlnaBrowser from "../../src/components/dlna/DlnaBrowser";
@@ -171,7 +171,7 @@ describe("DlnaBrowser", () => {
     );
     setup();
     await userEvent.click(await screen.findByRole("button", { name: "Open folder Rock" }));
-    expect(screen.getByRole("button", { name: "Rock" })).toHaveAttribute(
+    expect(screen.getByText("Rock", { selector: "[aria-current]" })).toHaveAttribute(
       "aria-current",
       "location"
     );
@@ -194,7 +194,7 @@ describe("DlnaBrowser", () => {
       objectId === "p1" ? page([track("t1", "Song")]) : page([folderItem("f1", "Rock")])
     );
     setup({ startObjectId: "p1", focusObjectId: "t1" });
-    expect(await screen.findByRole("button", { name: "Parent" })).toHaveAttribute(
+    expect(await screen.findByText("Parent", { selector: "[aria-current]" })).toHaveAttribute(
       "aria-current",
       "location"
     );
@@ -322,7 +322,7 @@ describe("DlnaBrowser", () => {
     setup();
     await userEvent.click(await screen.findByRole("button", { name: "Open folder Rock" }));
     expect(await screen.findByText("Inside")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Rock" })).toHaveAttribute(
+    expect(screen.getByText("Rock", { selector: "[aria-current]" })).toHaveAttribute(
       "aria-current",
       "location"
     );
@@ -331,6 +331,18 @@ describe("DlnaBrowser", () => {
     await userEvent.click(screen.getByRole("button", { name: "Open folder Rock" }));
     await userEvent.click(await screen.findByRole("button", { name: "Up" }));
     expect(await screen.findByRole("button", { name: "Open folder Rock" })).toBeInTheDocument();
+  });
+
+  it("separates the crumbs and shows the current one as plain text", async () => {
+    twoLevels();
+    setup();
+    await userEvent.click(await screen.findByRole("button", { name: "Open folder Rock" }));
+    const nav = await screen.findByRole("navigation");
+    const current = within(nav).getByText("Rock");
+    expect(current.tagName).not.toBe("BUTTON");
+    expect(within(nav).queryByRole("button", { name: "Rock" })).toBeNull();
+    expect(within(nav).getByRole("button", { name: "Nas" })).toBeInTheDocument();
+    expect(nav.querySelectorAll(".dlb-sep[aria-hidden='true']")).toHaveLength(1);
   });
 
   it("shows the fallback icon when a cover fails to load", async () => {

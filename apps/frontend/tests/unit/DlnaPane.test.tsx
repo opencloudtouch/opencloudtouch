@@ -213,7 +213,7 @@ describe("DlnaPane", () => {
     expect(api.getDlnaObjectPath).toHaveBeenCalledWith("s1", "t1", expect.anything());
     expect(api.browseDlna).toHaveBeenCalledWith("s1", "p1", 0, undefined, expect.anything());
     // The start folder is the last breadcrumb (prefill breadcrumb fix).
-    expect(await screen.findByRole("button", { name: "Parent" })).toHaveAttribute(
+    expect(await screen.findByText("Parent", { selector: "[aria-current]" })).toHaveAttribute(
       "aria-current",
       "location"
     );

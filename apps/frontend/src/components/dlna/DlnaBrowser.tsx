@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../Icon";
 import { isApiErrorInstance } from "../../api/types";
@@ -162,19 +162,27 @@ export default function DlnaBrowser({
           </button>
         )}
         {crumbs.map((c, i) => (
-          <button
+          <Fragment
             key={crumbs
               .slice(0, i + 1)
               .map((x) => x.object_id)
               .join("/")}
-            type="button"
-            className="btn btn-ghost"
-            aria-current={i === crumbs.length - 1 ? "location" : undefined}
-            disabled={i === crumbs.length - 1}
-            onClick={() => go(path.slice(0, i))}
           >
-            {c.title}
-          </button>
+            {i > 0 && (
+              <span className="dlb-sep" aria-hidden="true">
+                {Icon.ChevronRight(14)}
+              </span>
+            )}
+            {i === crumbs.length - 1 ? (
+              <span className="dlb-crumb dlb-crumb--current" aria-current="location">
+                {c.title}
+              </span>
+            ) : (
+              <button type="button" className="dlb-crumb" onClick={() => go(path.slice(0, i))}>
+                {c.title}
+              </button>
+            )}
+          </Fragment>
         ))}
       </nav>
       <AlbumViewButton

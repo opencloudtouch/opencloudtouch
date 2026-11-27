@@ -8,7 +8,31 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-xs);
+  min-width: 0;
+}
+.dlb-crumb {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  min-width: 0;
+  padding: 0 var(--space-xs);
+  border-radius: var(--border-radius-sm);
+  color: var(--primary-text);
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
+button.dlb-crumb:hover {
+  background: var(--bg-tertiary);
+  text-decoration: underline;
+}
+.dlb-crumb--current {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+.dlb-sep {
+  display: inline-flex;
+  flex: none;
+  color: var(--color-text-tertiary);
 }
 .dlb-list {
   list-style: none;

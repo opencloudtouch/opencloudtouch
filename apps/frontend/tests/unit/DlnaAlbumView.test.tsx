@@ -83,7 +83,7 @@ describe("DlnaBrowser album view", () => {
     vi.mocked(api.browseDlna).mockResolvedValue(emptyPage());
     setup();
     await userEvent.click(await screen.findByRole("button", { name: "Open album view" }));
-    expect(await screen.findByRole("button", { name: "Albums" })).toBeInTheDocument();
+    expect(await screen.findByText("Albums", { selector: "[aria-current]" })).toBeInTheDocument();
     // The album folder is browsed directly, not the root again.
     expect(api.browseDlna).toHaveBeenLastCalledWith(
       "s1",
