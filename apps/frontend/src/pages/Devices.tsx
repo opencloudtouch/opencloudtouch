@@ -31,6 +31,7 @@ import { useSourceError } from "../hooks/useSourceError";
 import SourceErrorAlert from "../components/dlna/SourceErrorAlert";
 import { useZones } from "../hooks/useZones";
 import { useLastPreset } from "../hooks/useLastPreset";
+import { useSettledPresetState } from "../hooks/useSettledPresetState";
 import { usePrefetchDevices } from "../hooks/usePrefetchDevices";
 import { CardName, CardRemove, StereoRow, ZoneRow } from "./DevicesParts";
 import { visibleDevices } from "../utils/visibleDevices";
@@ -126,7 +127,6 @@ export default function Devices({
   const { show: showToast, hide: hideToast } = useToast();
   const [powerLoading, setPowerLoading] = useState(false);
   const [clearingPreset, setClearingPreset] = useState<number | null>(null);
-  const [startingPreset, setStartingPreset] = useState<number | null>(null);
   const [failedPreset, setFailedPreset] = useState<number | null>(null);
   // A DLNA save runs here, not in the dialog: closing the dialog must not cancel it.
   const [savingPreset, setSavingPreset] = useState<{ deviceId: string; num: number } | null>(null);
@@ -235,7 +235,6 @@ export default function Devices({
 
   // The state of a card never leaks into the next device
   useEffect(() => {
-    setStartingPreset(null);
     setFailedPreset(null);
     setSwitching(null);
     setSwitchFailed(null);
@@ -252,23 +251,24 @@ export default function Devices({
     [devices, setSearchParams]
   );
 
-  // Which row shows which state: the running station decides, a start or a failure in progress overrides
+  // The preset the speaker plays. DLNA: the speaker reports no location, so the backend-matched
+  // slot decides (equal names stay unambiguous).
+  const matchedPreset =
+    PRESET_NUMBERS.find(
+      (n) =>
+        !!presets[n] &&
+        (isDlna
+          ? npState?.preset_number === n
+          : isRadio && npState?.station_name === presets[n]?.station_name)
+    ) ?? null;
+  const settled = useSettledPresetState(deviceId, matchedPreset, npState?.state, sourceError);
+
+  // Which row shows which state: the running preset decides, a save or a failure overrides
   const presetState = (num: number): PresetRowState => {
     if (savingPreset && savingPreset.deviceId === deviceId && savingPreset.num === num)
       return "saving";
-    if (num === startingPreset) return "starting";
     if (num === failedPreset) return "failed";
-    const preset = presets[num];
-    if (!preset) return "idle";
-    // DLNA: the speaker reports no location, so the backend-matched slot decides (equal names stay unambiguous)
-    const matches = isDlna
-      ? npState?.preset_number === num
-      : isRadio && npState?.station_name === preset.station_name;
-    if (!matches) return "idle";
-    if (npState?.state === "PLAY_STATE") return "playing";
-    // A radio stream cannot really pause: many devices report STOP_STATE with the station still selected
-    if (npState?.state === "PAUSE_STATE" || npState?.state === "STOP_STATE") return "paused";
-    return "idle";
+    return settled.stateOf(num);
   };
 
   // A preset started somewhere else (device button, app) becomes the "last preset" as well
@@ -348,7 +348,8 @@ export default function Devices({
     if (!deviceId) return false;
     const name = presets[num]?.station_name ?? "";
     setFailedPreset(null);
-    setStartingPreset(num);
+    // "starting" lasts until the speaker plays the preset, not until the request returns
+    settled.start(num);
     try {
       await playPresetAPI(deviceId, num);
       if (!isCurrent(deviceId)) return true;
@@ -359,12 +360,11 @@ export default function Devices({
     } catch (err) {
       console.error("Failed to play preset:", err);
       if (isCurrent(deviceId)) {
+        settled.stop();
         setFailedPreset(num);
         setAnnouncement("");
       }
       return false;
-    } finally {
-      if (isCurrent(deviceId)) setStartingPreset(null);
     }
   };
 
@@ -374,6 +374,8 @@ export default function Devices({
     const state = presetState(num);
     const name = presets[num]?.station_name ?? "";
     if (state === "playing" || state === "paused") {
+      // A pause by the user shows at once, without the restart grace time
+      if (state === "playing") settled.release();
       try {
         await togglePlayPause(deviceId);
         if (!isCurrent(deviceId)) return;
@@ -460,7 +462,10 @@ export default function Devices({
         });
       } else if (!hasSource) {
         if (playFallback) await handlePresetToggle(playFallback);
-      } else await togglePlayPause(deviceId);
+      } else {
+        if (isPlaying) settled.release();
+        await togglePlayPause(deviceId);
+      }
     } catch (err) {
       console.error(`[Devices] Key ${key} failed:`, err);
       showToast(getDeviceActionError(t, err, "errors.unknown"), "error");

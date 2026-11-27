@@ -1391,6 +1391,49 @@ describe("Devices Page", () => {
       expect(devicesApi.playPreset).not.toHaveBeenCalled();
     });
 
+    it("a radio preset stays starting until the speaker plays it and playing through a stop", async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
+      const view = render(<Devices devices={mockDevices} />);
+      await waitFor(() => expect(screen.getByTestId("preset-1-play")).toBeInTheDocument());
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("preset-1-play"));
+      });
+      expect(devicesApi.playPreset).toHaveBeenCalledWith("AABBCC123456", 1);
+      // The request returned; the speaker has not reported the station yet.
+      expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "starting");
+
+      const report = (state: string) => {
+        mockNowPlayingState = { source: "INTERNET_RADIO", state, station_name: "SWR3" };
+        view.rerender(<Devices devices={mockDevices} />);
+        return screen.getByTestId("preset-1-play").getAttribute("data-state");
+      };
+      expect(report("BUFFERING_STATE")).toBe("starting");
+      expect(report("PLAY_STATE")).toBe("playing");
+      expect(report("STOP_STATE")).toBe("playing");
+      expect(report("BUFFERING_STATE")).toBe("playing");
+      expect(report("PLAY_STATE")).toBe("playing");
+    });
+
+    it("a pause from the row shows paused at once", async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
+      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
+      const view = render(<Devices devices={mockDevices} />);
+      await waitFor(() =>
+        expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "playing")
+      );
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("preset-1-play"));
+      });
+      mockNowPlayingState = {
+        source: "INTERNET_RADIO",
+        state: "PAUSE_STATE",
+        station_name: "SWR3",
+      };
+      view.rerender(<Devices devices={mockDevices} />);
+      expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "paused");
+    });
+
     it("marks a preset as failed when the start fails and announces it", async () => {
       vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
       vi.mocked(devicesApi.playPreset).mockRejectedValueOnce(new Error("nope"));
