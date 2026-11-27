@@ -1081,6 +1081,7 @@
     "servers": {
       "loading": "Carregando servidores de mídia",
       "searching": "Procurando mais servidores de mídia …",
+      "stillSearching": "Procurando…",
       "searchFailed": "A busca por mais servidores de mídia falhou.",
       "ready": "Pronto",
       "notEnabled": "Não configurado",

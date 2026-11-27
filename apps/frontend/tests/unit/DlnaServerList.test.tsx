@@ -79,7 +79,7 @@ describe("DlnaServerList", () => {
     );
     setup();
     expect(await screen.findByText("uuid:x")).toBeInTheDocument();
-    expect(screen.getByText("Not available")).toBeInTheDocument();
+    expect(await screen.findByText("Not available")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open uuid:x" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove uuid:x" })).toBeInTheDocument();
   });
@@ -93,6 +93,40 @@ describe("DlnaServerList", () => {
     expect(screen.queryByText("Not available")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open uuid:y" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove uuid:y" })).toBeInTheDocument();
+  });
+
+  it("an undiscovered server is still searched for and only removable once the search ends", async () => {
+    let finish: (value: api.NativeServerList) => void = () => {};
+    const gerbera = native("g", "Gerbera", "ready", null, false);
+    vi.mocked(api.getNativeServers).mockImplementation((_id, _signal, discover) =>
+      discover === false
+        ? Promise.resolve(list([gerbera]))
+        : new Promise((resolve) => (finish = resolve))
+    );
+    setup();
+    expect(await screen.findByText("Searching …")).toBeInTheDocument();
+    expect(screen.queryByText("Ready")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove Gerbera" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open Gerbera" })).not.toBeInTheDocument();
+
+    finish(list([gerbera]));
+    expect(await screen.findByRole("button", { name: "Remove Gerbera" })).toBeInTheDocument();
+    expect(screen.queryByText("Searching …")).not.toBeInTheDocument();
+  });
+
+  it("an undiscovered server found by the search becomes openable", async () => {
+    let finish: (value: api.NativeServerList) => void = () => {};
+    vi.mocked(api.getNativeServers).mockImplementation((_id, _signal, discover) =>
+      discover === false
+        ? Promise.resolve(list([native("g", "Gerbera", "ready", null, false)]))
+        : new Promise((resolve) => (finish = resolve))
+    );
+    setup();
+    expect(await screen.findByText("Searching …")).toBeInTheDocument();
+
+    finish(list([native("g", "Gerbera", "ready")]));
+    expect(await screen.findByRole("button", { name: "Open Gerbera" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove Gerbera" })).not.toBeInTheDocument();
   });
 
   it("enable calls the API and refreshes the list", async () => {

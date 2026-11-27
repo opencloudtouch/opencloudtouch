@@ -1081,6 +1081,7 @@
     "servers": {
       "loading": "Mediaservers laden",
       "searching": "Er wordt naar meer mediaservers gezocht …",
+      "stillSearching": "Wordt gezocht…",
       "searchFailed": "Het zoeken naar meer mediaservers is mislukt.",
       "ready": "Gereed",
       "notEnabled": "Niet ingesteld",

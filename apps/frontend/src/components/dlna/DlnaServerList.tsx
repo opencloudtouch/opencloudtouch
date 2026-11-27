@@ -134,11 +134,15 @@ export default function DlnaServerList({ deviceId, onOpenServer }: Readonly<Prop
           // cannot browse it, so it is not openable and stays removable (decision 32).
           const state = s.discovered || s.state === "ready" ? s.state : "unavailable";
           const openable = state === "ready" && s.discovered;
+          // The search may still find it: removable only once the search ended without it.
+          const pending = searching && !s.discovered;
           return (
-            <li key={s.server_id} className="dsl-row" data-state={state}>
+            <li key={s.server_id} className="dsl-row" data-state={pending ? "searching" : state}>
               {/* One action per row: the Open button below opens a ready server. */}
               <span className="dsl-name">{s.name}</span>
-              <span className="dsl-state ui-small">{t(`dlna.servers.${STATE_KEY[state]}`)}</span>
+              <span className="dsl-state ui-small">
+                {pending ? t("dlna.servers.stillSearching") : t(`dlna.servers.${STATE_KEY[state]}`)}
+              </span>
               {state === "not_enabled" && (
                 <button
                   type="button"
@@ -161,7 +165,7 @@ export default function DlnaServerList({ deviceId, onOpenServer }: Readonly<Prop
                   {t("dlna.servers.open")}
                 </button>
               )}
-              {(state === "unavailable" || !s.discovered) && (
+              {!pending && (state === "unavailable" || !s.discovered) && (
                 <button
                   type="button"
                   className="btn btn-outline btn-sm"

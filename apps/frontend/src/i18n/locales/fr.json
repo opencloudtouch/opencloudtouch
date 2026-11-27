@@ -1081,6 +1081,7 @@
     "servers": {
       "loading": "Chargement des serveurs multimédias",
       "searching": "Recherche d’autres serveurs multimédias …",
+      "stillSearching": "Recherche en cours…",
       "searchFailed": "La recherche d’autres serveurs multimédias a échoué.",
       "ready": "Prêt",
       "notEnabled": "Non configuré",

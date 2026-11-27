@@ -220,6 +220,35 @@ describe("DlnaPane", () => {
     expect(select).toHaveFocus();
   });
 
+  it("a server the first scan missed is restored once the full search finds it", async () => {
+    let finish: (value: api.NativeServerList) => void = () => {};
+    vi.mocked(api.getNativeServers).mockImplementation(
+      () => new Promise((resolve) => (finish = resolve))
+    );
+    vi.mocked(api.getDlnaObjectPath)
+      .mockRejectedValueOnce(notFound("dlna_server_not_found"))
+      .mockResolvedValue({
+        server_id: "s1",
+        server_name: "Nas",
+        object_id: "t1",
+        title: "Song",
+        is_container: false,
+        path: [{ object_id: "p1", title: "Parent" }],
+      });
+    setup({ dlna: true, source_account: "s1/0", station_url: "t1 TRACK" });
+    await waitFor(() =>
+      expect(api.getNativeServers).toHaveBeenCalledWith("dev1", expect.anything())
+    );
+    // The pane waits for the full search instead of declaring the server gone.
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
+    expect(screen.queryByText(/no longer available/)).not.toBeInTheDocument();
+
+    finish({ servers: [nas], migration_failed: false, migration_reason: null });
+    expect(await screen.findByRole("button", { name: "Select Song" })).toBeInTheDocument();
+    expect(api.browseDlna).toHaveBeenCalledWith("s1", "p1", 0, undefined, expect.anything());
+    expect(screen.queryByText(/no longer available/)).not.toBeInTheDocument();
+  });
+
   it("vanished saved object shows calm notice and root", async () => {
     vi.mocked(api.getDlnaObjectPath).mockRejectedValue(notFound("dlna_object_not_found"));
     setup({ dlna: true, source_account: "s1/0", station_url: "gone" });

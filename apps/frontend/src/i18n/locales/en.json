@@ -1079,6 +1079,7 @@
     "servers": {
       "loading": "Loading media servers",
       "searching": "Searching for more media servers …",
+      "stillSearching": "Searching …",
       "searchFailed": "The search for more media servers failed.",
       "ready": "Ready",
       "notEnabled": "Not set up",

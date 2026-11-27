@@ -18,25 +18,38 @@ export async function resolveDlnaPrefill(
   // Speaker location: "<objectId>" for folders, "<objectId> TRACK" for tracks; account "<serverId>/0".
   const serverId = (preset.source_account ?? "").replace(/\/0$/, "");
   const objectId = (preset.station_url ?? "").replace(/ TRACK$/, "");
-  try {
+  const fromPath = async (): Promise<DlnaPrefill> => {
     const path = await getDlnaObjectPath(serverId, objectId, signal);
     return {
       server: { id: serverId, name: path.server_name },
       startObjectId: path.path.at(-1)?.object_id ?? "0",
       focusId: objectId,
     };
+  };
+  const codeOf = (err: unknown) => (isApiErrorInstance(err) ? err.code : undefined);
+  try {
+    return await fromPath();
   } catch (err) {
-    const code = isApiErrorInstance(err) ? err.code : undefined;
-    if (code === "dlna_object_not_found") {
-      const list = await getNativeServers(deviceId, signal).catch(() => null);
-      const server = list?.servers.find((s) => s.server_id === serverId);
-      if (server) {
-        return {
-          server: { id: serverId, name: server.name },
-          startObjectId: "0",
-          notice: "objectGone",
-        };
+    let code = codeOf(err);
+    if (code !== "dlna_server_not_found" && code !== "dlna_object_not_found") {
+      return { server: null };
+    }
+    // One SSDP scan can miss a server (e.g. right after a backend start): decide after the full search.
+    const list = await getNativeServers(deviceId, signal).catch(() => null);
+    const server = list?.servers.find((s) => s.server_id === serverId);
+    if (server?.discovered && code === "dlna_server_not_found") {
+      try {
+        return await fromPath();
+      } catch (retryErr) {
+        code = codeOf(retryErr);
       }
+    }
+    if (server && code === "dlna_object_not_found") {
+      return {
+        server: { id: serverId, name: server.name },
+        startObjectId: "0",
+        notice: "objectGone",
+      };
     }
     return {
       server: null,

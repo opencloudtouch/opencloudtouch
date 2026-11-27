@@ -1081,6 +1081,7 @@
     "servers": {
       "loading": "Wczytywanie serwerów multimediów",
       "searching": "Wyszukiwanie kolejnych serwerów multimediów …",
+      "stillSearching": "Wyszukiwanie…",
       "searchFailed": "Wyszukiwanie kolejnych serwerów multimediów nie powiodło się.",
       "ready": "Gotowy",
       "notEnabled": "Nieskonfigurowany",

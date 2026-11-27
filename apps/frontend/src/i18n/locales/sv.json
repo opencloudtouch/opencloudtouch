@@ -1081,6 +1081,7 @@
     "servers": {
       "loading": "Läser in mediaservrar",
       "searching": "Söker efter fler mediaservrar …",
+      "stillSearching": "Söker…",
       "searchFailed": "Sökningen efter fler mediaservrar misslyckades.",
       "ready": "Redo",
       "notEnabled": "Inte konfigurerad",

@@ -1081,6 +1081,7 @@
     "servers": {
       "loading": "Medienserver werden geladen",
       "searching": "Weitere Medienserver werden gesucht …",
+      "stillSearching": "Wird gesucht …",
       "searchFailed": "Die Suche nach weiteren Medienservern ist fehlgeschlagen.",
       "ready": "Bereit",
       "notEnabled": "Nicht eingerichtet",
