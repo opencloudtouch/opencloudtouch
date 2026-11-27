@@ -1,5 +1,7 @@
 """Deterministic in-process DLNA media server for ``OCT_MOCK_MODE`` and tests."""
 
+import re
+
 from opencloudtouch.dlna.models import BrowsePage, DlnaItem, DlnaServer
 
 MOCK_CONTROL_URL = "mock://media-server/control"
@@ -83,3 +85,40 @@ def mock_browse(
 def mock_object(object_id: str) -> DlnaItem:
     """Metadata of one object; KeyError if unknown."""
     return _BY_ID[object_id]
+
+
+MOCK_SEARCH_CAPABILITIES = ["dc:title", "upnp:artist", "upnp:class"]
+_CONTAINS = re.compile(r'contains "((?:[^"\\]|\\.)*)"')
+_DERIVED = re.compile(r'upnp:class derivedfrom "([^"]*)"')
+
+
+def _descendants(container_id: str) -> list[DlnaItem]:
+    found: list[DlnaItem] = []
+    for child in _CHILDREN.get(container_id, []):
+        found.append(child)
+        found.extend(_descendants(child.id))
+    return found
+
+
+def mock_search(
+    container_id: str, criteria: str, starting_index: int, requested_count: int
+) -> BrowsePage:
+    """Title/artist contains (case-insensitive) below a container; KeyError if unknown.
+
+    shortcut: reads only the first quoted ``contains`` term and the class filter,
+    enough for criteria built by DlnaService; parse the full grammar if that changes.
+    """
+    if container_id not in _BY_ID:
+        raise KeyError(container_id)
+    term = _CONTAINS.search(criteria)
+    needle = re.sub(r"\\(.)", r"\1", term.group(1)).casefold() if term else ""
+    derived = _DERIVED.search(criteria)
+    matches = [
+        i
+        for i in _descendants(container_id)
+        if (needle in i.title.casefold() or needle in (i.artist or "").casefold())
+        and (derived is None or (i.media_class or "").startswith(derived.group(1)))
+    ]
+    end = starting_index + requested_count if requested_count else None
+    page = matches[starting_index:end]
+    return BrowsePage(page, len(page), len(matches))

@@ -47,6 +47,7 @@ _DLNA_CODES = {
     "dlna_preset_not_streamable",
     "dlna_migration_failed",
     "dlna_speaker_no_account",
+    "dlna_search_unsupported",
 }
 
 

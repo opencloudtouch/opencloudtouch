@@ -172,6 +172,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/dlna/servers/{server_id}/search": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Search Dlna Server
+     * @description Search the media server's library (UPnP ContentDirectory Search).
+     */
+    get: operations["search_dlna_server_api_dlna_servers__server_id__search_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/dlna/servers/{server_id}/first-child-audio": {
     parameters: {
       query?: never;
@@ -4757,6 +4777,43 @@ export interface operations {
     parameters: {
       query?: {
         object_id?: string;
+        starting_index?: number;
+        requested_count?: number;
+      };
+      header?: never;
+      path: {
+        server_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DlnaBrowseResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  search_dlna_server_api_dlna_servers__server_id__search_get: {
+    parameters: {
+      query: {
+        q: string;
+        container_id?: string;
+        kind?: "all" | "tracks" | "folders";
         starting_index?: number;
         requested_count?: number;
       };

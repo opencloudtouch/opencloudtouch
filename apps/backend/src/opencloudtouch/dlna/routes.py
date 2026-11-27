@@ -1,15 +1,17 @@
 """DLNA API routes."""
 
 from dataclasses import asdict
+from typing import Annotated
 
 from fastapi import APIRouter, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, StringConstraints
 
 from opencloudtouch.core.dependencies import DlnaServiceDep
 from opencloudtouch.core.exceptions import raise_coded
 from opencloudtouch.dlna.client import DlnaBrowseError
 from opencloudtouch.dlna.errors import classify
-from opencloudtouch.dlna.models import DlnaItem
+from opencloudtouch.dlna.models import BrowsePage, DlnaItem
+from opencloudtouch.dlna.service import SearchKind
 
 router = APIRouter(prefix="/api/dlna", tags=["dlna"])
 
@@ -69,6 +71,42 @@ async def browse_dlna_server(
         )
     except (LookupError, DlnaBrowseError) as exc:
         raise_coded(*classify(exc))
+    return _page_response(server_id, object_id, page, starting_index, requested_count)
+
+
+@router.get("/servers/{server_id}/search")
+async def search_dlna_server(
+    server_id: str,
+    service: DlnaServiceDep,
+    q: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=2, max_length=100),
+        Query(),
+    ],
+    container_id: str = Query(default="0", max_length=512),
+    kind: SearchKind = "all",
+    starting_index: int = Query(default=0, ge=0),
+    requested_count: int = Query(default=50, ge=1, le=50),
+) -> DlnaBrowseResponse:
+    """Search the media server's library (UPnP ContentDirectory Search)."""
+    try:
+        page = await service.search_page(
+            server_id, q, kind, container_id, starting_index, requested_count
+        )
+    except (LookupError, DlnaBrowseError) as exc:
+        raise_coded(*classify(exc))
+    return _page_response(
+        server_id, container_id, page, starting_index, requested_count
+    )
+
+
+def _page_response(
+    server_id: str,
+    object_id: str,
+    page: BrowsePage,
+    starting_index: int,
+    requested_count: int,
+) -> DlnaBrowseResponse:
     next_index = starting_index + page.number_returned
     # number_returned also counts filtered-out items, so clients must use has_more.
     has_more = (
