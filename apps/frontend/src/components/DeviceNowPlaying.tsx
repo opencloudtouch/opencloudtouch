@@ -11,6 +11,8 @@ import "./DeviceNowPlaying.css";
 interface DeviceNowPlayingProps {
   readonly nowPlaying: NowPlayingState | null;
   readonly loading?: boolean;
+  /** Name of the saved preset that is playing (the folder or title the user picked). */
+  readonly presetName?: string;
 }
 
 const SOURCE_ICONS: Record<string, () => ReactElement> = {
@@ -40,7 +42,7 @@ function Art({ url, icon }: { readonly url: string; readonly icon?: () => ReactE
 /** The row keeps its height when nothing plays: the card must not grow when the data arrives. */
 const PLACEHOLDER = <div className="dnp dnp--empty" aria-hidden="true" />;
 
-export function DeviceNowPlaying({ nowPlaying, loading }: DeviceNowPlayingProps) {
+export function DeviceNowPlaying({ nowPlaying, loading, presetName }: DeviceNowPlayingProps) {
   const { t } = useTranslation();
   // Only show if actually playing
   if (loading || nowPlaying?.state !== "PLAY_STATE") {
@@ -49,9 +51,11 @@ export function DeviceNowPlaying({ nowPlaying, loading }: DeviceNowPlayingProps)
 
   const title = nowPlaying.track || nowPlaying.station_name;
   const subtitle =
-    nowPlaying.source === "STORED_MUSIC" && nowPlaying.preset_number
-      ? `${t("player.dlna.badge")} · ${t("player.dlna.preset", { number: nowPlaying.preset_number })}`
-      : nowPlaying.artist;
+    nowPlaying.artist ||
+    (nowPlaying.source === "STORED_MUSIC" && nowPlaying.preset_number
+      ? presetName ||
+        `${t("player.dlna.badge")} · ${t("player.dlna.preset", { number: nowPlaying.preset_number })}`
+      : undefined);
 
   // No info available
   if (!title && !subtitle) {

@@ -449,6 +449,15 @@ describe("NowPlaying Component", () => {
       expect(screen.getByText("DLNA · Preset 3")).toBeInTheDocument();
     });
 
+    it("shows the saved preset name with the source badge", () => {
+      render(
+        <NowPlaying nowPlaying={{ ...base, preset_number: 3, preset_name: "00-Greatest Hits" }} />
+      );
+      expect(screen.getByText("00-Greatest Hits")).toBeInTheDocument();
+      expect(screen.queryByText(/Preset 3/)).not.toBeInTheDocument();
+      expect(screen.getByRole("img", { name: "Media library" })).toBeInTheDocument();
+    });
+
     // The backend already puts the matched preset's cover into art_url when the speaker sends none.
     it("uses artwork then preset cover then fallback", () => {
       const { container, rerender } = render(

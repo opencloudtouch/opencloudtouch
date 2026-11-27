@@ -155,13 +155,44 @@ describe("DeviceNowPlaying", () => {
     expect(container.querySelector(".dnp-icon")).toBeInTheDocument();
   });
 
-  it("stored music shows the dlna icon and the preset number", () => {
+  it("stored music preset keeps the artist as subtitle", () => {
     const { container } = render(
       <DeviceNowPlaying
         nowPlaying={makePlaying({ source: "STORED_MUSIC", dlna: true, preset_number: 2 })}
+        presetName="00-Greatest Hits"
       />
     );
     expect(container.querySelector(".dnp-icon")).toBeInTheDocument();
+    expect(screen.getByText("Test Artist")).toBeInTheDocument();
+    expect(screen.queryByText(/Preset 2/)).not.toBeInTheDocument();
+  });
+
+  it("stored music preset without artist shows the preset name", () => {
+    render(
+      <DeviceNowPlaying
+        nowPlaying={makePlaying({
+          source: "STORED_MUSIC",
+          dlna: true,
+          preset_number: 2,
+          artist: undefined,
+        })}
+        presetName="00-Greatest Hits"
+      />
+    );
+    expect(screen.getByText("00-Greatest Hits")).toBeInTheDocument();
+  });
+
+  it("stored music preset without artist or name falls back to the preset number", () => {
+    render(
+      <DeviceNowPlaying
+        nowPlaying={makePlaying({
+          source: "STORED_MUSIC",
+          dlna: true,
+          preset_number: 2,
+          artist: undefined,
+        })}
+      />
+    );
     expect(screen.getByText("DLNA · Preset 2")).toBeInTheDocument();
   });
 

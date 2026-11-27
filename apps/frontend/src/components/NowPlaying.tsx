@@ -26,6 +26,8 @@ export interface NowPlayingData {
   play_status?: string;
   source?: string;
   preset_number?: number | null;
+  /** Name of the matched saved preset (folder or title the user picked). */
+  preset_name?: string;
 }
 
 interface NowPlayingProps {
@@ -86,7 +88,7 @@ const SOURCE_BADGE_MAP: Record<string, SourceBadgeConfig> = {
   },
 };
 
-function getSourceBadge(t: (key: string) => string, source?: string) {
+function getSourceBadge(t: (key: string) => string, source?: string, named = false) {
   if (!source) return null;
   // TUNEIN only gets a badge when resolver is active
   if (source === "TUNEIN" && !HAS_TUNEIN_SUPPORT) return null;
@@ -94,7 +96,8 @@ function getSourceBadge(t: (key: string) => string, source?: string) {
   if (!config) return null;
   const title = t(config.titleKey);
   // Non-radio sources repeat their name as text in the header: hide the badge from screen readers there.
-  const hasTextLabel = getSourceLabel(t, source) !== null;
+  // A named DLNA preset shows its name instead, so the badge alone tells the source.
+  const hasTextLabel = getSourceLabel(t, source) !== null && !named;
   return (
     <div
       className={`ui-source np-source ${config.className}`}
@@ -165,9 +168,11 @@ function getHeaderDisplay(
   t: (key: string, opts?: Record<string, unknown>) => string,
   station?: string,
   source?: string,
-  presetNumber?: number | null
+  presetNumber?: number | null,
+  presetName?: string
 ): string {
   if (source === "STORED_MUSIC") {
+    if (presetName) return presetName;
     const badge = t("player.dlna.badge");
     return presetNumber ? `${badge} · ${t("player.dlna.preset", { number: presetNumber })}` : badge;
   }
@@ -279,10 +284,20 @@ export default function NowPlaying({ nowPlaying, headerLabel, headerAction }: No
   const badge =
     headerAction && SWITCH_SOURCES.has(nowPlaying.source ?? "")
       ? null
-      : getSourceBadge(t, nowPlaying.source);
+      : getSourceBadge(
+          t,
+          nowPlaying.source,
+          nowPlaying.source === "STORED_MUSIC" && !!nowPlaying.preset_name
+        );
   const label =
     headerLabel ??
-    getHeaderDisplay(t, nowPlaying.station, nowPlaying.source, nowPlaying.preset_number);
+    getHeaderDisplay(
+      t,
+      nowPlaying.station,
+      nowPlaying.source,
+      nowPlaying.preset_number,
+      nowPlaying.preset_name
+    );
   // AUX has no cover; Bluetooth often has none: a quiet icon tile instead of a stock picture
   const tile =
     !nowPlaying.art_url && (nowPlaying.source === "AUX" || nowPlaying.source === "BLUETOOTH");

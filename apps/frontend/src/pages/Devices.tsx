@@ -167,6 +167,7 @@ export default function Devices({
         play_status: npState.state,
         source: npState.source,
         preset_number: npState.preset_number,
+        preset_name: presets[npState.preset_number ?? 0]?.station_name,
       }
     : null;
 
