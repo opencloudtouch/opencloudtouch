@@ -1114,6 +1114,8 @@
       "up": "Remonter",
       "loading": "Chargement du dossier",
       "empty": "Ce dossier est vide",
+      "filterLabel": "Filtrer ce dossier",
+      "noMatches": "Aucun élément ne correspond au filtre.",
       "loadMore": "Charger plus",
       "select": "Sélectionner",
       "selectLabel": "Sélectionner {{title}}",

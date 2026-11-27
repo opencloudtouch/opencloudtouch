@@ -1114,6 +1114,8 @@
       "up": "Su",
       "loading": "Caricamento cartella",
       "empty": "Questa cartella è vuota",
+      "filterLabel": "Filtra questa cartella",
+      "noMatches": "Nessun elemento corrisponde al filtro.",
       "loadMore": "Carica altro",
       "select": "Seleziona",
       "selectLabel": "Seleziona {{title}}",

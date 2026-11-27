@@ -1114,6 +1114,8 @@
       "up": "Omhoog",
       "loading": "Map laden",
       "empty": "Deze map is leeg",
+      "filterLabel": "Deze map filteren",
+      "noMatches": "Geen items komen overeen met het filter.",
       "loadMore": "Meer laden",
       "select": "Selecteren",
       "selectLabel": "{{title}} selecteren",

@@ -1112,6 +1112,8 @@
       "up": "Up",
       "loading": "Loading folder",
       "empty": "This folder is empty",
+      "filterLabel": "Filter this folder",
+      "noMatches": "No items match the filter.",
       "loadMore": "Load more",
       "select": "Select",
       "selectLabel": "Select {{title}}",

@@ -1114,6 +1114,8 @@
       "up": "Subir",
       "loading": "Cargando carpeta",
       "empty": "Esta carpeta está vacía",
+      "filterLabel": "Filtrar esta carpeta",
+      "noMatches": "Ningún elemento coincide con el filtro.",
       "loadMore": "Cargar más",
       "select": "Seleccionar",
       "selectLabel": "Seleccionar {{title}}",

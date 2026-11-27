@@ -1114,6 +1114,8 @@
       "up": "Nach oben",
       "loading": "Ordner wird geladen",
       "empty": "Dieser Ordner ist leer",
+      "filterLabel": "Diesen Ordner filtern",
+      "noMatches": "Keine Einträge passen zum Filter.",
       "loadMore": "Mehr laden",
       "select": "Auswählen",
       "selectLabel": "{{title}} auswählen",

@@ -1114,6 +1114,8 @@
       "up": "上へ",
       "loading": "フォルダーを読み込み中",
       "empty": "このフォルダーは空です",
+      "filterLabel": "このフォルダーを絞り込む",
+      "noMatches": "フィルターに一致する項目はありません。",
       "loadMore": "さらに読み込む",
       "select": "選択",
       "selectLabel": "{{title}}を選択",

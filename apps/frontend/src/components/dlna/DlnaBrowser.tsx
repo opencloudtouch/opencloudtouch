@@ -74,6 +74,18 @@ export default function DlnaBrowser({
   const { isFetchingNextPage, fetchNextPage } = folder;
   // A failed next page stops the auto-load: the button below retries it on demand.
   const pageFailed = folder.isFetchNextPageError;
+  const [filter, setFilter] = useState("");
+  const [filterFolder, setFilterFolder] = useState(objectId);
+  // Cleared once the next folder shows: the dimmed previous list keeps its filter meanwhile.
+  if (!stale && filterFolder !== objectId) {
+    setFilterFolder(objectId);
+    setFilter("");
+  }
+  const needle = filter.trim().toLowerCase();
+  // The filter covers the whole folder: every remaining page loads; a failed one stops it.
+  useEffect(() => {
+    if (needle && hasNextPage && !isFetchingNextPage && !pageFailed) void fetchNextPage();
+  }, [needle, hasNextPage, isFetchingNextPage, pageFailed, fetchNextPage]);
   const sentinelRef = useRef<HTMLDivElement>(null);
   // Old browsers and jsdom lack the observer: they keep the "Load more" button.
   const canObserve = typeof IntersectionObserver !== "undefined";
@@ -128,6 +140,9 @@ export default function DlnaBrowser({
   const items = new Map<string, DlnaItem>();
   for (const page of folder.data?.pages ?? []) for (const it of page.items) items.set(it.id, it);
   const list = [...items.values()];
+  const shown = needle
+    ? list.filter((it) => [it.title, it.artist].some((v) => v?.toLowerCase().includes(needle)))
+    : list;
 
   const crumbs = [{ object_id: "0", title: serverName }, ...path];
   return (
@@ -189,8 +204,23 @@ export default function DlnaBrowser({
       )}
       {folder.data && list.length === 0 && <p className="dlb-empty">{t("dlna.browser.empty")}</p>}
       {list.length > 0 && (
+        <input
+          type="search"
+          className="ui-input"
+          placeholder={t("dlna.browser.filterLabel")}
+          aria-label={t("dlna.browser.filterLabel")}
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        />
+      )}
+      {list.length > 0 && shown.length === 0 && (!hasNextPage || pageFailed) && (
+        <p className="dlb-empty" role="status">
+          {t("dlna.browser.noMatches")}
+        </p>
+      )}
+      {shown.length > 0 && (
         <ul className={`dlb-list${stale ? " dlb-list--stale" : ""}`} inert={stale}>
-          {list.map((item) => (
+          {shown.map((item) => (
             <li key={item.id} className="dlb-row">
               <Cover url={item.album_art_url} />
               {item.is_container ? (

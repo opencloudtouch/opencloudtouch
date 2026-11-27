@@ -239,6 +239,72 @@ describe("DlnaBrowser", () => {
     expect(scroll.mock.contexts.at(-1)).toBe(rock);
   });
 
+  describe("filter", () => {
+    const filterBox = () => screen.getByRole("searchbox", { name: "Filter this folder" });
+
+    it("filters the folder by title and artist, case-insensitive, and says when nothing matches", async () => {
+      vi.mocked(api.browseDlna).mockResolvedValue(
+        page([
+          folderItem("f1", "Rock Classics"),
+          { ...track("t1", "Song"), artist: "The ROCKers" },
+          track("t2", "Ballad"),
+        ])
+      );
+      setup();
+      await screen.findByText("Ballad");
+      await userEvent.type(filterBox(), "rock");
+      expect(screen.getByRole("button", { name: "Open folder Rock Classics" })).toBeInTheDocument();
+      expect(screen.getByText("Song")).toBeInTheDocument();
+      expect(screen.queryByText("Ballad")).not.toBeInTheDocument();
+
+      await userEvent.clear(filterBox());
+      await userEvent.type(filterBox(), "jazz");
+      expect(screen.getByText("No items match the filter.")).toBeInTheDocument();
+      expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    });
+
+    it("loads every remaining page while the filter is set", async () => {
+      vi.mocked(api.browseDlna)
+        .mockResolvedValueOnce(page([track("t1", "One")], true, 1))
+        .mockResolvedValueOnce(page([track("t2", "Two")], true, 2))
+        .mockResolvedValueOnce(page([track("t3", "Three")]));
+      setup();
+      await screen.findByText("One");
+      expect(api.browseDlna).toHaveBeenCalledTimes(1);
+      await userEvent.type(filterBox(), "three");
+      expect(await screen.findByText("Three")).toBeInTheDocument();
+      expect(screen.queryByText("One")).not.toBeInTheDocument();
+      expect(api.browseDlna).toHaveBeenCalledTimes(3);
+      expect(api.browseDlna).toHaveBeenLastCalledWith("s1", "0", 2, undefined, expect.anything());
+    });
+
+    it("stops loading pages after a failed page", async () => {
+      vi.mocked(api.browseDlna)
+        .mockResolvedValueOnce(page([track("t1", "One")], true, 1))
+        .mockRejectedValueOnce(new Error("boom"))
+        .mockResolvedValue(page([track("t2", "Two")]));
+      setup();
+      await screen.findByText("One");
+      await userEvent.type(filterBox(), "two");
+      expect(await screen.findByText("The folder could not be loaded.")).toBeInTheDocument();
+      await new Promise((r) => setTimeout(r, 50));
+      expect(api.browseDlna).toHaveBeenCalledTimes(2);
+      expect(screen.getByText("No items match the filter.")).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Load more" }));
+      expect(await screen.findByText("Two")).toBeInTheDocument();
+    });
+
+    it("is cleared when the folder changes", async () => {
+      twoLevels();
+      setup();
+      await screen.findByRole("button", { name: "Open folder Rock" });
+      await userEvent.type(filterBox(), "ro");
+      await userEvent.click(screen.getByRole("button", { name: "Open folder Rock" }));
+      expect(await screen.findByText("Inside")).toBeInTheDocument();
+      expect(filterBox()).toHaveValue("");
+    });
+  });
+
   it("breadcrumb navigates up", async () => {
     twoLevels();
     setup();

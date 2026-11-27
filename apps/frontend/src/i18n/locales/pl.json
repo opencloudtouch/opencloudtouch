@@ -1114,6 +1114,8 @@
       "up": "W górę",
       "loading": "Wczytywanie folderu",
       "empty": "Ten folder jest pusty",
+      "filterLabel": "Filtruj ten folder",
+      "noMatches": "Żaden element nie pasuje do filtra.",
       "loadMore": "Wczytaj więcej",
       "select": "Wybierz",
       "selectLabel": "Wybierz {{title}}",

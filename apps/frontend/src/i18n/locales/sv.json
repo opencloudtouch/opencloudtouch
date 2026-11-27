@@ -1114,6 +1114,8 @@
       "up": "Upp",
       "loading": "Läser in mapp",
       "empty": "Den här mappen är tom",
+      "filterLabel": "Filtrera den här mappen",
+      "noMatches": "Inga objekt matchar filtret.",
       "loadMore": "Läs in fler",
       "select": "Välj",
       "selectLabel": "Välj {{title}}",

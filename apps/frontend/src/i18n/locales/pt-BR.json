@@ -1114,6 +1114,8 @@
       "up": "Subir",
       "loading": "Carregando pasta",
       "empty": "Esta pasta está vazia",
+      "filterLabel": "Filtrar esta pasta",
+      "noMatches": "Nenhum item corresponde ao filtro.",
       "loadMore": "Carregar mais",
       "select": "Selecionar",
       "selectLabel": "Selecionar {{title}}",
