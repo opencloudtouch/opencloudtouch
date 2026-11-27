@@ -265,4 +265,31 @@ describe("useDeviceEvents", () => {
     consoleSpy.mockRestore();
     unmount();
   });
+
+  it("re-creates the EventSource after the browser closed it", () => {
+    vi.useFakeTimers();
+    try {
+      const { unmount } = renderHook(() => useDeviceEvents());
+      act(() => ControllableEventSource.instances[0].simulateError());
+      expect(ControllableEventSource.instances).toHaveLength(1);
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(ControllableEventSource.instances).toHaveLength(2);
+      expect(ControllableEventSource.instances[0].close).toHaveBeenCalled();
+      unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reconnects immediately when the tab becomes visible with a closed source", () => {
+    const { unmount } = renderHook(() => useDeviceEvents());
+    act(() => ControllableEventSource.instances[0].simulateError());
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(ControllableEventSource.instances).toHaveLength(2);
+    unmount();
+  });
 });

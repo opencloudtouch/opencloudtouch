@@ -5,11 +5,12 @@
  * events to subscribers by (eventType, deviceId).
  */
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { octDebug } from "../utils/debug";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 const SSE_URL = `${API_BASE_URL}/api/events/device-stream`;
+const RECONNECT_DELAY_MS = 3000;
 
 export type DeviceEventType =
   | "volume"
@@ -63,6 +64,8 @@ export function useDeviceEvents(): UseDeviceEventsReturn {
   const subscriptionsRef = useRef<Subscription[]>([]);
   const eventSourceRef = useRef<EventSource | null>(null);
   const connectedRef = useRef(false);
+  // Bumping this re-runs the connection effect, which opens a fresh EventSource.
+  const [reconnects, setReconnects] = useState(0);
 
   // Dispatch incoming event to matching subscribers
   const dispatch = useCallback((eventType: DeviceEventType, data: DeviceSSEEvent) => {
@@ -115,22 +118,28 @@ export function useDeviceEvents(): UseDeviceEventsReturn {
       octDebug("SSE", "EventSource connected to " + SSE_URL);
     };
 
+    const reconnect = () => setReconnects((n) => n + 1);
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+
     eventSource.onerror = () => {
       connectedRef.current = false;
-      octDebug("SSE", "EventSource error — will auto-reconnect");
-      // EventSource auto-reconnects on error
+      // The browser retries by itself unless it gave up (CLOSED), e.g. after a server restart.
+      if (eventSource.readyState === EventSource.CLOSED && reconnectTimer === undefined) {
+        octDebug("SSE", "EventSource closed — reconnecting");
+        reconnectTimer = setTimeout(reconnect, RECONNECT_DELAY_MS);
+      }
     };
 
-    // Reconnect on tab visibility change
+    // Reconnect at once when the tab becomes visible again
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible" && eventSource.readyState === EventSource.CLOSED) {
-        // Close old and let useEffect re-run by triggering cleanup
-        eventSource.close();
+        reconnect();
       }
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
+      clearTimeout(reconnectTimer);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       for (const [type, handler] of Object.entries(handlers)) {
         eventSource.removeEventListener(type, handler);
@@ -139,7 +148,7 @@ export function useDeviceEvents(): UseDeviceEventsReturn {
       eventSourceRef.current = null;
       connectedRef.current = false;
     };
-  }, [dispatch]);
+  }, [dispatch, reconnects]);
 
   // Subscribe API: returns an unsubscribe function
   const subscribe = useCallback(
