@@ -390,3 +390,24 @@ async def test_fetch_presets_reads_speaker_and_maps_errors():
     route.return_value = httpx.Response(500)
     with pytest.raises(DeviceConnectionError):
         await fetch_device_presets("192.0.2.10")
+
+
+async def test_display_names_come_from_the_speaker_sources():
+    client = _client(
+        sources=[
+            _source(),
+            SpeakerSource("STORED_MUSIC", "", "UNAVAILABLE", ""),
+            SpeakerSource("AUX", "AUX", "READY", "AUX"),
+        ]
+    )
+    service, _ = _service(client)
+    assert await service.display_names("device-a") == {UDN.lower(): "NAS"}
+    client.close.assert_awaited()
+
+
+async def test_display_names_are_empty_when_the_speaker_fails():
+    client = _client()
+    client.get_source_list.side_effect = DeviceConnectionError("192.0.2.10", "x")
+    service, _ = _service(client)
+    assert await service.display_names("device-a") == {}
+    client.close.assert_awaited()

@@ -93,7 +93,7 @@ class DlnaService:
         known = self._servers.get(server_id)
         if known is not None:
             if self._clock() >= self._cache_expires_at:
-                self._refresh_in_background()
+                self.refresh_in_background()
             return known
         async with self._discovery_lock:
             missing_until = self._missing_ids.get(server_id, 0.0)
@@ -117,7 +117,7 @@ class DlnaService:
 
         return server
 
-    def _refresh_in_background(self) -> None:
+    def refresh_in_background(self) -> None:
         """Start one background discovery; at most one is in flight."""
         if self._refresh_task is None or self._refresh_task.done():
             self._refresh_task = asyncio.create_task(self._background_refresh())

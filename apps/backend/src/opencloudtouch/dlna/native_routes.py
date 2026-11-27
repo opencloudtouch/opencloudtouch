@@ -44,10 +44,11 @@ def _discovered(server: DlnaServer, state: NativeState) -> NativeServer:
     )
 
 
-def _undiscovered(udn: str, state: NativeState) -> NativeServer:
-    # shortcut: the UDN is the name, the speaker's displayName is not read here
+def _undiscovered(
+    udn: str, state: NativeState, name: str | None = None
+) -> NativeServer:
     return NativeServer(
-        server_id=udn, name=udn, state=state.value, discovered=False, host=None
+        server_id=udn, name=name or udn, state=state.value, discovered=False, host=None
     )
 
 
@@ -71,7 +72,12 @@ async def list_native_servers(
     for server in known:
         _, state = states.pop(server.id.lower(), (None, NativeState.NOT_ENABLED))
         servers.append(_discovered(server, state))
-    servers += [_undiscovered(udn, state) for udn, state in states.values()]
+    # Not discovered (yet): the speaker's own name beats the bare UDN.
+    names = await native.display_names(device_id) if states else {}
+    servers += [
+        _undiscovered(udn, state, names.get(udn.lower()))
+        for udn, state in states.values()
+    ]
     _, last_error = await migrations.status(device_id)
     return NativeServerList(
         servers=servers,

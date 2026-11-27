@@ -76,6 +76,24 @@ class DlnaNativeService:
         """States of all registered servers, keyed by the speaker's UDN spelling."""
         return await self._read(device_id, None)
 
+    async def display_names(self, device_id: str) -> dict[str, str]:
+        """The speaker's names of its media servers, keyed by lower-case UDN."""
+        client = self._client_factory(await self._device(device_id))
+        try:
+            sources = await client.get_source_list()
+        except DeviceConnectionError:
+            return {}
+        finally:
+            await client.close()
+        return {
+            s.account[:-2].lower(): s.display_name
+            for s in sources
+            if s.source == "STORED_MUSIC"
+            and s.account.endswith("/0")
+            and len(s.account) > 2
+            and s.display_name
+        }
+
     async def enable(self, device_id: str, server_id: str, name: str) -> NativeState:
         """Register a server through the speaker's own account call (decision 10)."""
         if self._migrations is not None:

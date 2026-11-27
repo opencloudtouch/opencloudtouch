@@ -36,6 +36,7 @@ def _server(udn: str = UDN, name: str = "NAS", host: str = "192.0.2.20") -> Dlna
 def deps():
     native = AsyncMock()
     native.read_states.return_value = {}
+    native.display_names.return_value = {}
     native.enable.return_value = NativeState.READY
     dlna = AsyncMock()
     dlna.get_servers.return_value = [_server()]
@@ -85,6 +86,33 @@ def test_list_without_discovery_uses_known_servers_with_live_states(deps):
         (ORPHAN, "unavailable", False),
     ]
     dlna.get_servers.assert_not_awaited()
+
+
+def test_undiscovered_server_is_named_by_the_speaker(deps):
+    client, native, _, _ = deps
+    native.read_states.return_value = {
+        ORPHAN: NativeState.READY,
+        OTHER: NativeState.UNAVAILABLE,
+    }
+    native.display_names.return_value = {ORPHAN.lower(): "Gerbera"}
+
+    body = client.get(
+        "/api/dlna/native", params={"device_id": "device-a", "discover": "false"}
+    ).json()
+
+    assert [(s["server_id"], s["name"]) for s in body["servers"]] == [
+        (ORPHAN, "Gerbera"),
+        (OTHER, OTHER),
+    ]
+    native.display_names.assert_awaited_once_with("device-a")
+
+
+def test_list_without_undiscovered_servers_skips_the_names(deps):
+    client, native, _, _ = deps
+
+    client.get("/api/dlna/native", params={"device_id": "device-a"})
+
+    native.display_names.assert_not_awaited()
 
 
 def test_list_discovers_by_default(deps):

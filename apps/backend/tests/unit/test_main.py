@@ -83,6 +83,7 @@ def mock_init_services_deps():
         "recents": patch("opencloudtouch.main.RecentsService"),
         "marge": patch("opencloudtouch.main.MargeService"),
         "preset": patch("opencloudtouch.main.PresetService"),
+        "dlna": patch("opencloudtouch.main.DlnaService"),
         "sync": patch("opencloudtouch.main.DeviceSyncService"),
         "device": patch("opencloudtouch.main.DeviceService"),
         "discovery_adapter": patch("opencloudtouch.main.get_discovery_adapter"),
@@ -124,6 +125,24 @@ def _build_init_services_repos():
             "speaker_migration_repo",
         )
     }
+
+
+@pytest.mark.asyncio
+async def test_init_services_starts_one_background_dlna_discovery(
+    mock_init_services_deps,
+):
+    """A fresh start fills the DLNA cache without blocking the startup."""
+    from fastapi import FastAPI
+
+    from opencloudtouch.main import _init_services
+
+    cfg = MagicMock(mock_mode=True, device_polling_enabled=False)
+    cfg.manual_device_ips_list = []
+
+    await _init_services(FastAPI(), cfg, _build_init_services_repos(), MagicMock())
+
+    dlna = mock_init_services_deps["dlna"].return_value
+    dlna.refresh_in_background.assert_called_once_with()
 
 
 @pytest.mark.asyncio

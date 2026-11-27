@@ -188,6 +188,8 @@ async def _init_services(
     logger.info("MargeService initialized")
 
     app.state.dlna_service = DlnaService()
+    # Fills the empty cache after a restart; registered servers would look gone otherwise.
+    app.state.dlna_service.refresh_in_background()
     logger.info("DlnaService initialized")
 
     # Preset service
