@@ -6,10 +6,13 @@ export type TransportKey = "PREV_TRACK" | "PLAY_PAUSE" | "NEXT_TRACK" | "SHUFFLE
 
 interface TransportKeysProps {
   playing: boolean;
-  /** Previous/next only work for sources that know tracks; otherwise they stay visible but disabled. */
-  showSkip: boolean;
-  /** A single track has no queue: previous/next stay visible but inactive. */
-  skipDisabled?: boolean;
+  /** Shuffle/repeat only work for sources that know tracks; otherwise they stay visible but disabled. */
+  showModes: boolean;
+  /** The speaker allows previous / next (skip_previous_enabled / skip_enabled); otherwise visible but disabled. */
+  canPrev: boolean;
+  canNext: boolean;
+  /** False: play has nothing to start (no source and no last preset). */
+  canPlay?: boolean;
   /** AUX: the playback is controlled on the connected device. */
   noControl: boolean;
   disabled: boolean;
@@ -23,8 +26,10 @@ interface TransportKeysProps {
 /** Previous / Play-Pause / Next below the now-playing block. The row is 76px high for every source. */
 export default function TransportKeys({
   playing,
-  showSkip,
-  skipDisabled = false,
+  showModes,
+  canPrev,
+  canNext,
+  canPlay = true,
   noControl,
   disabled,
   busyKey,
@@ -48,16 +53,13 @@ export default function TransportKeys({
     spinner: ReactElement,
     label: string,
     primary = false,
-    inactive = false,
     unsupported = false
   ) => (
     <button
       type="button"
       className={`lc-key${primary ? " lc-key--primary" : ""}`}
-      onClick={inactive ? undefined : () => onKey(id)}
+      onClick={() => onKey(id)}
       disabled={unsupported || disabled || busyKey !== null}
-      aria-disabled={inactive || undefined}
-      title={inactive ? t("player.singleTrackNoSkip") : undefined}
       aria-busy={busyKey === id || undefined}
       aria-label={label}
       data-test={`dv-${id}`}
@@ -79,15 +81,15 @@ export default function TransportKeys({
         Icon.Loader(24),
         t("player.prevTrack"),
         false,
-        skipDisabled,
-        !showSkip
+        !canPrev
       )}
       {key(
         "PLAY_PAUSE",
         playing ? Icon.Pause(32) : Icon.Play(32),
         Icon.Loader(32),
         playing ? t("player.pause") : t("player.play"),
-        true
+        true,
+        !canPlay
       )}
       {key(
         "NEXT_TRACK",
@@ -95,15 +97,14 @@ export default function TransportKeys({
         Icon.Loader(24),
         t("player.nextTrack"),
         false,
-        skipDisabled,
-        !showSkip
+        !canNext
       )}
       <div className="tp-row" data-test="dv-modes">
         <button
           type="button"
           className="tp-key"
           onClick={() => onKey("SHUFFLE")}
-          disabled={!showSkip || shuffle === null || disabled || busyKey !== null}
+          disabled={!showModes || shuffle === null || disabled || busyKey !== null}
           aria-busy={busyKey === "SHUFFLE" || undefined}
           aria-pressed={shuffle === "SHUFFLE_ON"}
           aria-label={t("player.shuffle.label")}
@@ -120,7 +121,7 @@ export default function TransportKeys({
           // The name carries the mode; the class gives the on-state its ring and dot.
           className={`tp-key${repeat === null || repeat === "REPEAT_OFF" ? "" : " tp-key--on"}`}
           onClick={() => onKey("REPEAT")}
-          disabled={!showSkip || repeat === null || disabled || busyKey !== null}
+          disabled={!showModes || repeat === null || disabled || busyKey !== null}
           aria-busy={busyKey === "REPEAT" || undefined}
           aria-label={t("player.repeat.label", {
             mode: t(`player.repeat.${repeat ?? "REPEAT_OFF"}`, { defaultValue: repeat }),

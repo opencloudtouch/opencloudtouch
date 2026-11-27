@@ -4,7 +4,9 @@ import TransportKeys from "../../src/components/TransportKeys";
 
 const base = {
   playing: false,
-  showSkip: true,
+  showModes: true,
+  canPrev: true,
+  canNext: true,
   noControl: false,
   disabled: false,
   busyKey: null,
@@ -23,7 +25,7 @@ describe("TransportKeys", () => {
   });
 
   it("keeps previous/next visible but disabled for radio and offers pause while playing", () => {
-    render(<TransportKeys {...base} showSkip={false} playing />);
+    render(<TransportKeys {...base} showModes={false} canPrev={false} canNext={false} playing />);
 
     expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Previous track" })).toBeDisabled();
@@ -46,20 +48,19 @@ describe("TransportKeys", () => {
     expect(screen.getByRole("button", { name: "Play" })).toBeDisabled();
   });
 
-  it("disables skip with a hint for a single track", () => {
-    const onKey = vi.fn();
-    render(<TransportKeys {...base} skipDisabled onKey={onKey} />);
-    const next = screen.getByRole("button", { name: "Next track" });
-    expect(next).toHaveAttribute("aria-disabled", "true");
-    expect(next).toHaveAttribute("title", "A single track has no queue");
-    fireEvent.click(next);
-    fireEvent.click(screen.getByRole("button", { name: "Previous track" }));
-    expect(onKey).not.toHaveBeenCalled();
+  it("enables previous and next each only when the speaker allows it", () => {
+    const { rerender } = render(<TransportKeys {...base} canPrev={false} />);
+    expect(screen.getByRole("button", { name: "Previous track" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next track" })).toBeEnabled();
+
+    rerender(<TransportKeys {...base} canNext={false} />);
+    expect(screen.getByRole("button", { name: "Previous track" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Next track" })).toBeDisabled();
   });
 
-  it("keeps skip enabled by default", () => {
-    render(<TransportKeys {...base} />);
-    expect(screen.getByRole("button", { name: "Next track" })).not.toHaveAttribute("aria-disabled");
+  it("disables play when there is nothing to start", () => {
+    render(<TransportKeys {...base} canPlay={false} />);
+    expect(screen.getByRole("button", { name: "Play" })).toBeDisabled();
   });
   it("controls stay visible but disabled without settings", () => {
     const onKey = vi.fn();
@@ -75,7 +76,16 @@ describe("TransportKeys", () => {
   });
 
   it("radio shows all keys but disables skip, shuffle and repeat", () => {
-    render(<TransportKeys {...base} showSkip={false} shuffle="SHUFFLE_ON" repeat="REPEAT_ALL" />);
+    render(
+      <TransportKeys
+        {...base}
+        showModes={false}
+        canPrev={false}
+        canNext={false}
+        shuffle="SHUFFLE_ON"
+        repeat="REPEAT_ALL"
+      />
+    );
     expect(screen.getByRole("button", { name: "Shuffle" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Repeat: all" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Next track" })).toBeDisabled();

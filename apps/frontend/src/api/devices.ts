@@ -244,6 +244,9 @@ export interface NowPlayingState {
   /** SHUFFLE_ON/OFF and REPEAT_OFF/ALL/ONE; null when the speaker does not report them. */
   shuffle_setting?: string | null;
   repeat_setting?: string | null;
+  /** The speaker allows next / previous track (false without a source). */
+  skip_enabled?: boolean;
+  skip_previous_enabled?: boolean;
   /** False when the device is unreachable; fields above are then the last known state. */
   online?: boolean;
 }

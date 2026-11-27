@@ -150,6 +150,8 @@ export default function Devices({
   const isDlna = !!npState?.dlna;
   const currentSource = toDeviceSource(source);
   const isPlaying = npState?.state === "PLAY_STATE";
+  // Without a source the speaker has nothing to skip or pause.
+  const hasSource = !!source && !isStandby && source !== "INVALID_SOURCE";
 
   const deviceZone = useMemo(() => {
     if (!deviceId) return null;
@@ -432,6 +434,10 @@ export default function Devices({
     }
   };
 
+  // Play without a source starts the last preset, like a tap on its row. The maintainer asked for
+  // the most recently played item of any kind; the recents store lacks that data (later plan).
+  const playFallback = !hasSource && lastPreset && presets[lastPreset] ? lastPreset : null;
+
   const handleKey = async (key: TransportKey) => {
     if (!deviceId || keyBusy) return;
     setKeyBusy(key);
@@ -452,6 +458,8 @@ export default function Devices({
           shuffle: answer.shuffle_setting,
           repeat: answer.repeat_setting,
         });
+      } else if (!hasSource) {
+        if (playFallback) await handlePresetToggle(playFallback);
       } else await togglePlayPause(deviceId);
     } catch (err) {
       console.error(`[Devices] Key ${key} failed:`, err);
@@ -614,11 +622,10 @@ export default function Devices({
                   )}
                   <TransportKeys
                     playing={isPlaying}
-                    showSkip={!!source && !isRadio && !isStandby && source !== "AUX"}
-                    skipDisabled={
-                      isDlna &&
-                      !!presets[npState?.preset_number ?? 0]?.station_url?.endsWith(" TRACK")
-                    }
+                    showModes={!!source && !isRadio && !isStandby && source !== "AUX"}
+                    canPrev={hasSource && !!npState?.skip_previous_enabled}
+                    canNext={hasSource && !!npState?.skip_enabled}
+                    canPlay={hasSource || playFallback !== null}
                     noControl={source === "AUX"}
                     disabled={controlsLocked || switching !== null}
                     busyKey={keyBusy}

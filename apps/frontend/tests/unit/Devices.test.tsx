@@ -1410,7 +1410,11 @@ describe("Devices Page", () => {
     });
 
     it("shows previous and next for Bluetooth and sends the keys", async () => {
-      mockNowPlayingState = playing("BLUETOOTH", { station_name: "iPhone" });
+      mockNowPlayingState = playing("BLUETOOTH", {
+        station_name: "iPhone",
+        skip_enabled: true,
+        skip_previous_enabled: true,
+      });
       await renderDevices();
 
       await act(async () => {
@@ -1438,9 +1442,57 @@ describe("Devices Page", () => {
       ).toBeInTheDocument();
     });
 
+    const playKey = () =>
+      within(screen.getByRole("group", { name: i18next.t("player.playbackTitle") })).getByRole(
+        "button",
+        { name: "Play" }
+      );
+
+    it("enables previous and next only as far as the speaker allows", async () => {
+      mockNowPlayingState = playing("BLUETOOTH", {
+        skip_enabled: true,
+        skip_previous_enabled: false,
+      });
+      await renderDevices();
+      expect(screen.getByRole("button", { name: "Next track" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Previous track" })).toBeDisabled();
+    });
+
+    it.each([
+      ["INVALID_SOURCE", { source: "INVALID_SOURCE", state: "STOP_STATE" }],
+      ["no now playing", null],
+    ])("without a source (%s) skip stays off and play starts the last preset", async (_l, np) => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
+      window.localStorage.setItem("oct.lastPreset.AABBCC123456", "2");
+      mockNowPlayingState = np && { ...np, skip_enabled: true, skip_previous_enabled: true };
+      await renderDevices();
+      await waitFor(() => expect(screen.getByTestId("preset-2-name")).toBeInTheDocument());
+      expect(screen.getByRole("button", { name: "Next track" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Previous track" })).toBeDisabled();
+
+      await act(async () => {
+        fireEvent.click(playKey());
+      });
+      expect(devicesApi.playPreset).toHaveBeenCalledWith("AABBCC123456", 2);
+      expect(devicesApi.togglePlayPause).not.toHaveBeenCalled();
+    });
+
+    it("without a source and without a last preset play is disabled", async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
+      mockNowPlayingState = { source: "INVALID_SOURCE", state: "STOP_STATE" };
+      await renderDevices();
+      await waitFor(() => expect(screen.getByTestId("preset-2-name")).toBeInTheDocument());
+      expect(playKey()).toBeDisabled();
+    });
+
     describe("shuffle and repeat", () => {
       const settings = (shuffle: string | null, repeat: string | null) =>
-        playing("STORED_MUSIC", { shuffle_setting: shuffle, repeat_setting: repeat });
+        playing("STORED_MUSIC", {
+          shuffle_setting: shuffle,
+          repeat_setting: repeat,
+          skip_enabled: true,
+          skip_previous_enabled: true,
+        });
       const answer = (shuffle: string, repeat: string) => ({
         message: "ok",
         device_id: "AABBCC123456",
@@ -1720,7 +1772,7 @@ describe("Devices Page", () => {
       created_at: "2024-01-01T00:00:00Z",
       updated_at: "2024-01-01T00:00:00Z",
     });
-    const renderWith = async (url2: string) => {
+    const renderWith = async (url2: string, np: Record<string, unknown> = {}) => {
       vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([
         dlnaPreset(1, "http://srv/a"),
         dlnaPreset(2, url2),
@@ -1731,6 +1783,7 @@ describe("Devices Page", () => {
         station_name: "Same Name",
         dlna: true,
         preset_number: 2,
+        ...np,
       };
       await act(async () => {
         render(<Devices devices={mockDevices} />);
@@ -1744,19 +1797,16 @@ describe("Devices Page", () => {
       expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "idle");
     });
 
-    it("track preset disables skip", async () => {
-      await renderWith("http://srv/b TRACK");
-      expect(screen.getByRole("button", { name: "Next track" })).toHaveAttribute(
-        "aria-disabled",
-        "true"
-      );
+    it("a track the speaker cannot skip disables skip", async () => {
+      await renderWith("http://srv/b TRACK", { skip_enabled: false, skip_previous_enabled: false });
+      expect(screen.getByRole("button", { name: "Next track" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Previous track" })).toBeDisabled();
     });
 
-    it("folder preset keeps skip enabled", async () => {
-      await renderWith("http://srv/b");
-      expect(screen.getByRole("button", { name: "Next track" })).not.toHaveAttribute(
-        "aria-disabled"
-      );
+    it("a folder the speaker can skip keeps skip enabled", async () => {
+      await renderWith("http://srv/b", { skip_enabled: true, skip_previous_enabled: true });
+      expect(screen.getByRole("button", { name: "Next track" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Previous track" })).toBeEnabled();
     });
   });
 
