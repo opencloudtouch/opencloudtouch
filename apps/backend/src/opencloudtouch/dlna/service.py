@@ -51,6 +51,10 @@ class DlnaService:
         async with self._discovery_lock:
             return await self._discover_servers()
 
+    def known_servers(self) -> list[DlnaServer]:
+        """Servers found by earlier discoveries; no network access."""
+        return list(self._servers.values())
+
     async def _discover_servers(self) -> list[DlnaServer]:
         """Merge SSDP results without evicting servers missed by UDP discovery."""
         servers = await self.discovery.discover()

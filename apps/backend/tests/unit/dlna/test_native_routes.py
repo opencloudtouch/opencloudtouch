@@ -1,6 +1,6 @@
 """Tests for the per-speaker native media server routes."""
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import FastAPI
@@ -39,6 +39,7 @@ def deps():
     native.enable.return_value = NativeState.READY
     dlna = AsyncMock()
     dlna.get_servers.return_value = [_server()]
+    dlna.known_servers = MagicMock(return_value=[])
     migrations = AsyncMock()
     migrations.status.return_value = (0, None)
     app = FastAPI()
@@ -64,6 +65,35 @@ def test_list_unions_discovered_and_registered(deps):
         (OTHER, "not_enabled", True),
     ]
     native.read_states.assert_awaited_once_with("device-a")
+
+
+
+def test_list_without_discovery_uses_known_servers_with_live_states(deps):
+    client, native, dlna, _ = deps
+    dlna.known_servers.return_value = [_server(OTHER, "Other", "192.0.2.21")]
+    native.read_states.return_value = {
+        OTHER.lower(): NativeState.READY,
+        ORPHAN: NativeState.UNAVAILABLE,
+    }
+
+    body = client.get(
+        "/api/dlna/native", params={"device_id": "device-a", "discover": "false"}
+    ).json()
+
+    assert [(s["server_id"], s["state"], s["discovered"]) for s in body["servers"]] == [
+        (OTHER, "ready", True),
+        (ORPHAN, "unavailable", False),
+    ]
+    dlna.get_servers.assert_not_awaited()
+
+
+def test_list_discovers_by_default(deps):
+    client, _, dlna, _ = deps
+
+    client.get("/api/dlna/native", params={"device_id": "device-a"})
+
+    dlna.get_servers.assert_awaited_once()
+    dlna.known_servers.assert_not_called()
 
 
 def test_registered_not_found_is_listed_unavailable_and_removable(deps):

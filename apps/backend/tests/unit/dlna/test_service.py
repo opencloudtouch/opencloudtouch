@@ -28,6 +28,26 @@ async def test_get_servers():
     assert result == [server]
 
 
+
+@pytest.mark.asyncio
+async def test_known_servers_returns_cache_without_discovery():
+    server = DlnaServer(
+        id="server-1",
+        name="Test Server",
+        location="http://192.0.2.10/device.xml",
+        control_url="http://192.0.2.10/content/control",
+    )
+    discovery = AsyncMock()
+    discovery.discover.return_value = [server]
+    service = DlnaService(discovery=discovery)
+
+    assert service.known_servers() == []
+    await service.get_servers()
+
+    assert service.known_servers() == [server]
+    discovery.discover.assert_awaited_once()
+
+
 @pytest.mark.asyncio
 async def test_browse_server():
     server = DlnaServer(

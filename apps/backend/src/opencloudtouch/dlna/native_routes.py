@@ -57,13 +57,18 @@ async def list_native_servers(
     dlna: DlnaServiceDep,
     migrations: SpeakerMigrationServiceDep,
     device_id: str = Query(...),
+    discover: bool = Query(default=True),
 ) -> NativeServerList:
-    """Discovered servers plus registered ones, with live states (decision 32)."""
+    """Discovered servers plus registered ones, with live states (decision 32).
+
+    ``discover=false`` skips the SSDP scan and uses the servers already known.
+    """
     states = {
         k.lower(): (k, v) for k, v in (await native.read_states(device_id)).items()
     }
     servers = []
-    for server in await dlna.get_servers():
+    known = await dlna.get_servers() if discover else dlna.known_servers()
+    for server in known:
         _, state = states.pop(server.id.lower(), (None, NativeState.NOT_ENABLED))
         servers.append(_discovered(server, state))
     servers += [_undiscovered(udn, state) for udn, state in states.values()]

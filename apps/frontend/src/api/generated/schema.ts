@@ -242,6 +242,8 @@ export interface paths {
     /**
      * List Native Servers
      * @description Discovered servers plus registered ones, with live states (decision 32).
+     *
+     *     ``discover=false`` skips the SSDP scan and uses the servers already known.
      */
     get: operations["list_native_servers_api_dlna_native_get"];
     put?: never;
@@ -4856,6 +4858,7 @@ export interface operations {
     parameters: {
       query: {
         device_id: string;
+        discover?: boolean;
       };
       header?: never;
       path?: never;
