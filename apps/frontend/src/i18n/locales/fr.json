@@ -1123,6 +1123,7 @@
       "selectLabel": "Sélectionner {{title}}",
       "selectFolderLabel": "Sélectionner le dossier entier {{title}}",
       "wholeFolder": "Dossier entier comme préréglage",
+      "folderContents": "Contenu",
       "openLabel": "Ouvrir le dossier {{title}}",
       "retry": "Réessayer",
       "error": "Le dossier n'a pas pu être chargé.",

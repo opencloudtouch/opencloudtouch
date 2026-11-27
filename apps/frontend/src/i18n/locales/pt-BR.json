@@ -1123,6 +1123,7 @@
       "selectLabel": "Selecionar {{title}}",
       "selectFolderLabel": "Selecionar pasta inteira {{title}}",
       "wholeFolder": "Pasta inteira como predefinição",
+      "folderContents": "Conteúdo",
       "openLabel": "Abrir pasta {{title}}",
       "retry": "Tentar novamente",
       "error": "Não foi possível carregar a pasta.",

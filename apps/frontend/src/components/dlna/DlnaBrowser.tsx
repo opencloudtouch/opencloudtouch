@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../Icon";
 import { isApiErrorInstance } from "../../api/types";
@@ -168,6 +168,7 @@ export default function DlnaBrowser({
     current && current.object_id === objectId && !stale && !needle
       ? list.find((it) => !it.is_container)
       : undefined;
+  const contentsId = useId();
   return (
     <div className="dlb" ref={rootRef}>
       <nav className="dlb-crumbs" aria-label={t("dlna.browser.breadcrumb")}>
@@ -278,6 +279,11 @@ export default function DlnaBrowser({
           </button>
         </div>
       )}
+      {current && wholeFolder && (
+        <span id={contentsId} className="dlb-section">
+          {t("dlna.browser.folderContents")}
+        </span>
+      )}
       {list.length > 0 && shown.length === 0 && (!hasNextPage || pageFailed) && (
         <p className="dlb-empty" role="status">
           {t("dlna.browser.noMatches")}
@@ -289,7 +295,11 @@ export default function DlnaBrowser({
         </div>
       )}
       {shown.length > 0 && (
-        <ul className={`dlb-list${stale ? " dlb-list--stale" : ""}`} inert={stale}>
+        <ul
+          className={`dlb-list${stale ? " dlb-list--stale" : ""}`}
+          inert={stale}
+          aria-labelledby={wholeFolder ? contentsId : undefined}
+        >
           {shown.map((item) => (
             <li key={item.id} className="dlb-row">
               <Cover url={item.album_art_url} />

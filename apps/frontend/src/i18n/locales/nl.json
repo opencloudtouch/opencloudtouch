@@ -1123,6 +1123,7 @@
       "selectLabel": "{{title}} selecteren",
       "selectFolderLabel": "Hele map {{title}} selecteren",
       "wholeFolder": "Hele map als preset",
+      "folderContents": "Inhoud",
       "openLabel": "Map {{title}} openen",
       "retry": "Opnieuw proberen",
       "error": "De map kon niet worden geladen.",

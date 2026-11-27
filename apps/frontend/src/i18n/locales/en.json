@@ -1121,6 +1121,7 @@
       "selectLabel": "Select {{title}}",
       "selectFolderLabel": "Select whole folder {{title}}",
       "wholeFolder": "Whole folder as preset",
+      "folderContents": "Contents",
       "openLabel": "Open folder {{title}}",
       "retry": "Retry",
       "error": "The folder could not be loaded.",

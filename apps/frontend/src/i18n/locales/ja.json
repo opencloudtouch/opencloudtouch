@@ -1123,6 +1123,7 @@
       "selectLabel": "{{title}}を選択",
       "selectFolderLabel": "フォルダ全体 {{title}} を選択",
       "wholeFolder": "フォルダ全体をプリセットに",
+      "folderContents": "内容",
       "openLabel": "フォルダー{{title}}を開く",
       "retry": "再試行",
       "error": "フォルダーを読み込めませんでした。",

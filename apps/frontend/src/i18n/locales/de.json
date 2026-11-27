@@ -1123,6 +1123,7 @@
       "selectLabel": "{{title}} auswählen",
       "selectFolderLabel": "Ganzen Ordner {{title}} auswählen",
       "wholeFolder": "Ganzer Ordner als Preset",
+      "folderContents": "Inhalt",
       "openLabel": "Ordner {{title}} öffnen",
       "retry": "Erneut versuchen",
       "error": "Der Ordner konnte nicht geladen werden.",

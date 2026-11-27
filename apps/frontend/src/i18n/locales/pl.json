@@ -1123,6 +1123,7 @@
       "selectLabel": "Wybierz {{title}}",
       "selectFolderLabel": "Wybierz cały folder {{title}}",
       "wholeFolder": "Cały folder jako preset",
+      "folderContents": "Zawartość",
       "openLabel": "Otwórz folder {{title}}",
       "retry": "Spróbuj ponownie",
       "error": "Nie udało się wczytać folderu.",

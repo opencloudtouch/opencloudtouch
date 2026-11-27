@@ -1123,6 +1123,7 @@
       "selectLabel": "Seleccionar {{title}}",
       "selectFolderLabel": "Seleccionar carpeta completa {{title}}",
       "wholeFolder": "Carpeta completa como preset",
+      "folderContents": "Contenido",
       "openLabel": "Abrir carpeta {{title}}",
       "retry": "Reintentar",
       "error": "No se pudo cargar la carpeta.",

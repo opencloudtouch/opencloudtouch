@@ -511,5 +511,22 @@ describe("DlnaBrowser", () => {
       await userEvent.type(screen.getByRole("searchbox"), "so");
       expect(entry("Album")).not.toBeInTheDocument();
     });
+
+    it("labels the list below it as the folder's contents and hides the label with it", async () => {
+      nested();
+      setup();
+      await screen.findByText("Loose");
+      expect(screen.queryByText("Contents")).not.toBeInTheDocument();
+      expect(screen.getByRole("list")).not.toHaveAccessibleName();
+      await userEvent.click(screen.getByRole("button", { name: "Open folder Rock" }));
+      await userEvent.click(await screen.findByRole("button", { name: "Open folder Album" }));
+      await screen.findByText("Song");
+      expect(entry("Album")).toBeInTheDocument();
+      expect(screen.getByRole("list", { name: "Contents" })).toBeInTheDocument();
+      await userEvent.type(screen.getByRole("searchbox"), "so");
+      expect(entry("Album")).not.toBeInTheDocument();
+      expect(screen.queryByText("Contents")).not.toBeInTheDocument();
+      expect(screen.getByRole("list")).not.toHaveAccessibleName();
+    });
   });
 });

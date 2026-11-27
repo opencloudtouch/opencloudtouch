@@ -1123,6 +1123,7 @@
       "selectLabel": "Välj {{title}}",
       "selectFolderLabel": "Välj hela mappen {{title}}",
       "wholeFolder": "Hela mappen som förval",
+      "folderContents": "Innehåll",
       "openLabel": "Öppna mappen {{title}}",
       "retry": "Försök igen",
       "error": "Mappen kunde inte läsas in.",

@@ -49,10 +49,24 @@ button.dlb-crumb:hover {
   padding: var(--space-sm) 0;
   border-bottom: 1px solid var(--color-border);
 }
-/* The open folder as a preset reuses the row grid, so cover, text and button line up with the
-   tracks at every width; only a heavier divider sets it apart from the list below. */
+/* Design: the open folder as a preset reuses the row grid, so cover, text and button line up
+   with the tracks at every width. Hierarchy instead of a rule: the entry heads the album (no
+   divider, title in the medium weight), extra space follows, then a quiet section label sits
+   close to the list it names. */
 .dlb-row--folder {
-  border-bottom: 2px solid var(--color-text-secondary);
+  border-bottom: none;
+}
+.dlb-row--folder .dlb-line:first-child {
+  font-weight: var(--font-weight-medium);
+}
+/* Proximity: more space above the label (the parent gap plus sm) than below it (sm). */
+.dlb-section {
+  margin: var(--space-sm) 0 calc(var(--space-sm) - var(--space-md));
+  color: var(--color-text-secondary);
+  font-size: var(--fs-xs);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .dlb-cover {
   width: 40px;
