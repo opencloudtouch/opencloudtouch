@@ -265,10 +265,14 @@ class DeviceStateManager:
             previous = self.get_state(event.device_id)
             previous_np = previous.now_playing if previous else None
             # T23: a preset whose server is gone fails silently (no errorUpdate).
+            # A finished queue also ends in INVALID_SOURCE, but after STOP_STATE.
+            # shortcut: a press from a stopped source is not flagged, track
+            # nowSelectionUpdated if that case matters.
             entered_invalid_source = (
                 event.now_playing.source == _INVALID_SOURCE
                 and previous_np is not None
                 and previous_np.source != _INVALID_SOURCE
+                and previous_np.state != "STOP_STATE"
             )
             self.update_now_playing(event.device_id, event.now_playing)
         elif event.event_type == EventType.VOLUME and event.volume:

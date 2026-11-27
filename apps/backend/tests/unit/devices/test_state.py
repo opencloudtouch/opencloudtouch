@@ -327,8 +327,8 @@ class TestStateManagerOnEvent:
         assert mgr.get_state("D1").now_playing is np
 
     @staticmethod
-    async def _press(mgr, source):
-        np = NowPlayingInfo(source=source, state="STOP_STATE")
+    async def _press(mgr, source, state="STOP_STATE"):
+        np = NowPlayingInfo(source=source, state=state)
         await mgr.on_event(
             DeviceEvent(
                 device_id="D1", event_type=EventType.NOW_PLAYING, now_playing=np
@@ -346,7 +346,7 @@ class TestStateManagerOnEvent:
     async def test_transition_to_invalid_source_publishes_one_source_error(self):
         """T23: a native preset whose server is gone ends silently in INVALID_SOURCE."""
         mgr = DeviceStateManager()
-        await self._press(mgr, "AUX")
+        await self._press(mgr, "AUX", "PLAY_STATE")  # T24: the wake source plays
         queue = mgr.subscribe()
 
         await self._press(mgr, "INVALID_SOURCE")
@@ -360,9 +360,20 @@ class TestStateManagerOnEvent:
         assert mgr.get_state("D1").now_playing.source == "INVALID_SOURCE"
 
     @pytest.mark.asyncio
+    async def test_end_of_queue_publishes_no_source_error(self):
+        """A finished queue goes STOP_STATE, then INVALID_SOURCE: not a failed press."""
+        mgr = DeviceStateManager()
+        await self._press(mgr, "STORED_MUSIC")  # _press sends STOP_STATE
+        queue = mgr.subscribe()
+
+        await self._press(mgr, "INVALID_SOURCE")
+
+        assert self._source_errors(mgr, queue) == []
+
+    @pytest.mark.asyncio
     async def test_repeated_invalid_source_publishes_no_further_error(self):
         mgr = DeviceStateManager()
-        await self._press(mgr, "AUX")
+        await self._press(mgr, "AUX", "PLAY_STATE")  # T24: the wake source plays
         await self._press(mgr, "INVALID_SOURCE")
         queue = mgr.subscribe()
 
