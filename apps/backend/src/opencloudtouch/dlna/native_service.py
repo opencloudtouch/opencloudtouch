@@ -92,7 +92,17 @@ class DlnaNativeService:
         client = self._client_factory(await self._device(device_id))
         try:
             udn = _speaker_spelling(server_id, await client.list_media_servers())
-            await client.register_media_server(udn, name)
+            try:
+                await client.register_media_server(udn, name)
+            except DeviceConnectionError as e:
+                # 1022: the speaker's Marge account is empty, so a retry never helps.
+                if "error 1022:" not in str(e):
+                    raise
+                raise_coded(
+                    409,
+                    error_codes.DLNA_SPEAKER_NO_ACCOUNT,
+                    "Speaker has no OCT account; finish the speaker setup first",
+                )
             # No re-register and no re-pair loop: waiting is all that can help.
             waited = 0.0
             while udn.lower() not in await self._listed(client):

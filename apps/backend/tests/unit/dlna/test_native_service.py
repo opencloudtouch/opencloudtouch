@@ -251,6 +251,30 @@ async def test_enable_not_listed_returns_unavailable_no_reregister():
     assert sleep.await_count == 3
 
 
+async def test_enable_1022_speaker_without_account_is_409():
+    """Speaker without an OCT account rejects the call with 1022: retry never helps."""
+    client = _client(listed=[UDN])
+    client.register_media_server.side_effect = DeviceConnectionError(
+        "10.0.0.2", "/setMusicServiceAccount error 1022"
+    )
+    service, *_ = _native(client)
+    with pytest.raises(CodedApiError) as exc:
+        await service.enable("device-a", UDN, "NAS")
+    assert exc.value.status_code == 409
+    assert exc.value.code == error_codes.DLNA_SPEAKER_NO_ACCOUNT
+    client.close.assert_awaited()
+
+
+async def test_enable_other_speaker_error_stays_connection_error():
+    client = _client(listed=[UDN])
+    client.register_media_server.side_effect = DeviceConnectionError(
+        "10.0.0.2", "/setMusicServiceAccount error 1005"
+    )
+    service, *_ = _native(client)
+    with pytest.raises(DeviceConnectionError):
+        await service.enable("device-a", UDN, "NAS")
+
+
 async def test_remove_with_slots_409_lists_live_slots():
     client = _client(sources=[_source()])
     service, *_ = _native(client)

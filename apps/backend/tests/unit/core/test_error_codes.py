@@ -46,6 +46,7 @@ _DLNA_CODES = {
     "dlna_folder_no_audio_first",
     "dlna_preset_not_streamable",
     "dlna_migration_failed",
+    "dlna_speaker_no_account",
 }
 
 
