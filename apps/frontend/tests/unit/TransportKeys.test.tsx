@@ -22,12 +22,12 @@ describe("TransportKeys", () => {
     expect(onKey.mock.calls.map((c) => c[0])).toEqual(["PREV_TRACK", "PLAY_PAUSE", "NEXT_TRACK"]);
   });
 
-  it("shows only play/pause for radio and offers pause while playing", () => {
+  it("keeps previous/next visible but disabled for radio and offers pause while playing", () => {
     render(<TransportKeys {...base} showSkip={false} playing />);
 
-    expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Previous track" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Next track" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Previous track" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next track" })).toBeDisabled();
   });
 
   it("shows a note instead of keys for AUX", () => {
@@ -61,15 +61,24 @@ describe("TransportKeys", () => {
     render(<TransportKeys {...base} />);
     expect(screen.getByRole("button", { name: "Next track" })).not.toHaveAttribute("aria-disabled");
   });
-  it("controls hidden without settings", () => {
-    const { rerender } = render(<TransportKeys {...base} shuffle={null} repeat={null} />);
-    expect(screen.queryByRole("button", { name: "Shuffle" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Repeat/ })).not.toBeInTheDocument();
+  it("controls stay visible but disabled without settings", () => {
+    const onKey = vi.fn();
+    render(<TransportKeys {...base} onKey={onKey} shuffle={null} repeat={null} />);
+    const shuffle = screen.getByRole("button", { name: "Shuffle" });
+    const repeat = screen.getByRole("button", { name: /^Repeat/ });
+    expect(shuffle).toBeDisabled();
+    expect(shuffle).toHaveAttribute("aria-pressed", "false");
+    expect(repeat).toBeDisabled();
+    fireEvent.click(shuffle);
+    fireEvent.click(repeat);
+    expect(onKey).not.toHaveBeenCalled();
+  });
 
-    // Radio has no track controls, even when the speaker reports the settings.
-    rerender(<TransportKeys {...base} showSkip={false} shuffle="SHUFFLE_ON" repeat="REPEAT_ALL" />);
-    expect(screen.queryByRole("button", { name: "Shuffle" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Repeat/ })).not.toBeInTheDocument();
+  it("radio shows all keys with the reported settings enabled", () => {
+    render(<TransportKeys {...base} showSkip={false} shuffle="SHUFFLE_ON" repeat="REPEAT_ALL" />);
+    expect(screen.getByRole("button", { name: "Shuffle" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Repeat: all" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Next track" })).toBeDisabled();
   });
 
   it("buttons have accessible names and aria-pressed", () => {
@@ -90,9 +99,9 @@ describe("TransportKeys", () => {
     expect(onKey.mock.calls.map((c) => c[0])).toEqual(["SHUFFLE", "REPEAT"]);
   });
 
-  it("shows only the setting the speaker reports and locks it while a key runs", () => {
+  it("enables only the setting the speaker reports and locks it while a key runs", () => {
     render(<TransportKeys {...base} repeat="REPEAT_ALL" busyKey="REPEAT" />);
-    expect(screen.queryByRole("button", { name: "Shuffle" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Shuffle" })).toBeDisabled();
     const repeat = screen.getByRole("button", { name: "Repeat: all" });
     expect(repeat).toBeDisabled();
     expect(repeat).toHaveAttribute("aria-busy", "true");

@@ -1395,10 +1395,10 @@ describe("Devices Page", () => {
       expect(devicesApi.prevTrack).toHaveBeenCalledWith("AABBCC123456");
     });
 
-    it("shows no previous/next for radio, and a note instead of keys for AUX", async () => {
+    it("disables previous/next for radio, and a note instead of keys for AUX", async () => {
       mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
       const { unmount } = render(<Devices devices={mockDevices} />);
-      expect(screen.queryByRole("button", { name: "Next track" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Next track" })).toBeDisabled();
       expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
       unmount();
 
@@ -1479,12 +1479,12 @@ describe("Devices Page", () => {
         expect(screen.getByRole("button", { name: "Repeat: one" })).toBeInTheDocument();
       });
 
-      it("controls hidden without settings", async () => {
+      it("controls disabled without settings", async () => {
         mockNowPlayingState = settings(null, null);
         await renderDevices();
-        expect(screen.getByRole("button", { name: "Next track" })).toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: "Shuffle" })).not.toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: /^Repeat/ })).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Next track" })).toBeEnabled();
+        expect(screen.getByRole("button", { name: "Shuffle" })).toBeDisabled();
+        expect(screen.getByRole("button", { name: /^Repeat/ })).toBeDisabled();
       });
 
       it("failed key keeps state", async () => {

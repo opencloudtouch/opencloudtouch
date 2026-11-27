@@ -6,7 +6,7 @@ export type TransportKey = "PREV_TRACK" | "PLAY_PAUSE" | "NEXT_TRACK" | "SHUFFLE
 
 interface TransportKeysProps {
   playing: boolean;
-  /** Previous/next only exist for sources that know tracks (Bluetooth, AirPlay, streaming). */
+  /** Previous/next only work for sources that know tracks; otherwise they stay visible but disabled. */
   showSkip: boolean;
   /** A single track has no queue: previous/next stay visible but inactive. */
   skipDisabled?: boolean;
@@ -15,7 +15,7 @@ interface TransportKeysProps {
   disabled: boolean;
   busyKey: TransportKey | null;
   onKey: (key: TransportKey) => void;
-  /** Settings the speaker reports; null/absent = not reported, no control. */
+  /** Settings the speaker reports; null/absent = not reported, the key stays visible but disabled. */
   shuffle?: string | null;
   repeat?: string | null;
 }
@@ -48,13 +48,14 @@ export default function TransportKeys({
     spinner: ReactElement,
     label: string,
     primary = false,
-    inactive = false
+    inactive = false,
+    unsupported = false
   ) => (
     <button
       type="button"
       className={`lc-key${primary ? " lc-key--primary" : ""}`}
       onClick={inactive ? undefined : () => onKey(id)}
-      disabled={disabled || busyKey !== null}
+      disabled={unsupported || disabled || busyKey !== null}
       aria-disabled={inactive || undefined}
       title={inactive ? t("player.singleTrackNoSkip") : undefined}
       aria-busy={busyKey === id || undefined}
@@ -67,20 +68,20 @@ export default function TransportKeys({
 
   return (
     <div
-      className={`lc-transport dv-keys${showSkip ? " dv-keys--tp" : ""}`}
+      className="lc-transport dv-keys dv-keys--tp"
       role="group"
       aria-label={t("player.playbackTitle")}
       data-test="dv-keys"
     >
-      {showSkip &&
-        key(
-          "PREV_TRACK",
-          Icon.SkipBack(24),
-          Icon.Loader(24),
-          t("player.prevTrack"),
-          false,
-          skipDisabled
-        )}
+      {key(
+        "PREV_TRACK",
+        Icon.SkipBack(24),
+        Icon.Loader(24),
+        t("player.prevTrack"),
+        false,
+        skipDisabled,
+        !showSkip
+      )}
       {key(
         "PLAY_PAUSE",
         playing ? Icon.Pause(32) : Icon.Play(32),
@@ -88,62 +89,56 @@ export default function TransportKeys({
         playing ? t("player.pause") : t("player.play"),
         true
       )}
-      {showSkip &&
-        key(
-          "NEXT_TRACK",
-          Icon.SkipForward(24),
-          Icon.Loader(24),
-          t("player.nextTrack"),
-          false,
-          skipDisabled
-        )}
-      {showSkip && (shuffle !== null || repeat !== null) && (
-        <div className="tp-row" data-test="dv-modes">
-          {shuffle !== null && (
-            <button
-              type="button"
-              className="tp-key"
-              onClick={() => onKey("SHUFFLE")}
-              disabled={disabled || busyKey !== null}
-              aria-busy={busyKey === "SHUFFLE" || undefined}
-              aria-pressed={shuffle === "SHUFFLE_ON"}
-              aria-label={t("player.shuffle.label")}
-              data-test="dv-SHUFFLE"
-            >
-              {busyKey === "SHUFFLE" ? (
-                <span className="ui-spin">{Icon.Loader(22)}</span>
-              ) : (
-                Icon.Shuffle(22)
-              )}
-            </button>
-          )}
-          {repeat !== null && (
-            <button
-              type="button"
-              // The name carries the mode; the class gives the on-state its ring and dot.
-              className={`tp-key${repeat === "REPEAT_OFF" ? "" : " tp-key--on"}`}
-              onClick={() => onKey("REPEAT")}
-              disabled={disabled || busyKey !== null}
-              aria-busy={busyKey === "REPEAT" || undefined}
-              aria-label={t("player.repeat.label", {
-                mode: t(`player.repeat.${repeat}`, { defaultValue: repeat }),
-              })}
-              data-test="dv-REPEAT"
-            >
-              {busyKey === "REPEAT" ? (
-                <span className="ui-spin">{Icon.Loader(22)}</span>
-              ) : (
-                Icon.Repeat(22)
-              )}
-              {repeat === "REPEAT_ONE" && (
-                <span className="tp-badge" aria-hidden="true">
-                  1
-                </span>
-              )}
-            </button>
-          )}
-        </div>
+      {key(
+        "NEXT_TRACK",
+        Icon.SkipForward(24),
+        Icon.Loader(24),
+        t("player.nextTrack"),
+        false,
+        skipDisabled,
+        !showSkip
       )}
+      <div className="tp-row" data-test="dv-modes">
+        <button
+          type="button"
+          className="tp-key"
+          onClick={() => onKey("SHUFFLE")}
+          disabled={shuffle === null || disabled || busyKey !== null}
+          aria-busy={busyKey === "SHUFFLE" || undefined}
+          aria-pressed={shuffle === "SHUFFLE_ON"}
+          aria-label={t("player.shuffle.label")}
+          data-test="dv-SHUFFLE"
+        >
+          {busyKey === "SHUFFLE" ? (
+            <span className="ui-spin">{Icon.Loader(22)}</span>
+          ) : (
+            Icon.Shuffle(22)
+          )}
+        </button>
+        <button
+          type="button"
+          // The name carries the mode; the class gives the on-state its ring and dot.
+          className={`tp-key${repeat === null || repeat === "REPEAT_OFF" ? "" : " tp-key--on"}`}
+          onClick={() => onKey("REPEAT")}
+          disabled={repeat === null || disabled || busyKey !== null}
+          aria-busy={busyKey === "REPEAT" || undefined}
+          aria-label={t("player.repeat.label", {
+            mode: t(`player.repeat.${repeat ?? "REPEAT_OFF"}`, { defaultValue: repeat }),
+          })}
+          data-test="dv-REPEAT"
+        >
+          {busyKey === "REPEAT" ? (
+            <span className="ui-spin">{Icon.Loader(22)}</span>
+          ) : (
+            Icon.Repeat(22)
+          )}
+          {repeat === "REPEAT_ONE" && (
+            <span className="tp-badge" aria-hidden="true">
+              1
+            </span>
+          )}
+        </button>
+      </div>
     </div>
   );
 }
