@@ -25,14 +25,31 @@ const list = (
   migration_reason,
 });
 
-function setup(onOpenServer = vi.fn()) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  render(
+function setup(
+  onOpenServer = vi.fn(),
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+) {
+  const view = render(
     <QueryClientProvider client={client}>
       <DlnaServerList deviceId="dev1" onOpenServer={onOpenServer} />
     </QueryClientProvider>
   );
-  return onOpenServer;
+  return Object.assign(onOpenServer, { client, unmount: view.unmount });
+}
+
+/** Mocks the quick (discover=false) and the full list with promises the test settles. */
+function deferred() {
+  const calls: {
+    discover: boolean | undefined;
+    resolve: (v: api.NativeServerList) => void;
+    reject: (e: Error) => void;
+  }[] = [];
+  vi.mocked(api.getNativeServers).mockImplementation(
+    (_id, _signal, discover) =>
+      new Promise((resolve, reject) => calls.push({ discover, resolve, reject }))
+  );
+  const pending = (discover: boolean) => calls.filter((c) => c.discover === discover);
+  return { calls, pending };
 }
 
 describe("DlnaServerList", () => {
@@ -243,5 +260,70 @@ describe("DlnaServerList", () => {
     setup();
     await userEvent.click(await screen.findByRole("button", { name: "Remove Gamma" }));
     expect(screen.getByRole("alertdialog")).toHaveTextContent("Remove Gamma?");
+  });
+  it("starts the full search only after the quick list has settled", async () => {
+    const { calls, pending } = deferred();
+    setup();
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0]?.discover).toBe(false);
+    pending(false)[0]?.resolve(list([native("a", "Alpha", "ready")]));
+    expect(await screen.findByText("Alpha")).toBeInTheDocument();
+    await waitFor(() => expect(pending(true)).toHaveLength(1));
+  });
+
+  it("shows the last list at once when opened again and keeps the search row while it refreshes", async () => {
+    const { pending } = deferred();
+    const first = setup();
+    await waitFor(() => expect(pending(false)).toHaveLength(1));
+    pending(false)[0]?.resolve(list([native("a", "Alpha", "ready")]));
+    await waitFor(() => expect(pending(true)).toHaveLength(1));
+    pending(true)[0]?.resolve(
+      list([native("a", "Alpha", "ready"), native("n", "New", "not_enabled", "10.0.0.9")])
+    );
+    expect(await screen.findByText("New")).toBeInTheDocument();
+    expect(screen.queryByText(/Searching for more media servers/)).not.toBeInTheDocument();
+    first.unmount();
+
+    setup(vi.fn(), first.client);
+    // At 0 ms: the cached full list, no loading state.
+    expect(screen.getByText("Alpha")).toBeInTheDocument();
+    expect(screen.getByText("New")).toBeInTheDocument();
+    expect(screen.queryByText("Loading media servers")).not.toBeInTheDocument();
+    expect(screen.getByText(/Searching for more media servers/)).toBeInTheDocument();
+
+    // The quick list refreshes the known entries, the full search stays pending meanwhile.
+    await waitFor(() => expect(pending(false)).toHaveLength(2));
+    expect(pending(true)).toHaveLength(1);
+    pending(false)[1]?.resolve(list([native("a", "Alpha", "not_enabled")]));
+    expect(await screen.findByRole("button", { name: "Set up Alpha" })).toBeInTheDocument();
+    expect(screen.getByText("New")).toBeInTheDocument();
+    await waitFor(() => expect(pending(true)).toHaveLength(2));
+    expect(screen.getByText(/Searching for more media servers/)).toBeInTheDocument();
+
+    pending(true)[1]?.resolve(list([native("a", "Alpha", "ready")]));
+    await waitFor(() => expect(screen.queryByText("New")).not.toBeInTheDocument());
+    expect(screen.queryByText(/Searching for more media servers/)).not.toBeInTheDocument();
+  });
+
+  it("a failed refresh keeps the last list and shows only the small retry row", async () => {
+    const { pending } = deferred();
+    const first = setup();
+    await waitFor(() => expect(pending(false)).toHaveLength(1));
+    pending(false)[0]?.resolve(list([]));
+    await waitFor(() => expect(pending(true)).toHaveLength(1));
+    pending(true)[0]?.resolve(list([native("a", "Alpha", "ready")]));
+    expect(await screen.findByText("Alpha")).toBeInTheDocument();
+    first.unmount();
+
+    setup(vi.fn(), first.client);
+    await waitFor(() => expect(pending(false)).toHaveLength(2));
+    pending(false)[1]?.reject(new Error("x"));
+    await waitFor(() => expect(pending(true)).toHaveLength(2));
+    pending(true)[1]?.reject(new Error("x"));
+    expect(
+      await screen.findByText("The search for more media servers failed.")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Alpha")).toBeInTheDocument();
+    expect(screen.queryByText("Media servers could not be loaded")).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { HAS_TUNEIN_SUPPORT } from "../config/capabilities";
 import { getErrorMessage, parseApiError } from "../api/types";
 import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
@@ -7,6 +8,7 @@ import StationDetail from "./StationDetail";
 import ConfirmDialog from "./ConfirmDialog";
 import Modal from "./Modal";
 import DlnaPane from "./dlna/DlnaPane";
+import { nativeServersQuery } from "../hooks/useDlna";
 import { Icon } from "./Icon";
 import "./RadioSearch.css";
 import { userErrorMessage } from "../utils/errorMessages";
@@ -374,6 +376,15 @@ function SearchResults({
   );
 }
 
+/** Loads the quick media server list while the dialog is open, so the DLNA tab shows it at once. */
+function PrefetchDlnaServers({ deviceId }: Readonly<{ deviceId: string }>) {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    void queryClient.prefetchQuery(nativeServersQuery(deviceId, false));
+  }, [queryClient, deviceId]);
+  return null;
+}
+
 export default function RadioSearch({
   onStationSelect,
   isOpen,
@@ -534,6 +545,7 @@ export default function RadioSearch({
 
   return (
     <Modal open={isOpen} onClose={() => onClose?.()} size="lg" labelledBy="rs-title">
+      {isOpen && deviceId && _presetNumber ? <PrefetchDlnaServers deviceId={deviceId} /> : null}
       <ConfirmDialog
         open={saveError !== null}
         title={t("presets.manualStreamErrorTitle")}

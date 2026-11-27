@@ -21,16 +21,29 @@ const STATE_KEY = {
 /** Media servers of one speaker with their live state, enable and remove. */
 export default function DlnaServerList({ deviceId, onOpenServer }: Readonly<Props>) {
   const { t } = useTranslation();
-  const native = useNativeServers(deviceId);
   const quick = useNativeServers(deviceId, false);
+  // Both read the speaker first: in parallel the quick list answers several times slower.
+  const native = useNativeServers(deviceId, true, !quick.isFetching);
   const enable = useEnableNativeServer(deviceId);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
   const [removing, setRemoving] = useState<{ id: string; name: string } | null>(null);
 
-  // The quick list of known servers shows until the full search answers; an empty one waits.
-  const data = native.data ?? (quick.data?.servers.length ? quick.data : undefined);
-  if (!data && (native.isLoading || quick.isLoading)) {
+  // The last full list shows at once; a newer quick list refreshes its known servers. Without a
+  // full list the quick list shows until the search answers; an empty one waits.
+  const data =
+    native.data && quick.data && quick.dataUpdatedAt > native.dataUpdatedAt
+      ? {
+          ...quick.data,
+          servers: [
+            ...quick.data.servers,
+            ...native.data.servers.filter(
+              (s) => !quick.data.servers.some((q) => q.server_id === s.server_id)
+            ),
+          ],
+        }
+      : (native.data ?? (quick.data?.servers.length ? quick.data : undefined));
+  if (!data && (native.isPending || quick.isPending)) {
     return (
       <div role="status" aria-busy="true" className="dsl-loading">
         <span className="spinner-small" aria-hidden="true" /> {t("dlna.servers.loading")}
@@ -61,8 +74,9 @@ export default function DlnaServerList({ deviceId, onOpenServer }: Readonly<Prop
   const servers = [...listed].sort(
     (a, b) => Number(b.state === "ready") - Number(a.state === "ready")
   );
-  const searching = !native.data && native.isFetching;
-  const searchFailed = !native.data && !native.isFetching && native.error !== null;
+  // The search row stays while the full search waits for the quick list and while it runs.
+  const searching = native.isPending || native.isFetching || quick.isFetching;
+  const searchFailed = !searching && native.isError;
   if (servers.length === 0) {
     return (
       <div className="dsl-empty">

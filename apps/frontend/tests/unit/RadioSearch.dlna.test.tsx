@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import RadioSearch from "../../src/components/RadioSearch";
@@ -56,6 +56,19 @@ describe("RadioSearch DLNA tab", () => {
     const region = screen.getByRole("region", { name: "DLNA" });
     expect(region).toHaveClass("rs-scroll");
     expect(region).toContainElement(hint);
+  });
+
+  it("loads the quick media server list as soon as the dialog opens", async () => {
+    setup();
+    await waitFor(() =>
+      expect(api.getNativeServers).toHaveBeenCalledWith("dev1", expect.anything(), false)
+    );
+    expect(api.getNativeServers).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not load media servers while the dialog is closed", () => {
+    setup({ isOpen: false });
+    expect(api.getNativeServers).not.toHaveBeenCalled();
   });
 
   it("has no DLNA tab without a device", () => {

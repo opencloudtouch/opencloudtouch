@@ -1,5 +1,7 @@
 /**
- * DLNA hooks: plain per-request state read live from the speaker (decision 35), no SWR cache.
+ * DLNA hooks: state read live from the speaker (decision 35). Exception (maintainer request,
+ * 2026-11-27): the media server lists of a device stay cached, so the DLNA tab shows the last
+ * list at once while the quick list and the full search refresh it.
  */
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,13 +26,16 @@ export function useDlnaServers() {
 }
 
 /** discover=false is the quick list of known servers; both share the invalidated key prefix. */
-export function useNativeServers(deviceId: string, discover = true) {
-  return useQuery({
-    queryKey: ["dlna", "native", deviceId, discover],
-    queryFn: ({ signal }) => getNativeServers(deviceId, signal, discover),
-    staleTime: 0,
-    gcTime: GC_TIME_MS,
-  });
+export const nativeServersQuery = (deviceId: string, discover: boolean) => ({
+  queryKey: ["dlna", "native", deviceId, discover],
+  queryFn: ({ signal }: { signal: AbortSignal }) => getNativeServers(deviceId, signal, discover),
+  // Always refetched on mount, but the last list stays for an instant display.
+  staleTime: 0,
+  gcTime: Infinity,
+});
+
+export function useNativeServers(deviceId: string, discover = true, enabled = true) {
+  return useQuery({ ...nativeServersQuery(deviceId, discover), enabled });
 }
 
 function useNativeMutation<T, V>(deviceId: string, fn: (vars: V) => Promise<T>) {
