@@ -1,6 +1,7 @@
 """DLNA application service."""
 
 import asyncio
+import logging
 import time
 from collections.abc import Callable
 from dataclasses import replace
@@ -20,6 +21,8 @@ MAX_PATH_DEPTH = 16
 ALBUM_SEARCH_MAX_CALLS = 20
 ALBUM_SEARCH_MAX_DEPTH = 3
 ALBUM_CLASS = "object.container.album.musicAlbum"
+
+logger = logging.getLogger(__name__)
 
 
 class DlnaService:
@@ -45,6 +48,7 @@ class DlnaService:
         self._last_discovery_empty = False
         self._discovery_lock = asyncio.Lock()
         self._missing_ids: dict[str, float] = {}
+        self._refresh_task: asyncio.Task[None] | None = None
 
     async def get_servers(self) -> list[DlnaServer]:
         """Explicitly refresh the list of available DLNA media servers."""
@@ -81,7 +85,16 @@ class DlnaService:
         return list(self._servers.values())
 
     async def resolve(self, server_id: str) -> DlnaServer:
-        """Find a server, refreshing discovery only when necessary."""
+        """Find a server, refreshing discovery only when necessary.
+
+        A known server is returned at once, even from an expired cache: SSDP takes
+        seconds, so the refresh then runs in the background (stale-while-revalidate).
+        """
+        known = self._servers.get(server_id)
+        if known is not None:
+            if self._clock() >= self._cache_expires_at:
+                self._refresh_in_background()
+            return known
         async with self._discovery_lock:
             missing_until = self._missing_ids.get(server_id, 0.0)
             if self._clock() >= self._cache_expires_at or (
@@ -103,6 +116,20 @@ class DlnaService:
             raise LookupError(f"DLNA server not found: {server_id}")
 
         return server
+
+    def _refresh_in_background(self) -> None:
+        """Start one background discovery; at most one is in flight."""
+        if self._refresh_task is None or self._refresh_task.done():
+            self._refresh_task = asyncio.create_task(self._background_refresh())
+
+    async def _background_refresh(self) -> None:
+        try:
+            async with self._discovery_lock:
+                # Another caller may have refreshed while this task waited.
+                if self._clock() >= self._cache_expires_at:
+                    await self._discover_servers()
+        except Exception as exc:  # a failed refresh keeps the cached servers
+            logger.warning("Background DLNA discovery failed: %s", type(exc).__name__)
 
     async def browse_page(
         self,

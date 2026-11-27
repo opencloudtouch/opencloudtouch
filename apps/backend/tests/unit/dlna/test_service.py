@@ -113,14 +113,18 @@ async def test_browse_reuses_discovered_server_without_new_ssdp():
     assert client.browse.await_count == 2
 
 
-@pytest.mark.asyncio
-async def test_cache_expires_and_refreshes():
-    server = DlnaServer(
+def _server() -> DlnaServer:
+    return DlnaServer(
         id="server-1",
         name="NAS",
         location="http://192.0.2.10/device.xml",
         control_url="http://192.0.2.10/control",
     )
+
+
+@pytest.mark.asyncio
+async def test_expired_cache_refreshes_in_the_background():
+    server = _server()
     clock = [100.0]
     discovery = AsyncMock()
     discovery.discover.return_value = [server]
@@ -131,10 +135,30 @@ async def test_cache_expires_and_refreshes():
     await service.get_servers()
     clock[0] = 129.0
     await service.browse_page(server.id)
-    assert discovery.discover.await_count == 1
+    assert service._refresh_task is None
     clock[0] = 131.0
     await service.browse_page(server.id)
+    await service._refresh_task
     assert discovery.discover.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_failed_background_refresh_keeps_the_cached_server(caplog):
+    server = _server()
+    clock = [100.0]
+    discovery = AsyncMock()
+    discovery.discover.side_effect = [[server], OSError("ssdp")]
+    service = DlnaService(
+        discovery=discovery, client=AsyncMock(), cache_ttl=30.0, clock=lambda: clock[0]
+    )
+    await service.get_servers()
+    clock[0] = 131.0
+
+    assert await service.resolve(server.id) == server
+    await service._refresh_task
+
+    assert "Background DLNA discovery failed: OSError" in caplog.text
+    assert await service.resolve(server.id) == server
 
 
 @pytest.mark.asyncio
@@ -156,13 +180,9 @@ async def test_missing_server_triggers_refresh_and_404():
 
 
 @pytest.mark.asyncio
-async def test_concurrent_browse_refreshes_expired_cache_only_once():
-    server = DlnaServer(
-        id="server-1",
-        name="NAS",
-        location="http://192.0.2.10/device.xml",
-        control_url="http://192.0.2.10/control",
-    )
+async def test_expired_known_server_never_waits_for_discovery():
+    """Stale-while-revalidate: browses return during a slow SSDP, one refresh runs."""
+    server = _server()
     clock = [100.0]
     discovery = AsyncMock()
     discovery.discover.return_value = [server]
@@ -174,26 +194,23 @@ async def test_concurrent_browse_refreshes_expired_cache_only_once():
 
     await service.get_servers()
     clock[0] = 131.0
-    entered = asyncio.Event()
     release = asyncio.Event()
 
     async def slow_discovery():
-        entered.set()
         await release.wait()
         return [server]
 
     discovery.discover.side_effect = slow_discovery
-    tasks = [
-        asyncio.create_task(service.browse_page(server.id, folder))
-        for folder in ("a", "b", "c")
-    ]
-    await asyncio.wait_for(entered.wait(), timeout=1)
-    await asyncio.sleep(0)
-    assert discovery.discover.await_count == 2
-    release.set()
-    await asyncio.wait_for(asyncio.gather(*tasks), timeout=1)
-    assert discovery.discover.await_count == 2
+    await asyncio.wait_for(
+        asyncio.gather(*(service.browse_page(server.id, f) for f in ("a", "b", "c"))),
+        timeout=1,
+    )
     assert client.browse.await_count == 3
+    await asyncio.sleep(0)
+    assert discovery.discover.await_count == 2  # one refresh in flight
+    release.set()
+    await service._refresh_task
+    assert discovery.discover.await_count == 2
 
 
 @pytest.mark.asyncio
