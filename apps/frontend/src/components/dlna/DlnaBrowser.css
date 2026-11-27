@@ -15,6 +15,9 @@
   margin: 0;
   padding: 0;
 }
+.dlb-list--stale {
+  opacity: 0.6;
+}
 .dlb-row {
   display: flex;
   align-items: center;

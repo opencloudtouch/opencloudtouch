@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Profiler } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -35,12 +36,25 @@ const page = (
   has_more,
 });
 
+/** Every committed list state, deduplicated: the row titles, "empty" or "none" (no list). */
+let lists: string[] = [];
+function recordList() {
+  const ul = document.querySelector(".dlb-list");
+  const titles = [...(ul?.querySelectorAll(".dlb-title") ?? [])].map((e) => e.textContent?.trim());
+  let state = titles.join("|");
+  if (!ul) state = document.querySelector(".dlb-empty") ? "empty" : "none";
+  if (lists.at(-1) !== state) lists.push(state);
+}
+
 function setupWithContainer(props: Partial<React.ComponentProps<typeof DlnaBrowser>> = {}) {
   const onSelect = vi.fn();
   const client = new QueryClient();
+  lists = [];
   const view = render(
     <QueryClientProvider client={client}>
-      <DlnaBrowser serverId="s1" serverName="Nas" onSelect={onSelect} {...props} />
+      <Profiler id="browser" onRender={recordList}>
+        <DlnaBrowser serverId="s1" serverName="Nas" onSelect={onSelect} {...props} />
+      </Profiler>
     </QueryClientProvider>
   );
   return { onSelect, container: view.container };
@@ -131,7 +145,6 @@ describe("DlnaBrowser", () => {
     expect(screen.queryByText("The folder could not be loaded.")).not.toBeInTheDocument();
   });
 
-
   const twoLevels = () =>
     vi
       .mocked(api.browseDlna)
@@ -147,6 +160,83 @@ describe("DlnaBrowser", () => {
     expect(await screen.findByText("Inside")).toBeInTheDocument();
     expect(api.browseDlna).toHaveBeenCalledWith("s1", "f1", 0, undefined, expect.anything());
     expect(onPathChange).toHaveBeenLastCalledWith("f1");
+  });
+
+  it("opening a folder keeps the old list until the new one renders, without a path request", async () => {
+    let resolveFolder: (p: api.DlnaBrowsePage) => void = () => {};
+    vi.mocked(api.browseDlna).mockImplementation((_s, objectId) =>
+      objectId === "f1"
+        ? new Promise((r) => (resolveFolder = r))
+        : Promise.resolve(page([folderItem("f1", "Rock")]))
+    );
+    setup();
+    await userEvent.click(await screen.findByRole("button", { name: "Open folder Rock" }));
+    expect(screen.getByRole("button", { name: "Rock" })).toHaveAttribute(
+      "aria-current",
+      "location"
+    );
+    resolveFolder(page([track("t1", "Inside")]));
+    expect(await screen.findByText("Inside")).toBeInTheDocument();
+    expect(lists).toEqual(["none", "Rock", "Inside"]);
+    expect(api.getDlnaObjectPath).not.toHaveBeenCalled();
+  });
+
+  it("a start folder is browsed directly: the root list never shows", async () => {
+    vi.mocked(api.getDlnaObjectPath).mockResolvedValue({
+      server_id: "s1",
+      server_name: "Nas",
+      object_id: "p1",
+      title: "Parent",
+      is_container: true,
+      path: [],
+    });
+    vi.mocked(api.browseDlna).mockImplementation(async (_s, objectId) =>
+      objectId === "p1" ? page([track("t1", "Song")]) : page([folderItem("f1", "Rock")])
+    );
+    setup({ startObjectId: "p1", focusObjectId: "t1" });
+    expect(await screen.findByRole("button", { name: "Parent" })).toHaveAttribute(
+      "aria-current",
+      "location"
+    );
+    expect(screen.getByRole("button", { name: "Select Song" })).toHaveFocus();
+    expect(lists).toEqual(["none", "Song"]);
+    expect(api.browseDlna).not.toHaveBeenCalledWith("s1", "0", 0, undefined, expect.anything());
+  });
+
+  it("a new browser opens at the root and ignores a folder left in the session", async () => {
+    sessionStorage.setItem("oct.dlna.folder.s1", "f9");
+    twoLevels();
+    setup();
+    expect(await screen.findByRole("button", { name: "Open folder Rock" })).toBeInTheDocument();
+    expect(api.getDlnaObjectPath).not.toHaveBeenCalled();
+    expect(api.browseDlna).toHaveBeenCalledTimes(1);
+  });
+
+  it("going up focuses and centres the folder the user came from", async () => {
+    vi.mocked(api.browseDlna).mockImplementation(async (_s, objectId) => {
+      if (objectId === "f1") return page([folderItem("f2", "Deep")]);
+      if (objectId === "f2") return page([track("t1", "Inside")]);
+      return page([folderItem("f0", "Jazz"), folderItem("f1", "Rock")]);
+    });
+    const scroll = vi.mocked(Element.prototype.scrollIntoView);
+    setup();
+    await userEvent.click(await screen.findByRole("button", { name: "Open folder Rock" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open folder Deep" }));
+    expect(await screen.findByText("Inside")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Up" }));
+    const deep = await screen.findByRole("button", { name: "Select Deep" });
+    await waitFor(() => expect(deep).toHaveFocus());
+    expect(scroll.mock.contexts.at(-1)).toBe(deep);
+    expect(scroll).toHaveBeenLastCalledWith({ block: "center" });
+
+    // A breadcrumb two levels up focuses the top folder of the way back.
+    await userEvent.click(screen.getByRole("button", { name: "Open folder Deep" }));
+    expect(await screen.findByText("Inside")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Nas" }));
+    const rock = await screen.findByRole("button", { name: "Select Rock" });
+    await waitFor(() => expect(rock).toHaveFocus());
+    expect(scroll.mock.contexts.at(-1)).toBe(rock);
   });
 
   it("breadcrumb navigates up", async () => {

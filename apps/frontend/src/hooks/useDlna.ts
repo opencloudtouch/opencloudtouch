@@ -4,7 +4,13 @@
  * list at once while the quick list and the full search refresh it.
  */
 
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   browseDlna,
   disableNativeServer,
@@ -54,7 +60,10 @@ export const useDisableNativeServer = (deviceId: string) =>
     disableNativeServer(deviceId, serverId, force)
   );
 
-/** One folder, paged by `has_more`; one request per page, nothing is prefetched. */
+/**
+ * One folder, paged by `has_more`; one request per page, nothing is prefetched. The previous
+ * folder stays as placeholder until the new one answers, so the list never blanks out.
+ */
 export function useDlnaFolder(serverId: string, objectId: string) {
   return useInfiniteQuery({
     queryKey: ["dlna", "browse", serverId, objectId],
@@ -65,6 +74,7 @@ export function useDlnaFolder(serverId: string, objectId: string) {
     staleTime: 0,
     gcTime: GC_TIME_MS,
     retry: false,
+    placeholderData: keepPreviousData,
   });
 }
 

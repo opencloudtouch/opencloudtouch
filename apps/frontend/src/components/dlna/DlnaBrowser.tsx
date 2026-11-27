@@ -1,18 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../Icon";
 import { isApiErrorInstance } from "../../api/types";
 import type { DlnaItem } from "../../api/dlna";
 import { useDlnaFolder, useDlnaObjectPath } from "../../hooks/useDlna";
 import AlbumViewButton from "./AlbumViewButton";
-import { getLastFolder, setLastFolder } from "./session";
 import "./DlnaBrowser.css";
 
 interface Props {
   serverId: string;
   serverName: string;
   startObjectId?: string;
-  /** Row that gets keyboard focus on arrival (the saved object when editing). */
+  /** Row that gets keyboard focus and is centred on arrival (the saved object when editing). */
   focusObjectId?: string;
   onSelect: (item: DlnaItem, parentId: string) => void;
   onPathChange?: (objectId: string) => void;
@@ -49,11 +48,13 @@ export default function DlnaBrowser({
   busy = false,
 }: Readonly<Props>) {
   const { t } = useTranslation();
-  // Opens at startObjectId, else the folder remembered for this server, else the root.
-  const [start, setStart] = useState(() => startObjectId ?? getLastFolder(serverId) ?? "0");
+  // Opens at startObjectId (editing a saved preset), else at the root.
+  const [start, setStart] = useState(startObjectId ?? "0");
   // null = the start folder's ancestors are still being resolved
   const [stack, setStack] = useState<Crumb[] | null>(start === "0" ? [] : null);
   const [notice, setNotice] = useState(false);
+  // The saved object on arrival, after going up the folder the user came from.
+  const [focusId, setFocusId] = useState(focusObjectId);
   const startPath = useDlnaObjectPath(serverId, stack === null ? start : undefined);
   // The API path lists the ancestors only; the start folder itself is the last crumb.
   const path =
@@ -64,9 +65,13 @@ export default function DlnaBrowser({
           { object_id: startPath.data.object_id, title: startPath.data.title },
         ]
       : []);
-  const objectId = path.at(-1)?.object_id ?? "0";
+  // The start folder is browsed while its ancestors resolve: the root never shows in between.
+  const objectId = stack ? (stack.at(-1)?.object_id ?? "0") : start;
   const folder = useDlnaFolder(serverId, objectId);
-  const { hasNextPage, isFetchingNextPage, fetchNextPage } = folder;
+  // The previous folder stays visible but inert until the new one answers.
+  const stale = folder.isPlaceholderData;
+  const hasNextPage = folder.hasNextPage && !stale;
+  const { isFetchingNextPage, fetchNextPage } = folder;
   // A failed next page stops the auto-load: the button below retries it on demand.
   const pageFailed = folder.isFetchNextPageError;
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -85,21 +90,28 @@ export default function DlnaBrowser({
     return () => io.disconnect();
   }, [canObserve, hasNextPage, isFetchingNextPage, pageFailed, fetchNextPage]);
 
+  // Going up focuses the folder the way back started from; going down focuses nothing.
   const go = (next: Crumb[]) => {
     setStack(next);
     setNotice(false);
-    const id = next.at(-1)?.object_id ?? "0";
-    setLastFolder(serverId, id);
-    onPathChange?.(id);
+    setFocusId(path[next.length]?.object_id);
+    onPathChange?.(next.at(-1)?.object_id ?? "0");
   };
 
+  // A folder with an unknown breadcrumb (the album view): its ancestors are resolved.
   const openFolder = (id: string) => {
     setStart(id);
     setStack(null);
     setNotice(false);
-    setLastFolder(serverId, id);
+    setFocusId(undefined);
     onPathChange?.(id);
   };
+
+  // Stable, so it runs once when the row mounts, not on every render.
+  const focusRow = useCallback((el: HTMLButtonElement | null) => {
+    el?.focus({ preventScroll: true });
+    el?.scrollIntoView({ block: "center" });
+  }, []);
 
   const code = isApiErrorInstance(folder.error) ? folder.error.code : undefined;
   const pathGone =
@@ -109,9 +121,8 @@ export default function DlnaBrowser({
     if (!gone) return;
     setStack([]);
     setNotice(true);
-    setLastFolder(serverId, "0");
     onPathChange?.("0");
-  }, [gone, serverId, onPathChange]);
+  }, [gone, onPathChange]);
 
   // A library change between pages can repeat an item; the id keeps it once.
   const items = new Map<string, DlnaItem>();
@@ -178,7 +189,7 @@ export default function DlnaBrowser({
       )}
       {folder.data && list.length === 0 && <p className="dlb-empty">{t("dlna.browser.empty")}</p>}
       {list.length > 0 && (
-        <ul className="dlb-list">
+        <ul className={`dlb-list${stale ? " dlb-list--stale" : ""}`} inert={stale}>
           {list.map((item) => (
             <li key={item.id} className="dlb-row">
               <Cover url={item.album_art_url} />
@@ -201,7 +212,7 @@ export default function DlnaBrowser({
                 type="button"
                 className="btn btn-secondary"
                 aria-label={t("dlna.browser.selectLabel", { title: item.title })}
-                autoFocus={item.id === focusObjectId}
+                ref={item.id === focusId ? focusRow : undefined}
                 disabled={busy}
                 onClick={() => onSelect(item, objectId)}
               >
