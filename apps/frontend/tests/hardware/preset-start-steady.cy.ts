@@ -38,12 +38,12 @@ const rowSelector = `[data-testid="preset-${preset}"]`;
     cy.visit(`/?device=${encodeURIComponent(deviceId)}`);
     cy.get(rowSelector, { timeout: 20000 }).should("exist");
 
-    // A playing or paused row would toggle instead of start: leave the preset first.
+    // A playing or paused row would toggle instead of start; switching the source for the
+    // tester is not this test's call, so it stops and asks for another preset.
     cy.get(rowSelector).then((row) => {
-      if (rowState(row[0] ?? null) !== "idle") {
-        cy.request("PUT", api("/source"), { source: "AUX" });
-        cy.get(rowSelector, { timeout: 15000 }).should("not.have.class", "pr--paused");
-        cy.get(rowSelector).should("not.have.class", "pr--playing");
+      const state = rowState(row[0] ?? null);
+      if (state !== "idle") {
+        throw new Error(`Preset row is "${state}": choose a preset that is not the current one`);
       }
     });
 
