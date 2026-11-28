@@ -34,6 +34,14 @@ button.dlb-crumb:hover {
   flex: none;
   color: var(--color-text-tertiary);
 }
+/* The filter belongs to the list: it stays at the top of the scroll area. */
+.dlb-filter {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 12px 0 var(--space-sm);
+  background: var(--color-bg-card);
+}
 .dlb-list {
   list-style: none;
   margin: 0;

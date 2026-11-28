@@ -129,6 +129,48 @@
   border-radius: 1px;
   background: var(--primary-text);
 }
+/* DLNA navigation in one 44 px row: up | server icon > path | album view. The path never
+   wraps: parents shrink with an ellipsis first, the current folder is cut last. */
+.rs-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+.rs-nav > .btn-icon {
+  color: var(--color-text-secondary);
+}
+.rs-nav .dlb-crumbs {
+  flex: 1;
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
+}
+.rs-nav .dlb-crumb {
+  display: block;
+  flex: 0 4 auto;
+  min-width: 2.5em;
+  line-height: var(--touch-target-min);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-nav .dlb-crumb--current {
+  flex-shrink: 1;
+  min-width: 4em;
+}
+.rs-nav .dlb-crumb--root {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target-min);
+  min-width: 0;
+  padding: 0;
+}
+.rs-nav .rs-album {
+  flex: none;
+}
 /* delete-preset row: footer of the dialog (destructive, rarely used, away from the controls at the top and from the close button) */
 .rs-foot {
   flex: none;
@@ -201,6 +243,10 @@
 }
 .rs-dlna {
   padding-top: var(--space-md);
+}
+/* The sticky filter heads the list right under its top border and brings its own top space. */
+.rs-dlna:has(> .dlp > .dlb:first-child > .dlb-filter:first-child) {
+  padding-top: 0;
 }
 .rs-scroll:focus-visible {
   outline-offset: -2px;
@@ -341,6 +387,26 @@
   }
   .rs-src {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* only server icon > last parent > current folder; the up button reaches the hidden levels */
+  .rs-nav .rs-mid {
+    display: none;
+  }
+  .rs-nav .dlb-crumb--current {
+    flex-shrink: 0;
+    max-width: 60%;
+  }
+  .rs-nav .rs-album {
+    width: var(--touch-target-min);
+    padding: 0;
+  }
+  .rs-nav .rs-album .dlb-lbl {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 }
 /* ---- short screens (phone in landscape, keyboard open): the whole dialog scrolls as one sheet instead of leaving 100px for the results ---- */

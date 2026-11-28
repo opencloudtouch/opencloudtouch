@@ -158,6 +158,15 @@ export const Icon = {
       s,
       <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
     ),
+  Server: (s = 18) =>
+    svg(
+      s,
+      <>
+        <rect width="20" height="8" x="2" y="2" rx="2" />
+        <rect width="20" height="8" x="2" y="14" rx="2" />
+        <path d="M6 6h.01M6 18h.01" />
+      </>
+    ),
   Save: (s = 18) =>
     svg(
       s,

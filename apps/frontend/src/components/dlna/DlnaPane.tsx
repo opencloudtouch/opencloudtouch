@@ -14,6 +14,8 @@ interface Props {
   existingPreset?: Pick<Preset, "dlna" | "source_account" | "station_url"> | null;
   /** The page saves: the dialog closes at once and the slot shows the progress. */
   onSave: (request: DlnaSaveRequest) => void;
+  /** Dialog head slot for the browser's folder navigation. */
+  navTarget?: HTMLElement | null;
 }
 
 interface Selection {
@@ -39,6 +41,7 @@ export default function DlnaPane({
   presetNumber,
   existingPreset,
   onSave,
+  navTarget,
 }: Readonly<Props>) {
   const { t } = useTranslation();
   const editing = !!existingPreset?.dlna;
@@ -111,7 +114,6 @@ export default function DlnaPane({
 
   return (
     <div className="dlp">
-      <p className="ui-small">{t("dlna.pane.hint", { number: presetNumber })}</p>
       {prefill.notice && (
         <div className="wz-status" role="status">
           <span className="wz-icon" aria-hidden="true">
@@ -123,27 +125,20 @@ export default function DlnaPane({
         </div>
       )}
       {server ? (
-        <>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => {
-              setServer(null);
-              setWarn(null);
-            }}
-          >
-            {t("dlna.pane.allServers")}
-          </button>
-          <DlnaBrowser
-            key={server.id}
-            serverId={server.id}
-            serverName={server.name}
-            startObjectId={resumeHere ? prefill.startObjectId : undefined}
-            focusObjectId={resumeHere ? prefill.focusId : undefined}
-            onSelect={(item, parentId, index) => void select(item, parentId, index)}
-            busy={busy}
-          />
-        </>
+        <DlnaBrowser
+          key={server.id}
+          serverId={server.id}
+          serverName={server.name}
+          startObjectId={resumeHere ? prefill.startObjectId : undefined}
+          focusObjectId={resumeHere ? prefill.focusId : undefined}
+          onSelect={(item, parentId, index) => void select(item, parentId, index)}
+          busy={busy}
+          onAllServers={() => {
+            setServer(null);
+            setWarn(null);
+          }}
+          navTarget={navTarget}
+        />
       ) : (
         <DlnaServerList deviceId={deviceId} onOpenServer={(id, name) => setServer({ id, name })} />
       )}

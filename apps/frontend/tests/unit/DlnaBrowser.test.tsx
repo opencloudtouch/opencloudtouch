@@ -374,6 +374,53 @@ describe("DlnaBrowser", () => {
     expect(nav.querySelectorAll(".dlb-sep[aria-hidden='true']")).toHaveLength(1);
   });
 
+  it("keeps the path on one line: full names in titles, middle crumbs marked for narrow screens", async () => {
+    vi.mocked(api.browseDlna).mockImplementation(async (_s, objectId) => {
+      if (objectId === "f1") return page([folderItem("f2", "Jazz")]);
+      if (objectId === "f2") return page([track("t1", "Inside")]);
+      return page([folderItem("f1", "Rock")]);
+    });
+    setup({ onAllServers: vi.fn() });
+    await userEvent.click(await screen.findByRole("button", { name: "Open folder Rock" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open folder Jazz" }));
+    expect(await screen.findByText("Inside")).toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: "Folder path" });
+    // server icon > Nas > Rock > Jazz: only the icon, the last parent and the current folder stay
+    const server = within(nav).getByRole("button", { name: "All media servers" });
+    expect(server).toHaveAttribute("title", "All media servers");
+    expect(within(nav).getByRole("button", { name: "Nas" })).toHaveClass("rs-mid");
+    const parent = within(nav).getByRole("button", { name: "Rock" });
+    expect(parent).not.toHaveClass("rs-mid");
+    expect(parent).toHaveAttribute("title", "Rock");
+    expect(within(nav).getByText("Jazz")).toHaveAttribute("title", "Jazz");
+    const seps = nav.querySelectorAll(".dlb-sep");
+    expect(seps).toHaveLength(3);
+    expect([...seps].map((s) => s.classList.contains("rs-mid"))).toEqual([true, false, false]);
+  });
+
+  it("the server icon leads back to all media servers", async () => {
+    vi.mocked(api.browseDlna).mockResolvedValue(page([track("t1", "Song")]));
+    const onAllServers = vi.fn();
+    setup({ onAllServers });
+    await userEvent.click(await screen.findByRole("button", { name: "All media servers" }));
+    expect(onAllServers).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the navigation into the given head slot and heads the list with the filter", async () => {
+    vi.mocked(api.browseDlna).mockResolvedValue(page([track("t1", "Song")]));
+    const slot = document.createElement("div");
+    document.body.append(slot);
+    const { container } = setupWithContainer({ navTarget: slot });
+    expect(await screen.findByText("Song")).toBeInTheDocument();
+    const nav = within(slot).getByRole("navigation", { name: "Folder path" });
+    expect(within(nav).getByRole("button", { name: "Open album view" })).toHaveClass("rs-album");
+    expect(container.querySelector("nav")).toBeNull();
+    const filter = container.querySelector(".dlb")!.firstElementChild!;
+    expect(filter).toHaveClass("dlb-filter");
+    expect(within(filter as HTMLElement).getByRole("searchbox")).toBeInTheDocument();
+    slot.remove();
+  });
+
   it("shows the fallback icon when a cover fails to load", async () => {
     vi.mocked(api.browseDlna).mockResolvedValue(
       page([{ ...track("t1", "Song"), album_art_url: "http://nas/a.jpg" }])

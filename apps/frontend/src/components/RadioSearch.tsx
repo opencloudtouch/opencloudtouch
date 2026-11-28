@@ -430,6 +430,8 @@ export default function RadioSearch({
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  // Head slot the DLNA browser renders its folder navigation into.
+  const [navSlot, setNavSlot] = useState<HTMLDivElement | null>(null);
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -558,9 +560,16 @@ export default function RadioSearch({
   const urlInvalid = isInvalidUrlInput(manualUrl);
   const faviconInvalid = isInvalidUrlInput(manualFavicon);
   const manualFormIncomplete = !manualName.trim() || !isValidHttpUrl(manualUrl) || faviconInvalid;
+  const dlnaOpen = searchMode === "dlna" && !!deviceId && !!_presetNumber;
 
   return (
-    <Modal open={isOpen} onClose={() => onClose?.()} size="lg" labelledBy="rs-title">
+    <Modal
+      open={isOpen}
+      onClose={() => onClose?.()}
+      size="lg"
+      labelledBy="rs-title"
+      describedBy={dlnaOpen && !detailUuid ? "rs-dlna-hint" : undefined}
+    >
       {isOpen && deviceId && _presetNumber ? <PrefetchDlnaServers deviceId={deviceId} /> : null}
       <ConfirmDialog
         open={saveError !== null}
@@ -692,15 +701,20 @@ export default function RadioSearch({
                 )}
               </div>
             )}
+            {dlnaOpen && <div className="rs-ctx" ref={setNavSlot} />}
           </div>
 
-          {searchMode === "dlna" && deviceId && _presetNumber ? (
+          {dlnaOpen && deviceId && _presetNumber ? (
             <section
               className="rs-scroll rs-dlna"
               tabIndex={0} // NOSONAR(S6845): scrollable region must be keyboard-focusable (WCAG 2.1.1)
               aria-label={t("dlna.pane.tab")}
             >
+              <p id="rs-dlna-hint" className="visually-hidden">
+                {t("dlna.pane.hint", { number: _presetNumber })}
+              </p>
               <DlnaPane
+                navTarget={navSlot}
                 deviceId={deviceId}
                 presetNumber={_presetNumber}
                 existingPreset={existingPreset}
