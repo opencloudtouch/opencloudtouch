@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { getFirstChildAudio, type DlnaItem, type DlnaSaveRequest } from "../../api/dlna";
+import { dlnaPrefillKey } from "../../hooks/useDlna";
 import { Icon } from "../Icon";
 import type { Preset } from "../PresetRow";
 import DlnaBrowser from "./DlnaBrowser";
@@ -47,9 +49,18 @@ export default function DlnaPane({
   const editing = !!existingPreset?.dlna;
   const account = existingPreset?.source_account;
   const url = existingPreset?.station_url;
+  const queryClient = useQueryClient();
+  // A reopen starts at the location resolved last time; the fresh answer only refreshes the cache.
+  const [cached] = useState(() =>
+    editing
+      ? queryClient.getQueryData<DlnaPrefill>(dlnaPrefillKey(deviceId, account, url))
+      : undefined
+  );
   // null = the saved location is still being resolved
-  const [prefill, setPrefill] = useState<DlnaPrefill | null>(editing ? null : { server: null });
-  const [server, setServer] = useState<{ id: string; name: string } | null>(null);
+  const [prefill, setPrefill] = useState<DlnaPrefill | null>(
+    cached ?? (editing ? null : { server: null })
+  );
+  const [server, setServer] = useState(cached?.server ?? null);
   const [warn, setWarn] = useState<Warning | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -58,14 +69,22 @@ export default function DlnaPane({
     const controller = new AbortController();
     resolveDlnaPrefill(deviceId, { source_account: account, station_url: url }, controller.signal)
       .then((p) => {
+        if (controller.signal.aborted) return;
+        const key = dlnaPrefillKey(deviceId, account, url);
+        // Failures and notices are never cached: the next open asks again.
+        if (p.server && !p.notice) {
+          queryClient.setQueryDefaults(key, { gcTime: Infinity });
+          queryClient.setQueryData(key, p);
+        } else queryClient.removeQueries({ queryKey: key, exact: true });
+        if (cached) return;
         setPrefill(p);
         setServer(p.server);
       })
       .catch(() => {
-        if (!controller.signal.aborted) setPrefill({ server: null });
+        if (!controller.signal.aborted && !cached) setPrefill({ server: null });
       });
     return () => controller.abort();
-  }, [editing, deviceId, account, url]);
+  }, [editing, deviceId, account, url, queryClient, cached]);
 
   if (!prefill) {
     return (

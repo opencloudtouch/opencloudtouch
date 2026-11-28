@@ -1,7 +1,9 @@
 /**
  * DLNA hooks: state read live from the speaker (decision 35). Exception (maintainer request,
  * 2026-11-27): the media server lists of a device stay cached, so the DLNA tab shows the last
- * list at once while the quick list and the full search refresh it.
+ * list at once while the quick list and the full search refresh it. Likewise (2026-11-28) the
+ * folders and paths of the browser stay for the session: a reopened preset shows its saved
+ * location at once while every query revalidates in the background.
  */
 
 import {
@@ -21,6 +23,15 @@ import {
 } from "../api/dlna";
 
 const GC_TIME_MS = 5_000;
+
+/** Where a saved preset opens (resolveDlnaPrefill); only a resolved location is stored. */
+export const dlnaPrefillKey = (deviceId: string, account?: string | null, url?: string) => [
+  "dlna",
+  "prefill",
+  deviceId,
+  account,
+  url,
+];
 
 export function useDlnaServers() {
   return useQuery({
@@ -72,7 +83,7 @@ export function useDlnaFolder(serverId: string, objectId: string) {
     initialPageParam: 0,
     getNextPageParam: (last) => (last.has_more ? last.next_index : undefined),
     staleTime: 0,
-    gcTime: GC_TIME_MS,
+    gcTime: Infinity,
     retry: false,
     placeholderData: keepPreviousData,
   });
@@ -84,7 +95,7 @@ export function useDlnaObjectPath(serverId: string, objectId: string | undefined
     queryFn: ({ signal }) => getDlnaObjectPath(serverId, objectId ?? "0", signal),
     enabled: objectId !== undefined && objectId !== "0",
     staleTime: 0,
-    gcTime: GC_TIME_MS,
+    gcTime: Infinity,
     retry: false,
   });
 }

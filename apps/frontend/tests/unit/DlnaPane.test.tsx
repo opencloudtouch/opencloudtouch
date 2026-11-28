@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import DlnaPane from "../../src/components/dlna/DlnaPane";
@@ -35,9 +35,11 @@ const notFound = (code: string) => new ApiError("nope", { status: 404, code });
 const warning =
   "The first item in this folder is not a song (for example a cover image). The speaker may not be able to play it. Save anyway?";
 
-function setup(existingPreset?: React.ComponentProps<typeof DlnaPane>["existingPreset"]) {
+function setup(
+  existingPreset?: React.ComponentProps<typeof DlnaPane>["existingPreset"],
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+) {
   const onSave = vi.fn();
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
       <DlnaPane deviceId="dev1" presetNumber={2} existingPreset={existingPreset} onSave={onSave} />
@@ -218,6 +220,78 @@ describe("DlnaPane", () => {
       "location"
     );
     expect(select).toHaveFocus();
+  });
+
+  describe("reopening a saved preset", () => {
+    const saved = { dlna: true, source_account: "s1/0", station_url: "t1 TRACK" };
+    const songPath: api.DlnaObjectPath = {
+      server_id: "s1",
+      server_name: "Nas",
+      object_id: "t1",
+      title: "Song",
+      is_container: false,
+      path: [{ object_id: "p1", title: "Parent" }],
+    };
+    const parentPath: api.DlnaObjectPath = {
+      server_id: "s1",
+      server_name: "Nas",
+      object_id: "p1",
+      title: "Parent",
+      is_container: true,
+      path: [],
+    };
+    const never = <T,>() => new Promise<T>(() => {});
+
+    async function openOnce(client: QueryClient) {
+      setup(saved, client);
+      expect(await screen.findByRole("button", { name: "Select Song" })).toHaveFocus();
+      cleanup();
+    }
+
+    beforeEach(() => {
+      vi.mocked(api.getDlnaObjectPath).mockImplementation(async (_s, objectId) =>
+        objectId === "t1" ? songPath : parentPath
+      );
+      vi.mocked(api.browseDlna).mockResolvedValue(page([item("t1", "Song", false)]));
+    });
+
+    it("shows the saved location from the cache on the first render, without a spinner", async () => {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      await openOnce(client);
+      // The revalidation never answers: nothing may wait for it.
+      vi.mocked(api.getDlnaObjectPath).mockImplementation(never);
+      vi.mocked(api.browseDlna).mockImplementation(never);
+      setup(saved, client);
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+      expect(screen.getByText("Parent", { selector: "[aria-current]" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Select Song" })).toHaveFocus();
+    });
+
+    it("updates the list from the background revalidation without moving the user", async () => {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      await openOnce(client);
+      let answer: (p: api.DlnaBrowsePage) => void = () => {};
+      vi.mocked(api.browseDlna).mockClear();
+      vi.mocked(api.browseDlna).mockImplementation(() => new Promise((r) => (answer = r)));
+      setup(saved, client);
+      await waitFor(() => expect(api.browseDlna).toHaveBeenCalled());
+      answer(page([item("t1", "Song", false), item("t2", "New song", false)]));
+      expect(await screen.findByRole("button", { name: "Select New song" })).toBeInTheDocument();
+      expect(screen.getByText("Parent", { selector: "[aria-current]" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Select Song" })).toHaveFocus();
+    });
+
+    it("never caches a failed lookup: the next open asks again", async () => {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      vi.mocked(api.getDlnaObjectPath).mockRejectedValue(new Error("offline"));
+      setup(saved, client);
+      expect(await screen.findByRole("button", { name: "Open Nas" })).toBeInTheDocument();
+      cleanup();
+      vi.mocked(api.getDlnaObjectPath).mockImplementation(never);
+      setup(saved, client);
+      expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
+      expect(api.getDlnaObjectPath).toHaveBeenCalledTimes(2);
+    });
   });
 
   it("a server the first scan missed is restored once the full search finds it", async () => {
