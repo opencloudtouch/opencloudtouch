@@ -25,21 +25,109 @@
 .rs-search {
   padding-left: 12px;
 }
-.rs-chips {
+/* Control bar: the source switch first (never moves), then the context row of that source
+   (search tabs + input, stream URL, or the DLNA navigation). */
+.rs-bar {
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   padding: 0 var(--space-md) 12px 20px;
 }
-/* The chips never change their width when the selection changes: no check mark here, the selection shows as the blue fill
-   (a check mark made the chips jump when switching between providers and the stream URL). */
-.rs-chips .ui-chip[aria-pressed="true"]::before {
-  content: none;
+.rs-ctx {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
 }
-/* second cue besides the blue fill that does not change the chip width: 2 px frame (1 px border + 1 px inset, same box size) */
-.rs-chips .ui-chip[aria-pressed="true"] {
-  box-shadow: inset 0 0 0 1px currentColor;
+.rs-ctx:empty {
+  display: none;
+}
+/* Source: one joined segmented control; the selection shows as tint + 2 px inner frame, no size change */
+.rs-src {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  padding: 1px;
+  min-inline-size: 0;
+  border: 1px solid var(--ui-control-border);
+  border-radius: var(--border-radius-sm);
+  background: var(--ui-control-border);
+  overflow: hidden;
+}
+.rs-src button {
+  min-width: 0;
+  min-height: var(--touch-target-min);
+  padding: 0 var(--space-sm);
+  border-radius: 0;
+  background: var(--color-bg-card);
+  color: var(--text-primary);
+  font-size: var(--fs-body);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background var(--motion-base);
+}
+.rs-src button:hover {
+  background: var(--bg-tertiary);
+}
+.rs-src button[aria-pressed="true"] {
+  background:
+    linear-gradient(rgba(var(--primary-rgb), 0.2), rgba(var(--primary-rgb), 0.2)),
+    var(--color-bg-card);
+  box-shadow: inset 0 0 0 2px var(--primary-color);
+  color: #fff;
+}
+.rs-src button:focus-visible {
+  outline-offset: -4px;
+}
+/* Search mode (providers only): underlined text tabs right above the input */
+.rs-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-xs);
+  min-width: 0;
+}
+.rs-sub-label {
+  font-size: var(--fs-small);
+  color: var(--color-text-secondary);
+}
+.rs-sub-seg {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  min-inline-size: 0;
+  border: 0;
+}
+.rs-sub-seg button {
+  position: relative;
+  min-height: var(--touch-target-min);
+  padding: 0 12px;
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--fs-body);
+  font-weight: var(--font-weight-medium);
+}
+.rs-sub-seg button:hover {
+  color: var(--color-text-primary);
+  background: var(--bg-tertiary);
+}
+.rs-sub-seg button[aria-pressed="true"] {
+  color: #fff;
+}
+.rs-sub-seg button[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 7px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--primary-text);
 }
 /* delete-preset row: footer of the dialog (destructive, rarely used, away from the controls at the top and from the close button) */
 .rs-foot {
@@ -234,42 +322,25 @@
   margin-top: 8px;
 }
 @media (prefers-reduced-motion: reduce) {
-  .rs-item {
+  .rs-item,
+  .rs-src button {
     transition: none;
   }
 }
 
-/* chips first, then ONE input row (search or stream URL): the controls stay where they are for every provider */
-.rs-field {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 0 var(--space-md) 12px 20px;
-}
-.rs-field[hidden] {
-  display: none;
-}
 .rs-url-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-/* ---- phones: the chips take up to three rows, so claw back vertical space ---- */
+/* ---- phones: the source switch takes two rows, so claw back vertical space ---- */
 @media (max-width: 600px) {
   .rs-head {
     padding-bottom: 4px;
   }
-  .rs-chips {
-    gap: 4px;
-    padding-bottom: 8px;
-  }
-  .rs-chips .ui-chip {
-    padding-inline: 12px;
-  }
-  .rs-field {
-    padding-bottom: 8px;
+  .rs-src {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 /* ---- short screens (phone in landscape, keyboard open): the whole dialog scrolls as one sheet instead of leaving 100px for the results ---- */

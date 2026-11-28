@@ -1,5 +1,5 @@
 ﻿import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import RadioSearch from "../../src/components/RadioSearch";
 import { i18next } from "../../src/i18n";
 
@@ -107,15 +107,46 @@ describe("RadioSearch Component", () => {
     expect(screen.getByPlaceholderText("e.g. SWR3, BBC Radio…")).toHaveValue("rock");
   });
 
-  it("shows the provider/type chips above the single input row in every mode", () => {
+  it("shows the source switch above the search-mode tabs, which sit right above the input", () => {
     const { container } = render(
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
-    const order = (el: Element | null) => Array.from(container.querySelectorAll(".rs-chips, .rs-field")).indexOf(el!);
-
-    expect(order(container.querySelector(".rs-chips"))).toBeLessThan(order(container.querySelector(".rs-field")));
+    const bar = container.querySelector(".rs-bar")!;
+    expect(bar.firstElementChild).toHaveClass("rs-src");
+    const ctx = bar.querySelector(".rs-ctx")!;
+    expect(ctx.firstElementChild).toHaveClass("rs-sub");
+    expect(ctx.lastElementChild).toHaveClass("rs-search");
     fireEvent.click(container.querySelector('[data-test="manual-stream-mode"]')!);
-    expect(order(container.querySelector(".rs-chips"))).toBeLessThan(order(container.querySelector(".rs-field")));
+    expect(bar.firstElementChild).toHaveClass("rs-src");
+    expect(bar.querySelector(".rs-ctx [data-test='manual-stream-url']")).not.toBeNull();
+  });
+
+  it("joins the sources in one group of pressable buttons", () => {
+    render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+    const group = screen.getByRole("group", { name: "Source" });
+    expect(group).toHaveClass("rs-src");
+    const buttons = within(group).getAllByRole("button");
+    expect(buttons.map((b) => b.textContent)).toEqual(["TuneIn", "RadioBrowser", "Stream URL"]);
+    expect(buttons[0]).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(buttons[2]);
+    expect(buttons[0]).toHaveAttribute("aria-pressed", "false");
+    expect(buttons[2]).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("offers the search-mode tabs for the providers only", () => {
+    const { container } = render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+    const tabs = screen.getByRole("group", { name: "Search by" });
+    expect(tabs).toHaveClass("rs-sub-seg");
+    expect(container.querySelector(".rs-sub-label")).toHaveTextContent("Search by");
+    fireEvent.click(container.querySelector('[data-test="manual-stream-mode"]')!);
+    expect(screen.queryByRole("group", { name: "Search by" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Name" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "RadioBrowser" }));
+    expect(screen.getByRole("button", { name: "Name" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("renders search type chips", () => {
@@ -748,8 +779,8 @@ describe("RadioSearch Component", () => {
       );
 
       // The provider row must still offer the manual mode with a single provider.
-      const chipRows = container.querySelectorAll(".ui-chips");
-      expect(chipRows.length).toBe(2);
+      expect(container.querySelectorAll(".rs-src")).toHaveLength(1);
+      expect(container.querySelectorAll(".rs-sub-seg")).toHaveLength(1);
       expect(container.textContent).toContain("RadioBrowser");
       expect(container.textContent).not.toContain("TuneIn");
 
@@ -766,8 +797,8 @@ describe("RadioSearch Component", () => {
         <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
       );
 
-      const chipRows = container.querySelectorAll(".ui-chips");
-      expect(chipRows.length).toBe(2);
+      expect(container.querySelectorAll(".rs-src")).toHaveLength(1);
+      expect(container.querySelectorAll(".rs-sub-seg")).toHaveLength(1);
 
       expect(container.textContent).toContain("TuneIn");
       expect(container.textContent).toContain("RadioBrowser");
