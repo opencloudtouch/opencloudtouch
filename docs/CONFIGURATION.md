@@ -43,7 +43,7 @@ OpenCloudTouch is configured via `OCT_`-prefixed environment variables (case-ins
 | `OCT_DEVICE_HTTP_PORT` | `8090` | SoundTouch device HTTP API port |
 | `OCT_DEVICE_WS_PORT` | `8080` | SoundTouch device WebSocket port |
 | `OCT_STATE_CACHE_MAX_AGE` | `10.0` | Max age (seconds) for WebSocket-fed state cache before falling back to an HTTP poll |
-| `OCT_STATION_DESCRIPTOR_BASE_URL` | `http://localhost:7777` | Base URL OCT advertises to devices for preset programming. If left as `localhost`, it's automatically replaced with `content.api.bose.io:<port>` (devices resolve this via `/etc/hosts` redirect) since devices can't reach the server's own `localhost`. |
+| `OCT_STATION_DESCRIPTOR_BASE_URL` | `http://localhost:7777` | Base URL OCT advertises to devices for preset programming. If left as `localhost`, it's automatically replaced with `content.api.bose.io:<port>` (devices resolve this via `/etc/hosts` redirect) since devices can't reach the server's own `localhost`. Normally leave this variable unset. Presets using the default hostname survive an OCT server IP change once the speaker's `/etc/hosts` redirects have been updated. If an explicit IP address is configured, that IP is embedded in saved presets; every affected preset must be re-saved after an IP change. See [OCT server IP changed](TROUBLESHOOTING.md#oct-server-ip-changed). |
 
 ## Bug Reports & Production Safety
 

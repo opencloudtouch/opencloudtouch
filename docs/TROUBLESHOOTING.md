@@ -10,6 +10,113 @@
 | Health check fails | `docker exec opencloudtouch curl -f http://localhost:7777/health` — check the response and container logs for the actual error |
 | Devices mostly offline, polling noise in logs | Set `OCT_DEVICE_POLLING_ENABLED=false` (see [Configuration](CONFIGURATION.md#discovery--device-polling)) |
 | "Update available" shown for a self-built image | Expected to no longer happen — self-built images report `build: "community"` on `/health` and the update check is skipped entirely for them. If you still see it, check that you're on a build that includes the fix (>= the release that closed the negative-dentry-growth issue). |
+| Speakers stopped working after the OCT server IP changed | See [OCT server IP changed](#oct-server-ip-changed) for causes and recovery steps. |
+
+## OCT server IP changed
+
+If your speakers stop working after the OCT server IP changes, two configuration areas may be affected:
+
+1. **DNS redirects:** During setup, OCT writes the server's IP address into each speaker's `/etc/hosts` file. If the server IP changes, the speaker continues using the old address because hostnames are resolved only once during setup.
+2. **Device configuration:** The server URLs in `OverrideSdkPrivateCfg.xml` may still point to the previous OCT server.
+
+Radio presets are a separate consideration: they are affected if `OCT_STATION_DESCRIPTOR_BASE_URL` was explicitly configured with an IP address.
+
+**Prevention:** Assign the OCT server a stable IP address, preferably using a DHCP reservation, before configuring your speakers.
+
+Normally leave `OCT_STATION_DESCRIPTOR_BASE_URL` unset. See [Configuration](CONFIGURATION.md#device-ports--station-descriptor).
+
+### Recovery using the setup wizard
+
+For most users, the recommended approach is to run the complete OCT setup wizard again for each affected speaker, using the new server address.
+
+The wizard steps must be worked through in sequence; you cannot jump directly to the DNS step. In the current GUI, DNS is displayed as step 5 (the corresponding backend operation is Wizard Step 6). Some steps can be skipped when the wizard offers that option, for example NTP.
+
+### Alternative: Complete recovery via API (advanced users)
+
+Advanced users can update the affected configuration directly through the existing setup API.
+
+**Prerequisites:**
+- The OCT server is reachable from the speaker.
+- SSH access to the speaker is working.
+- The API is accessed from a trusted local network.
+
+If SSH access is no longer available, repeat the full setup wizard to restore it before using the API recovery steps.
+
+Replace the example addresses below with the actual OCT server and speaker IP addresses. The examples use the default OCT port, `7777`; adjust it if your server uses a different port.
+
+**1. Update the DNS redirects**
+
+```bash
+curl -sS -X POST "http://<new-server-ip>:7777/api/setup/wizard/modify-hosts" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "device_ip": "<speaker-ip>",
+    "target_addr": "http://<new-server-ip>:7777",
+    "include_optional": true
+  }'
+```
+
+This updates the OCT-managed block in `/etc/hosts`. Existing entries are replaced rather than duplicated. The `/etc/hosts` file maps hostnames to IP addresses, not ports. The server port is included in the XML configuration URLs.
+
+**2. Update the device configuration**
+
+```bash
+curl -sS -X POST "http://<new-server-ip>:7777/api/setup/wizard/modify-config" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "device_ip": "<speaker-ip>",
+    "target_addr": "http://<new-server-ip>:7777"
+  }'
+```
+
+This updates the four server URLs in `OverrideSdkPrivateCfg.xml`:
+
+- `margeServerUrl`
+- `statsServerUrl`
+- `swUpdateUrl`
+- `bmxRegistryUrl`
+
+**3. Reboot the speaker**
+
+```bash
+curl -sS -X POST "http://<new-server-ip>:7777/api/setup/wizard/reboot-device" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ip": "<speaker-ip>"
+  }'
+```
+
+The reboot endpoint sends the reboot command via SSH. The speaker will become temporarily unreachable while restarting. Allow sufficient time for it to boot again.
+
+**4. Verify the configuration**
+
+After the restart, connect to the speaker via SSH (replace `SPEAKER_IP` with its IP address) and inspect both configuration files:
+
+```bash
+ssh -o HostKeyAlgorithms=+ssh-rsa root@SPEAKER_IP
+cat /etc/hosts
+cat /mnt/nv/OverrideSdkPrivateCfg.xml
+```
+
+Verify that:
+- The OCT-managed entries in `/etc/hosts` point to the new server IP.
+- All four URLs in `OverrideSdkPrivateCfg.xml` point to the new server address and port.
+- The speaker is reachable in the OCT interface.
+- Radio playback works.
+
+Repeat the procedure for every affected speaker.
+
+**Verification:** Both recovery paths were successfully tested on a Bose SoundTouch 10 by switching between two OCT servers. All final wizard checks passed. Both configuration files were inspected directly on the speaker. Repeated execution of the hosts step produced no duplicate entries, and radio playback worked after rebooting. Other SoundTouch models were not tested.
+
+**Security:** The `modify-hosts`, `modify-config` and `reboot-device` endpoints do not require authentication and modify the speaker's configuration or reboot the device via SSH. They must only be accessible from a trusted local network. Never expose them to the internet. See [Security – No Authentication](../.github/SECURITY.md#no-authentication).
+
+### Repairing affected radio presets
+
+With the default configuration, radio presets use the hostname `content.api.bose.io` rather than a fixed OCT server IP. They remain valid after an IP change once the speaker's `/etc/hosts` redirects have been updated.
+
+If `OCT_STATION_DESCRIPTOR_BASE_URL` was explicitly configured with an IP address, affected presets contain that address. Remove or update the variable and re-save every affected preset through the OCT interface or `POST /api/presets/set`.
+
+See [Configuration](CONFIGURATION.md#device-ports--station-descriptor) for details.
 
 ## Understanding `docker stats` memory numbers
 
