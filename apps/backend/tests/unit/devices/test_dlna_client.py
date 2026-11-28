@@ -138,9 +138,10 @@ async def test_browse_500_errors_body_returns_code(adapter, http):
     assert http.post.await_count == 1
 
 
-async def test_browse_retries_1602_once_then_ok(adapter, http):
+@pytest.mark.parametrize("code", [1602, 1608])
+async def test_browse_retries_transient_error_once_then_ok(adapter, http, code):
     http.post.side_effect = [
-        _response(fx("navigate_error_1602.xml"), 500),
+        _response(fx(f"navigate_error_{code}.xml"), 500),
         _response(fx("navigate_folder.xml")),
     ]
 

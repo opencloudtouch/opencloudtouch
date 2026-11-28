@@ -35,8 +35,9 @@ from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
 
 logger = logging.getLogger(__name__)
 
-# Transient speaker-side service lookup failure; retried once (hardware T13).
-BROWSE_RETRY_ERROR = 1602
+# Transient speaker-side failures, retried once: 1602 service lookup (hardware
+# T13), 1608 "media server temporarily unavailable, please try again" (T29).
+BROWSE_RETRY_ERRORS = frozenset({1602, 1608})
 # /navigate of a 1000+ item folder takes far longer than other calls (T21 4c).
 NAVIGATE_TIMEOUT = 15.0
 
@@ -788,7 +789,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             f"{folder}</navigate>"
         )
         result = await self._navigate(body)
-        if result.error_code == BROWSE_RETRY_ERROR:
+        if result.error_code in BROWSE_RETRY_ERRORS:
             result = await self._navigate(body)
         return result
 

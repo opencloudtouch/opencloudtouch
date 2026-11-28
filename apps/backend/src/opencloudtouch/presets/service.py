@@ -375,7 +375,7 @@ class PresetService:
         """Find the speaker's own ContentItem for the object, page by page.
 
         An ``index`` hint tries its page first, then the full scan from 1.
-        1602 is retried in the client.
+        1602 and 1608 are retried once in the client.
         """
         deadline = time.monotonic() + _BROWSE_BUDGET
         start = 1 if index is None else max(1, index + 1 - _INDEX_SLACK)
@@ -395,7 +395,7 @@ class PresetService:
                 raise_coded(
                     502,
                     error_codes.DLNA_UPSTREAM_ERROR,
-                    "Speaker could not browse server",
+                    f"Speaker could not browse server (error {browse.error_code})",
                 )
             for item in browse.items:
                 if item.location.removesuffix(" TRACK") == object_id:
