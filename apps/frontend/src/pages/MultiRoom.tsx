@@ -10,6 +10,7 @@ import VolumeSlider from "../components/VolumeSlider";
 import NowPlaying from "../components/NowPlaying";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { DeviceNowPlaying } from "../components/DeviceNowPlaying";
+import { getCachedDeviceData } from "../utils/deviceDataCache";
 import StereoPairSection from "../components/StereoPairSection";
 import { Icon } from "../components/Icon";
 import "./MultiRoom.css";
@@ -175,7 +176,15 @@ function DeviceCard({
             )}
           </div>
         )}
-        <DeviceNowPlaying nowPlaying={nowPlaying} loading={loading} />
+        <DeviceNowPlaying
+          nowPlaying={nowPlaying}
+          loading={loading}
+          presetName={
+            // shortcut: reads the prefetched presets cache; until it is filled the slot number shows
+            getCachedDeviceData(device.device_id)?.presets?.[nowPlaying?.preset_number ?? 0]
+              ?.station_name
+          }
+        />
       </div>
       {showSlave && (
         <button

@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { HAS_TUNEIN_SUPPORT } from "../config/capabilities";
 import { getErrorMessage, parseApiError } from "../api/types";
 import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import StationDetail from "./StationDetail";
 import ConfirmDialog from "./ConfirmDialog";
 import Modal from "./Modal";
+import DlnaPane from "./dlna/DlnaPane";
+import type { DlnaSaveRequest } from "../api/dlna";
+import { nativeServersQuery } from "../hooks/useDlna";
 import { Icon } from "./Icon";
 import "./RadioSearch.css";
 import { userErrorMessage } from "../utils/errorMessages";
@@ -34,6 +38,8 @@ interface ExistingPreset {
   station_name: string;
   station_url?: string;
   station_favicon?: string;
+  source_account?: string | null;
+  dlna?: boolean;
 }
 
 interface RadioSearchProps {
@@ -44,6 +50,9 @@ interface RadioSearchProps {
   presetNumber?: number | null;
   hasExistingPreset?: boolean;
   existingPreset?: ExistingPreset | null;
+  /** Enables the DLNA tab; onDlnaSave gets the selection and the dialog closes (the page saves). */
+  deviceId?: string;
+  onDlnaSave?: (request: DlnaSaveRequest) => void;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
@@ -62,7 +71,7 @@ function getApiBaseUrl(): string {
 
 type SearchType = "name" | "country" | "tag";
 type RadioProviderType = "radiobrowser" | "tunein";
-type SearchMode = "provider" | "manual";
+type SearchMode = "provider" | "manual" | "dlna";
 
 function isValidHttpUrl(value: string): boolean {
   try {
@@ -176,6 +185,7 @@ interface SearchChipsProps {
   readonly onModeChange: (mode: SearchMode) => void;
   readonly onProviderChange: (provider: RadioProviderType) => void;
   readonly onManualMode: () => void;
+  readonly onDlnaMode?: () => void;
 }
 
 /** Search-type and provider chips above the result list. */
@@ -189,6 +199,7 @@ function SearchChips({
   onModeChange,
   onProviderChange,
   onManualMode,
+  onDlnaMode,
 }: SearchChipsProps) {
   const { t } = useTranslation();
   const canSearch = query.trim().length >= 2;
@@ -201,7 +212,7 @@ function SearchChips({
             key={st.value}
             className="ui-chip"
             aria-pressed={searchType === st.value}
-            disabled={searchMode === "manual"}
+            disabled={searchMode !== "provider"}
             onClick={() => {
               onSearchTypeChange(st.value);
               if (canSearch) onSearch(query, radioProvider, st.value);
@@ -234,6 +245,16 @@ function SearchChips({
         >
           {t("presets.manualStreamMode")}
         </button>
+        {onDlnaMode && (
+          <button
+            data-test="dlna-mode"
+            className="ui-chip"
+            aria-pressed={searchMode === "dlna"}
+            onClick={onDlnaMode}
+          >
+            {t("dlna.pane.tab")}
+          </button>
+        )}
       </fieldset>
     </div>
   );
@@ -356,6 +377,15 @@ function SearchResults({
   );
 }
 
+/** Loads the quick media server list while the dialog is open, so the DLNA tab shows it at once. */
+function PrefetchDlnaServers({ deviceId }: Readonly<{ deviceId: string }>) {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    void queryClient.prefetchQuery(nativeServersQuery(deviceId, false));
+  }, [queryClient, deviceId]);
+  return null;
+}
+
 export default function RadioSearch({
   onStationSelect,
   isOpen,
@@ -364,8 +394,14 @@ export default function RadioSearch({
   presetNumber: _presetNumber,
   hasExistingPreset,
   existingPreset,
+  deviceId,
+  onDlnaSave,
 }: RadioSearchProps) {
   const { t } = useTranslation();
+  // The dialog sets a slot from a station search, a stream URL or DLNA, not just a search
+  const title = _presetNumber
+    ? t("presets.dialogTitle", { number: _presetNumber })
+    : t("presets.searchTitle");
   const [searchMode, setSearchMode] = useState<SearchMode>("provider");
   const [query, setQuery] = useState("");
   const [manualUrl, setManualUrl] = useState("");
@@ -399,7 +435,10 @@ export default function RadioSearch({
     setOffset(0);
     setHasMore(false);
 
-    setSearchMode(manualFields ? "manual" : "provider");
+    let mode: SearchMode = "provider";
+    if (manualFields) mode = "manual";
+    else if (existingPreset?.dlna) mode = "dlna";
+    setSearchMode(mode);
     setManualUrl(manualFields?.url ?? "");
     setManualName(manualFields?.name ?? "");
     setManualFavicon(manualFields?.favicon ?? "");
@@ -511,6 +550,7 @@ export default function RadioSearch({
 
   return (
     <Modal open={isOpen} onClose={() => onClose?.()} size="lg" labelledBy="rs-title">
+      {isOpen && deviceId && _presetNumber ? <PrefetchDlnaServers deviceId={deviceId} /> : null}
       <ConfirmDialog
         open={saveError !== null}
         title={t("presets.manualStreamErrorTitle")}
@@ -525,7 +565,7 @@ export default function RadioSearch({
         <>
           <div className="rs-head rs-head--detail">
             <h2 id="rs-title" className="dlg-title">
-              {t("presets.searchTitle")}
+              {title}
             </h2>
             <button
               className="btn btn-ghost btn-icon dlg-close"
@@ -556,7 +596,7 @@ export default function RadioSearch({
         <>
           <div className="rs-head">
             <h2 id="rs-title" className="dlg-title">
-              {t("presets.searchTitle")}
+              {title}
             </h2>
             <button
               className="btn btn-ghost btn-icon dlg-close rs-close"
@@ -583,9 +623,35 @@ export default function RadioSearch({
               setError(null);
               setDetailUuid(null);
             }}
+            onDlnaMode={
+              deviceId && _presetNumber
+                ? () => {
+                    setSearchMode("dlna");
+                    setError(null);
+                  }
+                : undefined
+            }
           />
 
-          <div className="rs-field">
+          {searchMode === "dlna" && deviceId && _presetNumber ? (
+            <section
+              className="rs-scroll rs-dlna"
+              tabIndex={0} // NOSONAR(S6845): scrollable region must be keyboard-focusable (WCAG 2.1.1)
+              aria-label={t("dlna.pane.tab")}
+            >
+              <DlnaPane
+                deviceId={deviceId}
+                presetNumber={_presetNumber}
+                existingPreset={existingPreset}
+                onSave={(request) => {
+                  onDlnaSave?.(request);
+                  onClose?.();
+                }}
+              />
+            </section>
+          ) : null}
+
+          <div className="rs-field" hidden={searchMode === "dlna"}>
             {searchMode === "manual" ? (
               <div className="rs-url-field">
                 <input

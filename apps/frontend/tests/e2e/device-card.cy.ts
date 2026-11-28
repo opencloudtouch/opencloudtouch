@@ -47,8 +47,8 @@ describe("Device card", () => {
     cy.wait("@selectSource").its("request.body").should("deep.equal", { source: "BLUETOOTH" });
   });
 
-  it("shows previous/next only for sources with tracks", () => {
-    mockDeviceCard({ source: "BLUETOOTH", state: "PLAY_STATE", station_name: "iPhone", track: "Song", artist: "Band" });
+  it("enables previous/next when the speaker allows skipping", () => {
+    mockDeviceCard({ source: "BLUETOOTH", state: "PLAY_STATE", station_name: "iPhone", track: "Song", artist: "Band", skip_enabled: true, skip_previous_enabled: true });
     visitDe(`/?device=${DEVICE.device_id}`);
 
     cy.get('[data-test="dv-PREV_TRACK"]').should("be.visible");
@@ -56,13 +56,13 @@ describe("Device card", () => {
     cy.wait("@key").its("request.url").should("include", "key=NEXT_TRACK");
   });
 
-  it("has no previous/next for radio", () => {
-    mockDeviceCard({ source: "INTERNET_RADIO", state: "PLAY_STATE", station_name: "SWR3" });
+  it("shows previous/next disabled for radio", () => {
+    mockDeviceCard({ source: "INTERNET_RADIO", state: "PLAY_STATE", station_name: "SWR3", skip_enabled: false, skip_previous_enabled: false });
     visitDe(`/?device=${DEVICE.device_id}`);
 
     cy.get('[data-test="dv-PLAY_PAUSE"]').should("be.visible");
-    cy.get('[data-test="dv-PREV_TRACK"]').should("not.exist");
-    cy.get('[data-test="dv-NEXT_TRACK"]').should("not.exist");
+    cy.get('[data-test="dv-PREV_TRACK"]').should("be.disabled");
+    cy.get('[data-test="dv-NEXT_TRACK"]').should("be.disabled");
   });
 
   it("a preset row starts the preset when tapped; the pencil opens the station search", () => {

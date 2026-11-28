@@ -161,12 +161,118 @@ export interface paths {
     };
     /**
      * Browse Dlna Server
-     * @description Browse a DLNA MediaServer ContentDirectory.
+     * @description Browse one page of a media server folder.
      */
     get: operations["browse_dlna_server_api_dlna_servers__server_id__browse_get"];
     put?: never;
     post?: never;
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/dlna/servers/{server_id}/first-child-audio": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * First Child Audio
+     * @description Tell whether a folder starts with an audio item (playable as preset).
+     */
+    get: operations["first_child_audio_api_dlna_servers__server_id__first_child_audio_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/dlna/servers/{server_id}/objects/path": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Dlna Object Path
+     * @description Ancestor folders of a saved object, read live (edit prefill).
+     */
+    get: operations["get_dlna_object_path_api_dlna_servers__server_id__objects_path_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/dlna/servers/{server_id}/album-root": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Dlna Album Root
+     * @description Locate the folder holding a server's albums (album view link).
+     */
+    get: operations["get_dlna_album_root_api_dlna_servers__server_id__album_root_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/dlna/native": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Native Servers
+     * @description Discovered servers plus registered ones, with live states (decision 32).
+     *
+     *     ``discover=false`` skips the SSDP scan and uses the servers already known.
+     */
+    get: operations["list_native_servers_api_dlna_native_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/dlna/native/{device_id}/servers/{server_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Enable Native Server
+     * @description Register a server on the speaker; UNAVAILABLE is a state, not an error.
+     */
+    put: operations["enable_native_server_api_dlna_native__device_id__servers__server_id__put"];
+    post?: never;
+    /**
+     * Remove Native Server
+     * @description Remove a server; 409 with the live slot list unless ``force`` (decision 29).
+     */
+    delete: operations["remove_native_server_api_dlna_native__device_id__servers__server_id__delete"];
     options?: never;
     head?: never;
     patch?: never;
@@ -404,6 +510,10 @@ export interface paths {
     /**
      * Get Now Playing
      * @description Get current playback status for a device.
+     *
+     *     Answers from the websocket-fed state cache (nowPlaying events carry
+     *     shuffle/repeat and the skip markers too); the speaker is read only when
+     *     there is no state yet or the device was marked offline.
      */
     get: operations["get_now_playing_api_devices__device_id__now_playing_get"];
     put?: never;
@@ -521,6 +631,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/presets/dlna": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Set Dlna Preset
+     * @description Save a DLNA folder/track as a native preset (409 unless confirmed).
+     */
+    post: operations["set_dlna_preset_api_presets_dlna_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/presets/{device_id}": {
     parameters: {
       query?: never;
@@ -532,8 +662,9 @@ export interface paths {
      * Get Device Presets
      * @description Get all presets for a device.
      *
-     *     Returns all configured presets (1-6) for the specified device.
-     *     Empty slots are not included in the response.
+     *     Answers at once from the OCT database; empty slots are not included. After
+     *     the response OCT reads the speaker's presets and, if they differ, pushes the
+     *     new list as SSE event ``presets`` on /api/events/device-stream.
      */
     get: operations["get_device_presets_api_presets__device_id__get"];
     put?: never;
@@ -2700,6 +2831,11 @@ export interface paths {
      *
      *     Pushes an initial snapshot of all known device states, then streams
      *     real-time updates. A keepalive comment is sent every 15 seconds.
+     *
+     *     Event ``presets`` carries ``{"device_id": str, "presets": [...]}``: the
+     *     device's full preset list in the shape of GET /api/presets/{device_id}.
+     *     It follows a preset change on the speaker and a background sync that found
+     *     a difference.
      */
     get: operations["device_event_stream_api_events_device_stream_get"];
     put?: never;
@@ -3249,6 +3385,92 @@ export interface components {
        */
       click_timestamp: number;
     };
+    /** DlnaAlbumRoot */
+    DlnaAlbumRoot: {
+      /** Object Id */
+      object_id: string | null;
+    };
+    /** DlnaBrowseResponse */
+    DlnaBrowseResponse: {
+      /** Server Id */
+      server_id: string;
+      /** Object Id */
+      object_id: string;
+      /** Items */
+      items: components["schemas"]["DlnaItem"][];
+      /** Starting Index */
+      starting_index: number;
+      /** Number Returned */
+      number_returned: number;
+      /** Total Matches */
+      total_matches: number | null;
+      /** Next Index */
+      next_index: number;
+      /** Has More */
+      has_more: boolean;
+    };
+    /**
+     * DlnaItem
+     * @description A DLNA ContentDirectory item or container.
+     */
+    DlnaItem: {
+      /** Id */
+      id: string;
+      /** Parent Id */
+      parent_id: string;
+      /** Title */
+      title: string;
+      /** Is Container */
+      is_container: boolean;
+      /** Resource Url */
+      resource_url?: string | null;
+      /** Media Class */
+      media_class?: string | null;
+      /** Artist */
+      artist?: string | null;
+      /** Album */
+      album?: string | null;
+      /** Genre */
+      genre?: string | null;
+      /** Creator */
+      creator?: string | null;
+      /** Album Art Url */
+      album_art_url?: string | null;
+      /** Duration */
+      duration?: string | null;
+      /** Size */
+      size?: number | null;
+      /** Bitrate */
+      bitrate?: number | null;
+      /** Sample Frequency */
+      sample_frequency?: number | null;
+      /** Audio Channels */
+      audio_channels?: number | null;
+      /** Protocol Info */
+      protocol_info?: string | null;
+    };
+    /** DlnaObjectPath */
+    DlnaObjectPath: {
+      /** Server Id */
+      server_id: string;
+      /** Server Name */
+      server_name: string;
+      /** Object Id */
+      object_id: string;
+      /** Title */
+      title: string;
+      /** Is Container */
+      is_container: boolean;
+      /** Path */
+      path: components["schemas"]["DlnaPathEntry"][];
+    };
+    /** DlnaPathEntry */
+    DlnaPathEntry: {
+      /** Object Id */
+      object_id: string;
+      /** Title */
+      title: string;
+    };
     /**
      * EnablePermanentSSHRequest
      * @description Request to enable permanent SSH access on device.
@@ -3333,6 +3555,11 @@ export interface components {
       message: string;
       /** Error */
       error?: string | null;
+    };
+    /** FirstChildAudio */
+    FirstChildAudio: {
+      /** First Child Is Audio */
+      first_child_is_audio: boolean;
     };
     /**
      * FrontendLogEntry
@@ -3427,6 +3654,20 @@ export interface components {
       diff: string;
     };
     /**
+     * KeyPressResponse
+     * @description Key press answer; shuffle/repeat keys add the settings read back.
+     */
+    KeyPressResponse: {
+      /** Message */
+      message: string;
+      /** Device Id */
+      device_id: string;
+      /** Shuffle Setting */
+      shuffle_setting?: string | null;
+      /** Repeat Setting */
+      repeat_setting?: string | null;
+    };
+    /**
      * LogDownloadRequest
      * @description Optional body for POST /api/logs/backend with frontend logs.
      */
@@ -3478,6 +3719,65 @@ export interface components {
     ModifyMembersRequest: {
       /** Device Ids */
       device_ids: string[];
+    };
+    /** NativeServer */
+    NativeServer: {
+      /** Server Id */
+      server_id: string;
+      /** Name */
+      name: string;
+      /**
+       * State
+       * @enum {string}
+       */
+      state: "not_enabled" | "ready" | "unavailable";
+      /** Discovered */
+      discovered: boolean;
+      /** Host */
+      host: string | null;
+    };
+    /** NativeServerList */
+    NativeServerList: {
+      /** Servers */
+      servers: components["schemas"]["NativeServer"][];
+      /** Migration Failed */
+      migration_failed: boolean;
+      /** Migration Reason */
+      migration_reason: string | null;
+    };
+    /**
+     * NowPlayingResponse
+     * @description Current playback status (`online` False = last known state).
+     */
+    NowPlayingResponse: {
+      /** Source */
+      source: string;
+      /** State */
+      state: string;
+      /** Station Name */
+      station_name: string | null;
+      /** Artist */
+      artist: string | null;
+      /** Track */
+      track: string | null;
+      /** Album */
+      album: string | null;
+      /** Artwork Url */
+      artwork_url: string | null;
+      /** Online */
+      online: boolean;
+      /** Dlna */
+      dlna: boolean;
+      /** Preset Number */
+      preset_number: number | null;
+      /** Shuffle Setting */
+      shuffle_setting: string | null;
+      /** Repeat Setting */
+      repeat_setting: string | null;
+      /** Skip Enabled */
+      skip_enabled: boolean;
+      /** Skip Previous Enabled */
+      skip_previous_enabled: boolean;
     };
     /**
      * NtpPatchRequest
@@ -3586,6 +3886,49 @@ export interface components {
       has_ssh: boolean;
     };
     /**
+     * PresetDlnaRequest
+     * @description Request model for saving a DLNA folder/track as a native preset.
+     */
+    PresetDlnaRequest: {
+      /** Device Id */
+      device_id: string;
+      /**
+       * Preset Number
+       * @description Preset number (1-6)
+       */
+      preset_number: number;
+      /** Server Id */
+      server_id: string;
+      /**
+       * Parent Id
+       * @default 0
+       */
+      parent_id: string;
+      /** Object Id */
+      object_id: string;
+      /**
+       * Confirm
+       * @description Save a folder without audio first
+       * @default false
+       */
+      confirm: boolean;
+      /**
+       * Index
+       * @description 0-based position in OCT's browse of the parent (hint)
+       */
+      index?: number | null;
+      /**
+       * Artwork Url
+       * @description album_art_url from OCT's browse; skips the path lookup
+       */
+      artwork_url?: string | null;
+      /**
+       * Artist
+       * @description Artist of the item from OCT's browse
+       */
+      artist?: string | null;
+    };
+    /**
      * PresetResponse
      * @description Response model for a preset.
      */
@@ -3608,6 +3951,15 @@ export interface components {
       station_favicon: string | null;
       /** Source */
       source: string | null;
+      /** Source Account */
+      source_account?: string | null;
+      /** Station Artist */
+      station_artist?: string | null;
+      /**
+       * Dlna
+       * @default false
+       */
+      dlna: boolean;
       /** Created At */
       created_at: string;
       /** Updated At */
@@ -4405,6 +4757,8 @@ export interface operations {
     parameters: {
       query?: {
         object_id?: string;
+        starting_index?: number;
+        requested_count?: number;
       };
       header?: never;
       path: {
@@ -4420,10 +4774,201 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": {
-            [key: string]: unknown;
-          };
+          "application/json": components["schemas"]["DlnaBrowseResponse"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  first_child_audio_api_dlna_servers__server_id__first_child_audio_get: {
+    parameters: {
+      query: {
+        object_id: string;
+      };
+      header?: never;
+      path: {
+        server_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FirstChildAudio"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_dlna_object_path_api_dlna_servers__server_id__objects_path_get: {
+    parameters: {
+      query: {
+        object_id: string;
+      };
+      header?: never;
+      path: {
+        server_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DlnaObjectPath"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_dlna_album_root_api_dlna_servers__server_id__album_root_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        server_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DlnaAlbumRoot"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_native_servers_api_dlna_native_get: {
+    parameters: {
+      query: {
+        device_id: string;
+        discover?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NativeServerList"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  enable_native_server_api_dlna_native__device_id__servers__server_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+        server_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NativeServer"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  remove_native_server_api_dlna_native__device_id__servers__server_id__delete: {
+    parameters: {
+      query?: {
+        force?: boolean;
+      };
+      header?: never;
+      path: {
+        device_id: string;
+        server_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
@@ -4653,7 +5198,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["KeyPressResponse"];
         };
       };
       /** @description Validation Error */
@@ -4726,9 +5271,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": {
-            [key: string]: unknown;
-          };
+          "application/json": components["schemas"]["NowPlayingResponse"];
         };
       };
       /** @description Validation Error */
@@ -4947,6 +5490,39 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": components["schemas"]["PresetSetRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PresetResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_dlna_preset_api_presets_dlna_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PresetDlnaRequest"];
       };
     };
     responses: {

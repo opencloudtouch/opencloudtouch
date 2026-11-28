@@ -17,6 +17,7 @@ import { Icon } from "../components/Icon";
 import {
   playPreset as playPresetAPI,
   togglePlayPause,
+  sendKey,
   nextTrack,
   prevTrack,
   selectSource,
@@ -26,8 +27,11 @@ import { isDeviceOffline } from "../api/offlineDeviceStore";
 import { usePresets } from "../hooks/usePresets";
 import { useVolume } from "../hooks/useVolume";
 import { useNowPlaying } from "../hooks/useNowPlaying";
+import { useSourceError } from "../hooks/useSourceError";
+import SourceErrorAlert from "../components/dlna/SourceErrorAlert";
 import { useZones } from "../hooks/useZones";
 import { useLastPreset } from "../hooks/useLastPreset";
+import { useSettledPresetState } from "../hooks/useSettledPresetState";
 import { usePrefetchDevices } from "../hooks/usePrefetchDevices";
 import { CardName, CardRemove, StereoRow, ZoneRow } from "./DevicesParts";
 import { visibleDevices } from "../utils/visibleDevices";
@@ -37,6 +41,7 @@ import "../components/StereoPairCard.css";
 import "./Devices.css";
 import { pickDevice, setLastDeviceId } from "../utils/lastDevice";
 import { getDeviceActionError } from "../utils/apiErrors";
+import type { DlnaSaveRequest } from "../api/dlna";
 
 interface DevicesProps {
   devices?: Device[];
@@ -46,6 +51,7 @@ interface DevicesProps {
 }
 
 const RADIO_SOURCES = new Set(["INTERNET_RADIO", "LOCAL_INTERNET_RADIO", "TUNEIN"]);
+const REPEAT_CYCLE = ["REPEAT_OFF", "REPEAT_ALL", "REPEAT_ONE"];
 const PRESET_NUMBERS = [1, 2, 3, 4, 5, 6];
 const SOURCE_LABEL_KEYS: Record<DeviceSource, string> = {
   presets: "device.src.presets",
@@ -99,30 +105,53 @@ export default function Devices({
   );
   const deviceOffline = currentDevice ? isDeviceOffline(currentDevice.device_id) : false;
 
-  const { presets, loading, syncing, error, clearError, syncPresets, assignStation, removePreset } =
-    usePresets(deviceId);
+  const {
+    presets,
+    loading,
+    syncing,
+    error,
+    clearError,
+    syncPresets,
+    assignStation,
+    removePreset,
+    saveDlna,
+  } = usePresets(deviceId);
   const { show: showVolumeToast } = useToast();
   const { volume, muted, setDeviceVolume, toggleMute } = useVolume(deviceId, (message) =>
     showVolumeToast(message, "error")
   );
   const { nowPlaying: npState, refresh: refreshNowPlaying } = useNowPlaying(deviceId);
+  const { error: sourceError, dismiss: dismissSourceError } = useSourceError(deviceId);
   const { zones } = useZones();
   const [lastPreset, setLastPreset] = useLastPreset(deviceId);
   const { show: showToast, hide: hideToast } = useToast();
   const [powerLoading, setPowerLoading] = useState(false);
   const [clearingPreset, setClearingPreset] = useState<number | null>(null);
-  const [startingPreset, setStartingPreset] = useState<number | null>(null);
   const [failedPreset, setFailedPreset] = useState<number | null>(null);
+  // A DLNA save runs here, not in the dialog: closing the dialog must not cancel it.
+  const [savingPreset, setSavingPreset] = useState<{ deviceId: string; num: number } | null>(null);
   const [switching, setSwitching] = useState<DeviceSource | null>(null);
   const [switchFailed, setSwitchFailed] = useState<DeviceSource | null>(null);
   const [keyBusy, setKeyBusy] = useState<TransportKey | null>(null);
   const [announcement, setAnnouncement] = useState("");
+  // The key answer is the speaker's read-back; the next now_playing state (new object) replaces it.
+  const [keyAnswer, setKeyAnswer] = useState<{
+    np: typeof npState;
+    shuffle?: string | null;
+    repeat?: string | null;
+  } | null>(null);
+  const settings = keyAnswer?.np === npState ? keyAnswer : null;
+  const shuffle = (settings ? settings.shuffle : npState?.shuffle_setting) ?? null;
+  const repeat = (settings ? settings.repeat : npState?.repeat_setting) ?? null;
 
   const source = npState?.source;
   const isStandby = source === "STANDBY";
   const isRadio = !!source && RADIO_SOURCES.has(source);
+  const isDlna = !!npState?.dlna;
   const currentSource = toDeviceSource(source);
   const isPlaying = npState?.state === "PLAY_STATE";
+  // Without a source the speaker has nothing to skip or pause.
+  const hasSource = !!source && !isStandby && source !== "INVALID_SOURCE";
 
   const deviceZone = useMemo(() => {
     if (!deviceId) return null;
@@ -151,6 +180,8 @@ export default function Devices({
         artist: npState.artist,
         play_status: npState.state,
         source: npState.source,
+        preset_number: npState.preset_number,
+        preset_name: presets[npState.preset_number ?? 0]?.station_name,
       }
     : null;
 
@@ -204,7 +235,6 @@ export default function Devices({
 
   // The state of a card never leaks into the next device
   useEffect(() => {
-    setStartingPreset(null);
     setFailedPreset(null);
     setSwitching(null);
     setSwitchFailed(null);
@@ -221,16 +251,25 @@ export default function Devices({
     [devices, setSearchParams]
   );
 
-  // Which row shows which state: the running station decides, a start or a failure in progress overrides
+  // The preset the speaker plays: the backend matches the playing ContentItem for every source, so a
+  // renamed station still finds its slot. Only without a backend slot does a radio name match decide.
+  const slot = npState?.preset_number ?? null;
+  const matchedPreset =
+    PRESET_NUMBERS.find(
+      (n) =>
+        !!presets[n] &&
+        (slot !== null
+          ? slot === n
+          : !isDlna && isRadio && npState?.station_name === presets[n]?.station_name)
+    ) ?? null;
+  const settled = useSettledPresetState(deviceId, matchedPreset, npState?.state, sourceError);
+
+  // Which row shows which state: the running preset decides, a save or a failure overrides
   const presetState = (num: number): PresetRowState => {
-    if (num === startingPreset) return "starting";
+    if (savingPreset && savingPreset.deviceId === deviceId && savingPreset.num === num)
+      return "saving";
     if (num === failedPreset) return "failed";
-    const preset = presets[num];
-    if (!preset || !isRadio || npState?.station_name !== preset.station_name) return "idle";
-    if (npState?.state === "PLAY_STATE") return "playing";
-    // A radio stream cannot really pause: many devices report STOP_STATE with the station still selected
-    if (npState?.state === "PAUSE_STATE" || npState?.state === "STOP_STATE") return "paused";
-    return "idle";
+    return settled.stateOf(num);
   };
 
   // A preset started somewhere else (device button, app) becomes the "last preset" as well
@@ -280,6 +319,15 @@ export default function Devices({
     }
   };
 
+  // The row shows the progress; a failure leaves the old slot and fills the preset error box.
+  const handleDlnaSave = async (request: DlnaSaveRequest) => {
+    const num = request.preset_number;
+    setSavingPreset({ deviceId: request.device_id, num });
+    setAnnouncement(t("dlna.save.saving", { number: num }));
+    if (await saveDlna(request)) showToast(t("presets.presetSaved", { number: num }), "success");
+    setSavingPreset((s) => (s?.deviceId === request.device_id && s.num === num ? null : s));
+  };
+
   const handleConfirmClear = async () => {
     if (clearingPreset && deviceId) {
       const presetNum = clearingPreset;
@@ -301,7 +349,8 @@ export default function Devices({
     if (!deviceId) return false;
     const name = presets[num]?.station_name ?? "";
     setFailedPreset(null);
-    setStartingPreset(num);
+    // "starting" lasts until the speaker plays the preset, not until the request returns
+    settled.start(num);
     try {
       await playPresetAPI(deviceId, num);
       if (!isCurrent(deviceId)) return true;
@@ -312,12 +361,11 @@ export default function Devices({
     } catch (err) {
       console.error("Failed to play preset:", err);
       if (isCurrent(deviceId)) {
+        settled.stop();
         setFailedPreset(num);
         setAnnouncement("");
       }
       return false;
-    } finally {
-      if (isCurrent(deviceId)) setStartingPreset(null);
     }
   };
 
@@ -327,6 +375,8 @@ export default function Devices({
     const state = presetState(num);
     const name = presets[num]?.station_name ?? "";
     if (state === "playing" || state === "paused") {
+      // A pause by the user shows at once, without the restart grace time
+      if (state === "playing") settled.release();
       try {
         await togglePlayPause(deviceId);
         if (!isCurrent(deviceId)) return;
@@ -387,13 +437,36 @@ export default function Devices({
     }
   };
 
+  // Play without a source starts the last preset, like a tap on its row. The maintainer asked for
+  // the most recently played item of any kind; the recents store lacks that data (later plan).
+  const playFallback = !hasSource && lastPreset && presets[lastPreset] ? lastPreset : null;
+
   const handleKey = async (key: TransportKey) => {
     if (!deviceId || keyBusy) return;
     setKeyBusy(key);
     try {
       if (key === "PREV_TRACK") await prevTrack(deviceId);
       else if (key === "NEXT_TRACK") await nextTrack(deviceId);
-      else await togglePlayPause(deviceId);
+      else if (key === "SHUFFLE" || key === "REPEAT") {
+        const next =
+          key === "REPEAT"
+            ? (REPEAT_CYCLE[(REPEAT_CYCLE.indexOf(repeat ?? "") + 1) % REPEAT_CYCLE.length] ??
+              "REPEAT_OFF")
+            : shuffle === "SHUFFLE_ON"
+              ? "SHUFFLE_OFF"
+              : "SHUFFLE_ON";
+        const answer = await sendKey(deviceId, next);
+        setKeyAnswer({
+          np: npState,
+          shuffle: answer.shuffle_setting,
+          repeat: answer.repeat_setting,
+        });
+      } else if (!hasSource) {
+        if (playFallback) await handlePresetToggle(playFallback);
+      } else {
+        if (isPlaying) settled.release();
+        await togglePlayPause(deviceId);
+      }
     } catch (err) {
       console.error(`[Devices] Key ${key} failed:`, err);
       showToast(getDeviceActionError(t, err, "errors.unknown"), "error");
@@ -546,13 +619,25 @@ export default function Devices({
                       />
                     )}
                   </div>
+                  {sourceError && (
+                    <SourceErrorAlert
+                      key={sourceError.code}
+                      code={sourceError.code}
+                      onDismiss={dismissSourceError}
+                    />
+                  )}
                   <TransportKeys
                     playing={isPlaying}
-                    showSkip={!!source && !isRadio && !isStandby && source !== "AUX"}
+                    showModes={!!source && !isRadio && !isStandby && source !== "AUX"}
+                    canPrev={hasSource && !!npState?.skip_previous_enabled}
+                    canNext={hasSource && !!npState?.skip_enabled}
+                    canPlay={hasSource || playFallback !== null}
                     noControl={source === "AUX"}
                     disabled={controlsLocked || switching !== null}
                     busyKey={keyBusy}
                     onKey={handleKey}
+                    shuffle={shuffle}
+                    repeat={repeat}
                   />
 
                   <div
@@ -698,6 +783,7 @@ export default function Devices({
           <ul className="rp-info-list">
             <li>{t("presets.infoItem1")}</li>
             <li>{t("presets.infoItem2")}</li>
+            <li>{t("presets.infoItem7")}</li>
             <li>{t("presets.infoItem3")}</li>
             <li>{t("presets.infoItem5")}</li>
             <li>{t("presets.infoItem6")}</li>
@@ -717,6 +803,8 @@ export default function Devices({
         presetNumber={assigningPreset}
         hasExistingPreset={assigningPreset !== null && !!presets[assigningPreset]}
         existingPreset={assigningPreset !== null ? presets[assigningPreset] : null}
+        deviceId={deviceId}
+        onDlnaSave={(request) => void handleDlnaSave(request)}
       />
 
       {/* Confirm Clear Dialog */}

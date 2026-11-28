@@ -33,12 +33,25 @@
     "noStation": "Sin emisora",
     "powerButton": "Encender/apagar",
     "playbackTitle": "Reproducción",
+    "shuffle": {
+      "label": "Aleatorio"
+    },
+    "repeat": {
+      "label": "Repetir: {{mode}}",
+      "REPEAT_OFF": "desactivado",
+      "REPEAT_ALL": "todo",
+      "REPEAT_ONE": "una"
+    },
     "prevTrack": "Pista anterior",
     "nextTrack": "Pista siguiente",
     "muteOn": "Activar sonido",
     "muteOff": "Silenciar",
     "prevDevice": "Dispositivo anterior",
     "nextDevice": "Dispositivo siguiente",
+    "dlna": {
+      "badge": "DLNA",
+      "preset": "Preset {{number}}"
+    },
     "source": {
       "bluetooth": "Bluetooth",
       "radio": "Radio",
@@ -54,17 +67,19 @@
     }
   },
   "presets": {
+    "dlnaBadge": "DLNA",
     "presetSaved": "Preset {{number}} guardado.",
     "presetDeleted": "Preset {{number}} eliminado.",
     "noDevices": "No se encontraron dispositivos",
     "syncedFromDevice": "Presets cargados desde el dispositivo correctamente.",
-    "savedStations": "Emisoras guardadas",
+    "savedStations": "Presets",
     "syncFromDevice": "Cargar desde dispositivo",
     "syncFromDeviceSyncing": "Sincronizando...",
     "syncFromDeviceTitle": "Sincronizar presets desde el dispositivo",
     "infoTitle": "Notas del dispositivo",
-    "infoItem1": "Toca un preset vacío para asignar una emisora",
-    "infoItem2": "Toca el lápiz junto a una emisora para cambiarla o eliminarla",
+    "infoItem1": "Toca un preset vacío para asignarle una emisora de radio, una URL de stream o música de un servidor multimedia (DLNA)",
+    "infoItem2": "Toca el lápiz junto a un preset para cambiarlo o eliminarlo",
+    "infoItem7": "Música de tu NAS o servidor multimedia: en el diálogo del preset, configura el servidor una vez en «DLNA» y luego elige una carpeta o una pista",
     "infoItem3": "Toca un preset para reproducirlo y vuelve a tocarlo para pausar. Los botones de fuente sobre la carátula cambian entre Presets, Bluetooth y AUX",
     "infoItem5": "El icono de estado en la esquina superior derecha de la tarjeta del dispositivo abre el asistente de configuración del dispositivo",
     "infoItem6": "\"Cargar desde dispositivo\" sincroniza los presets del SoundTouch",
@@ -88,6 +103,7 @@
       "tag": "p. ej. Rock, Jazz, pop…"
     },
     "searchTitle": "Buscar emisoras de radio",
+    "dialogTitle": "Asignar preset {{number}}",
     "loadMore": "Cargar más",
     "loadingMore": "Cargando...",
     "maxReached": "Máximo ({{count}}) alcanzado",
@@ -881,6 +897,34 @@
     "bitrate": "Tasa de bits",
     "homepage": "Página web"
   },
+  "devices": {
+    "sourceError": {
+      "notSetUp": {
+        "title": "Fuente no disponible",
+        "body": "El altavoz no pudo iniciar este preset porque su fuente no está configurada. Para un preset DLNA, vuelve a configurar su servidor multimedia en la pestaña DLNA del diálogo del preset."
+      },
+      "notFound": {
+        "title": "Servidor multimedia no encontrado",
+        "body": "El altavoz no ve este servidor multimedia ahora mismo. Comprueba que el servidor esté en marcha y en la misma red; si dos servidores comparten una dirección IP, el altavoz puede ver solo uno."
+      },
+      "serviceUnreachable": {
+        "title": "Servicio de música no disponible",
+        "body": "El altavoz no pudo conectar con el servicio de música del servidor. Inténtalo de nuevo en un momento."
+      },
+      "badFormat": {
+        "title": "Contenido no compatible",
+        "body": "El altavoz no puede reproducir el contenido de esta carpeta (formato no compatible)."
+      },
+      "subFolders": {
+        "title": "La carpeta no se puede reproducir entera",
+        "body": "Esta carpeta no se puede reproducir entera: su primer elemento no es una canción. Elige una carpeta que empiece con canciones."
+      },
+      "generic": {
+        "title": "No se pudo iniciar la reproducción",
+        "body": "El altavoz no pudo reproducir este elemento. Inténtalo de nuevo o elige otro."
+      }
+    }
+  },
   "device": {
     "sourceChoose": "Elegir fuente",
     "sourceSwitching": "Cambiando a {{source}}…",
@@ -1032,5 +1076,78 @@
     "pairMembers": "Izquierda: {{left}} · Derecha: {{right}}",
     "dissolved": "Par estéreo «{{name}}» disuelto",
     "dissolveFailed": "No se pudo disolver el par estéreo"
+  },
+  "dlna": {
+    "servers": {
+      "loading": "Cargando servidores multimedia",
+      "searching": "Buscando más servidores multimedia …",
+      "stillSearching": "Buscando…",
+      "searchFailed": "La búsqueda de más servidores multimedia ha fallado.",
+      "ready": "Listo",
+      "notEnabled": "Sin configurar",
+      "unavailable": "No disponible",
+      "enable": "Configurar",
+      "enableLabel": "Configurar {{name}}",
+      "openLabel": "Abrir {{name}}",
+      "open": "Abrir",
+      "remove": "Quitar",
+      "removeLabel": "Quitar {{name}}",
+      "enabled": "{{name}} está configurado. Abre el servidor para elegir una carpeta o un título.",
+      "enableUnavailable": "{{name}} no está disponible. Comprueba que esté encendido y accesible e inténtalo de nuevo.",
+      "enableFailed": "No se pudo configurar {{name}}. Inténtalo de nuevo.",
+      "enableNoAccount": "No se pudo configurar {{name}}: el altavoz aún no tiene una cuenta de OpenCloudTouch. Completa primero la configuración del altavoz.",
+      "empty": "No se encontraron servidores multimedia",
+      "emptyText": "Asegúrate de que haya un servidor multimedia DLNA funcionando en tu red.",
+      "rescan": "Buscar de nuevo",
+      "loadError": "No se pudieron cargar los servidores multimedia",
+      "retry": "Reintentar",
+      "migrationFailedTitle": "No se pueden configurar servidores multimedia en este altavoz",
+      "migrationFailedText": "Falló la preparación del altavoz: {{reason}}",
+      "sameHostTitle": "Dos servidores en una dirección IP",
+      "sameHostText": "El altavoz puede ver solo uno de dos servidores que comparten una dirección IP. Mejor usa un servidor por IP.",
+      "removeTitle": "¿Quitar {{name}}?",
+      "removeText": "El altavoz dejará de usar este servidor multimedia.",
+      "removeSlots": "Los presets de las posiciones {{slots}} aún reproducen desde este servidor. Se quedan guardados, pero no sonarán hasta que el servidor se configure de nuevo.",
+      "removeAnyway": "Quitar de todos modos",
+      "removeFailed": "No se pudo quitar el servidor. Inténtalo de nuevo."
+    },
+    "browser": {
+      "breadcrumb": "Ruta de carpeta",
+      "up": "Subir",
+      "loading": "Cargando carpeta",
+      "empty": "Esta carpeta está vacía",
+      "filterLabel": "Filtrar esta carpeta",
+      "noMatches": "Ningún elemento coincide con el filtro.",
+      "loadMore": "Cargar más",
+      "select": "Seleccionar",
+      "selectLabel": "Seleccionar {{title}}",
+      "selectFolderLabel": "Seleccionar carpeta completa {{title}}",
+      "wholeFolder": "Carpeta completa como preset",
+      "folderContents": "Contenido",
+      "openLabel": "Abrir carpeta {{title}}",
+      "retry": "Reintentar",
+      "error": "No se pudo cargar la carpeta.",
+      "serverNotFound": "Servidor no encontrado. Comprueba que esté encendido.",
+      "serverTimeout": "El servidor no respondió. Inténtalo de nuevo.",
+      "objectGone": "Esa carpeta ya no existe. Se muestra el nivel superior."
+    },
+    "album": {
+      "open": "Abrir vista de álbum"
+    },
+    "pane": {
+      "tab": "DLNA",
+      "loading": "Buscando el elemento guardado",
+      "hint": "Elige una carpeta o canción para el preset {{number}}.",
+      "allServers": "Todos los servidores multimedia",
+      "serverGone": "El servidor multimedia de este preset ya no está disponible. Elige un servidor abajo.",
+      "objectGone": "El elemento guardado ya no existe en el servidor. Estás en el nivel superior."
+    },
+    "save": {
+      "noAudioFirst": "El primer elemento de esta carpeta no es una canción (por ejemplo, una imagen de portada). Puede que el altavoz no pueda reproducirlo. ¿Guardar de todos modos?",
+      "hiResFlac": "Esta pista es un FLAC de alta resolución ({{khz}} kHz). El altavoz no puede reproducirla; conviértela a 16 bits/48 kHz o menos en el servidor multimedia.",
+      "saveAnyway": "Guardar de todos modos",
+      "chooseAnother": "Elegir otra cosa",
+      "saving": "Guardando en el preset {{number}} …"
+    }
   }
 }

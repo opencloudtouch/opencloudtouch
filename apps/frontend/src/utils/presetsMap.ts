@@ -2,7 +2,10 @@ import type { Preset } from "../components/PresetRow";
 import type { PresetResponse } from "../api/presets";
 
 /** Turns the API list into the slot map the Presets page works with (preset number -> preset). */
-export function buildPresetsMap(devicePresets: PresetResponse[]): Record<number, Preset> {
+export function buildPresetsMap(
+  // The hand-written PresetResponse predates the DLNA fields the API now returns
+  devicePresets: PresetResponse[]
+): Record<number, Preset> {
   const map: Record<number, Preset> = {};
   devicePresets.forEach((p) => {
     map[p.preset_number] = {
@@ -11,6 +14,9 @@ export function buildPresetsMap(devicePresets: PresetResponse[]): Record<number,
       station_url: p.station_url,
       station_favicon: p.station_favicon,
       source: p.source,
+      dlna: p.dlna,
+      source_account: p.source_account,
+      station_artist: p.station_artist,
     };
   });
   return map;

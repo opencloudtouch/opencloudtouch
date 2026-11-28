@@ -26,16 +26,14 @@ describe("DeviceNowPlaying", () => {
   });
 
   it("keeps an empty reserved row when loading is true", () => {
-    const { container } = render(
-      <DeviceNowPlaying nowPlaying={makePlaying()} loading={true} />,
-    );
+    const { container } = render(<DeviceNowPlaying nowPlaying={makePlaying()} loading={true} />);
     expect(container.querySelector(".dnp--empty")).toBeInTheDocument();
     expect(container.querySelector(".dnp-text")).not.toBeInTheDocument();
   });
 
   it("keeps an empty reserved row when state is not PLAY_STATE", () => {
     const { container } = render(
-      <DeviceNowPlaying nowPlaying={makePlaying({ state: "STOP_STATE" })} />,
+      <DeviceNowPlaying nowPlaying={makePlaying({ state: "STOP_STATE" })} />
     );
     expect(container.querySelector(".dnp--empty")).toBeInTheDocument();
     expect(container.querySelector(".dnp-text")).not.toBeInTheDocument();
@@ -49,7 +47,7 @@ describe("DeviceNowPlaying", () => {
           station_name: undefined,
           artist: undefined,
         })}
-      />,
+      />
     );
     expect(container.querySelector(".dnp--empty")).toBeInTheDocument();
     expect(container.querySelector(".dnp-text")).not.toBeInTheDocument();
@@ -61,7 +59,7 @@ describe("DeviceNowPlaying", () => {
     render(
       <DeviceNowPlaying
         nowPlaying={makePlaying({ artwork_url: "https://img.example.com/art.jpg" })}
-      />,
+      />
     );
     const img = screen.getByRole("presentation");
     expect(img).toHaveAttribute("src", "https://img.example.com/art.jpg");
@@ -76,7 +74,7 @@ describe("DeviceNowPlaying", () => {
           source: "TUNEIN",
           artwork_url: "https://img.example.com/art.jpg",
         })}
-      />,
+      />
     );
     expect(container.querySelector(".dnp-icon")).toBeNull();
   });
@@ -88,19 +86,13 @@ describe("DeviceNowPlaying", () => {
     ["a bluetooth icon", "BLUETOOTH"],
     ["a headphones icon", "AUX"],
   ])("shows %s for %s source without artwork", (_icon, source) => {
-    render(
-      <DeviceNowPlaying
-        nowPlaying={makePlaying({ source, artwork_url: undefined })}
-      />,
-    );
+    render(<DeviceNowPlaying nowPlaying={makePlaying({ source, artwork_url: undefined })} />);
     expect(document.querySelector(".dnp-icon svg")).not.toBeNull();
   });
 
   it("shows no icon for unknown source without artwork", () => {
     const { container } = render(
-      <DeviceNowPlaying
-        nowPlaying={makePlaying({ source: "SPOTIFY", artwork_url: undefined })}
-      />,
+      <DeviceNowPlaying nowPlaying={makePlaying({ source: "SPOTIFY", artwork_url: undefined })} />
     );
     expect(container.querySelector(".dnp-icon")).toBeNull();
     expect(container.querySelector("img")).toBeNull();
@@ -115,33 +107,27 @@ describe("DeviceNowPlaying", () => {
 
   it("displays station_name as title when track is missing", () => {
     render(
-      <DeviceNowPlaying
-        nowPlaying={makePlaying({ track: undefined, station_name: "Radio FM" })}
-      />,
+      <DeviceNowPlaying nowPlaying={makePlaying({ track: undefined, station_name: "Radio FM" })} />
     );
     expect(screen.getByText("Radio FM")).toHaveClass("dnp-title");
   });
 
   it("prefers track over station_name", () => {
     render(
-      <DeviceNowPlaying
-        nowPlaying={makePlaying({ track: "Song A", station_name: "Station B" })}
-      />,
+      <DeviceNowPlaying nowPlaying={makePlaying({ track: "Song A", station_name: "Station B" })} />
     );
     expect(screen.getByText("Song A")).toBeInTheDocument();
     expect(screen.queryByText("Station B")).toBeNull();
   });
 
   it("displays artist as subtitle", () => {
-    render(
-      <DeviceNowPlaying nowPlaying={makePlaying({ artist: "Cool Band" })} />,
-    );
+    render(<DeviceNowPlaying nowPlaying={makePlaying({ artist: "Cool Band" })} />);
     expect(screen.getByText("Cool Band")).toHaveClass("dnp-artist");
   });
 
   it("renders without artist when only title available", () => {
     const { container } = render(
-      <DeviceNowPlaying nowPlaying={makePlaying({ artist: undefined })} />,
+      <DeviceNowPlaying nowPlaying={makePlaying({ artist: undefined })} />
     );
     expect(container.querySelector(".dnp-artist")).toBeNull();
     expect(screen.getAllByText("Test Track").length).toBeGreaterThan(0);
@@ -155,17 +141,63 @@ describe("DeviceNowPlaying", () => {
           station_name: undefined,
           artist: "Solo Artist",
         })}
-      />,
+      />
     );
     expect(screen.getByText("Solo Artist")).toBeInTheDocument();
   });
 
   it("falls back to the source icon when the artwork cannot be loaded", () => {
     const { container } = render(
-      <DeviceNowPlaying nowPlaying={makePlaying({ artwork_url: "http://x/broken.jpg" })} />,
+      <DeviceNowPlaying nowPlaying={makePlaying({ artwork_url: "http://x/broken.jpg" })} />
     );
     fireEvent.error(container.querySelector("img.dnp-art") as HTMLImageElement);
     expect(container.querySelector("img.dnp-art")).not.toBeInTheDocument();
     expect(container.querySelector(".dnp-icon")).toBeInTheDocument();
+  });
+
+  it("stored music preset keeps the artist as subtitle", () => {
+    const { container } = render(
+      <DeviceNowPlaying
+        nowPlaying={makePlaying({ source: "STORED_MUSIC", dlna: true, preset_number: 2 })}
+        presetName="00-Greatest Hits"
+      />
+    );
+    expect(container.querySelector(".dnp-icon")).toBeInTheDocument();
+    expect(screen.getByText("Test Artist")).toBeInTheDocument();
+    expect(screen.queryByText(/Preset 2/)).not.toBeInTheDocument();
+  });
+
+  it("stored music preset without artist shows the preset name", () => {
+    render(
+      <DeviceNowPlaying
+        nowPlaying={makePlaying({
+          source: "STORED_MUSIC",
+          dlna: true,
+          preset_number: 2,
+          artist: undefined,
+        })}
+        presetName="00-Greatest Hits"
+      />
+    );
+    expect(screen.getByText("00-Greatest Hits")).toBeInTheDocument();
+  });
+
+  it("stored music preset without artist or name falls back to the preset number", () => {
+    render(
+      <DeviceNowPlaying
+        nowPlaying={makePlaying({
+          source: "STORED_MUSIC",
+          dlna: true,
+          preset_number: 2,
+          artist: undefined,
+        })}
+      />
+    );
+    expect(screen.getByText("DLNA · Preset 2")).toBeInTheDocument();
+  });
+
+  it("stored music without a match keeps the artist line", () => {
+    render(<DeviceNowPlaying nowPlaying={makePlaying({ source: "STORED_MUSIC", dlna: true })} />);
+    expect(screen.queryByText(/Preset/)).not.toBeInTheDocument();
   });
 });

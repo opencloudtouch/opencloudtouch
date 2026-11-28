@@ -1,4 +1,4 @@
-﻿"""Tests for main application module (startup, lifecycle)."""
+"""Tests for main application module (startup, lifecycle)."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -12,26 +12,18 @@ async def test_lifespan_initialization():
     from opencloudtouch.core.config import AppConfig
     from opencloudtouch.main import app, lifespan
 
-    with patch("opencloudtouch.main.init_config") as mock_init_config, patch(
-        "opencloudtouch.main.setup_logging"
-    ) as mock_setup_logging, patch(
-        "opencloudtouch.main.get_config"
-    ) as mock_get_config, patch(
-        "opencloudtouch.main.DeviceRepository"
-    ) as mock_device_class, patch(
-        "opencloudtouch.main.SettingsRepository"
-    ) as mock_settings_class, patch(
-        "opencloudtouch.main.PresetRepository"
-    ) as mock_preset_class, patch(
-        "opencloudtouch.main.RecentsRepository"
-    ) as mock_recents_class, patch(
-        "opencloudtouch.main.WizardAuditRepository"
-    ) as mock_wizard_class, patch(
-        "opencloudtouch.main.ZoneRepository"
-    ) as mock_zone_class, patch(
-        "opencloudtouch.main._init_services", new_callable=AsyncMock
+    with (
+        patch("opencloudtouch.main.init_config") as mock_init_config,
+        patch("opencloudtouch.main.setup_logging") as mock_setup_logging,
+        patch("opencloudtouch.main.get_config") as mock_get_config,
+        patch("opencloudtouch.main.DeviceRepository") as mock_device_class,
+        patch("opencloudtouch.main.SettingsRepository") as mock_settings_class,
+        patch("opencloudtouch.main.PresetRepository") as mock_preset_class,
+        patch("opencloudtouch.main.RecentsRepository") as mock_recents_class,
+        patch("opencloudtouch.main.WizardAuditRepository") as mock_wizard_class,
+        patch("opencloudtouch.main.ZoneRepository") as mock_zone_class,
+        patch("opencloudtouch.main._init_services", new_callable=AsyncMock),
     ):
-
         # Mock config
         mock_config = MagicMock(spec=AppConfig)
         mock_config.host = "0.0.0.0"
@@ -91,6 +83,7 @@ def mock_init_services_deps():
         "recents": patch("opencloudtouch.main.RecentsService"),
         "marge": patch("opencloudtouch.main.MargeService"),
         "preset": patch("opencloudtouch.main.PresetService"),
+        "dlna": patch("opencloudtouch.main.DlnaService"),
         "sync": patch("opencloudtouch.main.DeviceSyncService"),
         "device": patch("opencloudtouch.main.DeviceService"),
         "discovery_adapter": patch("opencloudtouch.main.get_discovery_adapter"),
@@ -128,8 +121,28 @@ def _build_init_services_repos():
             "wizard_audit_repo",
             "zone_repo",
             "stereo_pair_repo",
+            "marge_source_repo",
+            "speaker_migration_repo",
         )
     }
+
+
+@pytest.mark.asyncio
+async def test_init_services_starts_one_background_dlna_discovery(
+    mock_init_services_deps,
+):
+    """A fresh start fills the DLNA cache without blocking the startup."""
+    from fastapi import FastAPI
+
+    from opencloudtouch.main import _init_services
+
+    cfg = MagicMock(mock_mode=True, device_polling_enabled=False)
+    cfg.manual_device_ips_list = []
+
+    await _init_services(FastAPI(), cfg, _build_init_services_repos(), MagicMock())
+
+    dlna = mock_init_services_deps["dlna"].return_value
+    dlna.refresh_in_background.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -177,6 +190,9 @@ async def test_init_services_starts_health_check_when_device_polling_enabled(
 
     health_check_instance = mock_init_services_deps["health_check"].return_value
     health_check_instance.start.assert_called_once()
+    assert app.state.dlna_native_service._migrations is (
+        app.state.speaker_migration_service
+    )
 
 
 @pytest.mark.asyncio
@@ -218,9 +234,10 @@ def test_main_module_uses_config_port():
     mock_config.host = "0.0.0.0"
     mock_config.port = 9999
 
-    with patch(
-        "opencloudtouch.core.config.get_config", return_value=mock_config
-    ), patch("uvicorn.run") as mock_run:
+    with (
+        patch("opencloudtouch.core.config.get_config", return_value=mock_config),
+        patch("uvicorn.run") as mock_run,
+    ):
         runpy.run_path(
             str(
                 Path(__file__).resolve().parents[2]
@@ -541,12 +558,12 @@ async def test_lifespan_error_handling():
     """Test lifespan handles errors gracefully."""
     from opencloudtouch.main import app, lifespan
 
-    with patch("opencloudtouch.main.init_config"), patch(
-        "opencloudtouch.main.setup_logging"
-    ), patch("opencloudtouch.main.get_config") as mock_get_config, patch(
-        "opencloudtouch.main.DeviceRepository"
-    ) as mock_repo_class:
-
+    with (
+        patch("opencloudtouch.main.init_config"),
+        patch("opencloudtouch.main.setup_logging"),
+        patch("opencloudtouch.main.get_config") as mock_get_config,
+        patch("opencloudtouch.main.DeviceRepository") as mock_repo_class,
+    ):
         mock_config = MagicMock()
         mock_config.host = "0.0.0.0"
         mock_config.port = 7777
@@ -567,3 +584,26 @@ async def test_lifespan_error_handling():
         with pytest.raises(Exception, match="DB connection failed"):
             async with lifespan(app):
                 pass
+
+
+@pytest.mark.asyncio
+async def test_init_services_wires_dlna_service_into_preset_service(
+    mock_init_services_deps,
+):
+    """PresetService gets the app's DlnaService for native DLNA presets."""
+    from fastapi import FastAPI
+
+    from opencloudtouch.main import _init_services
+
+    app = FastAPI()
+    cfg = MagicMock()
+    cfg.mock_mode = True
+    cfg.device_polling_enabled = False
+    cfg.discovery_timeout = 3
+    cfg.manual_device_ips_list = []
+    cfg.discovery_enabled = True
+
+    await _init_services(app, cfg, _build_init_services_repos(), MagicMock())
+
+    kwargs = mock_init_services_deps["preset"].call_args.kwargs
+    assert kwargs["dlna_service"] is app.state.dlna_service

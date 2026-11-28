@@ -11,7 +11,7 @@ from xml.etree import ElementTree as ET
 import pytest
 
 from opencloudtouch.presets.models import Preset
-from opencloudtouch.presets.parser import DevicePresetParser
+from opencloudtouch.presets.parser import DevicePresetParser, preset_from_content_item
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -259,3 +259,81 @@ class TestOctDecoding:
 
         assert result is not None
         assert result.station_uuid == uuid
+
+
+# ---------------------------------------------------------------------------
+# Shared importer (load from device + speaker callback)
+# ---------------------------------------------------------------------------
+
+_ACCOUNT = "uuid-server-1/0"
+_NATIVE_PRESET = (
+    '<preset id="3" createdOn="0" updatedOn="0">'
+    '<ContentItem source="STORED_MUSIC" location="1$4$12" '
+    f'sourceAccount="{_ACCOUNT}" isPresetable="true">'
+    "<itemName>Album</itemName>"
+    "<containerArt>http://192.0.2.10/cover.jpg</containerArt>"
+    "</ContentItem></preset>"
+)
+
+
+class TestSharedImporter:
+    def test_parser_imports_stored_music_with_account(self, parser):
+        result = parser.parse_element(ET.fromstring(_NATIVE_PRESET), "dev-001")
+
+        assert result is not None
+        assert (result.source, result.source_account) == ("STORED_MUSIC", _ACCOUNT)
+        assert (result.station_uuid, result.station_url) == ("STORED_MUSIC_3", "1$4$12")
+        assert result.station_name == "Album"
+        assert result.station_favicon == "http://192.0.2.10/cover.jpg"
+        assert result.is_dlna
+
+    def test_roundtrip_b5b_preset_through_parser(self, parser):
+        """A preset written by POST /api/presets/dlna loads back unchanged (L2)."""
+        saved = Preset(
+            device_id="dev-001",
+            preset_number=3,
+            station_uuid="STORED_MUSIC_3",
+            station_name="Album",
+            station_url="1$4$12",
+            station_favicon="http://192.0.2.10/cover.jpg",
+            source="STORED_MUSIC",
+            source_account=_ACCOUNT,
+        )
+
+        loaded = parser.parse_presets(
+            "dev-001", f"<presets>{_NATIVE_PRESET}</presets>".encode()
+        )[0]
+
+        assert loaded.to_dict() | {"created_at": 0, "updated_at": 0} == (
+            saved.to_dict() | {"created_at": 0, "updated_at": 0}
+        )
+
+    def test_radio_import_unchanged(self, parser):
+        """Account and cover attributes do not change how a radio preset imports."""
+        elem = ET.fromstring(
+            '<preset id="1"><ContentItem source="TUNEIN" location="/v1/s1" '
+            'sourceAccount="x"><itemName>Radio</itemName>'
+            "<containerArt>http://192.0.2.1/a.png</containerArt></ContentItem></preset>"
+        )
+
+        result = parser.parse_element(elem, "dev-001")
+
+        assert result is not None
+        assert (result.source, result.station_uuid) == ("TUNEIN", "tunein_/v1/s1")
+        assert (result.source_account, result.station_favicon) == (None, None)
+
+    def test_stored_music_without_account_is_no_dlna_preset(self):
+        result = preset_from_content_item(
+            "dev-001", 2, "STORED_MUSIC", "1$4", "", "Album", None
+        )
+
+        assert result is not None
+        assert result.source == "STORED_MUSIC"
+        assert not result.is_dlna
+
+    def test_unreadable_radio_location_returns_none(self):
+        bmx = "http://content.api.bose.io/bmx-adapter/station"
+        assert (
+            preset_from_content_item("d", 1, "LOCAL_INTERNET_RADIO", bmx, "", "X", None)
+            is None
+        )

@@ -296,3 +296,33 @@ class TestGetPlaylistPls:
         client.get("/playlist/DEVICE123/6.pls")
 
         mock_preset_service.get_preset.assert_called_once_with("DEVICE123", 6)
+
+
+def _dlna_preset() -> Preset:
+    return Preset(
+        device_id="DEVICE123",
+        preset_number=1,
+        station_uuid="u",
+        station_name="Album",
+        station_url="42",
+        source="STORED_MUSIC",
+        source_account="uuid:abc/0",
+    )
+
+
+def test_playlist_m3u_409_for_dlna(client, mock_preset_service):
+    mock_preset_service.get_preset = AsyncMock(return_value=_dlna_preset())
+
+    response = client.get("/playlist/DEVICE123/1.m3u")
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "dlna_preset_not_streamable"
+
+
+def test_playlist_pls_409_for_dlna(client, mock_preset_service):
+    mock_preset_service.get_preset = AsyncMock(return_value=_dlna_preset())
+
+    response = client.get("/playlist/DEVICE123/1.pls")
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "dlna_preset_not_streamable"

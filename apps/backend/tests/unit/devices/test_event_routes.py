@@ -60,6 +60,16 @@ class TestEventToSSE:
         data = json.loads(sse.split("data: ")[1].strip())
         assert data["device_id"] == "D3"
 
+    def test_presets_event_carries_the_full_list(self):
+        presets = [{"preset_number": 1, "station_name": "A", "dlna": False}]
+        event = DeviceEvent(
+            device_id="D3", event_type=EventType.PRESETS, presets=presets
+        )
+        sse = _event_to_sse(event)
+        assert sse.startswith("event: presets\n")
+        data = json.loads(sse.split("data: ")[1].strip())
+        assert data == {"device_id": "D3", "presets": presets}
+
     def test_metadata_enriched_event(self):
         """metadata_enriched should format like now_playing with enriched type."""
         event = DeviceEvent(
@@ -84,6 +94,25 @@ class TestEventToSSE:
         assert data["artwork_url"] == "https://cdn.example.com/logo.png"
         assert data["artist"] == "ICY Artist"
         assert data["track"] == "ICY Track"
+
+    def test_source_error_sse_format_has_code_name_severity_no_text(self):
+        event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.SOURCE_ERROR,
+            error_code=1604,
+            error_name="STORED_MUSIC_RENDERER_BAD_FORMAT",
+            error_severity="Unrecoverable",
+            raw_xml="<errorUpdate>Track format is not supported</errorUpdate>",
+        )
+        sse = _event_to_sse(event)
+        assert sse.startswith("event: source_error\n")
+        data = json.loads(sse.split("data: ")[1].strip())
+        assert data == {
+            "device_id": "D1",
+            "code": 1604,
+            "name": "STORED_MUSIC_RENDERER_BAD_FORMAT",
+            "severity": "Unrecoverable",
+        }
 
 
 class TestSnapshotToSSE:
@@ -356,3 +385,28 @@ class TestSSEIntegration:
         joined = "".join(messages)
         assert "event: now_playing" in joined
         assert "Test Song" in joined
+
+
+def test_sse_now_playing_includes_settings():
+    info = NowPlayingInfo(
+        source="STORED_MUSIC",
+        state="PLAY_STATE",
+        shuffle_setting="SHUFFLE_ON",
+        repeat_setting="REPEAT_OFF",
+        skip_previous_enabled=True,
+    )
+    event = DeviceEvent(
+        device_id="D2", event_type=EventType.NOW_PLAYING, now_playing=info
+    )
+    data = json.loads(_event_to_sse(event).split("data: ")[1].strip())
+    assert data["shuffle_setting"] == "SHUFFLE_ON"
+    assert data["repeat_setting"] == "REPEAT_OFF"
+    assert data["skip_enabled"] is False
+    assert data["skip_previous_enabled"] is True
+
+    snapshot = _snapshot_to_sse("D2", DeviceState(device_id="D2", now_playing=info))
+    np_data = json.loads(snapshot.split("event: now_playing\ndata: ")[1].split("\n")[0])
+    assert np_data["shuffle_setting"] == "SHUFFLE_ON"
+    assert np_data["repeat_setting"] == "REPEAT_OFF"
+    assert np_data["skip_enabled"] is False
+    assert np_data["skip_previous_enabled"] is True

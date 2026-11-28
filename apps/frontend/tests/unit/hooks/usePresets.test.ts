@@ -17,6 +17,20 @@ vi.mock("../../../src/api/presets", () => ({
   clearPreset: (...args: unknown[]) => mockClearPresetAPI(...args),
 }));
 
+type Cb = (d: Record<string, unknown> & { device_id: string }) => void;
+const subs: Record<string, Set<Cb>> = {};
+const emit = (type: string, data: Record<string, unknown> & { device_id: string }) =>
+  subs[type]?.forEach((cb) => cb(data));
+// stable like the real context value, otherwise the hook's effect re-runs on every render
+const ctx = {
+  subscribe: (type: string, _id: string, cb: Cb) => {
+    (subs[type] ??= new Set()).add(cb);
+    return () => subs[type].delete(cb);
+  },
+  connected: true,
+};
+vi.mock("../../../src/contexts/DeviceEventContext", () => ({ useDeviceEventContext: () => ctx }));
+
 const mockIsDeviceOffline = vi.fn();
 vi.mock("../../../src/api/offlineDeviceStore", () => ({
   isDeviceOffline: (...args: unknown[]) => mockIsDeviceOffline(...args),
@@ -208,5 +222,60 @@ describe("usePresets", () => {
 
     expect(mockClearPresetAPI).toHaveBeenCalledWith("ST10-001", 1);
     expect(result.current.presets[1]).toBeUndefined();
+  });
+
+  it("replaces the presets with the list of a presets event, without a reload", async () => {
+    mockGetDevicePresets.mockResolvedValue([MOCK_PRESET]);
+    const { result } = renderHook(() => usePresets("ST10-001"));
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+      await vi.runAllTimersAsync();
+    });
+
+    act(() =>
+      emit("presets", {
+        device_id: "ST10-001",
+        presets: [{ ...MOCK_PRESET, preset_number: 3, station_name: "Changed elsewhere" }],
+      })
+    );
+
+    expect(result.current.presets[1]).toBeUndefined();
+    expect(result.current.presets[3]?.station_name).toBe("Changed elsewhere");
+    expect(mockGetDevicePresets).toHaveBeenCalledTimes(1);
+  });
+
+  it("applies a presets event in a second hook instance (another tab) for its device", async () => {
+    mockGetDevicePresets.mockResolvedValue([MOCK_PRESET]);
+    const first = renderHook(() => usePresets("ST10-001"));
+    const second = renderHook(() => usePresets("ST10-001"));
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+      await vi.runAllTimersAsync();
+    });
+
+    act(() =>
+      emit("presets", {
+        device_id: "ST10-001",
+        presets: [{ ...MOCK_PRESET, preset_number: 4, station_name: "DLNA track" }],
+      })
+    );
+
+    for (const { result } of [first, second]) {
+      expect(result.current.presets[1]).toBeUndefined();
+      expect(result.current.presets[4]?.station_name).toBe("DLNA track");
+    }
+  });
+
+  it("ignores a presets event without a list", async () => {
+    mockGetDevicePresets.mockResolvedValue([MOCK_PRESET]);
+    const { result } = renderHook(() => usePresets("ST10-001"));
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+      await vi.runAllTimersAsync();
+    });
+
+    act(() => emit("presets", { device_id: "ST10-001" }));
+
+    expect(result.current.presets[1]?.station_name).toBe("Radio X");
   });
 });

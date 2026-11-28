@@ -18,6 +18,7 @@ from opencloudtouch.marge.routes import (
     streaming_token,
 )
 from opencloudtouch.marge.service import MargeService
+from opencloudtouch.marge.source_repository import MediaServerSource
 
 
 class TestPowerOnEndpoint:
@@ -341,3 +342,65 @@ class TestAddRecent:
 def _with_id(recent):
     recent.id = 7
     return recent
+
+
+class TestStreamingFullAccountSources:
+    """/full appends stored servers and gates provider ids on the migration version."""
+
+    @staticmethod
+    def _marge(stored):
+        marge = AsyncMock(spec=MargeService)
+        marge.resolve_device_id_for_account = AsyncMock(return_value="AABB")
+        marge.get_full_account = AsyncMock(return_value=([], []))
+        marge.list_sources = AsyncMock(return_value=stored)
+        return marge
+
+    @staticmethod
+    def _sources(result):
+        return ElementTree.fromstring(result.body.decode()).findall("./sources/source")
+
+    @pytest.mark.asyncio
+    async def test_version_one_serves_catalogue_ids_and_stored_sources(self):
+        now = datetime(2026, 11, 1, tzinfo=UTC)
+        stored = MediaServerSource(20000000, "acc", "udn-1", "NAS", now, now)
+        marge = self._marge([stored])
+        migrations = AsyncMock()
+        migrations.status = AsyncMock(return_value=(1, None))
+
+        result = await streaming_full_account("acc", marge, migrations)
+
+        sources = self._sources(result)
+        aux = next(s for s in sources if s.findtext("name") == "AUX")
+        assert (aux.get("id"), aux.findtext("sourceproviderid")) == ("41", "9")
+        assert sources[-1].findtext("username") == "udn-1/0"
+        marge.list_sources.assert_awaited_once_with("acc")
+        migrations.status.assert_awaited_once_with("AABB")
+
+    @pytest.mark.asyncio
+    async def test_full_serves_native_dlna_preset_with_stored_source(self):
+        from opencloudtouch.presets.models import Preset
+
+        now = datetime(2026, 11, 1, tzinfo=UTC)
+        stored = MediaServerSource(20000002, "acc", "udn-1", "NAS", now, now)
+        preset = Preset(
+            "AABB", 6, "", "Song", "130032 TRACK", None, None, "STORED_MUSIC", "udn-1/0"
+        )
+        marge = self._marge([stored])
+        marge.get_full_account = AsyncMock(return_value=([preset], []))
+
+        result = await streaming_full_account("acc", marge, None)
+
+        root = ElementTree.fromstring(result.body.decode())
+        entry = root.find("./devices/device/presets/preset")
+        assert entry.findtext("location") == "130032 TRACK"
+        assert entry.find("source").get("id") == "20000002"
+        assert entry.find("source").findtext("sourceproviderid") == "50"
+
+    @pytest.mark.asyncio
+    async def test_version_zero_and_no_service_keep_old_ids(self):
+        zero = AsyncMock()
+        zero.status = AsyncMock(return_value=(0, None))
+        for migrations in (zero, None):
+            result = await streaming_full_account("acc", self._marge([]), migrations)
+            aux = next(s for s in self._sources(result) if s.findtext("name") == "AUX")
+            assert aux.findtext("sourceproviderid") == "41"

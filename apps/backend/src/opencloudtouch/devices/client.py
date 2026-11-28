@@ -39,6 +39,27 @@ class NowPlayingInfo:
     track: Optional[str] = None
     album: Optional[str] = None
     artwork_url: Optional[str] = None
+    location: Optional[str] = None  # ContentItem location (DLNA preset match)
+    source_account: Optional[str] = None  # ContentItem sourceAccount
+    shuffle_setting: Optional[str] = None  # SHUFFLE_ON/OFF; None = not supported
+    repeat_setting: Optional[str] = None  # REPEAT_OFF/ALL/ONE; None = not supported
+    skip_enabled: bool = False  # <skipEnabled /> marker: Next is possible
+    skip_previous_enabled: bool = False  # <skipPreviousEnabled /> marker
+
+    @property
+    def is_dlna(self) -> bool:
+        """The one now-playing DLNA rule for REST and SSE: source is STORED_MUSIC."""
+        return self.source == "STORED_MUSIC"
+
+
+# Keys whose result the speaker reports back as shuffle/repeat setting
+SHUFFLE_REPEAT_KEYS = (
+    "SHUFFLE_ON",
+    "SHUFFLE_OFF",
+    "REPEAT_OFF",
+    "REPEAT_ALL",
+    "REPEAT_ONE",
+)
 
 
 @dataclass
@@ -66,6 +87,37 @@ class BassCapabilities:
     minimum: int
     maximum: int
     default: int
+
+
+@dataclass
+class SpeakerSource:
+    """One source and its current status as reported by the speaker's /sources."""
+
+    source: str
+    account: str
+    status: str
+    display_name: str
+
+
+@dataclass
+class StoredMusicItem:
+    """One /navigate entry; ContentItem attributes exactly as the speaker returned them."""
+
+    name: str
+    is_directory: bool
+    source: str
+    location: str
+    source_account: str
+    item_name: str
+
+
+@dataclass
+class StoredMusicBrowse:
+    """/navigate result; error_code is the speaker's error value when it answered one."""
+
+    items: list[StoredMusicItem]
+    error_code: int | None = None
+    total: int | None = None  # <totalItems> of the browsed folder, if reported
 
 
 class DeviceClient(ABC):
@@ -237,3 +289,41 @@ class DeviceClient(ABC):
     async def reboot(self) -> None:
         """Reboot the device via TCP telnet interface (port 17000)."""
         pass
+
+    # ---- DLNA / STORED_MUSIC Methods ----
+
+    @abstractmethod
+    async def list_media_servers(self) -> list[str]:
+        """Media server ids from GET /listMediaServers, exactly as the speaker lists them."""
+
+    @abstractmethod
+    async def browse_stored_music(
+        self,
+        source_account: str,
+        location: str | None = None,
+        start_item: int = 1,
+        num_items: int = 1000,
+    ) -> StoredMusicBrowse:
+        """Browse a server (`<UDN>/0`) through the speaker's /navigate; root if no location."""
+
+    @abstractmethod
+    async def get_source_list(self) -> list[SpeakerSource]:
+        """Read the speaker's current sources via GET /sources."""
+
+    @abstractmethod
+    async def register_media_server(self, server_udn: str, name: str) -> None:
+        """Register a server (`<UDN>/0`) via the speaker's setMusicServiceAccount."""
+
+    @abstractmethod
+    async def remove_media_server(self, server_udn: str) -> None:
+        """Remove a server via the speaker's removeMusicServiceAccount."""
+
+    @abstractmethod
+    async def notify_sources_updated(self, device_id: str) -> None:
+        """Best-effort sourcesUpdated push to the speaker; never raises."""
+
+    @abstractmethod
+    async def store_native_preset(
+        self, preset_number: int, item: StoredMusicItem, artwork_url: str = ""
+    ) -> None:
+        """Store the speaker's own STORED_MUSIC ContentItem in slot 1-6."""

@@ -37,6 +37,8 @@ from opencloudtouch.core.static_files import (
 from opencloudtouch.db import DeviceRepository
 from opencloudtouch.dlna.service import DlnaService
 from opencloudtouch.devices.adapter import get_discovery_adapter
+from opencloudtouch.dlna.native_routes import router as dlna_native_router
+from opencloudtouch.dlna.native_service import DlnaNativeService
 from opencloudtouch.dlna.routes import router as dlna_router
 from opencloudtouch.devices.api.discovery_routes import discovery_router
 from opencloudtouch.devices.api.event_routes import event_router
@@ -51,8 +53,12 @@ from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.services.sync_service import DeviceSyncService
 from opencloudtouch.devices.startup_check import StartupCheck
 from opencloudtouch.devices.state import DeviceStateManager
+from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
 from opencloudtouch.marge.routes import router as marge_router
 from opencloudtouch.marge.service import MargeService
+from opencloudtouch.marge.source_repository import MargeSourceRepository
+from opencloudtouch.migrations.repository import SpeakerMigrationRepository
+from opencloudtouch.migrations.service import SpeakerMigrationService
 from opencloudtouch.presets.api.playlist_routes import router as playlist_router
 from opencloudtouch.presets.api.routes import router as presets_router
 from opencloudtouch.presets.api.station_routes import router as stations_router
@@ -147,6 +153,8 @@ async def _init_repositories(app: FastAPI, cfg, logger: logging.Logger) -> dict:
         ("wizard_audit_repo", WizardAuditRepository, cfg.effective_db_path),
         ("zone_repo", ZoneRepository, cfg.effective_db_path),
         ("stereo_pair_repo", StereoPairRepository, cfg.effective_db_path),
+        ("marge_source_repo", MargeSourceRepository, cfg.effective_db_path),
+        ("speaker_migration_repo", SpeakerMigrationRepository, cfg.effective_db_path),
     ]
 
     repos = {}
@@ -174,11 +182,20 @@ async def _init_services(
     logger.info("RecentsService initialized")
 
     # Marge service (account sync orchestration)
-    app.state.marge_service = MargeService(preset_repo, recents_repo, device_repo)
+    app.state.marge_service = MargeService(
+        preset_repo, recents_repo, device_repo, source_repo=repos["marge_source_repo"]
+    )
     logger.info("MargeService initialized")
 
+    app.state.dlna_service = DlnaService()
+    # Fills the empty cache after a restart; registered servers would look gone otherwise.
+    app.state.dlna_service.refresh_in_background()
+    logger.info("DlnaService initialized")
+
     # Preset service
-    app.state.preset_service = PresetService(preset_repo, device_repo)
+    app.state.preset_service = PresetService(
+        preset_repo, device_repo, dlna_service=app.state.dlna_service
+    )
     logger.info("PresetService initialized")
 
     # Device service (with sync + discovery)
@@ -196,9 +213,6 @@ async def _init_services(
     )
     app.state.device_service = device_service
     logger.info("DeviceService initialized")
-
-    app.state.dlna_service = DlnaService()
-    logger.info("DlnaService initialized")
 
     # Zone service (with injected client factory to avoid circular deps)
     from opencloudtouch.devices.adapter import get_device_client
@@ -233,6 +247,21 @@ async def _init_services(
             result.failed,
             result.discovered,
         )
+
+    # Speaker migrations run before features use the speakers (decision 19)
+    app.state.speaker_migration_service = SpeakerMigrationService(
+        repos["speaker_migration_repo"], device_repo
+    )
+    await app.state.speaker_migration_service.run_all()
+    logger.info("SpeakerMigrationService initialized")
+
+    app.state.dlna_native_service = DlnaNativeService(
+        repos["marge_source_repo"],
+        device_repo,
+        migration_service=app.state.speaker_migration_service,
+        preset_repo=preset_repo if cfg.mock_mode else None,
+    )
+    logger.info("DlnaNativeService initialized")
 
     # Settings service
     app.state.settings_service = SettingsService(settings_repo)
@@ -337,6 +366,16 @@ async def _init_websocket_pipeline(
         _make_preset_lookup(app, logger, "station_favicon"),
     )
     app.state.device_state_manager.start_icy_polling()
+
+    async def _publish_presets(device_id: str, presets: list[dict]) -> None:
+        await app.state.device_state_manager.publish(
+            DeviceEvent(device_id, EventType.PRESETS, presets=presets)
+        )
+
+    app.state.preset_service.on_presets_changed = _publish_presets
+    app.state.device_state_manager.set_presets_callback(
+        app.state.preset_service.apply_presets_event
+    )
     logger.info("DeviceStateManager initialized (with ICY worker + periodic polling)")
 
     # WebSocket manager — connects to SoundTouch device WS ports
@@ -345,6 +384,8 @@ async def _init_websocket_pipeline(
 
     ws_manager = WebSocketManager(
         on_event=app.state.device_state_manager.on_event,
+        # A speaker that (re)connects runs its pending migrations (decision 19)
+        on_state_change=app.state.speaker_migration_service.on_connection_state,
     )
     app.state.ws_manager = ws_manager
 
@@ -444,6 +485,7 @@ app.include_router(
     discovery_router
 )  # Device discovery endpoints (/discover, /sync, /stream)
 app.include_router(dlna_router)  # DLNA media server discovery and browsing
+app.include_router(dlna_native_router)  # Media servers registered on a speaker
 app.include_router(devices_router)
 app.include_router(presets_router)
 app.include_router(radio_router)

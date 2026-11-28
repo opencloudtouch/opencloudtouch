@@ -1,11 +1,12 @@
 """Tests for DLNA media server discovery."""
 
-from unittest.mock import AsyncMock, MagicMock
+import itertools
+import socket
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from opencloudtouch.dlna.discovery import DlnaDiscovery
-from opencloudtouch.devices.discovery.ssdp import SSDPDiscovery
 
 DEVICE_DESCRIPTION = """<?xml version="1.0"?>
 <root xmlns="urn:schemas-upnp-org:device-1-0">
@@ -37,10 +38,7 @@ def test_parse_location():
         "\r\n"
     )
 
-    assert (
-        discovery.ssdp._parse_location(response)
-        == "http://192.0.2.10:8200/rootDesc.xml"
-    )
+    assert discovery._parse_location(response) == "http://192.0.2.10:8200/rootDesc.xml"
 
 
 @pytest.mark.asyncio
@@ -93,12 +91,76 @@ async def test_ignore_non_media_server():
     assert server is None
 
 
-def test_dlna_reuses_shared_ssdp_target():
-    discovery = DlnaDiscovery(timeout=7)
-    assert isinstance(discovery.ssdp, SSDPDiscovery)
-    assert discovery.ssdp.timeout == 7
-    assert discovery.ssdp.search_target == discovery.SEARCH_TARGET
-    assert SSDPDiscovery().search_target == "ssdp:all"
+def _fake_socket(responses=()):
+    """Fake UDP socket: returns the given datagrams, then times out."""
+    sock = MagicMock()
+    sock.recvfrom.side_effect = itertools.chain(
+        ((r, ("192.0.2.10", 1900)) for r in responses),
+        itertools.repeat(socket.timeout()),
+    )
+    return sock
+
+
+def _response(location: str) -> bytes:
+    return f"HTTP/1.1 200 OK\r\nLOCATION: {location}\r\n\r\n".encode()
+
+
+def test_msearch_binds_ephemeral_port_not_1900():
+    sock = _fake_socket()
+    with patch("opencloudtouch.dlna.discovery.socket.socket", return_value=sock):
+        assert DlnaDiscovery(timeout=0.01)._msearch() == []
+    sock.bind.assert_called_once_with(("", 0))
+    sock.setsockopt.assert_called_once_with(
+        socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2
+    )
+    sock.close.assert_called_once_with()
+
+
+def test_msearch_message_has_mediaserver_target_and_mx():
+    sock = _fake_socket()
+    with patch("opencloudtouch.dlna.discovery.socket.socket", return_value=sock):
+        DlnaDiscovery(timeout=0.01)._msearch()
+    msg, addr = sock.sendto.call_args.args
+    assert addr == ("239.255.255.250", 1900)
+    text = msg.decode()
+    assert text.startswith("M-SEARCH * HTTP/1.1\r\n")
+    assert "HOST: 239.255.255.250:1900\r\n" in text
+    assert 'MAN: "ssdp:discover"\r\n' in text
+    assert "MX: 2\r\n" in text
+    assert "ST: urn:schemas-upnp-org:device:MediaServer:1\r\n" in text
+
+
+def test_collects_unique_locations_until_deadline():
+    location = "http://192.0.2.10:8200/rootDesc.xml"
+    no_location = b"HTTP/1.1 200 OK\r\n\r\n"
+    sock = _fake_socket([_response(location), no_location, _response(location)])
+    with patch("opencloudtouch.dlna.discovery.socket.socket", return_value=sock):
+        assert DlnaDiscovery(timeout=0.05)._msearch() == [location]
+    sock.close.assert_called_once_with()
+
+
+def test_receive_error_keeps_collected_locations():
+    location = "http://192.0.2.10:8200/rootDesc.xml"
+    sock = MagicMock()
+    sock.recvfrom.side_effect = [(_response(location), None), OSError("reset")]
+    with patch("opencloudtouch.dlna.discovery.socket.socket", return_value=sock):
+        assert DlnaDiscovery(timeout=5)._msearch() == [location]
+
+
+def test_send_failure_returns_empty(caplog):
+    sock = _fake_socket()
+    sock.sendto.side_effect = OSError("network unreachable")
+    with patch("opencloudtouch.dlna.discovery.socket.socket", return_value=sock):
+        assert DlnaDiscovery(timeout=0.01)._msearch() == []
+    assert [r.levelname for r in caplog.records] == ["WARNING"]
+    sock.close.assert_called_once_with()
+
+
+def test_socket_creation_failure_returns_empty():
+    with patch(
+        "opencloudtouch.dlna.discovery.socket.socket", side_effect=OSError("denied")
+    ):
+        assert DlnaDiscovery(timeout=0.01)._msearch() == []
 
 
 @pytest.mark.parametrize(
@@ -166,14 +228,16 @@ def test_dlna_control_url_must_match_description_host():
 
 
 @pytest.mark.asyncio
-async def test_dlna_discovery_uses_public_ssdp_search(monkeypatch):
+async def test_discover_parses_description_into_server(monkeypatch):
+    # The integration conftest sets OCT_MOCK_MODE globally when both dirs run together.
+    monkeypatch.delenv("OCT_MOCK_MODE", raising=False)
     discovery = DlnaDiscovery()
     locations = ["http://192.0.2.10:8200/root.xml"]
-    search = AsyncMock(return_value=locations)
+    search = MagicMock(return_value=locations)
     fetch = AsyncMock(return_value=[])
-    monkeypatch.setattr(discovery.ssdp, "search_locations", search)
+    monkeypatch.setattr(discovery, "_msearch", search)
     monkeypatch.setattr(discovery, "_fetch_server_descriptions", fetch)
 
     assert await discovery.discover() == []
-    search.assert_awaited_once_with()
+    search.assert_called_once_with()
     fetch.assert_awaited_once_with(locations)

@@ -3,7 +3,7 @@
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi import Path as FastAPIPath
 from pydantic import BaseModel, Field
 
@@ -29,6 +29,26 @@ class PresetSetRequest(BaseModel):
     station_favicon: Optional[str] = Field(None, description="Station favicon URL")
 
 
+class PresetDlnaRequest(BaseModel):
+    """Request model for saving a DLNA folder/track as a native preset."""
+
+    device_id: str
+    preset_number: int = Field(..., ge=1, le=6, description="Preset number (1-6)")
+    server_id: str
+    parent_id: str = "0"
+    object_id: str
+    confirm: bool = Field(False, description="Save a folder without audio first")
+    index: int | None = Field(
+        None, ge=0, description="0-based position in OCT's browse of the parent (hint)"
+    )
+    artwork_url: str | None = Field(
+        None, description="album_art_url from OCT's browse; skips the path lookup"
+    )
+    artist: str | None = Field(
+        None, max_length=500, description="Artist of the item from OCT's browse"
+    )
+
+
 class PresetResponse(BaseModel):
     """Response model for a preset."""
 
@@ -41,6 +61,9 @@ class PresetResponse(BaseModel):
     station_homepage: Optional[str]
     station_favicon: Optional[str]
     source: Optional[str]
+    source_account: Optional[str] = None
+    station_artist: Optional[str] = None
+    dlna: bool = False
     created_at: str
     updated_at: str
 
@@ -73,7 +96,7 @@ async def set_preset(
             station_favicon=request.station_favicon,
         )
 
-        return PresetResponse(**saved_preset.to_dict())
+        return PresetResponse(**saved_preset.to_dict(), dlna=saved_preset.is_dlna)
 
     except DeviceConnectionError:
         raise
@@ -86,23 +109,48 @@ async def set_preset(
         raise HTTPException(status_code=500, detail="Failed to set preset")
 
 
+@router.post("/dlna", response_model=PresetResponse, status_code=201)
+async def set_dlna_preset(
+    request: PresetDlnaRequest,
+    preset_service: PresetService = Depends(get_preset_service),
+):
+    """Save a DLNA folder/track as a native preset (409 unless confirmed)."""
+    preset = await preset_service.set_dlna_preset(
+        request.device_id,
+        request.preset_number,
+        request.server_id,
+        request.parent_id,
+        request.object_id,
+        request.confirm,
+        index=request.index,
+        artwork_url=request.artwork_url,
+        artist=request.artist,
+    )
+    return PresetResponse(**preset.to_dict(), dlna=preset.is_dlna)
+
+
 @router.get("/{device_id}", response_model=List[PresetResponse])
 async def get_device_presets(
+    background_tasks: BackgroundTasks,
     device_id: str = FastAPIPath(..., description="Device identifier"),
     preset_service: PresetService = Depends(get_preset_service),
 ):
     """
     Get all presets for a device.
 
-    Returns all configured presets (1-6) for the specified device.
-    Empty slots are not included in the response.
+    Answers at once from the OCT database; empty slots are not included. After
+    the response OCT reads the speaker's presets and, if they differ, pushes the
+    new list as SSE event ``presets`` on /api/events/device-stream.
     """
     try:
         presets = await preset_service.get_all_presets(device_id)
+        background_tasks.add_task(
+            preset_service.refresh_from_device, device_id, presets
+        )
 
         logger.debug("Retrieved %d presets for device %s", len(presets), device_id)
 
-        return [PresetResponse(**p.to_dict()) for p in presets]
+        return [PresetResponse(**p.to_dict(), dlna=p.is_dlna) for p in presets]
 
     except Exception:
         logger.exception("Error getting presets for device %s", device_id)
@@ -142,7 +190,7 @@ async def get_preset(
             preset.station_name,
         )
 
-        return PresetResponse(**preset.to_dict())
+        return PresetResponse(**preset.to_dict(), dlna=preset.is_dlna)
 
     except HTTPException:
         raise

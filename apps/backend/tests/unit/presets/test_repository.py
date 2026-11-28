@@ -538,3 +538,97 @@ class TestSchemaVersions:
                 assert row[1] is not None, "applied_at timestamp must be set"
 
             await repo.close()
+
+
+@pytest.mark.asyncio
+async def test_migrations_add_columns_to_existing_db():
+    """A v1 presets table with a row is upgraded without data loss."""
+    import aiosqlite
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "v1.db"
+        async with aiosqlite.connect(str(db_path)) as db:
+            await db.execute("""
+                CREATE TABLE presets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    device_id TEXT NOT NULL,
+                    preset_number INTEGER NOT NULL,
+                    station_uuid TEXT NOT NULL,
+                    station_name TEXT NOT NULL,
+                    station_url TEXT NOT NULL,
+                    station_homepage TEXT,
+                    station_favicon TEXT,
+                    source TEXT,
+                    created_at TIMESTAMP NOT NULL,
+                    updated_at TIMESTAMP NOT NULL,
+                    UNIQUE(device_id, preset_number)
+                )
+                """)
+            await db.execute(
+                "INSERT INTO presets (device_id, preset_number, station_uuid,"
+                " station_name, station_url, source, created_at, updated_at)"
+                " VALUES ('dev1', 2, 'uuid', 'Radio', 'http://r/s', 'TUNEIN',"
+                " '2026-01-01T00:00:00+00:00', '2026-01-01T00:00:00+00:00')"
+            )
+            await db.commit()
+
+        repo = PresetRepository(str(db_path))
+        await repo.initialize()
+        try:
+            preset = await repo.get_preset("dev1", 2)
+            assert preset is not None
+            assert preset.station_name == "Radio"
+            assert preset.source == "TUNEIN"
+            assert preset.source_account is None
+            assert preset.station_artist is None
+        finally:
+            await repo.close()
+
+
+@pytest.mark.asyncio
+async def test_roundtrip_source_account(preset_repo):
+    account = "4d696e69-0000-0000-0000-000000000001/0"
+    await preset_repo.set_preset(
+        Preset(
+            device_id="dev1",
+            preset_number=3,
+            station_uuid="1$4$2",
+            station_name="Album",
+            station_url="1$4$2",
+            source="STORED_MUSIC",
+            source_account=account,
+        )
+    )
+    assert (await preset_repo.get_preset("dev1", 3)).source_account == account
+    [stored] = await preset_repo.get_all_presets("dev1")
+    assert stored.is_dlna
+
+    # A later full upsert without an account clears it.
+    await preset_repo.set_preset(
+        Preset(
+            device_id="dev1",
+            preset_number=3,
+            station_uuid="uuid",
+            station_name="Radio",
+            station_url="http://r/s",
+            source="TUNEIN",
+        )
+    )
+    assert (await preset_repo.get_preset("dev1", 3)).source_account is None
+
+
+@pytest.mark.asyncio
+async def test_roundtrip_station_artist(preset_repo):
+    row = Preset(
+        device_id="dev1",
+        preset_number=4,
+        station_uuid="STORED_MUSIC_4",
+        station_name="Track",
+        station_url="1$7 TRACK",
+        source="STORED_MUSIC",
+        station_artist="Some Artist",
+    )
+    await preset_repo.set_preset(row)
+    assert (await preset_repo.get_preset("dev1", 4)).station_artist == "Some Artist"
+    [stored] = await preset_repo.get_all_presets("dev1")
+    assert stored.to_dict()["station_artist"] == "Some Artist"

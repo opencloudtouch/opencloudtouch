@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListMediaServersResponse>
+    <media_server id="4D696E69-0000-0000-0000-00000000000A" mac="" ip="192.0.2.10" manufacturer="Gerbera" model_name="Gerbera" friendly_name="Mediaserver" model_description="UPnP MediaServer" location="http://192.0.2.10:49494/description.xml" />
+    <media_server id="4d696e69-0000-0000-0000-00000000000b" mac="" ip="192.0.2.11" manufacturer="MiniDLNA" model_name="MiniDLNA" friendly_name="NAS-DLNA" model_description="MiniDLNA" location="http://192.0.2.11:8200/rootDesc.xml" />
+</ListMediaServersResponse>

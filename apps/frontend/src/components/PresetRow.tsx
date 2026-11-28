@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import { Icon } from "./Icon";
@@ -9,9 +10,13 @@ export interface Preset {
   station_url?: string;
   station_favicon?: string;
   source?: string; // TUNEIN, INTERNET_RADIO, LOCAL_INTERNET_RADIO, etc.
+  dlna?: boolean;
+  source_account?: string | null;
+  /** DLNA track artist, shown muted on the second line. */
+  station_artist?: string | null;
 }
 
-export type PresetRowState = "idle" | "playing" | "paused" | "starting" | "failed";
+export type PresetRowState = "idle" | "playing" | "paused" | "starting" | "failed" | "saving";
 
 interface PresetRowProps {
   number: number;
@@ -25,15 +30,6 @@ interface PresetRowProps {
   onChange: () => void;
 }
 
-function handleFaviconError(e: React.SyntheticEvent<HTMLImageElement>) {
-  (e.target as HTMLImageElement).style.display = "none";
-  const parent = (e.target as HTMLImageElement).parentElement;
-  if (parent) {
-    const fallback = parent.querySelector(".pb-avatar") as HTMLElement;
-    if (fallback) fallback.style.display = "flex";
-  }
-}
-
 /** One of the six preset rows: a toggle with a state line and its own small "change" button. */
 export default function PresetRow({
   number,
@@ -44,6 +40,15 @@ export default function PresetRow({
   onChange,
 }: Readonly<PresetRowProps>) {
   const { t } = useTranslation();
+  // Keyed by URL: a new logo URL is tried again without a remount.
+  const [failedLogo, setFailedLogo] = useState<string | null>(null);
+  const saving = state === "saving";
+  const savingLine = saving && (
+    <>
+      <span className="ui-spin">{Icon.Loader(16)}</span>
+      <span>{t("dlna.save.saving", { number })}</span>
+    </>
+  );
 
   if (!preset) {
     return (
@@ -51,7 +56,9 @@ export default function PresetRow({
         <button
           type="button"
           className="pr-main"
-          onClick={onChange}
+          onClick={saving ? undefined : onChange}
+          aria-disabled={saving || undefined}
+          aria-busy={saving || undefined}
           aria-label={`${t("presets.assignPreset")} ${number}`}
           data-testid={`preset-empty-${number}`}
         >
@@ -65,7 +72,9 @@ export default function PresetRow({
               </span>
               {t("presets.assignPreset")}
             </span>
-            <span className="pr-state" />
+            <span className="pr-state" aria-hidden="true">
+              {savingLine}
+            </span>
           </span>
         </button>
       </div>
@@ -73,7 +82,9 @@ export default function PresetRow({
   }
 
   const name = preset.station_name;
-  const busy = state === "starting";
+  const logo = preset.station_favicon;
+  const showLogo = !!logo && logo !== failedLogo;
+  const busy = state === "starting" || saving;
   const label =
     state === "playing"
       ? t("device.presetPause", { n: number, name })
@@ -98,28 +109,25 @@ export default function PresetRow({
         <span className="pr-num" aria-hidden="true">
           {number}
         </span>
-        <div className="pb-logo" aria-hidden="true">
-          {preset.station_favicon ? (
-            <img
-              src={preset.station_favicon}
-              alt=""
-              className="pb-favicon"
-              onError={handleFaviconError}
-            />
-          ) : null}
-          <span
-            className="pb-avatar"
-            style={{
-              backgroundColor: getAvatarColor(name),
-              display: preset.station_favicon ? "none" : "flex",
-            }}
-          >
-            {getStationInitials(name)}
-          </span>
+        <div className="pb-logo" aria-hidden={preset.dlna ? undefined : true}>
+          {showLogo ? (
+            <img src={logo} alt="" className="pb-favicon" onError={() => setFailedLogo(logo)} />
+          ) : preset.dlna ? (
+            <span className="pb-dlna">
+              <span aria-hidden="true">{Icon.HardDrive(22)}</span>
+              <span className="visually-hidden">{t("presets.dlnaBadge")}</span>
+            </span>
+          ) : (
+            <span className="pb-avatar" style={{ backgroundColor: getAvatarColor(name) }}>
+              {getStationInitials(name)}
+            </span>
+          )}
         </div>
         <span className="pr-txt">
           <span className="pr-name">{name}</span>
+          {/* Line 2 is always rendered with a fixed height: rows never change height. */}
           <span className="pr-state" aria-hidden="true">
+            {preset.station_artist && <span className="pr-artist">{preset.station_artist}</span>}
             {state === "playing" && (
               <>
                 {Icon.Volume2(16)}
@@ -138,6 +146,7 @@ export default function PresetRow({
                 <span>{t("device.prStarting")}</span>
               </>
             )}
+            {savingLine}
             {state === "failed" && (
               <>
                 {Icon.CircleX(16)}

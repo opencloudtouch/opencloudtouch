@@ -297,11 +297,11 @@ class TestKnownWebSocketEvents:
         assert event.event_type == EventType.UNKNOWN
         assert event.now_playing is None
 
-    def test_recents_updated_parsed_as_presets(self):
+    def test_recents_updated_is_not_a_presets_event(self):
         xml = '<updates deviceID="AABB11223344"><recentsUpdated/></updates>'
         event = parse_event(xml)
         assert event is not None
-        assert event.event_type == EventType.PRESETS
+        assert event.event_type == EventType.UNKNOWN
 
     def test_soundtouch_sdk_info_ignored_silently(self):
         xml = '<SoundTouchSdkInfo serverVersion="4" serverBuild="trunk"/>'
@@ -328,3 +328,74 @@ def test_group_updated_is_a_group_event():
     assert event is not None
     assert event.event_type == EventType.GROUP
     assert event.device_id == "AABB"
+
+
+def _error_update(value: str = "1604", device: str = 'deviceID="AABB"') -> str:
+    return (
+        f'<errorUpdate {device}><error value="{value}" '
+        'name="STORED_MUSIC_RENDERER_BAD_FORMAT" severity="Unrecoverable">'
+        "Track format is not supported</error></errorUpdate>"
+    )
+
+
+class TestErrorUpdate:
+    def test_error_update_gives_source_error_event(self):
+        event = parse_event(_error_update())
+        assert event is not None
+        assert event.event_type == EventType.SOURCE_ERROR
+        assert event.device_id == "AABB"
+        assert event.error_code == 1604
+        assert event.error_name == "STORED_MUSIC_RENDERER_BAD_FORMAT"
+        assert event.error_severity == "Unrecoverable"
+
+    def test_codes_1602_1608_1615_parse(self):
+        for code in (1602, 1608, 1615, 9999):
+            event = parse_event(_error_update(str(code)))
+            assert event is not None and event.error_code == code
+
+    def test_missing_value_or_device_gives_none(self):
+        assert parse_event(_error_update(device="")) is None
+        assert parse_event(_error_update(value="abc")) is None
+        assert parse_event('<errorUpdate deviceID="AABB"/>') is None
+        no_value = '<errorUpdate deviceID="AABB"><error name="X"/></errorUpdate>'
+        assert parse_event(no_value) is None
+
+    def test_unknown_root_still_ignored(self):
+        assert parse_event('<somethingElse deviceID="AABB"/>') is None
+
+
+def test_parser_extracts_shuffle_repeat():
+    xml = NOW_PLAYING_XML.replace(
+        "<playStatus>",
+        "<shuffleSetting>SHUFFLE_ON</shuffleSetting>"
+        "<repeatSetting>REPEAT_ONE</repeatSetting><playStatus>",
+    )
+    event = parse_event(xml)
+    assert event is not None and event.now_playing is not None
+    assert event.now_playing.shuffle_setting == "SHUFFLE_ON"
+    assert event.now_playing.repeat_setting == "REPEAT_ONE"
+
+
+def test_parser_settings_absent_are_none():
+    event = parse_event(NOW_PLAYING_XML)
+    assert event is not None and event.now_playing is not None
+    assert event.now_playing.shuffle_setting is None
+    assert event.now_playing.repeat_setting is None
+    assert event.now_playing.skip_enabled is False
+    assert event.now_playing.skip_previous_enabled is False
+
+
+def test_parser_extracts_skip_markers():
+    xml = NOW_PLAYING_XML.replace("<playStatus>", "<skipPreviousEnabled /><playStatus>")
+    event = parse_event(xml)
+    assert event is not None and event.now_playing is not None
+    assert event.now_playing.skip_enabled is False
+    assert event.now_playing.skip_previous_enabled is True
+    both = parse_event(
+        NOW_PLAYING_XML.replace(
+            "<playStatus>", "<skipEnabled /><skipPreviousEnabled /><playStatus>"
+        )
+    )
+    assert both is not None and both.now_playing is not None
+    assert both.now_playing.skip_enabled is True
+    assert both.now_playing.skip_previous_enabled is True

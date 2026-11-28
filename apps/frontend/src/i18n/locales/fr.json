@@ -33,12 +33,25 @@
     "noStation": "Aucune station",
     "powerButton": "Marche/Arrêt",
     "playbackTitle": "Lecture",
+    "shuffle": {
+      "label": "Lecture aléatoire"
+    },
+    "repeat": {
+      "label": "Répéter : {{mode}}",
+      "REPEAT_OFF": "désactivé",
+      "REPEAT_ALL": "tout",
+      "REPEAT_ONE": "un"
+    },
     "prevTrack": "Piste précédente",
     "nextTrack": "Piste suivante",
     "muteOn": "Réactiver le son",
     "muteOff": "Couper le son",
     "prevDevice": "Appareil précédent",
     "nextDevice": "Appareil suivant",
+    "dlna": {
+      "badge": "DLNA",
+      "preset": "Préréglage {{number}}"
+    },
     "source": {
       "bluetooth": "Bluetooth",
       "radio": "Radio",
@@ -54,17 +67,19 @@
     }
   },
   "presets": {
+    "dlnaBadge": "DLNA",
     "presetSaved": "Préréglage {{number}} enregistré.",
     "presetDeleted": "Préréglage {{number}} supprimé.",
     "noDevices": "Aucun appareil trouvé",
     "syncedFromDevice": "Préréglages chargés avec succès depuis l'appareil.",
-    "savedStations": "Stations enregistrées",
+    "savedStations": "Préréglages",
     "syncFromDevice": "Charger depuis l'appareil",
     "syncFromDeviceSyncing": "Sync...",
     "syncFromDeviceTitle": "Synchroniser les préréglages depuis l'appareil",
     "infoTitle": "Remarques sur l'appareil",
-    "infoItem1": "Touchez un préréglage vide pour attribuer une station",
-    "infoItem2": "Touchez le crayon à côté d'une station pour la modifier ou la supprimer",
+    "infoItem1": "Touchez un préréglage vide pour lui attribuer une station de radio, une URL de flux ou de la musique d'un serveur multimédia (DLNA)",
+    "infoItem2": "Touchez le crayon à côté d'un préréglage pour le modifier ou le supprimer",
+    "infoItem7": "Musique de votre NAS ou serveur multimédia : dans la boîte de dialogue du préréglage, configurez une fois le serveur sous « DLNA », puis choisissez un dossier ou un titre",
     "infoItem3": "Touchez un préréglage pour le lire, touchez à nouveau pour le mettre en pause. Les boutons de source au-dessus de la pochette basculent entre Préréglages, Bluetooth et AUX",
     "infoItem5": "L'icône d'état en haut à droite de la carte de l'appareil ouvre l'assistant de configuration de l'appareil",
     "infoItem6": "\"Charger depuis l'appareil\" synchronise les préréglages depuis SoundTouch",
@@ -88,6 +103,7 @@
       "tag": "ex. Rock, Jazz, pop…"
     },
     "searchTitle": "Rechercher des stations radio",
+    "dialogTitle": "Attribuer le préréglage {{number}}",
     "loadMore": "Charger plus",
     "loadingMore": "Chargement...",
     "maxReached": "Maximum ({{count}}) atteint",
@@ -881,6 +897,34 @@
     "bitrate": "Débit",
     "homepage": "Site web"
   },
+  "devices": {
+    "sourceError": {
+      "notSetUp": {
+        "title": "Source indisponible",
+        "body": "L'enceinte n'a pas pu démarrer ce préréglage car sa source n'est pas configurée. Pour un préréglage DLNA, configure à nouveau son serveur multimédia dans l'onglet DLNA de la boîte de dialogue du préréglage."
+      },
+      "notFound": {
+        "title": "Serveur multimédia introuvable",
+        "body": "L'enceinte ne voit pas ce serveur multimédia pour le moment. Vérifie que le serveur fonctionne et se trouve sur le même réseau ; si deux serveurs partagent une adresse IP, l'enceinte peut n'en voir qu'un seul."
+      },
+      "serviceUnreachable": {
+        "title": "Service musical injoignable",
+        "body": "L'enceinte n'a pas pu joindre le service musical du serveur. Réessaie dans un instant."
+      },
+      "badFormat": {
+        "title": "Contenu non pris en charge",
+        "body": "L'enceinte ne peut pas lire le contenu de ce dossier (format non pris en charge)."
+      },
+      "subFolders": {
+        "title": "Le dossier ne peut pas être lu en entier",
+        "body": "Ce dossier ne peut pas être lu en entier : son premier élément n'est pas un titre. Choisis un dossier qui commence par des titres."
+      },
+      "generic": {
+        "title": "La lecture n'a pas pu démarrer",
+        "body": "L'enceinte n'a pas pu lire cet élément. Réessaie ou choisis-en un autre."
+      }
+    }
+  },
   "device": {
     "sourceChoose": "Choisir la source",
     "sourceSwitching": "Passage à {{source}}…",
@@ -1032,5 +1076,78 @@
     "pairMembers": "Gauche : {{left}} · Droite : {{right}}",
     "dissolved": "Paire stéréo « {{name}} » dissoute",
     "dissolveFailed": "La paire stéréo n’a pas pu être dissoute"
+  },
+  "dlna": {
+    "servers": {
+      "loading": "Chargement des serveurs multimédias",
+      "searching": "Recherche d’autres serveurs multimédias …",
+      "stillSearching": "Recherche en cours…",
+      "searchFailed": "La recherche d’autres serveurs multimédias a échoué.",
+      "ready": "Prêt",
+      "notEnabled": "Non configuré",
+      "unavailable": "Indisponible",
+      "enable": "Configurer",
+      "enableLabel": "Configurer {{name}}",
+      "openLabel": "Ouvrir {{name}}",
+      "open": "Ouvrir",
+      "remove": "Retirer",
+      "removeLabel": "Retirer {{name}}",
+      "enabled": "{{name}} est configuré. Ouvre le serveur pour choisir un dossier ou un titre.",
+      "enableUnavailable": "{{name}} n'est pas disponible. Vérifie qu'il est allumé et joignable, puis réessaie.",
+      "enableFailed": "{{name}} n'a pas pu être configuré. Réessaie.",
+      "enableNoAccount": "{{name}} n'a pas pu être configuré : l'enceinte n'a pas encore de compte OpenCloudTouch. Termine d'abord la configuration de l'enceinte.",
+      "empty": "Aucun serveur multimédia trouvé",
+      "emptyText": "Vérifie qu'un serveur multimédia DLNA fonctionne sur ton réseau.",
+      "rescan": "Relancer la recherche",
+      "loadError": "Impossible de charger les serveurs multimédias",
+      "retry": "Réessayer",
+      "migrationFailedTitle": "Impossible de configurer des serveurs multimédias sur cette enceinte",
+      "migrationFailedText": "La préparation de l'enceinte a échoué : {{reason}}",
+      "sameHostTitle": "Deux serveurs sur une même adresse IP",
+      "sameHostText": "L'enceinte peut ne voir qu'un des deux serveurs qui partagent une adresse IP. Préfère un serveur par IP.",
+      "removeTitle": "Retirer {{name}} ?",
+      "removeText": "L'enceinte n'utilisera plus ce serveur multimédia.",
+      "removeSlots": "Les préréglages des emplacements {{slots}} lisent encore depuis ce serveur. Ils restent enregistrés mais ne fonctionneront plus tant que le serveur n'est pas reconfiguré.",
+      "removeAnyway": "Retirer quand même",
+      "removeFailed": "Le serveur n'a pas pu être retiré. Réessaie."
+    },
+    "browser": {
+      "breadcrumb": "Chemin du dossier",
+      "up": "Remonter",
+      "loading": "Chargement du dossier",
+      "empty": "Ce dossier est vide",
+      "filterLabel": "Filtrer ce dossier",
+      "noMatches": "Aucun élément ne correspond au filtre.",
+      "loadMore": "Charger plus",
+      "select": "Sélectionner",
+      "selectLabel": "Sélectionner {{title}}",
+      "selectFolderLabel": "Sélectionner le dossier entier {{title}}",
+      "wholeFolder": "Dossier entier comme préréglage",
+      "folderContents": "Contenu",
+      "openLabel": "Ouvrir le dossier {{title}}",
+      "retry": "Réessayer",
+      "error": "Le dossier n'a pas pu être chargé.",
+      "serverNotFound": "Serveur introuvable. Vérifie qu'il est allumé.",
+      "serverTimeout": "Le serveur n'a pas répondu. Réessaie.",
+      "objectGone": "Ce dossier n'existe plus. Affichage du niveau supérieur."
+    },
+    "album": {
+      "open": "Ouvrir la vue album"
+    },
+    "pane": {
+      "tab": "DLNA",
+      "loading": "Recherche de l'élément enregistré",
+      "hint": "Choisis un dossier ou un titre pour le préréglage {{number}}.",
+      "allServers": "Tous les serveurs multimédias",
+      "serverGone": "Le serveur multimédia de ce préréglage n'est plus disponible. Choisis un serveur ci-dessous.",
+      "objectGone": "L'élément enregistré n'existe plus sur le serveur. Tu es au niveau supérieur."
+    },
+    "save": {
+      "noAudioFirst": "Le premier élément de ce dossier n'est pas un titre (par exemple une pochette). L'enceinte risque de ne pas pouvoir le lire. Enregistrer quand même ?",
+      "hiResFlac": "Ce titre est un FLAC haute résolution ({{khz}} kHz). L'enceinte ne peut pas le lire ; convertissez-le en 16 bits/48 kHz ou moins sur le serveur multimédia.",
+      "saveAnyway": "Enregistrer quand même",
+      "chooseAnother": "Choisir autre chose",
+      "saving": "Enregistrement sur le préréglage {{number}} …"
+    }
   }
 }

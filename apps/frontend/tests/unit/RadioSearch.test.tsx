@@ -453,6 +453,19 @@ describe("RadioSearch Component", () => {
     expect(document.getElementById("rs-title")).toBeInTheDocument();
   });
 
+  it("titles the dialog with the slot it sets", () => {
+    render(
+      <RadioSearch
+        isOpen={true}
+        presetNumber={3}
+        onStationSelect={mockOnStationSelect}
+        onClose={mockOnClose}
+      />,
+    );
+
+    expect(document.getElementById("rs-title")).toHaveTextContent("Set preset 3");
+  });
+
   it("uses the newly selected provider immediately when switching providers", async () => {
     const fetchMock = vi.mocked(fetch);
 

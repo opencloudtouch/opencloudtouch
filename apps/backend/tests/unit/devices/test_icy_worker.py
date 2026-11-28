@@ -274,3 +274,30 @@ class TestIcyWorkerEnrichmentLogic:
         assert result.now_playing.artist == "ICY Artist"
         # ICY track should fill in missing track
         assert result.now_playing.track == "ICY Track"
+
+
+class TestEnrichmentKeepsSettings:
+    @pytest.mark.asyncio
+    async def test_icy_enrichment_keeps_settings(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from opencloudtouch.streaming import icy_metadata
+
+        async def mock_probe(url: str, *, station_name: str | None = None):
+            return icy_metadata.IcyMetadata(
+                artist="A", track="T", raw_title="A - T", station_logo_url=None
+            )
+
+        monkeypatch.setattr(
+            "opencloudtouch.devices.websocket.icy_worker.probe_stream", mock_probe
+        )
+        event = _np_event()
+        assert event.now_playing is not None
+        event.now_playing.shuffle_setting = "SHUFFLE_ON"
+        event.now_playing.repeat_setting = "REPEAT_ALL"
+
+        result = await IcyWorker(get_stream_url=_stream_url_found).on_event(event)
+
+        assert result is not None and result.now_playing is not None
+        assert result.now_playing.shuffle_setting == "SHUFFLE_ON"
+        assert result.now_playing.repeat_setting == "REPEAT_ALL"

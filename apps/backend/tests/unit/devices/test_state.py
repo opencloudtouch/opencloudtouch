@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -274,16 +274,124 @@ class TestStateManagerOnEvent:
         assert received is event
 
     @pytest.mark.asyncio
-    async def test_on_event_unknown_type_still_publishes(self):
-        """Unknown event types should still be published (e.g. presets, zone)."""
+    async def test_on_event_unhandled_type_still_publishes(self):
+        """Event types without state (e.g. zone) are still published."""
         mgr = DeviceStateManager()
         queue = mgr.subscribe()
 
-        event = DeviceEvent(device_id="D1", event_type=EventType.PRESETS)
+        event = DeviceEvent(device_id="D1", event_type=EventType.ZONE)
         await mgr.on_event(event)
 
         received = await queue.get()
-        assert received.event_type == EventType.PRESETS
+        assert received.event_type == EventType.ZONE
+
+    @pytest.mark.asyncio
+    async def test_presets_event_goes_to_the_handler_not_to_sse(self):
+        """The handler imports the list and publishes it with its payload (T2)."""
+        mgr = DeviceStateManager()
+        queue = mgr.subscribe()
+        handler = AsyncMock()
+        mgr.set_presets_callback(handler)
+
+        await mgr.on_event(
+            DeviceEvent(device_id="D1", event_type=EventType.PRESETS, raw_xml="<x/>")
+        )
+        await asyncio.gather(*mgr._background_tasks)
+
+        handler.assert_awaited_once_with("D1", "<x/>")
+        assert queue.empty()
+
+    @pytest.mark.asyncio
+    async def test_failing_presets_handler_is_logged(self, caplog):
+        mgr = DeviceStateManager()
+        mgr.set_presets_callback(AsyncMock(side_effect=RuntimeError("db")))
+
+        await mgr.on_event(DeviceEvent(device_id="D1", event_type=EventType.PRESETS))
+        await asyncio.gather(*mgr._background_tasks)
+
+        assert "presets event for d1 not applied" in caplog.text.lower()
+
+    @pytest.mark.asyncio
+    async def test_source_error_does_not_touch_now_playing_state(self):
+        mgr = DeviceStateManager()
+        np = NowPlayingInfo(source="STORED_MUSIC", state="PLAY_STATE", track="T")
+        mgr.update_now_playing("D1", np)
+        queue = mgr.subscribe()
+
+        event = DeviceEvent(
+            device_id="D1", event_type=EventType.SOURCE_ERROR, error_code=1604
+        )
+        await mgr.on_event(event)
+
+        assert await queue.get() is event
+        assert mgr.get_state("D1").now_playing is np
+
+    @staticmethod
+    async def _press(mgr, source, state="STOP_STATE"):
+        np = NowPlayingInfo(source=source, state=state)
+        await mgr.on_event(
+            DeviceEvent(
+                device_id="D1", event_type=EventType.NOW_PLAYING, now_playing=np
+            )
+        )
+
+    @staticmethod
+    def _source_errors(mgr, queue):
+        events = []
+        while not queue.empty():
+            events.append(queue.get_nowait())
+        return [e for e in events if e.event_type == EventType.SOURCE_ERROR]
+
+    @pytest.mark.asyncio
+    async def test_transition_to_invalid_source_publishes_one_source_error(self):
+        """T23: a native preset whose server is gone ends silently in INVALID_SOURCE."""
+        mgr = DeviceStateManager()
+        await self._press(mgr, "AUX", "PLAY_STATE")  # T24: the wake source plays
+        queue = mgr.subscribe()
+
+        await self._press(mgr, "INVALID_SOURCE")
+
+        errors = self._source_errors(mgr, queue)
+        assert len(errors) == 1
+        assert errors[0].device_id == "D1"
+        assert errors[0].error_code == 0
+        assert errors[0].error_name == "INVALID_SOURCE"
+        assert errors[0].error_severity == ""
+        assert mgr.get_state("D1").now_playing.source == "INVALID_SOURCE"
+
+    @pytest.mark.asyncio
+    async def test_end_of_queue_publishes_no_source_error(self):
+        """A finished queue goes STOP_STATE, then INVALID_SOURCE: not a failed press."""
+        mgr = DeviceStateManager()
+        await self._press(mgr, "STORED_MUSIC")  # _press sends STOP_STATE
+        queue = mgr.subscribe()
+
+        await self._press(mgr, "INVALID_SOURCE")
+
+        assert self._source_errors(mgr, queue) == []
+
+    @pytest.mark.asyncio
+    async def test_repeated_invalid_source_publishes_no_further_error(self):
+        mgr = DeviceStateManager()
+        await self._press(mgr, "AUX", "PLAY_STATE")  # T24: the wake source plays
+        await self._press(mgr, "INVALID_SOURCE")
+        queue = mgr.subscribe()
+
+        await self._press(mgr, "INVALID_SOURCE")
+
+        assert self._source_errors(mgr, queue) == []
+
+    @pytest.mark.asyncio
+    async def test_normal_transitions_and_first_state_publish_no_source_error(self):
+        mgr = DeviceStateManager()
+        queue = mgr.subscribe()
+
+        await self._press(mgr, "INVALID_SOURCE")  # first known state, no transition
+        await self._press(mgr, "AUX")
+        await self._press(mgr, "STORED_MUSIC")
+        await self._press(mgr, "STANDBY")
+
+        assert self._source_errors(mgr, queue) == []
 
     @pytest.mark.asyncio
     async def test_on_event_ignores_now_playing_without_data(self):
@@ -973,3 +1081,31 @@ class TestPresetFaviconEnrichment:
         # Should not raise
         await mgr.on_event(np_event)
         await asyncio.sleep(0.1)
+
+
+class TestStateManagerCopyKeepsSettings:
+    @pytest.mark.asyncio
+    async def test_state_manager_copy_keeps_settings(self):
+        from unittest.mock import AsyncMock
+
+        manager = DeviceStateManager()
+        manager.set_preset_favicon_callback(
+            AsyncMock(return_value="https://x/logo.png")
+        )
+        published = []
+        manager.on_event = AsyncMock(side_effect=published.append)
+        info = NowPlayingInfo(
+            source="INTERNET_RADIO",
+            state="PLAY_STATE",
+            station_name="R",
+            shuffle_setting="SHUFFLE_ON",
+            repeat_setting="REPEAT_ONE",
+        )
+        await manager._run_preset_favicon_enrichment(
+            DeviceEvent(
+                device_id="D1", event_type=EventType.NOW_PLAYING, now_playing=info
+            )
+        )
+
+        assert published[0].now_playing.shuffle_setting == "SHUFFLE_ON"
+        assert published[0].now_playing.repeat_setting == "REPEAT_ONE"

@@ -33,12 +33,25 @@
     "noStation": "Brak stacji",
     "powerButton": "Włącz/wyłącz",
     "playbackTitle": "Odtwarzanie",
+    "shuffle": {
+      "label": "Losowo"
+    },
+    "repeat": {
+      "label": "Powtarzanie: {{mode}}",
+      "REPEAT_OFF": "wył.",
+      "REPEAT_ALL": "wszystkie",
+      "REPEAT_ONE": "jeden"
+    },
     "prevTrack": "Poprzedni utwór",
     "nextTrack": "Następny utwór",
     "muteOn": "Włącz dźwięk",
     "muteOff": "Wycisz",
     "prevDevice": "Poprzednie urządzenie",
     "nextDevice": "Następne urządzenie",
+    "dlna": {
+      "badge": "DLNA",
+      "preset": "Preset {{number}}"
+    },
     "source": {
       "bluetooth": "Bluetooth",
       "radio": "Radio",
@@ -54,17 +67,19 @@
     }
   },
   "presets": {
+    "dlnaBadge": "DLNA",
     "presetSaved": "Preset {{number}} zapisany.",
     "presetDeleted": "Preset {{number}} usunięty.",
     "noDevices": "Nie znaleziono urządzeń",
     "syncedFromDevice": "Presety załadowane z urządzenia pomyślnie.",
-    "savedStations": "Zapisane stacje",
+    "savedStations": "Presety",
     "syncFromDevice": "Załaduj z urządzenia",
     "syncFromDeviceSyncing": "Synchronizacja...",
     "syncFromDeviceTitle": "Synchronizuj presety z urządzenia",
     "infoTitle": "Uwagi o urządzeniu",
-    "infoItem1": "Dotknij pustego presetu, aby przypisać stację",
-    "infoItem2": "Dotknij ołówka obok stacji, aby ją zmienić lub usunąć",
+    "infoItem1": "Dotknij pustego presetu, aby przypisać mu stację radiową, adres URL strumienia lub muzykę z serwera multimediów (DLNA)",
+    "infoItem2": "Dotknij ołówka obok presetu, aby go zmienić lub usunąć",
+    "infoItem7": "Muzyka z NAS-a lub serwera multimediów: w oknie presetu raz skonfiguruj serwer w sekcji „DLNA”, a potem wybierz folder lub utwór",
     "infoItem3": "Dotknij presetu, aby go odtworzyć, i dotknij ponownie, aby wstrzymać. Przyciski źródła nad okładką przełączają między Presetami, Bluetooth i AUX",
     "infoItem5": "Ikona stanu w prawym górnym rogu karty urządzenia otwiera kreator konfiguracji urządzenia",
     "infoItem6": "\"Załaduj z urządzenia\" synchronizuje presety z SoundTouch",
@@ -88,6 +103,7 @@
       "tag": "np. Rock, Jazz, pop…"
     },
     "searchTitle": "Szukaj stacji radiowych",
+    "dialogTitle": "Ustaw preset {{number}}",
     "loadMore": "Załaduj więcej",
     "loadingMore": "Ładowanie...",
     "maxReached": "Osiągnięto maksimum ({{count}})",
@@ -881,6 +897,34 @@
     "bitrate": "Przepływność",
     "homepage": "Strona internetowa"
   },
+  "devices": {
+    "sourceError": {
+      "notSetUp": {
+        "title": "Źródło niedostępne",
+        "body": "Głośnik nie mógł uruchomić tego presetu, ponieważ jego źródło nie jest skonfigurowane. W przypadku presetu DLNA skonfiguruj ponownie serwer multimediów na karcie DLNA w oknie presetu."
+      },
+      "notFound": {
+        "title": "Nie znaleziono serwera multimediów",
+        "body": "Głośnik w tej chwili nie widzi tego serwera multimediów. Sprawdź, czy serwer działa i jest w tej samej sieci; jeśli dwa serwery mają ten sam adres IP, głośnik może widzieć tylko jeden."
+      },
+      "serviceUnreachable": {
+        "title": "Usługa muzyczna niedostępna",
+        "body": "Głośnik nie mógł połączyć się z usługą muzyczną serwera. Spróbuj ponownie za chwilę."
+      },
+      "badFormat": {
+        "title": "Nieobsługiwana zawartość",
+        "body": "Głośnik nie może odtworzyć zawartości tego folderu (nieobsługiwany format)."
+      },
+      "subFolders": {
+        "title": "Nie można odtworzyć całego folderu",
+        "body": "Tego folderu nie można odtworzyć w całości: jego pierwszy element nie jest utworem. Wybierz folder, który zaczyna się od utworów."
+      },
+      "generic": {
+        "title": "Nie udało się rozpocząć odtwarzania",
+        "body": "Głośnik nie mógł odtworzyć tego elementu. Spróbuj ponownie lub wybierz inny."
+      }
+    }
+  },
   "device": {
     "sourceChoose": "Wybierz źródło",
     "sourceSwitching": "Przełączanie na {{source}}…",
@@ -1032,5 +1076,78 @@
     "pairMembers": "Lewy: {{left}} · Prawy: {{right}}",
     "dissolved": "Para stereo „{{name}}” rozwiązana",
     "dissolveFailed": "Nie udało się rozwiązać pary stereo"
+  },
+  "dlna": {
+    "servers": {
+      "loading": "Wczytywanie serwerów multimediów",
+      "searching": "Wyszukiwanie kolejnych serwerów multimediów …",
+      "stillSearching": "Wyszukiwanie…",
+      "searchFailed": "Wyszukiwanie kolejnych serwerów multimediów nie powiodło się.",
+      "ready": "Gotowy",
+      "notEnabled": "Nieskonfigurowany",
+      "unavailable": "Niedostępny",
+      "enable": "Skonfiguruj",
+      "enableLabel": "Skonfiguruj {{name}}",
+      "openLabel": "Otwórz {{name}}",
+      "open": "Otwórz",
+      "remove": "Usuń",
+      "removeLabel": "Usuń {{name}}",
+      "enabled": "{{name}} jest skonfigurowany. Otwórz serwer, aby wybrać folder lub utwór.",
+      "enableUnavailable": "{{name}} jest niedostępny. Sprawdź, czy jest włączony i osiągalny, i spróbuj ponownie.",
+      "enableFailed": "Nie udało się skonfigurować {{name}}. Spróbuj ponownie.",
+      "enableNoAccount": "Nie udało się skonfigurować {{name}}: głośnik nie ma jeszcze konta OpenCloudTouch. Najpierw dokończ konfigurację głośnika.",
+      "empty": "Nie znaleziono serwerów multimediów",
+      "emptyText": "Upewnij się, że w Twojej sieci działa serwer multimediów DLNA.",
+      "rescan": "Skanuj ponownie",
+      "loadError": "Nie udało się wczytać serwerów multimediów",
+      "retry": "Spróbuj ponownie",
+      "migrationFailedTitle": "Na tym głośniku nie można skonfigurować serwerów multimediów",
+      "migrationFailedText": "Przygotowanie głośnika nie powiodło się: {{reason}}",
+      "sameHostTitle": "Dwa serwery pod jednym adresem IP",
+      "sameHostText": "Głośnik może widzieć tylko jeden z dwóch serwerów, które dzielą adres IP. Lepiej używaj jednego serwera na IP.",
+      "removeTitle": "Usunąć {{name}}?",
+      "removeText": "Głośnik przestanie korzystać z tego serwera multimediów.",
+      "removeSlots": "Presety na miejscach {{slots}} nadal odtwarzają z tego serwera. Pozostaną zapisane, ale nie zagrają, dopóki serwer nie zostanie ponownie skonfigurowany.",
+      "removeAnyway": "Usuń mimo to",
+      "removeFailed": "Nie udało się usunąć serwera. Spróbuj ponownie."
+    },
+    "browser": {
+      "breadcrumb": "Ścieżka folderu",
+      "up": "W górę",
+      "loading": "Wczytywanie folderu",
+      "empty": "Ten folder jest pusty",
+      "filterLabel": "Filtruj ten folder",
+      "noMatches": "Żaden element nie pasuje do filtra.",
+      "loadMore": "Wczytaj więcej",
+      "select": "Wybierz",
+      "selectLabel": "Wybierz {{title}}",
+      "selectFolderLabel": "Wybierz cały folder {{title}}",
+      "wholeFolder": "Cały folder jako preset",
+      "folderContents": "Zawartość",
+      "openLabel": "Otwórz folder {{title}}",
+      "retry": "Spróbuj ponownie",
+      "error": "Nie udało się wczytać folderu.",
+      "serverNotFound": "Nie znaleziono serwera. Sprawdź, czy jest włączony.",
+      "serverTimeout": "Serwer nie odpowiedział. Spróbuj ponownie.",
+      "objectGone": "Ten folder już nie istnieje. Wyświetlany jest najwyższy poziom."
+    },
+    "album": {
+      "open": "Otwórz widok albumu"
+    },
+    "pane": {
+      "tab": "DLNA",
+      "loading": "Wyszukiwanie zapisanego elementu",
+      "hint": "Wybierz folder lub utwór dla presetu {{number}}.",
+      "allServers": "Wszystkie serwery multimediów",
+      "serverGone": "Serwer multimediów tego presetu nie jest już dostępny. Wybierz serwer poniżej.",
+      "objectGone": "Zapisany element już nie istnieje na serwerze. Jesteś na najwyższym poziomie."
+    },
+    "save": {
+      "noAudioFirst": "Pierwszy element w tym folderze nie jest utworem (np. obraz okładki). Głośnik może nie być w stanie go odtworzyć. Zapisać mimo to?",
+      "hiResFlac": "Ten utwór to plik FLAC wysokiej rozdzielczości ({{khz}} kHz). Głośnik nie może go odtworzyć; przekonwertuj go na serwerze multimediów do 16 bitów/48 kHz lub mniej.",
+      "saveAnyway": "Zapisz mimo to",
+      "chooseAnother": "Wybierz coś innego",
+      "saving": "Zapisywanie w presecie {{number}} …"
+    }
   }
 }

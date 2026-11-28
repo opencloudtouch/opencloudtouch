@@ -6,7 +6,8 @@ from xml.etree.ElementTree import Element
 import httpx
 from defusedxml.ElementTree import fromstring as parse_xml_string
 
-from opencloudtouch.dlna.models import DlnaItem, DlnaServer
+from opencloudtouch.dlna import mock
+from opencloudtouch.dlna.models import BrowsePage, DlnaItem, DlnaServer
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,10 @@ class DlnaBrowseError(Exception):
         self.error_code = error_code
 
 
+class DlnaTimeoutError(DlnaBrowseError):
+    """Raised when the media server does not answer in time."""
+
+
 class DlnaClient:
     """Browse a DLNA MediaServer ContentDirectory."""
 
@@ -36,9 +41,40 @@ class DlnaClient:
         self,
         server: DlnaServer,
         object_id: str = "0",
-    ) -> list[DlnaItem]:
-        """Browse direct children of a DLNA ContentDirectory object."""
-        body = self._build_browse_request(object_id)
+        starting_index: int = 0,
+        requested_count: int = 50,
+    ) -> BrowsePage:
+        """Browse one page of direct children of a ContentDirectory object."""
+        return await self._browse(
+            server, object_id, "BrowseDirectChildren", starting_index, requested_count
+        )
+
+    async def get_object(self, server: DlnaServer, object_id: str) -> DlnaItem:
+        """Read the metadata of one object (BrowseMetadata)."""
+        page = await self._browse(server, object_id, "BrowseMetadata", 0, 1)
+        if not page.items:
+            raise DlnaBrowseError("No Such Object", error_code="701")
+        return page.items[0]
+
+    async def _browse(
+        self,
+        server: DlnaServer,
+        object_id: str,
+        browse_flag: str,
+        starting_index: int,
+        requested_count: int,
+    ) -> BrowsePage:
+        if server.control_url.startswith("mock://"):
+            try:
+                if browse_flag == "BrowseMetadata":
+                    return BrowsePage([mock.mock_object(object_id)], 1, 1)
+                return mock.mock_browse(object_id, starting_index, requested_count)
+            except KeyError:
+                raise DlnaBrowseError("No Such Object", error_code="701") from None
+
+        body = self._build_browse_request(
+            object_id, starting_index, requested_count, browse_flag
+        )
 
         headers = {
             "Content-Type": 'text/xml; charset="utf-8"',
@@ -54,6 +90,8 @@ class DlnaClient:
                     content=body,
                     headers=headers,
                 )
+        except httpx.TimeoutException as exc:
+            raise DlnaTimeoutError(f"DLNA server timed out: {server.name}") from exc
         except httpx.RequestError as exc:
             raise DlnaBrowseError(
                 f"Could not contact DLNA server: {server.name}"
@@ -72,8 +110,14 @@ class DlnaClient:
             ) from exc
 
     @classmethod
-    def _build_browse_request(cls, object_id: str) -> str:
-        """Build a SOAP BrowseDirectChildren request."""
+    def _build_browse_request(
+        cls,
+        object_id: str,
+        starting_index: int = 0,
+        requested_count: int = 0,
+        browse_flag: str = "BrowseDirectChildren",
+    ) -> str:
+        """Build a SOAP Browse request."""
         return f"""<?xml version="1.0" encoding="utf-8"?>
 <s:Envelope
     xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
@@ -81,17 +125,17 @@ class DlnaClient:
   <s:Body>
     <u:Browse xmlns:u="{cls.CONTENT_DIRECTORY_SERVICE}">
       <ObjectID>{cls._escape_xml(object_id)}</ObjectID>
-      <BrowseFlag>BrowseDirectChildren</BrowseFlag>
+      <BrowseFlag>{browse_flag}</BrowseFlag>
       <Filter>*</Filter>
-      <StartingIndex>0</StartingIndex>
-      <RequestedCount>0</RequestedCount>
+      <StartingIndex>{starting_index}</StartingIndex>
+      <RequestedCount>{requested_count}</RequestedCount>
       <SortCriteria></SortCriteria>
     </u:Browse>
   </s:Body>
 </s:Envelope>"""
 
     @classmethod
-    def _parse_browse_response(cls, xml: str) -> list[DlnaItem]:
+    def _parse_browse_response(cls, xml: str) -> BrowsePage:
         """Parse the SOAP response and contained DIDL-Lite document."""
         root = parse_xml_string(xml)
 
@@ -109,8 +153,10 @@ class DlnaClient:
             raise DlnaBrowseError("Invalid DLNA SOAP BrowseResponse")
 
         result = cls._find_text(root, "Result")
+        total = cls._parse_int(cls._find_text(root, "TotalMatches"))
+        returned = cls._parse_int(cls._find_text(root, "NumberReturned"))
         if not result:
-            return []
+            return BrowsePage([], returned or 0, total)
 
         didl_root = parse_xml_string(result)
         items: list[DlnaItem] = []
@@ -182,7 +228,9 @@ class DlnaClient:
                 )
             )
 
-        return items
+        if returned is None:
+            returned = len(items)
+        return BrowsePage(items, returned, total)
 
     @classmethod
     def _parse_error_response(

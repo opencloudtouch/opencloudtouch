@@ -13,8 +13,8 @@ import { spawn, exec } from 'child_process';
 import { promisify } from 'util';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import cypress from 'cypress';
 import { platform } from 'os';
+import { createRequire } from 'module';
 
 const execAsync = promisify(exec);
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -25,6 +25,8 @@ const TEST_PORT_BACKEND = 7778;
 const TEST_PORT_FRONTEND = 4173;
 const BACKEND_DIR = join(rootDir, 'apps', 'backend');
 const FRONTEND_DIR = join(rootDir, 'apps', 'frontend');
+// The frontend's Cypress, not the older copy cypress-axe's peer range hoists to the repo root.
+const cypress = createRequire(join(FRONTEND_DIR, 'package.json'))('cypress');
 
 let backendProcess = null;
 let frontendProcess = null;

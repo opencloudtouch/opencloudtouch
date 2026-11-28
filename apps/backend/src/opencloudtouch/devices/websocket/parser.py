@@ -10,7 +10,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 from xml.etree.ElementTree import Element
 
 from defusedxml import ElementTree as ET
@@ -34,6 +34,7 @@ class EventType(str, Enum):
     CONNECTION = "connection"
     BASS = "bass"
     METADATA_ENRICHED = "metadata_enriched"
+    SOURCE_ERROR = "source_error"
     UNKNOWN = "unknown"
 
 
@@ -46,7 +47,7 @@ _TAG_MAP: dict[str, EventType] = {
     "groupUpdated": EventType.GROUP,
     "connectionStateUpdated": EventType.CONNECTION,
     "bassUpdated": EventType.BASS,
-    "recentsUpdated": EventType.PRESETS,
+    # recentsUpdated is not mapped: it arrives as UNKNOWN and is not forwarded
 }
 
 # Root elements that are not <updates> but known and harmless
@@ -62,6 +63,10 @@ class DeviceEvent:
     now_playing: Optional[NowPlayingInfo] = None
     volume: Optional[VolumeInfo] = None
     connection_state: Optional[ConnectionState] = None
+    error_code: int | None = None  # SOURCE_ERROR only
+    error_name: str = ""
+    error_severity: str = ""
+    presets: list[dict[str, Any]] | None = None  # PRESETS: full list, REST shape
     raw_xml: str = ""
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -84,6 +89,9 @@ def parse_event(xml_string: str) -> DeviceEvent | None:
     except ET.ParseError:
         logger.warning("Malformed XML received: %.200s", xml_string)
         return None
+
+    if root.tag == "errorUpdate":
+        return _parse_error_update(root, xml_string)
 
     if root.tag != "updates":
         if root.tag in _IGNORED_ROOT_ELEMENTS:
@@ -144,6 +152,27 @@ def parse_event(xml_string: str) -> DeviceEvent | None:
     return event
 
 
+def _parse_error_update(root: Element, xml_string: str) -> DeviceEvent | None:
+    """Parse a root <errorUpdate> into a SOURCE_ERROR event (free text dropped)."""
+    device_id = root.get("deviceID", "")
+    err = root.find("error")
+    try:
+        code = int(err.get("value", "")) if err is not None else None
+    except ValueError:
+        code = None
+    if not device_id or err is None or code is None:
+        logger.warning("Malformed errorUpdate: %.200s", xml_string)
+        return None
+    return DeviceEvent(
+        device_id=device_id,
+        event_type=EventType.SOURCE_ERROR,
+        error_code=code,
+        error_name=err.get("name", ""),
+        error_severity=err.get("severity", ""),
+        raw_xml=xml_string,
+    )
+
+
 def _parse_now_playing(element: Element) -> NowPlayingInfo:
     """Parse nowPlayingUpdated element into NowPlayingInfo.
 
@@ -169,6 +198,8 @@ def _parse_now_playing(element: Element) -> NowPlayingInfo:
     art_el = np.find("art")
     if art_el is not None and art_el.text:
         artwork_url = art_el.text
+    item = np.find("ContentItem")
+    item_attrs = item.attrib if item is not None else {}
 
     return NowPlayingInfo(
         source=source,
@@ -178,6 +209,12 @@ def _parse_now_playing(element: Element) -> NowPlayingInfo:
         track=_text("track"),
         album=_text("album"),
         artwork_url=artwork_url,
+        location=item_attrs.get("location"),
+        source_account=item_attrs.get("sourceAccount"),
+        shuffle_setting=_text("shuffleSetting"),
+        repeat_setting=_text("repeatSetting"),
+        skip_enabled=np.find("skipEnabled") is not None,
+        skip_previous_enabled=np.find("skipPreviousEnabled") is not None,
     )
 
 

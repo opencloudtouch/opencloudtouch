@@ -1,10 +1,11 @@
-﻿"""
+"""
 Device API Routes
 CRUD endpoints for device management. Discovery endpoints extracted to discovery_routes.py.
 """
 
 import logging
 from collections.abc import Awaitable
+from dataclasses import replace
 from typing import Annotated, Literal, TypeVar
 
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -23,12 +24,17 @@ from opencloudtouch.core.exceptions import (
     DeviceNotFoundError,
     DomainValidationError,
 )
-from opencloudtouch.devices.client import NowPlayingInfo
+from opencloudtouch.devices.client import SHUFFLE_REPEAT_KEYS, NowPlayingInfo
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.state import DeviceStateManager
+from opencloudtouch.devices.websocket.connection import ConnectionState
 from opencloudtouch.devices.websocket.icy_worker import RADIO_SOURCES
 from opencloudtouch.presets.models import Preset
-from opencloudtouch.presets.service import PresetService
+from opencloudtouch.presets.service import (
+    PresetService,
+    match_content_item_preset,
+    match_stored_music_preset,
+)
 from opencloudtouch.streaming.icy_metadata import IcyMetadata, probe_stream
 from opencloudtouch.streaming.metadata_cache import MISSING, MetadataCache, _Missing
 from opencloudtouch.stereo_pairs.device_info import load_stereo_context, stereo_fields
@@ -306,7 +312,20 @@ async def set_device_bass(
     }
 
 
-@router.post("/{device_id}/key")
+class KeyPressResponse(BaseModel):
+    """Key press answer; shuffle/repeat keys add the settings read back."""
+
+    message: str
+    device_id: str
+    shuffle_setting: str | None = None
+    repeat_setting: str | None = None
+
+
+@router.post(
+    "/{device_id}/key",
+    response_model=KeyPressResponse,
+    response_model_exclude_unset=True,  # other keys keep the two-field answer
+)
 async def press_key(
     device_id: str,
     key: str,
@@ -334,12 +353,24 @@ async def press_key(
     Example:
         POST /api/devices/AABBCC112233/key?key=PRESET_1&state=both
     """
+    message = {"message": f"Key {key} pressed successfully", "device_id": device_id}
+    if key not in SHUFFLE_REPEAT_KEYS:
+        await _device_op(
+            device_id, "press key", device_service.press_key(device_id, key, state)
+        )
+        return message
+    # Shuffle/repeat always press "both"; the answer is read back (speaker is the truth)
     await _device_op(
-        device_id,
-        "press key",
-        device_service.press_key(device_id, key, state),
+        device_id, "press key", device_service.press_key(device_id, key, "both")
     )
-    return {"message": f"Key {key} pressed successfully", "device_id": device_id}
+    info = await _device_op(
+        device_id, "read back settings", device_service.get_now_playing(device_id)
+    )
+    return {
+        **message,
+        "shuffle_setting": info.shuffle_setting,
+        "repeat_setting": info.repeat_setting,
+    }
 
 
 @router.put(
@@ -499,7 +530,16 @@ async def _enrich_from_presets(
     device_id: str,
     preset_service: PresetService,
 ) -> Preset | None:
-    """Enrich artwork from preset DB for radio sources. Returns matched preset or None."""
+    """Enrich artwork and the preset slot from presets. Returns matched preset or None."""
+    if info.source == "STORED_MUSIC":
+        return await match_stored_music_preset(result, info, device_id, preset_service)
+    match = await match_content_item_preset(info, device_id, preset_service)
+    if match:
+        result["preset_number"] = match.preset_number
+        if not result["artwork_url"] and match.station_favicon:
+            result["artwork_url"] = match.station_favicon
+        return match
+    # Fallback without a ContentItem match: artwork by station name, no slot
     if info.source not in RADIO_SOURCES:
         return None
     if not info.station_name:
@@ -542,6 +582,12 @@ def _now_playing_to_dict(info: NowPlayingInfo, *, online: bool) -> dict[str, obj
         "album": info.album,
         "artwork_url": info.artwork_url,
         "online": online,
+        "dlna": info.is_dlna,
+        "preset_number": None,
+        "shuffle_setting": info.shuffle_setting,
+        "repeat_setting": info.repeat_setting,
+        "skip_enabled": info.skip_enabled,
+        "skip_previous_enabled": info.skip_previous_enabled,
     }
 
 
@@ -556,13 +602,10 @@ def _sync_enriched_state(
     Keeps SSE snapshots (which read from the cache) in sync with what
     _enrich_from_presets/_enrich_from_icy just added to *result*.
     """
-    enriched_info = NowPlayingInfo(
-        source=info.source,
-        state=info.state,
-        station_name=info.station_name,
+    enriched_info = replace(
+        info,
         artist=str(result["artist"]) if result.get("artist") else info.artist,
         track=str(result["track"]) if result.get("track") else info.track,
-        album=info.album,
         artwork_url=(
             str(result["artwork_url"])
             if result.get("artwork_url")
@@ -576,17 +619,44 @@ def _sync_enriched_state(
         )
 
 
-@router.get("/{device_id}/now-playing")
+class NowPlayingResponse(BaseModel):
+    """Current playback status (`online` False = last known state)."""
+
+    source: str
+    state: str
+    station_name: str | None
+    artist: str | None
+    track: str | None
+    album: str | None
+    artwork_url: str | None
+    online: bool
+    dlna: bool
+    preset_number: int | None
+    shuffle_setting: str | None
+    repeat_setting: str | None
+    skip_enabled: bool
+    skip_previous_enabled: bool
+
+
+@router.get("/{device_id}/now-playing", response_model=NowPlayingResponse)
 async def get_now_playing(
     device_id: str,
     device_service: Annotated[DeviceService, Depends(get_device_service)],
     preset_service: Annotated[PresetService, Depends(get_preset_service)],
     state_manager: Annotated[DeviceStateManager, Depends(get_device_state_manager)],
 ) -> dict[str, object]:
-    """Get current playback status for a device."""
-    cfg = get_config()
+    """Get current playback status for a device.
+
+    Answers from the websocket-fed state cache (nowPlaying events carry
+    shuffle/repeat and the skip markers too); the speaker is read only when
+    there is no state yet or the device was marked offline.
+    """
     cached = state_manager.get_state(device_id)
-    if cached and cached.now_playing and cached.is_fresh(cfg.state_cache_max_age):
+    if (
+        cached
+        and cached.now_playing
+        and cached.connection_state != ConnectionState.FAILED
+    ):
         info = cached.now_playing
     else:
         try:
@@ -606,6 +676,8 @@ async def get_now_playing(
                 else _OFFLINE_FALLBACK_INFO
             )
             return _now_playing_to_dict(fallback, online=False)
+        state_manager.update_now_playing(device_id, info)
+        state_manager.update_connection(device_id, ConnectionState.CONNECTED)
     result = _now_playing_to_dict(info, online=True)
 
     # Filter out non-image artwork URLs (e.g. station homepages)
@@ -618,8 +690,10 @@ async def get_now_playing(
 
     # Enrich from preset DB and ICY metadata for radio sources
     matched_preset = await _enrich_from_presets(result, info, device_id, preset_service)
-    if matched_preset and (
-        not info.artist or not info.track or not result["artwork_url"]
+    if (
+        matched_preset
+        and info.source in RADIO_SOURCES
+        and (not info.artist or not info.track or not result["artwork_url"])
     ):
         await _enrich_from_icy(
             result,

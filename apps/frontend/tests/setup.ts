@@ -32,6 +32,9 @@ class MockEventSource {
 }
 (global as Record<string, unknown>).EventSource = MockEventSource;
 
+// jsdom lacks scrollIntoView; a plain function so tests can inspect its calls.
+Element.prototype.scrollIntoView = vi.fn();
+
 // Mock ResizeObserver (not available in jsdom)
 class MockResizeObserver {
   constructor(_callback: ResizeObserverCallback) {}

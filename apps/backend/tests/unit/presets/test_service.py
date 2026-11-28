@@ -83,13 +83,33 @@ def service(mock_repo, mock_device_repo, monkeypatch):
     return PresetService(repository=mock_repo, device_repository=mock_device_repo)
 
 
+@pytest.fixture
+def real_mode(service, monkeypatch):
+    """Sync reads the speaker only outside mock mode; runs after ``service``."""
+    monkeypatch.delenv("OCT_MOCK_MODE", raising=False)
+
+
+@pytest.mark.asyncio
+async def test_sync_presets_mock_mode_skips_speaker_read(service):
+    """Mock mode: no speaker read, no DB change, 0 synced (like GET /presets)."""
+    fetch = AsyncMock()
+    with patch.object(service, "_fetch_device_presets", fetch):
+        assert await service.sync_presets_from_device("dev-001") == 0
+
+    fetch.assert_not_called()
+    service.repository.set_preset.assert_not_called()
+    service.repository.clear_preset.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # sync_presets_from_device — device / HTTP errors
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_raises_if_device_not_found(service, mock_device_repo):
+async def test_sync_presets_raises_if_device_not_found(
+    service, real_mode, mock_device_repo
+):
     """Device not in DB → DeviceNotFoundError raised."""
     mock_device_repo.get_by_device_id = AsyncMock(return_value=None)
 
@@ -98,7 +118,7 @@ async def test_sync_presets_raises_if_device_not_found(service, mock_device_repo
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_raises_on_http_error(service):
+async def test_sync_presets_raises_on_http_error(service, real_mode):
     """Device HTTP request fails → DeviceConnectionError (HTTP 503 at the API)."""
     with patch("opencloudtouch.presets.service.httpx.AsyncClient") as mock_client_cls:
         instance = AsyncMock()
@@ -117,7 +137,7 @@ async def test_sync_presets_raises_on_http_error(service):
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_empty_returns_zero(service):
+async def test_sync_presets_empty_returns_zero(service, real_mode):
     """No <preset> elements → 0 synced."""
     empty_xml = ET.tostring(ET.Element("presets"))
     with patch.object(
@@ -135,7 +155,7 @@ async def test_sync_presets_empty_returns_zero(service):
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_internet_radio(service):
+async def test_sync_presets_internet_radio(service, real_mode):
     xml = _build_presets_xml(
         {
             "id": 1,
@@ -163,7 +183,7 @@ async def test_sync_presets_internet_radio(service):
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_tunein(service):
+async def test_sync_presets_tunein(service, real_mode):
     xml = _build_presets_xml(
         {
             "id": 3,
@@ -189,7 +209,7 @@ async def test_sync_presets_tunein(service):
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_bmx_url_success(service):
+async def test_sync_presets_bmx_url_success(service, real_mode):
     """BMX URL with valid base64 JSON → decoded and saved as INTERNET_RADIO."""
     stream_url = "http://stream.example.com/live.mp3"
     location = _build_bmx_location(stream_url, "Bose Radio")
@@ -213,7 +233,7 @@ async def test_sync_presets_bmx_url_success(service):
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_bmx_url_no_data_param(service):
+async def test_sync_presets_bmx_url_no_data_param(service, real_mode):
     """BMX URL without ?data= → preset skipped."""
     location = "http://content.api.bose.io:7777/core02/svc-bmx-adapter-orion/prod/orion/station"
     xml = _build_presets_xml(
@@ -226,7 +246,7 @@ async def test_sync_presets_bmx_url_no_data_param(service):
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_bmx_url_missing_stream_url(service):
+async def test_sync_presets_bmx_url_missing_stream_url(service, real_mode):
     """BMX URL JSON without streamUrl → preset skipped."""
     data = {"name": "Station Without URL"}
     encoded = base64.b64encode(json.dumps(data).encode()).decode()
@@ -241,7 +261,7 @@ async def test_sync_presets_bmx_url_missing_stream_url(service):
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_bmx_url_invalid_base64(service):
+async def test_sync_presets_bmx_url_invalid_base64(service, real_mode):
     """BMX URL with corrupted base64 → preset skipped (no exception raised)."""
     location = (
         "http://content.api.bose.io:7777/orion/station?data=!!!not_valid_base64!!!"
@@ -261,7 +281,7 @@ async def test_sync_presets_bmx_url_invalid_base64(service):
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_oct_url_success(service):
+async def test_sync_presets_oct_url_success(service, real_mode):
     """OCT descriptor URL → UUID extracted from path."""
     location = "http://oct.local:7777/stations/preset/abc-uuid-123.mp3"
     xml = _build_presets_xml(
@@ -284,7 +304,7 @@ async def test_sync_presets_oct_url_success(service):
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_oct_url_invalid_location(service):
+async def test_sync_presets_oct_url_invalid_location(service, real_mode):
     """OCT local preset with unrecognized URL format → preset skipped."""
     xml = _build_presets_xml(
         {
@@ -305,7 +325,7 @@ async def test_sync_presets_oct_url_invalid_location(service):
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_unknown_source(service):
+async def test_sync_presets_unknown_source(service, real_mode):
     """Unknown source type → imported with synthetic UUID, original source kept."""
     xml = _build_presets_xml(
         {
@@ -330,7 +350,7 @@ async def test_sync_presets_unknown_source(service):
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_skips_out_of_range_ids(service):
+async def test_sync_presets_skips_out_of_range_ids(service, real_mode):
     """Preset IDs 0 and 7 are out of range and must be skipped."""
     xml = _build_presets_xml(
         {"id": 0, "source": "INTERNET_RADIO", "location": "http://x.com/s.mp3"},
@@ -343,7 +363,7 @@ async def test_sync_presets_skips_out_of_range_ids(service):
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_skips_non_integer_ids(service):
+async def test_sync_presets_skips_non_integer_ids(service, real_mode):
     """Non-integer preset id → skipped."""
     root = ET.Element("presets")
     elem = ET.SubElement(root, "preset", id="abc")
@@ -361,7 +381,7 @@ async def test_sync_presets_skips_non_integer_ids(service):
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_skips_missing_content_item(service):
+async def test_sync_presets_skips_missing_content_item(service, real_mode):
     """Preset element without <ContentItem> is skipped."""
     root = ET.Element("presets")
     ET.SubElement(root, "preset", id="1")  # no ContentItem
@@ -375,7 +395,7 @@ async def test_sync_presets_skips_missing_content_item(service):
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_skips_missing_id_attribute(service):
+async def test_sync_presets_skips_missing_id_attribute(service, real_mode):
     """Preset element without id attribute is skipped."""
     root = ET.Element("presets")
     ET.SubElement(root, "preset")  # no id
@@ -389,7 +409,7 @@ async def test_sync_presets_skips_missing_id_attribute(service):
 
 
 @pytest.mark.asyncio
-async def test_sync_presets_multiple_presets(service):
+async def test_sync_presets_multiple_presets(service, real_mode):
     """Multiple valid presets → all saved, correct count returned."""
     xml = _build_presets_xml(
         {
@@ -419,7 +439,7 @@ async def test_sync_presets_multiple_presets(service):
 
 
 @pytest.mark.asyncio
-async def test_fetch_device_presets_returns_content(service):
+async def test_fetch_device_presets_returns_content(service, real_mode):
     """_fetch_device_presets returns response bytes on success."""
     expected = b"<presets/>"
     mock_response = MagicMock()
@@ -885,6 +905,48 @@ async def test_get_all_presets_delegates_to_repository(service, mock_repo):
     mock_repo.get_all_presets.assert_called_once_with("dev-001")
 
 
+@pytest.mark.asyncio
+async def test_get_all_presets_internal_read_skips_speaker(service, real_mode):
+    """Enrichment/matching callers read stored rows, never the speaker (I-2)."""
+    fetch = AsyncMock()
+    with patch.object(service, "_fetch_device_presets", fetch):
+        await service.get_all_presets("dev-001")
+
+    fetch.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_refresh_runs_one_sync_per_device_at_a_time(service, real_mode):
+    gate = asyncio.Event()
+    calls = 0
+
+    async def _sync(_device_id):
+        nonlocal calls
+        calls += 1
+        await gate.wait()
+        return 0
+
+    with patch.object(service, "_sync_from_device", _sync):
+        first = asyncio.create_task(service.refresh_from_device("dev-001", []))
+        await asyncio.sleep(0)
+        await service.refresh_from_device("dev-001", [])  # returns at once
+        gate.set()
+        await first
+
+    assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_refresh_failure_is_logged_not_raised(service, real_mode, caplog):
+    service.on_presets_changed = AsyncMock()
+    failing = AsyncMock(side_effect=RuntimeError("boom"))
+    with patch.object(service, "_sync_from_device", failing):
+        await service.refresh_from_device("dev-001", [])
+
+    assert "speaker presets unreadable" in caplog.text.lower()
+    service.on_presets_changed.assert_not_awaited()
+
+
 # ---------------------------------------------------------------------------
 # clear_preset / clear_all_presets
 # ---------------------------------------------------------------------------
@@ -927,7 +989,7 @@ async def test_clear_all_presets_returns_count(service, mock_repo):
 class TestDeviceIsSourceOfTruth:
     @pytest.mark.asyncio
     async def test_sync_drops_oct_slots_the_device_does_not_have(
-        self, service, mock_repo
+        self, service, real_mode, mock_repo
     ):
         xml = _build_presets_xml({"id": 1}, {"id": 3})
         with patch.object(
@@ -939,7 +1001,9 @@ class TestDeviceIsSourceOfTruth:
         assert cleared == {2, 4, 5, 6}
 
     @pytest.mark.asyncio
-    async def test_sync_of_an_empty_device_empties_oct(self, service, mock_repo):
+    async def test_sync_of_an_empty_device_empties_oct(
+        self, service, real_mode, mock_repo
+    ):
         with patch.object(
             service, "_fetch_device_presets", AsyncMock(return_value=b"<presets/>")
         ):
@@ -991,3 +1055,278 @@ class TestDeviceIsSourceOfTruth:
             await service.clear_all_presets("dev-001")
 
         assert [c.args[0] for c in client.remove_preset.await_args_list] == [1, 5]
+
+
+# ---------------------------------------------------------------------------
+# Speaker is the truth, OCT keeps metadata (decisions 6, 9, 27; L3, L5, N2)
+# ---------------------------------------------------------------------------
+
+
+def _oct_radio_row(**overrides) -> Preset:
+    values: dict = dict(
+        device_id="dev-001",
+        preset_number=1,
+        station_uuid="rb-uuid-1",
+        station_name="Example FM",
+        station_url="https://stream.example.org/live",
+        station_homepage="https://example.org",
+        station_favicon="https://example.org/logo.png",
+        source="LOCAL_INTERNET_RADIO",
+    )
+    values.update(overrides)
+    return Preset(**values)
+
+
+class TestSyncKeepsMetadata:
+    @pytest.mark.asyncio
+    async def test_sync_keeps_favicon_when_speaker_has_none(
+        self, service, real_mode, mock_repo
+    ):
+        mock_repo.get_preset = AsyncMock(return_value=_oct_radio_row())
+        xml = _build_presets_xml(
+            {
+                "id": 1,
+                "source": "LOCAL_INTERNET_RADIO",
+                "location": _build_bmx_location("https://stream.example.org/live"),
+                "item_name": "Example FM",
+            }
+        )
+        with patch.object(
+            service, "_fetch_device_presets", AsyncMock(return_value=xml)
+        ):
+            await service.sync_presets_from_device("dev-001")
+
+        stored = mock_repo.set_preset.await_args.args[0]
+        assert stored.station_favicon == "https://example.org/logo.png"
+        # N2: an OCT radio preset keeps its type and identity when loaded back
+        assert (stored.source, stored.station_uuid, stored.station_homepage) == (
+            "LOCAL_INTERNET_RADIO",
+            "rb-uuid-1",
+            "https://example.org",
+        )
+
+    @pytest.mark.asyncio
+    async def test_sync_keeps_unreadable_slot(self, service, real_mode, mock_repo):
+        """L3: a slot the speaker has but OCT cannot read keeps its OCT row."""
+        bmx_without_data = "http://content.api.bose.io/bmx-adapter/orion/station"
+        xml = _build_presets_xml(
+            {"id": 2, "source": "LOCAL_INTERNET_RADIO", "location": bmx_without_data}
+        )
+        with patch.object(
+            service, "_fetch_device_presets", AsyncMock(return_value=xml)
+        ):
+            assert await service.sync_presets_from_device("dev-001") == 0
+
+        cleared = {c.args[1] for c in mock_repo.clear_preset.await_args_list}
+        assert cleared == {1, 3, 4, 5, 6}
+
+    @pytest.mark.asyncio
+    async def test_refresh_mock_mode_never_reads_the_speaker(self, service):
+        """Mock speakers keep presets only in OCT (mock store_preset is a no-op)."""
+        fetch = AsyncMock()
+        service.on_presets_changed = AsyncMock()
+        with patch.object(service, "_fetch_device_presets", fetch):
+            await service.refresh_from_device("dev-001", [])
+
+        fetch.assert_not_awaited()
+        service.on_presets_changed.assert_not_awaited()
+
+
+# ---------------------------------------------------------------------------
+# sync_presets_from_device — STORED_MUSIC account lost by an OCT /full (T22 5c)
+# ---------------------------------------------------------------------------
+
+
+def _dlna_row(location: str = "129901") -> Preset:
+    return Preset(
+        device_id="dev-001",
+        preset_number=5,
+        station_uuid="STORED_MUSIC_5",
+        station_name="Album",
+        station_url=location,
+        source="STORED_MUSIC",
+        source_account="Udn-1/0",
+    )
+
+
+def _stored_music_xml(account: str, location: str = "129901") -> bytes:
+    return (
+        f'<presets><preset id="5"><ContentItem source="STORED_MUSIC" '
+        f'location="{location}" sourceAccount="{account}" isPresetable="true">'
+        "<itemName>Album</itemName></ContentItem></preset></presets>"
+    ).encode()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("account", "location", "expected"),
+    [
+        ("", "129901", "Udn-1/0"),  # empty account, same location: OCT account kept
+        ("Other/0", "129901", "Other/0"),  # a speaker account always wins
+        ("", "777", None),  # another item: nothing to repair
+    ],
+    ids=["repaired", "speaker-wins", "other-location"],
+)
+async def test_sync_keeps_oct_account_for_empty_stored_music_account(
+    service, real_mode, mock_repo, account, location, expected
+):
+    mock_repo.get_preset = AsyncMock(return_value=_dlna_row())
+    xml = _stored_music_xml(account, location)
+    with patch.object(service, "_fetch_device_presets", AsyncMock(return_value=xml)):
+        await service.sync_presets_from_device("dev-001")
+
+    saved: Preset = mock_repo.set_preset.call_args[0][0]
+    assert saved.source_account == expected
+    assert saved.is_dlna is (expected is not None)
+
+
+# ---------------------------------------------------------------------------
+# apply_presets_event — the speaker's presetsUpdated websocket event (T2)
+# ---------------------------------------------------------------------------
+
+_PRESETS_EVENT = (
+    '<updates deviceID="dev-001"><presetsUpdated><presets>'
+    '<preset id="2"><ContentItem source="TUNEIN" location="/v1/playback/station/s1">'
+    "<itemName>New Station</itemName></ContentItem></preset>"
+    "</presets></presetsUpdated></updates>"
+)
+
+
+@pytest.mark.asyncio
+async def test_presets_event_imports_the_list_and_publishes_it(service, mock_repo):
+    stored = Preset(
+        device_id="dev-001",
+        preset_number=2,
+        station_uuid="tunein_/v1/playback/station/s1",
+        station_name="New Station",
+        station_url="/v1/playback/station/s1",
+        source="TUNEIN",
+    )
+    mock_repo.get_all_presets = AsyncMock(return_value=[stored])
+    service.on_presets_changed = AsyncMock()
+    fetch = AsyncMock()
+
+    with patch.object(service, "_fetch_device_presets", fetch):
+        await service.apply_presets_event("dev-001", _PRESETS_EVENT)
+
+    saved = mock_repo.set_preset.await_args.args[0]
+    assert (saved.preset_number, saved.station_name) == (2, "New Station")
+    cleared = {c.args[1] for c in mock_repo.clear_preset.await_args_list}
+    assert cleared == {1, 3, 4, 5, 6}
+    fetch.assert_not_awaited()
+    device_id, payload = service.on_presets_changed.await_args.args
+    assert device_id == "dev-001"
+    assert payload == [{**stored.to_dict(), "dlna": False}]
+
+
+@pytest.mark.asyncio
+async def test_unreadable_presets_event_syncs_and_always_publishes(
+    service, real_mode, mock_repo, caplog
+):
+    """The fallback sync finds the DB unchanged (OCT saved first): still publish."""
+    row = _oct_radio_row()
+    mock_repo.get_all_presets = AsyncMock(return_value=[row])
+    service.on_presets_changed = AsyncMock()
+    sync = AsyncMock(return_value=1)
+    with caplog.at_level("INFO"), patch.object(service, "_sync_from_device", sync):
+        await service.apply_presets_event(
+            "dev-001", '<updates deviceID="dev-001"><presetsUpdated/></updates>'
+        )
+
+    sync.assert_awaited_once_with("dev-001")
+    service.on_presets_changed.assert_awaited_once_with(
+        "dev-001", [{**row.to_dict(), "dlna": False}]
+    )
+    events = [r.message for r in caplog.records if "presetsUpdated" in r.message]
+    assert events == ["presetsUpdated for dev-001 unreadable: syncing from speaker"]
+
+
+@pytest.mark.asyncio
+async def test_failed_fallback_sync_still_publishes_the_oct_rows(
+    service, real_mode, mock_repo
+):
+    service.on_presets_changed = AsyncMock()
+    failing = AsyncMock(side_effect=DeviceConnectionError("192.0.2.1", "down"))
+    with patch.object(service, "_sync_from_device", failing):
+        await service.apply_presets_event("dev-001", "not xml")
+
+    service.on_presets_changed.assert_awaited_once_with("dev-001", [])
+
+
+@pytest.mark.asyncio
+async def test_parsed_presets_event_logs_once_without_xml(service, mock_repo, caplog):
+    service.on_presets_changed = AsyncMock()
+    with caplog.at_level("INFO"):
+        await service.apply_presets_event("dev-001", _PRESETS_EVENT)
+
+    events = [r.message for r in caplog.records if "presetsUpdated" in r.message]
+    assert events == ["presetsUpdated for dev-001 parsed from the event"]
+    assert all("<" not in r.message for r in caplog.records)
+
+
+# ---------------------------------------------------------------------------
+# OCT's own preset writes publish the full list (second browser tab, R1)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_set_preset_publishes_the_full_list(service, mock_repo):
+    row = _oct_radio_row()
+    mock_repo.get_all_presets = AsyncMock(return_value=[row])
+    service.on_presets_changed = AsyncMock()
+
+    await service.set_preset("dev-001", 1, "s-1", "Radio", "http://r.example/s")
+
+    service.on_presets_changed.assert_awaited_once_with(
+        "dev-001", [{**row.to_dict(), "dlna": False}]
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda s: s.clear_preset("dev-001", 1),
+        lambda s: s.clear_all_presets("dev-001"),
+        lambda s: s.sync_presets_from_device("dev-001"),
+    ],
+)
+async def test_other_oct_writes_publish_the_full_list(service, call):
+    service.on_presets_changed = AsyncMock()
+
+    await call(service)
+
+    service.on_presets_changed.assert_awaited_once_with("dev-001", [])
+
+
+@pytest.mark.asyncio
+async def test_background_refresh_does_not_publish_an_unchanged_list(service):
+    service.on_presets_changed = AsyncMock()
+
+    await service.refresh_from_device("dev-001", [])
+
+    service.on_presets_changed.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_import_keeps_the_artist_of_an_unchanged_item(service, mock_repo):
+    existing = _dlna_row()
+    existing.station_artist = "Some Artist"
+    mock_repo.get_preset = AsyncMock(return_value=existing)
+    root = ET.fromstring(_stored_music_xml(existing.source_account))
+
+    await service._import_presets("dev-001", root)
+
+    assert mock_repo.set_preset.await_args.args[0].station_artist == "Some Artist"
+
+
+@pytest.mark.asyncio
+async def test_import_drops_the_artist_of_a_changed_item(service, mock_repo):
+    existing = _dlna_row(location="other")
+    existing.station_artist = "Some Artist"
+    mock_repo.get_preset = AsyncMock(return_value=existing)
+    root = ET.fromstring(_stored_music_xml(existing.source_account))
+
+    await service._import_presets("dev-001", root)
+
+    assert mock_repo.set_preset.await_args.args[0].station_artist is None

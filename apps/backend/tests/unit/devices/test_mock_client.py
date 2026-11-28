@@ -222,3 +222,38 @@ class TestMockDeviceClientBass:
         client = MockDeviceClient(device_id="AABBCC112233")
         with pytest.raises(ValueError, match="between -9 and 0"):
             await client.set_bass(-10)
+
+
+class TestMockShuffleRepeat:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "key,field",
+        [
+            ("SHUFFLE_ON", "shuffle_setting"),
+            ("SHUFFLE_OFF", "shuffle_setting"),
+            ("REPEAT_OFF", "repeat_setting"),
+            ("REPEAT_ALL", "repeat_setting"),
+            ("REPEAT_ONE", "repeat_setting"),
+        ],
+    )
+    async def test_five_keys_accepted_by_mock(self, key, field):
+        MockDeviceClient.reset_settings()
+        client = MockDeviceClient(device_id="AABBCC112233")
+
+        await client.press_key(key, "both")
+
+        assert getattr(await client.get_now_playing(), field) == key
+        MockDeviceClient.reset_settings()
+
+    @pytest.mark.asyncio
+    async def test_settings_shared_between_instances_and_reset(self):
+        MockDeviceClient.reset_settings()
+        await MockDeviceClient("AABBCC112233").press_key("SHUFFLE_ON")
+        info = await MockDeviceClient("AABBCC112233").get_now_playing()
+        assert (info.shuffle_setting, info.repeat_setting) == (
+            "SHUFFLE_ON",
+            "REPEAT_OFF",
+        )
+        MockDeviceClient.reset_settings()
+        info = await MockDeviceClient("AABBCC112233").get_now_playing()
+        assert info.shuffle_setting == "SHUFFLE_OFF"

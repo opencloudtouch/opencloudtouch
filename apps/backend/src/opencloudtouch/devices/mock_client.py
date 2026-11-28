@@ -5,17 +5,24 @@ Provides deterministic responses that simulate device HTTP API.
 """
 
 import logging
-from typing import Optional
+from dataclasses import replace
+from typing import ClassVar, Optional
 
 from opencloudtouch.devices.client import (
+    SHUFFLE_REPEAT_KEYS,
     BassCapabilities,
     BassInfo,
     DeviceClient,
     DeviceInfo,
     NowPlayingInfo,
+    SpeakerSource,
+    StoredMusicBrowse,
+    StoredMusicItem,
     VolumeInfo,
 )
 from opencloudtouch.devices.models import SELECTABLE_SOURCES
+from opencloudtouch.dlna.mock import MOCK_SERVER, mock_browse
+from opencloudtouch.dlna.models import is_audio_item
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
 
 logger = logging.getLogger(__name__)
@@ -101,6 +108,11 @@ class MockDeviceClient(DeviceClient):
         },
     }
 
+    # device_id -> registered server ids; class-level because the app builds a client per request
+    _MEDIA_SERVERS: ClassVar[dict[str, set[str]]] = {}
+    # device_id -> (shuffle, repeat); class-level for the same reason
+    _SETTINGS: ClassVar[dict[str, tuple[str, str]]] = {}
+
     def __init__(self, device_id: str, ip_address: Optional[str] = None):
         """
         Initialize mock client for a specific device.
@@ -118,6 +130,8 @@ class MockDeviceClient(DeviceClient):
         self._bass = 0
         self._muted = False
         self._zone: ZoneStatus | None = None
+        self._media_servers = self._MEDIA_SERVERS.setdefault(device_id, set())
+        self.native_presets: list[tuple[int, StoredMusicItem, str]] = []
 
         if device_id not in self.MOCK_DEVICES:
             raise ValueError(
@@ -149,7 +163,15 @@ class MockDeviceClient(DeviceClient):
         logger.debug("[MOCK] get_now_playing() for device %s", self.device_id)
         now_playing = self.MOCK_DEVICES[self.device_id]["now_playing"]
         assert isinstance(now_playing, NowPlayingInfo)
-        return now_playing
+        shuffle, repeat = self._SETTINGS.get(
+            self.device_id, ("SHUFFLE_OFF", "REPEAT_OFF")
+        )
+        return replace(now_playing, shuffle_setting=shuffle, repeat_setting=repeat)
+
+    @classmethod
+    def reset_settings(cls) -> None:
+        """Forget pressed shuffle/repeat keys (test isolation)."""
+        cls._SETTINGS.clear()
 
     async def press_key(self, key: str, state: str = "both") -> None:
         """
@@ -169,6 +191,7 @@ class MockDeviceClient(DeviceClient):
             "PLAY",
             "PAUSE",
             "POWER",
+            *SHUFFLE_REPEAT_KEYS,
         ]
         valid_states = ["press", "release", "both"]
 
@@ -187,6 +210,15 @@ class MockDeviceClient(DeviceClient):
             self.device_id,
             extra={"device_id": self.device_id, "key": key, "state": state},
         )
+        if key in SHUFFLE_REPEAT_KEYS:
+            shuffle, repeat = self._SETTINGS.get(
+                self.device_id, ("SHUFFLE_OFF", "REPEAT_OFF")
+            )
+            if key.startswith("SHUFFLE_"):
+                shuffle = key
+            else:
+                repeat = key
+            self._SETTINGS[self.device_id] = (shuffle, repeat)
 
     async def select_source(self, source: str) -> None:
         """Mock source switch."""
@@ -333,3 +365,67 @@ class MockDeviceClient(DeviceClient):
     async def reboot(self) -> None:
         """Mock reboot (no-op)."""
         logger.info("[MOCK] reboot() for device %s", self.device_id)
+
+    # ---- DLNA / STORED_MUSIC Methods ----
+
+    async def list_media_servers(self) -> list[str]:
+        """Mock listMediaServers: the servers registered on this mock device."""
+        return sorted(self._media_servers)
+
+    async def get_source_list(self) -> list[SpeakerSource]:
+        """Report registered servers as READY, alongside the AUX source."""
+        return [SpeakerSource("AUX", "", "READY", "AUX")] + [
+            SpeakerSource("STORED_MUSIC", f"{udn}/0", "READY", udn)
+            for udn in sorted(self._media_servers)
+        ]
+
+    async def browse_stored_music(
+        self,
+        source_account: str,
+        location: str | None = None,
+        start_item: int = 1,
+        num_items: int = 1000,
+    ) -> StoredMusicBrowse:
+        """Mock /navigate: speaker-style items of the mock DLNA tree."""
+        account = f"{MOCK_SERVER.id}/0"
+        if source_account != account:
+            return StoredMusicBrowse([])
+        try:
+            page = mock_browse(location or "0", start_item - 1, num_items)
+        except KeyError:
+            return StoredMusicBrowse([])
+        return StoredMusicBrowse(
+            [
+                StoredMusicItem(
+                    name=i.title,
+                    is_directory=i.is_container,
+                    source="STORED_MUSIC",
+                    location=i.id if i.is_container else f"{i.id} TRACK",
+                    source_account=account,
+                    item_name=i.title,
+                )
+                for i in page.items
+                if i.is_container or is_audio_item(i)
+            ],
+            total=page.total_matches,
+        )
+
+    async def register_media_server(self, server_udn: str, name: str) -> None:
+        """Mock setMusicServiceAccount: the server becomes listed and READY."""
+        self._media_servers.add(server_udn)
+
+    async def remove_media_server(self, server_udn: str) -> None:
+        """Mock removeMusicServiceAccount (idempotent)."""
+        self._media_servers.discard(server_udn)
+
+    async def notify_sources_updated(self, device_id: str) -> None:
+        """Mock sourcesUpdated push (no-op)."""
+        logger.info("[MOCK] sourcesUpdated for device %s", device_id)
+
+    async def store_native_preset(
+        self, preset_number: int, item: StoredMusicItem, artwork_url: str = ""
+    ) -> None:
+        """Record the native preset write."""
+        if not 1 <= preset_number <= 6:
+            raise ValueError(f"Preset number must be 1-6, got {preset_number}")
+        self.native_presets.append((preset_number, item, artwork_url))

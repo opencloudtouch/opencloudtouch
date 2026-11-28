@@ -33,12 +33,25 @@
     "noStation": "Sem estação",
     "powerButton": "Ligar/desligar",
     "playbackTitle": "Reprodução",
+    "shuffle": {
+      "label": "Aleatório"
+    },
+    "repeat": {
+      "label": "Repetir: {{mode}}",
+      "REPEAT_OFF": "desligado",
+      "REPEAT_ALL": "todas",
+      "REPEAT_ONE": "uma"
+    },
     "prevTrack": "Faixa anterior",
     "nextTrack": "Próxima faixa",
     "muteOn": "Ativar som",
     "muteOff": "Silenciar",
     "prevDevice": "Dispositivo anterior",
     "nextDevice": "Próximo dispositivo",
+    "dlna": {
+      "badge": "DLNA",
+      "preset": "Preset {{number}}"
+    },
     "source": {
       "bluetooth": "Bluetooth",
       "radio": "Rádio",
@@ -54,17 +67,19 @@
     }
   },
   "presets": {
+    "dlnaBadge": "DLNA",
     "presetSaved": "Preset {{number}} salvo.",
     "presetDeleted": "Preset {{number}} excluído.",
     "noDevices": "Nenhum dispositivo encontrado",
     "syncedFromDevice": "Presets carregados com sucesso do dispositivo.",
-    "savedStations": "Estações salvas",
+    "savedStations": "Presets",
     "syncFromDevice": "Carregar do dispositivo",
     "syncFromDeviceSyncing": "Sincronizando...",
     "syncFromDeviceTitle": "Sincronizar presets do dispositivo",
     "infoTitle": "Notas do dispositivo",
-    "infoItem1": "Toque em um preset vazio para atribuir uma estação",
-    "infoItem2": "Toque no lápis ao lado de uma estação para alterá-la ou excluí-la",
+    "infoItem1": "Toque em um preset vazio para atribuir uma estação de rádio, uma URL de stream ou músicas de um servidor de mídia (DLNA)",
+    "infoItem2": "Toque no lápis ao lado de um preset para alterá-lo ou excluí-lo",
+    "infoItem7": "Músicas do seu NAS ou servidor de mídia: no diálogo do preset, configure o servidor uma vez em “DLNA” e depois escolha uma pasta ou faixa",
     "infoItem3": "Toque em um preset para reproduzi-lo e toque novamente para pausar. Os botões de fonte acima da capa alternam entre Presets, Bluetooth e AUX",
     "infoItem5": "O ícone de status no canto superior direito do cartão do dispositivo abre o assistente de configuração do dispositivo",
     "infoItem6": "\"Carregar do dispositivo\" sincroniza os presets do SoundTouch",
@@ -88,6 +103,7 @@
       "tag": "ex.: Rock, Jazz, pop…"
     },
     "searchTitle": "Pesquisar estações de rádio",
+    "dialogTitle": "Definir preset {{number}}",
     "loadMore": "Carregar mais",
     "loadingMore": "Carregando...",
     "maxReached": "Máximo ({{count}}) atingido",
@@ -881,6 +897,34 @@
     "bitrate": "Taxa de bits",
     "homepage": "Site"
   },
+  "devices": {
+    "sourceError": {
+      "notSetUp": {
+        "title": "Fonte não disponível",
+        "body": "O alto-falante não conseguiu iniciar este preset porque a fonte dele não está configurada. Para um preset DLNA, configure novamente o servidor de mídia na aba DLNA da caixa de diálogo do preset."
+      },
+      "notFound": {
+        "title": "Servidor de mídia não encontrado",
+        "body": "O alto-falante não está vendo este servidor de mídia agora. Verifique se o servidor está em execução e na mesma rede; se dois servidores compartilham um endereço IP, o alto-falante pode ver apenas um."
+      },
+      "serviceUnreachable": {
+        "title": "Serviço de música inacessível",
+        "body": "O alto-falante não conseguiu acessar o serviço de música do servidor. Tente novamente em instantes."
+      },
+      "badFormat": {
+        "title": "Conteúdo não suportado",
+        "body": "O alto-falante não consegue reproduzir o conteúdo desta pasta (formato não suportado)."
+      },
+      "subFolders": {
+        "title": "A pasta não pode ser reproduzida inteira",
+        "body": "Esta pasta não pode ser reproduzida inteira: o primeiro item não é uma música. Escolha uma pasta que comece com músicas."
+      },
+      "generic": {
+        "title": "Não foi possível iniciar a reprodução",
+        "body": "O alto-falante não conseguiu reproduzir este item. Tente novamente ou escolha outro."
+      }
+    }
+  },
   "device": {
     "sourceChoose": "Escolher fonte",
     "sourceSwitching": "Mudando para {{source}}…",
@@ -1032,5 +1076,78 @@
     "pairMembers": "Esquerdo: {{left}} · Direito: {{right}}",
     "dissolved": "Par estéreo “{{name}}” desfeito",
     "dissolveFailed": "Não foi possível desfazer o par estéreo"
+  },
+  "dlna": {
+    "servers": {
+      "loading": "Carregando servidores de mídia",
+      "searching": "Procurando mais servidores de mídia …",
+      "stillSearching": "Procurando…",
+      "searchFailed": "A busca por mais servidores de mídia falhou.",
+      "ready": "Pronto",
+      "notEnabled": "Não configurado",
+      "unavailable": "Indisponível",
+      "enable": "Configurar",
+      "enableLabel": "Configurar {{name}}",
+      "openLabel": "Abrir {{name}}",
+      "open": "Abrir",
+      "remove": "Remover",
+      "removeLabel": "Remover {{name}}",
+      "enabled": "{{name}} está configurado. Abra o servidor para escolher uma pasta ou faixa.",
+      "enableUnavailable": "{{name}} não está disponível. Verifique se está ligado e acessível e tente novamente.",
+      "enableFailed": "Não foi possível configurar {{name}}. Tente novamente.",
+      "enableNoAccount": "Não foi possível configurar {{name}}: a caixa de som ainda não tem uma conta OpenCloudTouch. Conclua primeiro a configuração da caixa de som.",
+      "empty": "Nenhum servidor de mídia encontrado",
+      "emptyText": "Verifique se há um servidor de mídia DLNA em execução na sua rede.",
+      "rescan": "Buscar novamente",
+      "loadError": "Não foi possível carregar os servidores de mídia",
+      "retry": "Tentar novamente",
+      "migrationFailedTitle": "Não é possível configurar servidores de mídia neste alto-falante",
+      "migrationFailedText": "A preparação do alto-falante falhou: {{reason}}",
+      "sameHostTitle": "Dois servidores em um endereço IP",
+      "sameHostText": "O alto-falante pode ver apenas um de dois servidores que compartilham um endereço IP. Prefira um servidor por IP.",
+      "removeTitle": "Remover {{name}}?",
+      "removeText": "O alto-falante não usará mais este servidor de mídia.",
+      "removeSlots": "Os presets nas posições {{slots}} ainda tocam deste servidor. Eles continuam salvos, mas não vão tocar até o servidor ser configurado novamente.",
+      "removeAnyway": "Remover mesmo assim",
+      "removeFailed": "Não foi possível remover o servidor. Tente novamente."
+    },
+    "browser": {
+      "breadcrumb": "Caminho da pasta",
+      "up": "Subir",
+      "loading": "Carregando pasta",
+      "empty": "Esta pasta está vazia",
+      "filterLabel": "Filtrar esta pasta",
+      "noMatches": "Nenhum item corresponde ao filtro.",
+      "loadMore": "Carregar mais",
+      "select": "Selecionar",
+      "selectLabel": "Selecionar {{title}}",
+      "selectFolderLabel": "Selecionar pasta inteira {{title}}",
+      "wholeFolder": "Pasta inteira como predefinição",
+      "folderContents": "Conteúdo",
+      "openLabel": "Abrir pasta {{title}}",
+      "retry": "Tentar novamente",
+      "error": "Não foi possível carregar a pasta.",
+      "serverNotFound": "Servidor não encontrado. Verifique se está ligado.",
+      "serverTimeout": "O servidor não respondeu. Tente novamente.",
+      "objectGone": "Essa pasta não existe mais. Mostrando o nível superior."
+    },
+    "album": {
+      "open": "Abrir visualização do álbum"
+    },
+    "pane": {
+      "tab": "DLNA",
+      "loading": "Procurando o item salvo",
+      "hint": "Escolha uma pasta ou música para o preset {{number}}.",
+      "allServers": "Todos os servidores de mídia",
+      "serverGone": "O servidor de mídia deste preset não está mais disponível. Escolha um servidor abaixo.",
+      "objectGone": "O item salvo não existe mais no servidor. Você está no nível superior."
+    },
+    "save": {
+      "noAudioFirst": "O primeiro item desta pasta não é uma música (por exemplo, uma imagem de capa). O alto-falante pode não conseguir reproduzi-lo. Salvar mesmo assim?",
+      "hiResFlac": "Esta faixa é um FLAC de alta resolução ({{khz}} kHz). O alto-falante não consegue reproduzi-la; converta-a para 16 bits/48 kHz ou menos no servidor de mídia.",
+      "saveAnyway": "Salvar mesmo assim",
+      "chooseAnother": "Escolher outra coisa",
+      "saving": "Salvando no preset {{number}} …"
+    }
   }
 }

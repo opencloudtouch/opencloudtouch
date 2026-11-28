@@ -9,7 +9,6 @@ import pytest
 
 from opencloudtouch.core.logging import (
     CLUSTER_FILE_BACKUP_COUNT,
-    CLUSTER_FILE_MAX_BYTES,
     CLUSTER_NAMES,
     NOISY_CLUSTERS,
     ClusterFileHandler,
@@ -22,6 +21,9 @@ from opencloudtouch.core.logging import (
     get_logger,
     setup_logging,
 )
+
+# Small rotation size keeps the footprint tests fast (the real 500 KB took ~23 s each).
+CLUSTER_FILE_MAX_BYTES = 4_000
 
 
 class TestStructuredFormatter:
@@ -391,6 +393,12 @@ class TestClusterFileHandler:
         "presets": "opencloudtouch.presets.service",
         "general": "opencloudtouch.core.config",
     }
+
+    @pytest.fixture(autouse=True)
+    def _small_rotation(self, monkeypatch):
+        monkeypatch.setattr(
+            "opencloudtouch.core.logging.CLUSTER_FILE_MAX_BYTES", CLUSTER_FILE_MAX_BYTES
+        )
 
     def _make_record(self, logger_name: str, level: int, msg: str) -> logging.LogRecord:
         return logging.LogRecord(

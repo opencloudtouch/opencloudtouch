@@ -95,6 +95,17 @@
   color: var(--color-text-primary);
   background: var(--surface-color);
 }
+.btn:disabled {
+  background: transparent;
+  color: var(--color-disabled-fg);
+}
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-outline:disabled,
+.btn-danger:disabled,
+.btn-danger-outline:disabled {
+  border-color: var(--color-disabled-fg);
+}
 .btn svg,
 .wz-icon svg {
   flex: none;

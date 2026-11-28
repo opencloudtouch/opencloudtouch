@@ -1,12 +1,28 @@
 """DLNA application service."""
 
 import asyncio
+import logging
 import time
 from collections.abc import Callable
+from dataclasses import replace
+from urllib.parse import urlsplit
 
-from opencloudtouch.dlna.client import DlnaClient
+from opencloudtouch.dlna.client import DlnaBrowseError, DlnaClient
 from opencloudtouch.dlna.discovery import DlnaDiscovery
-from opencloudtouch.dlna.models import DlnaItem, DlnaServer
+from opencloudtouch.dlna.models import (
+    BrowsePage,
+    DlnaItem,
+    DlnaServer,
+    ObjectPath,
+    is_audio_item,
+)
+
+MAX_PATH_DEPTH = 16
+ALBUM_SEARCH_MAX_CALLS = 20
+ALBUM_SEARCH_MAX_DEPTH = 3
+ALBUM_CLASS = "object.container.album.musicAlbum"
+
+logger = logging.getLogger(__name__)
 
 
 class DlnaService:
@@ -32,11 +48,16 @@ class DlnaService:
         self._last_discovery_empty = False
         self._discovery_lock = asyncio.Lock()
         self._missing_ids: dict[str, float] = {}
+        self._refresh_task: asyncio.Task[None] | None = None
 
     async def get_servers(self) -> list[DlnaServer]:
         """Explicitly refresh the list of available DLNA media servers."""
         async with self._discovery_lock:
             return await self._discover_servers()
+
+    def known_servers(self) -> list[DlnaServer]:
+        """Servers found by earlier discoveries; no network access."""
+        return list(self._servers.values())
 
     async def _discover_servers(self) -> list[DlnaServer]:
         """Merge SSDP results without evicting servers missed by UDP discovery."""
@@ -63,12 +84,17 @@ class DlnaService:
         self._cache_expires_at = now + (self.cache_ttl if servers else self.missing_ttl)
         return list(self._servers.values())
 
-    async def browse(
-        self,
-        server_id: str,
-        object_id: str = "0",
-    ) -> list[DlnaItem]:
-        """Browse a cached server, refreshing discovery only when necessary."""
+    async def resolve(self, server_id: str) -> DlnaServer:
+        """Find a server, refreshing discovery only when necessary.
+
+        A known server is returned at once, even from an expired cache: SSDP takes
+        seconds, so the refresh then runs in the background (stale-while-revalidate).
+        """
+        known = self._servers.get(server_id)
+        if known is not None:
+            if self._clock() >= self._cache_expires_at:
+                self.refresh_in_background()
+            return known
         async with self._discovery_lock:
             missing_until = self._missing_ids.get(server_id, 0.0)
             if self._clock() >= self._cache_expires_at or (
@@ -89,4 +115,85 @@ class DlnaService:
         if server is None:
             raise LookupError(f"DLNA server not found: {server_id}")
 
-        return await self.client.browse(server, object_id)
+        return server
+
+    def refresh_in_background(self) -> None:
+        """Start one background discovery; at most one is in flight."""
+        if self._refresh_task is None or self._refresh_task.done():
+            self._refresh_task = asyncio.create_task(self._background_refresh())
+
+    async def _background_refresh(self) -> None:
+        try:
+            async with self._discovery_lock:
+                # Another caller may have refreshed while this task waited.
+                if self._clock() >= self._cache_expires_at:
+                    await self._discover_servers()
+        except Exception as exc:  # a failed refresh keeps the cached servers
+            logger.warning("Background DLNA discovery failed: %s", type(exc).__name__)
+
+    async def browse_page(
+        self,
+        server_id: str,
+        object_id: str = "0",
+        starting_index: int = 0,
+        requested_count: int = 50,
+    ) -> BrowsePage:
+        """Browse live (no browse cache); keep folders and audio only."""
+        server = await self.resolve(server_id)
+        page = await self.client.browse(
+            server, object_id, starting_index, requested_count
+        )
+        host = urlsplit(server.control_url).hostname
+        items = []
+        for item in page.items:
+            if not (item.is_container or is_audio_item(item)):
+                continue
+            art = urlsplit(item.album_art_url or "")
+            # A cover from another host would make the browser fetch foreign URLs.
+            if item.album_art_url and not (
+                art.scheme in ("http", "https") and art.hostname == host
+            ):
+                item = replace(item, album_art_url=None)
+            items.append(item)
+        return BrowsePage(items, page.number_returned, page.total_matches)
+
+    async def first_child_is_audio(self, server_id: str, container_id: str) -> bool:
+        """True if the first child of the container is an audio item."""
+        server = await self.resolve(server_id)
+        page = await self.client.browse(server, container_id, 0, 1)
+        return bool(page.items) and is_audio_item(page.items[0])
+
+    async def get_object_path(self, server_id: str, object_id: str) -> ObjectPath:
+        """Object plus its ancestors, read live."""
+        server = await self.resolve(server_id)
+        if object_id == "0":
+            return ObjectPath(server.name, DlnaItem("0", "-1", server.name, True), [])
+        item = await self.client.get_object(server, object_id)
+        seen = {object_id}
+        ancestors: list[DlnaItem] = []
+        parent_id = item.parent_id
+        while parent_id not in ("0", "-1"):
+            if not parent_id or parent_id in seen or len(ancestors) >= MAX_PATH_DEPTH:
+                raise DlnaBrowseError("DLNA object path is not resolvable")
+            seen.add(parent_id)
+            parent = await self.client.get_object(server, parent_id)
+            ancestors.append(parent)
+            parent_id = parent.parent_id
+        ancestors.reverse()
+        return ObjectPath(server.name, item, ancestors)
+
+    async def find_album_root(self, server_id: str) -> str | None:
+        """First container (breadth-first) directly holding music albums, or None."""
+        server = await self.resolve(server_id)
+        queue = [("0", 0)]
+        calls = 0
+        while queue and calls < ALBUM_SEARCH_MAX_CALLS:
+            object_id, depth = queue.pop(0)
+            calls += 1
+            page = await self.client.browse(server, object_id, 0, 200)
+            containers = [i for i in page.items if i.is_container]
+            if any(i.media_class == ALBUM_CLASS for i in containers):
+                return object_id
+            if depth < ALBUM_SEARCH_MAX_DEPTH:
+                queue.extend((i.id, depth + 1) for i in containers)
+        return None

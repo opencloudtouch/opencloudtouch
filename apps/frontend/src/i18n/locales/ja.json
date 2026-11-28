@@ -33,12 +33,25 @@
     "noStation": "ステーションなし",
     "powerButton": "電源オン/オフ",
     "playbackTitle": "再生",
+    "shuffle": {
+      "label": "シャッフル"
+    },
+    "repeat": {
+      "label": "リピート: {{mode}}",
+      "REPEAT_OFF": "オフ",
+      "REPEAT_ALL": "全曲",
+      "REPEAT_ONE": "1曲"
+    },
     "prevTrack": "前のトラック",
     "nextTrack": "次のトラック",
     "muteOn": "ミュート解除",
     "muteOff": "ミュート",
     "prevDevice": "前のデバイス",
     "nextDevice": "次のデバイス",
+    "dlna": {
+      "badge": "DLNA",
+      "preset": "プリセット{{number}}"
+    },
     "source": {
       "bluetooth": "Bluetooth",
       "radio": "ラジオ",
@@ -54,17 +67,19 @@
     }
   },
   "presets": {
+    "dlnaBadge": "DLNA",
     "presetSaved": "プリセット{{number}}を保存しました。",
     "presetDeleted": "プリセット{{number}}を削除しました。",
     "noDevices": "デバイスが見つかりません",
     "syncedFromDevice": "デバイスからプリセットを正常に読み込みました。",
-    "savedStations": "保存済みステーション",
+    "savedStations": "プリセット",
     "syncFromDevice": "デバイスから読み込む",
     "syncFromDeviceSyncing": "同期中...",
     "syncFromDeviceTitle": "デバイスからプリセットを同期",
     "infoTitle": "デバイスのヒント",
-    "infoItem1": "空のプリセットをタップしてステーションを割り当てます",
-    "infoItem2": "ステーションの横の鉛筆をタップすると、変更または削除できます",
+    "infoItem1": "空のプリセットをタップすると、ラジオ局、ストリームURL、またはメディアサーバー（DLNA）の音楽を割り当てられます",
+    "infoItem2": "プリセットの横の鉛筆をタップすると、変更または削除できます",
+    "infoItem7": "NASやメディアサーバーの音楽：プリセットのダイアログの「DLNA」でサーバーを一度設定し、フォルダーまたは曲を選びます",
     "infoItem3": "プリセットをタップすると再生し、もう一度タップすると一時停止します。カバーの上のソースボタンで、プリセット・Bluetooth・AUX を切り替えます",
     "infoItem5": "デバイスカード右上のステータスアイコンで、そのデバイスのセットアップウィザードを開きます",
     "infoItem6": "「デバイスから読み込む」でSoundTouchからプリセットを同期",
@@ -88,6 +103,7 @@
       "tag": "例：Rock、Jazz、pop…"
     },
     "searchTitle": "ラジオ局を検索",
+    "dialogTitle": "プリセット{{number}}を設定",
     "loadMore": "もっと読み込む",
     "loadingMore": "読み込み中...",
     "maxReached": "最大件数 ({{count}}) に到達",
@@ -881,6 +897,34 @@
     "bitrate": "ビットレート",
     "homepage": "ホームページ"
   },
+  "devices": {
+    "sourceError": {
+      "notSetUp": {
+        "title": "ソースを利用できません",
+        "body": "ソースが設定されていないため、スピーカーはこのプリセットを開始できませんでした。DLNA プリセットの場合は、プリセットダイアログの DLNA タブでメディアサーバーを再設定してください。"
+      },
+      "notFound": {
+        "title": "メディアサーバーが見つかりません",
+        "body": "スピーカーは現在このメディアサーバーを認識できません。サーバーが起動していて同じネットワークにあることを確認してください。2台のサーバーが同じIPアドレスを共有している場合、スピーカーは1台しか認識できないことがあります。"
+      },
+      "serviceUnreachable": {
+        "title": "音楽サービスに接続できません",
+        "body": "スピーカーがサーバーの音楽サービスに接続できませんでした。しばらくしてからもう一度お試しください。"
+      },
+      "badFormat": {
+        "title": "サポートされていないコンテンツ",
+        "body": "スピーカーはこのフォルダーのコンテンツを再生できません（サポートされていない形式）。"
+      },
+      "subFolders": {
+        "title": "フォルダー全体を再生できません",
+        "body": "このフォルダーは全体を再生できません。最初の項目が曲ではありません。曲から始まるフォルダーを選んでください。"
+      },
+      "generic": {
+        "title": "再生を開始できませんでした",
+        "body": "スピーカーはこの項目を再生できませんでした。もう一度試すか、別の項目を選んでください。"
+      }
+    }
+  },
   "device": {
     "sourceChoose": "ソースを選択",
     "sourceSwitching": "{{source}} に切り替え中…",
@@ -1032,5 +1076,78 @@
     "pairMembers": "左: {{left}} · 右: {{right}}",
     "dissolved": "ステレオペア「{{name}}」を解除しました",
     "dissolveFailed": "ステレオペアを解除できませんでした"
+  },
+  "dlna": {
+    "servers": {
+      "loading": "メディアサーバーを読み込み中",
+      "searching": "他のメディアサーバーを検索中 …",
+      "stillSearching": "検索中…",
+      "searchFailed": "他のメディアサーバーの検索に失敗しました。",
+      "ready": "準備完了",
+      "notEnabled": "未設定",
+      "unavailable": "利用不可",
+      "enable": "設定",
+      "enableLabel": "{{name}}を設定",
+      "openLabel": "{{name}}を開く",
+      "open": "開く",
+      "remove": "削除",
+      "removeLabel": "{{name}}を削除",
+      "enabled": "{{name}}を設定しました。サーバーを開いてフォルダーまたは曲を選択してください。",
+      "enableUnavailable": "{{name}}は利用できません。電源が入っていて接続可能か確認してから、もう一度お試しください。",
+      "enableFailed": "{{name}}を設定できませんでした。もう一度お試しください。",
+      "enableNoAccount": "{{name}} を設定できませんでした: スピーカーにまだ OpenCloudTouch アカウントがありません。先にスピーカーのセットアップを完了してください。",
+      "empty": "メディアサーバーが見つかりません",
+      "emptyText": "ネットワーク内でDLNAメディアサーバーが動作していることを確認してください。",
+      "rescan": "再スキャン",
+      "loadError": "メディアサーバーを読み込めませんでした",
+      "retry": "再試行",
+      "migrationFailedTitle": "このスピーカーではメディアサーバーを設定できません",
+      "migrationFailedText": "スピーカーの準備に失敗しました: {{reason}}",
+      "sameHostTitle": "1つのIPアドレスに2台のサーバー",
+      "sameHostText": "IPアドレスを共有する2台のサーバーのうち、スピーカーは1台しか認識できないことがあります。1つのIPにつき1台のサーバーをおすすめします。",
+      "removeTitle": "{{name}}を削除しますか？",
+      "removeText": "スピーカーはこのメディアサーバーを使用しなくなります。",
+      "removeSlots": "スロット{{slots}}のプリセットはまだこのサーバーから再生します。保存は維持されますが、サーバーを再設定するまで再生されません。",
+      "removeAnyway": "それでも削除",
+      "removeFailed": "サーバーを削除できませんでした。もう一度お試しください。"
+    },
+    "browser": {
+      "breadcrumb": "フォルダーのパス",
+      "up": "上へ",
+      "loading": "フォルダーを読み込み中",
+      "empty": "このフォルダーは空です",
+      "filterLabel": "このフォルダーを絞り込む",
+      "noMatches": "フィルターに一致する項目はありません。",
+      "loadMore": "さらに読み込む",
+      "select": "選択",
+      "selectLabel": "{{title}}を選択",
+      "selectFolderLabel": "フォルダ全体 {{title}} を選択",
+      "wholeFolder": "フォルダ全体をプリセットに",
+      "folderContents": "内容",
+      "openLabel": "フォルダー{{title}}を開く",
+      "retry": "再試行",
+      "error": "フォルダーを読み込めませんでした。",
+      "serverNotFound": "サーバーが見つかりません。電源が入っているか確認してください。",
+      "serverTimeout": "サーバーが応答しませんでした。もう一度お試しください。",
+      "objectGone": "そのフォルダーはもう存在しません。最上位を表示しています。"
+    },
+    "album": {
+      "open": "アルバム表示を開く"
+    },
+    "pane": {
+      "tab": "DLNA",
+      "loading": "保存された項目を検索中",
+      "hint": "プリセット{{number}}のフォルダーまたは曲を選んでください。",
+      "allServers": "すべてのメディアサーバー",
+      "serverGone": "このプリセットのメディアサーバーはもう利用できません。下からサーバーを選んでください。",
+      "objectGone": "保存された項目はサーバー上にもう存在しません。最上位にいます。"
+    },
+    "save": {
+      "noAudioFirst": "このフォルダーの最初の項目は曲ではありません（カバー画像など）。スピーカーが再生できない可能性があります。それでも保存しますか？",
+      "hiResFlac": "このトラックはハイレゾ FLAC（{{khz}} kHz）です。スピーカーでは再生できません。メディアサーバーで 16 ビット/48 kHz 以下に変換してください。",
+      "saveAnyway": "それでも保存",
+      "chooseAnother": "別のものを選ぶ",
+      "saving": "プリセット {{number}} に保存中 …"
+    }
   }
 }

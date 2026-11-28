@@ -15,7 +15,11 @@ import {
   clearPreset as clearPresetAPI,
   getDevicePresets,
   syncPresetsFromDevice,
+  type PresetResponse,
 } from "../api/presets";
+import { useDeviceEventContext } from "../contexts/DeviceEventContext";
+import { saveDlnaPreset, type DlnaSaveRequest } from "../api/dlna";
+import { userErrorMessage } from "../utils/errorMessages";
 import { isDeviceOffline } from "../api/offlineDeviceStore";
 import { getCachedDeviceData, setCachedDeviceData } from "../utils/deviceDataCache";
 import { buildPresetsMap } from "../utils/presetsMap";
@@ -26,6 +30,20 @@ import { octDebug } from "../utils/debug";
 // --------------------------------------------------------------------------
 
 const EMPTY_PRESETS: Record<number, Preset> = {};
+
+/** The `presets` SSE payload: the full list in the shape of GET /api/presets/{device_id}. */
+function isPresetList(value: unknown): value is PresetResponse[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (p) =>
+        typeof p === "object" &&
+        p !== null &&
+        "preset_number" in p &&
+        typeof p.preset_number === "number"
+    )
+  );
+}
 
 // --------------------------------------------------------------------------
 // Hook
@@ -41,6 +59,8 @@ export interface UsePresetsResult {
   syncPresets: () => Promise<boolean>;
   assignStation: (presetNumber: number, station: RadioStation, deviceId: string) => Promise<void>;
   removePreset: (presetNumber: number, deviceId: string) => Promise<void>;
+  /** Resolves to true when the DLNA item was saved, false when it failed (the error is set). */
+  saveDlna: (request: DlnaSaveRequest) => Promise<boolean>;
 }
 
 export function usePresets(deviceId: string | undefined): UsePresetsResult {
@@ -141,6 +161,15 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
     return () => clearTimeout(timer);
   }, [deviceId, setPresets]);
 
+  // A preset changed on the speaker (another app, a background sync): the backend pushes the full list
+  const { subscribe } = useDeviceEventContext();
+  useEffect(() => {
+    if (!deviceId) return;
+    return subscribe("presets", deviceId, (data) => {
+      if (isPresetList(data.presets)) setPresets(buildPresetsMap(data.presets));
+    });
+  }, [deviceId, subscribe, setPresets]);
+
   // ------------------------------------------------------------------
   // Manual sync
   // ------------------------------------------------------------------
@@ -233,7 +262,36 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
     }
   };
 
+  // ------------------------------------------------------------------
+  // Save a DLNA item to a preset slot
+  // ------------------------------------------------------------------
+  const saveDlna = async (request: DlnaSaveRequest): Promise<boolean> => {
+    setError(null);
+    try {
+      const saved = await saveDlnaPreset(request);
+      setPresets((prev) => ({
+        ...prev,
+        [saved.preset_number]: {
+          station_uuid: saved.station_uuid,
+          station_name: saved.station_name,
+          station_url: saved.station_url,
+          station_favicon: saved.station_favicon ?? undefined,
+          source: saved.source ?? undefined,
+          dlna: saved.dlna,
+          source_account: saved.source_account,
+          station_artist: saved.station_artist,
+        },
+      }));
+      return true;
+    } catch (err) {
+      console.error("[usePresets] Failed to save media preset:", err);
+      setError(userErrorMessage(err));
+      return false;
+    }
+  };
+
   return {
+    saveDlna,
     presets,
     loading,
     syncing,

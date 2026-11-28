@@ -217,6 +217,31 @@ describe("Translation key parity", () => {
     const enSet = new Set(enKeys());
     expect(flattenKeys(sv).filter((k) => !enSet.has(k))).toEqual([]);
   });
+  it("all locales have identical keys and placeholders for the dlna namespaces", () => {
+    const prefixes = [
+      "dlna.",
+      "devices.sourceError.",
+      "player.dlna.",
+      "player.shuffle.",
+      "player.repeat.",
+      "presets.dlna",
+    ];
+    const entries = (obj: object, prefix = ""): [string, string][] =>
+      Object.entries(obj).flatMap(([key, value]) =>
+        value !== null && typeof value === "object"
+          ? entries(value as object, `${prefix}${key}.`)
+          : [[`${prefix}${key}`, String(value)] as [string, string]]
+      );
+    const signature = (locale: object) =>
+      entries(locale)
+        .filter(([key]) => prefixes.some((p) => key.startsWith(p)))
+        .map(([key, value]) => `${key}:${(value.match(/{{\w+}}/g) ?? []).sort().join(",")}`)
+        .sort();
+    const expected = signature(en);
+    for (const locale of [de, fr, itLocale, es, nl, ptBR, ja, pl, sv]) {
+      expect(signature(locale)).toEqual(expected);
+    }
+  });
 });
 
 describe("detectLocale — localStorage unavailable (catch branch)", () => {

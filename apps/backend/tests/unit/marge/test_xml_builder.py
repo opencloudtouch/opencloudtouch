@@ -1,6 +1,9 @@
 """Tests for marge/xml_builder.py — all branches including RadioBrowser presets."""
 
 from unittest.mock import MagicMock
+from xml.etree import ElementTree
+
+import pytest
 
 from opencloudtouch.marge.xml_builder import (
     build_devices_xml,
@@ -257,3 +260,136 @@ class TestBuildStreamingAccountXml:
         assert preset.get("buttonNumber") == "3"
         assert preset.findtext("location")
         assert preset.findtext("name")
+
+
+def test_stored_music_source_element_shape():
+    from datetime import UTC, datetime
+    from xml.etree import ElementTree as ET
+
+    from opencloudtouch.marge.source_repository import MediaServerSource
+    from opencloudtouch.marge.xml_builder import stored_music_source_element
+
+    now = datetime(2026, 11, 1, tzinfo=UTC)
+    parent = ET.Element("sources")
+    stored_music_source_element(
+        parent, MediaServerSource(20000001, "acc", "udn-1", "NAS", now, now)
+    )
+    (source,) = parent
+    assert (source.get("id"), source.get("type")) == ("20000001", "Audio")
+    assert source.findtext("sourceproviderid") == "50"
+    assert source.findtext("name") == source.findtext("username") == "udn-1/0"
+    assert source.findtext("createdOn") == now.isoformat()
+
+
+def test_stored_music_source_element_catalogue_id():
+    from datetime import UTC, datetime
+    from xml.etree import ElementTree as ET
+
+    from opencloudtouch.marge.source_repository import MediaServerSource
+    from opencloudtouch.marge.xml_builder import stored_music_source_element
+
+    now = datetime(2026, 11, 1, tzinfo=UTC)
+    parent = ET.Element("sources")
+    stored_music_source_element(
+        parent, MediaServerSource(20000001, "acc", "udn-1", "NAS", now, now), True
+    )
+    assert parent[0].findtext("sourceproviderid") == "7"
+
+
+def _dlna_preset(slot: int = 5, location: str = "129901", name: str = "Album"):
+    from datetime import UTC, datetime
+
+    from opencloudtouch.presets.models import Preset
+
+    now = datetime(2026, 11, 1, tzinfo=UTC)
+    return Preset(
+        device_id="AABB",
+        preset_number=slot,
+        station_uuid="",
+        station_name=name,
+        station_url=location,
+        source="STORED_MUSIC",
+        source_account="Udn-1/0",
+        created_at=now,
+        updated_at=now,
+    )
+
+
+def _stored(server_id: str = "Udn-1"):
+    from datetime import UTC, datetime
+
+    from opencloudtouch.marge.source_repository import MediaServerSource
+
+    now = datetime(2026, 11, 1, tzinfo=UTC)
+    return MediaServerSource(20000002, "acc", server_id, "NAS", now, now)
+
+
+class TestNativeDlnaPreset:
+    """A DLNA preset keeps its native ContentItem; an Orion URL broke the slot (T21 4i)."""
+
+    @pytest.mark.parametrize(
+        "location", ["129901", "130032 TRACK"], ids=["folder", "track"]
+    )
+    def test_preset_xml_is_native(self, location):
+        ci = build_preset_xml(_dlna_preset(location=location)).find("ContentItem")
+        assert ci.attrib == {
+            "source": "STORED_MUSIC",
+            "location": location,
+            "sourceAccount": "Udn-1/0",
+            "isPresetable": "true",
+        }
+        assert ci.findtext("itemName") == "Album"
+
+    @pytest.mark.parametrize(
+        ("catalogue_ids", "provider"), [(False, "50"), (True, "7")], ids=["v0", "v1"]
+    )
+    @pytest.mark.parametrize(
+        "location", ["129901", "130032 TRACK"], ids=["folder", "track"]
+    )
+    def test_account_preset_references_stored_source(
+        self, location, catalogue_ids, provider
+    ):
+        from opencloudtouch.marge.xml_builder import build_streaming_account_xml
+
+        account = build_streaming_account_xml(
+            "acc",
+            "AABB",
+            [_dlna_preset(location=location)],
+            [],
+            [_stored()],
+            catalogue_ids,
+        )
+        preset = account.find("./devices/device/presets/preset")
+        assert preset.get("buttonNumber") == "5"
+        assert preset.findtext("location") == location
+        assert preset.findtext("name") == "Album"
+        assert preset.findtext("contentItemType") == ""
+        assert "orion" not in ElementTree.tostring(preset, encoding="unicode")
+        source = preset.find("source")
+        assert source.get("id") == "20000002"
+        assert source.findtext("username") == "Udn-1/0"
+        assert source.findtext("sourceproviderid") == provider
+
+    def test_account_preset_without_stored_source_stays_native(self):
+        from opencloudtouch.marge.xml_builder import build_streaming_account_xml
+
+        account = build_streaming_account_xml("acc", "AABB", [_dlna_preset()])
+        preset = account.find("./devices/device/presets/preset")
+        assert preset.findtext("location") == "129901"
+        source = preset.find("source")
+        assert source.findtext("sourcename") == "STORED_MUSIC"
+        # The speaker keeps the account only if /full carries it (T22 5c).
+        assert source.findtext("username") == "Udn-1/0"
+        assert source.findtext("name") == "Udn-1/0"
+
+    def test_radio_preset_unchanged_next_to_stored_sources(self):
+        from opencloudtouch.marge.xml_builder import build_streaming_account_xml
+
+        radio = _radiobrowser_preset()
+        plain = build_streaming_account_xml("acc", "AABB", [radio])
+        with_stored = build_streaming_account_xml(
+            "acc", "AABB", [radio], [], [_stored()]
+        )
+        assert ElementTree.tostring(
+            plain.find("./devices/device/presets/preset")
+        ) == ElementTree.tostring(with_stored.find("./devices/device/presets/preset"))

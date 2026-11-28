@@ -24,8 +24,9 @@ from opencloudtouch.devices.client_adapter import BoseDeviceClientAdapter
 
 def _make_client(base_url: str = "http://192.168.1.100:8090"):
     """Create BoseDeviceClientAdapter with mocked BoseClient."""
-    with patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"), patch(
-        "opencloudtouch.devices.client_adapter.BoseClient"
+    with (
+        patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"),
+        patch("opencloudtouch.devices.client_adapter.BoseClient"),
     ):
         return BoseDeviceClientAdapter(base_url)
 
@@ -50,8 +51,9 @@ class TestBoseDeviceClientAdapterInit:
 
     def test_init_custom_timeout(self):
         """Custom timeout is stored."""
-        with patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"), patch(
-            "opencloudtouch.devices.client_adapter.BoseClient"
+        with (
+            patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"),
+            patch("opencloudtouch.devices.client_adapter.BoseClient"),
         ):
             client = BoseDeviceClientAdapter("http://192.168.1.100:8090", timeout=10.0)
         assert client.timeout == 10.0
@@ -376,3 +378,50 @@ class TestBass:
         assert request.method == "POST"
         assert request.url.path == "/bass"
         assert b"<bass>-4</bass>" in request.content
+
+
+class TestShuffleRepeatRead:
+    @pytest.mark.asyncio
+    async def test_now_playing_reads_shuffle_repeat(self):
+        client = _make_client()
+        status = MagicMock()
+        status.PlayStatus = "PLAY_STATE"
+        status.Source = "STORED_MUSIC"
+        status.ShuffleSetting = "SHUFFLE_ON"
+        status.RepeatSetting = "REPEAT_ALL"
+        client._client.GetNowPlayingStatus.return_value = status
+
+        result = await client.get_now_playing()
+
+        assert result.shuffle_setting == "SHUFFLE_ON"
+        assert result.repeat_setting == "REPEAT_ALL"
+
+    @pytest.mark.asyncio
+    async def test_now_playing_reads_skip_flags(self):
+        client = _make_client()
+        status = MagicMock()
+        status.PlayStatus = "PLAY_STATE"
+        status.Source = "STORED_MUSIC"
+        status.IsSkipEnabled = None  # library: absent marker
+        status.IsSkipPreviousEnabled = True
+        client._client.GetNowPlayingStatus.return_value = status
+
+        result = await client.get_now_playing()
+
+        assert result.skip_enabled is False
+        assert result.skip_previous_enabled is True
+
+    @pytest.mark.asyncio
+    async def test_now_playing_without_settings_is_none(self):
+        client = _make_client()
+        status = MagicMock()
+        status.PlayStatus = "PLAY_STATE"
+        status.Source = "AUX"
+        status.ShuffleSetting = None
+        status.RepeatSetting = None
+        client._client.GetNowPlayingStatus.return_value = status
+
+        result = await client.get_now_playing()
+
+        assert result.shuffle_setting is None
+        assert result.repeat_setting is None

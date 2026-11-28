@@ -119,6 +119,8 @@ class TestGetDevicePresets:
         r = client.get("/api/presets/DEV1")
         assert r.status_code == 200
         assert len(r.json()) == 2
+        mock_service.get_all_presets.assert_awaited_once_with("DEV1")
+        mock_service.refresh_from_device.assert_awaited_once()
 
     def test_returns_empty_list_when_no_presets(self, client, mock_service):
         mock_service.get_all_presets = AsyncMock(return_value=[])
@@ -262,3 +264,158 @@ class TestSyncPresetsFromDevice:
         )
         r = client.post("/api/presets/DEV1/sync")
         assert r.status_code == 502
+
+
+class TestSetDlnaPreset:
+    """Tests for POST /api/presets/dlna."""
+
+    _PAYLOAD = dict(
+        device_id="DEV1", preset_number=1, server_id="uuid:abc", object_id="42"
+    )
+
+    def test_post_dlna_returns_201_with_dlna_true(self, client, mock_service):
+        mock_service.set_dlna_preset = AsyncMock(
+            return_value=_make_preset(
+                source="STORED_MUSIC", source_account="uuid:abc/0"
+            )
+        )
+        r = client.post("/api/presets/dlna", json=self._PAYLOAD)
+        assert r.status_code == 201
+        assert r.json()["dlna"] is True
+        assert r.json()["source_account"] == "uuid:abc/0"
+        mock_service.set_dlna_preset.assert_awaited_once_with(
+            "DEV1",
+            1,
+            "uuid:abc",
+            "0",
+            "42",
+            False,
+            index=None,
+            artwork_url=None,
+            artist=None,
+        )
+
+    def test_post_dlna_passes_index_and_artwork_hints(self, client, mock_service):
+        mock_service.set_dlna_preset = AsyncMock(
+            return_value=_make_preset(
+                source="STORED_MUSIC", source_account="uuid:abc/0"
+            )
+        )
+        payload = {
+            **self._PAYLOAD,
+            "index": 12,
+            "artwork_url": "http://nas/a.jpg",
+            "artist": "Some Artist",
+        }
+        r = client.post("/api/presets/dlna", json=payload)
+        assert r.status_code == 201
+        mock_service.set_dlna_preset.assert_awaited_once_with(
+            "DEV1",
+            1,
+            "uuid:abc",
+            "0",
+            "42",
+            False,
+            index=12,
+            artwork_url="http://nas/a.jpg",
+            artist="Some Artist",
+        )
+
+    def test_slot_out_of_range_422(self, client):
+        r = client.post("/api/presets/dlna", json={**self._PAYLOAD, "preset_number": 7})
+        assert r.status_code == 422
+
+    def test_get_presets_reports_dlna_false_for_radio(self, client, mock_service):
+        mock_service.get_all_presets = AsyncMock(return_value=[_make_preset()])
+        r = client.get("/api/presets/DEV1")
+        assert r.json()[0]["dlna"] is False
+        assert r.json()[0]["source_account"] is None
+
+
+# ---------------------------------------------------------------------------
+# GET answers from the DB, then syncs the speaker in the background (T1)
+# ---------------------------------------------------------------------------
+
+
+class TestGetPresetsCacheFirst:
+    @pytest.fixture
+    def live(self, monkeypatch):
+        from unittest.mock import MagicMock
+
+        from opencloudtouch.presets.service import PresetService
+
+        monkeypatch.delenv("OCT_MOCK_MODE", raising=False)
+        rows: dict[int, Preset] = {}
+        repo = MagicMock()
+        repo.get_preset = AsyncMock(side_effect=lambda _d, n: rows.get(n))
+
+        def _save(p: Preset) -> Preset:
+            p.id = p.preset_number
+            rows[p.preset_number] = p
+            return p
+
+        repo.set_preset = AsyncMock(side_effect=_save)
+        repo.clear_preset = AsyncMock(
+            side_effect=lambda _d, n: int(rows.pop(n, None) is not None)
+        )
+        repo.get_all_presets = AsyncMock(
+            side_effect=lambda _d: [rows[n] for n in sorted(rows)]
+        )
+        device_repo = MagicMock()
+        device_repo.get_by_device_id = AsyncMock(return_value=MagicMock(ip="192.0.2.5"))
+        service = PresetService(repo, device_repo)
+        service._fetch_device_presets = AsyncMock()
+        service.on_presets_changed = AsyncMock()
+        app.dependency_overrides[get_preset_service] = lambda: service
+        yield service, rows
+        app.dependency_overrides.clear()
+
+    @staticmethod
+    def _speaker(name: str, location: str) -> bytes:
+        return (
+            '<presets><preset id="1"><ContentItem source="TUNEIN" '
+            f'location="{location}"><itemName>{name}</itemName>'
+            "</ContentItem></preset></presets>"
+        ).encode()
+
+    def test_get_answers_from_db_and_publishes_the_speaker_list(self, live):
+        service, rows = live
+        rows[1] = _make_preset(device_id="DEV1", station_name="Old")
+        service._fetch_device_presets.return_value = self._speaker("New", "/v1/s9")
+
+        body = TestClient(app).get("/api/presets/DEV1").json()
+
+        assert [p["station_name"] for p in body] == ["Old"]
+        service.on_presets_changed.assert_awaited_once()
+        device_id, pushed = service.on_presets_changed.await_args.args
+        assert device_id == "DEV1"
+        assert [(p["preset_number"], p["station_name"]) for p in pushed] == [(1, "New")]
+        assert pushed[0]["dlna"] is False
+
+    def test_get_publishes_nothing_when_the_speaker_matches(self, live):
+        service, _ = live
+        service._fetch_device_presets.return_value = self._speaker("Same", "/v1/s1")
+        client = TestClient(app)
+        client.get("/api/presets/DEV1")  # imports the speaker list
+        service.on_presets_changed.reset_mock()
+
+        body = client.get("/api/presets/DEV1").json()
+
+        assert [p["station_name"] for p in body] == ["Same"]
+        service.on_presets_changed.assert_not_awaited()
+
+    def test_get_presets_speaker_offline_returns_db_rows(self, live, caplog):
+        from opencloudtouch.core.exceptions import DeviceConnectionError
+
+        service, rows = live
+        rows[2] = _make_preset(device_id="DEV1", preset_number=2)
+        service._fetch_device_presets.side_effect = DeviceConnectionError(
+            "192.0.2.5", "offline"
+        )
+
+        response = TestClient(app).get("/api/presets/DEV1")
+
+        assert response.status_code == 200
+        assert [p["preset_number"] for p in response.json()] == [2]
+        assert "speaker presets unreadable" in caplog.text.lower()
+        service.on_presets_changed.assert_not_awaited()

@@ -33,12 +33,23 @@
     "noStation": "No station",
     "powerButton": "Power on/off",
     "playbackTitle": "Playback",
+    "shuffle": { "label": "Shuffle" },
+    "repeat": {
+      "label": "Repeat: {{mode}}",
+      "REPEAT_OFF": "off",
+      "REPEAT_ALL": "all",
+      "REPEAT_ONE": "one"
+    },
     "prevTrack": "Previous track",
     "nextTrack": "Next track",
     "muteOn": "Unmute",
     "muteOff": "Mute",
     "prevDevice": "Previous device",
     "nextDevice": "Next device",
+    "dlna": {
+      "badge": "DLNA",
+      "preset": "Preset {{number}}"
+    },
     "source": {
       "bluetooth": "Bluetooth",
       "radio": "Radio",
@@ -54,17 +65,19 @@
     }
   },
   "presets": {
+    "dlnaBadge": "DLNA",
     "presetSaved": "Preset {{number}} saved.",
     "presetDeleted": "Preset {{number}} deleted.",
     "noDevices": "No devices found",
     "syncedFromDevice": "Presets successfully loaded from device.",
-    "savedStations": "Saved Stations",
+    "savedStations": "Presets",
     "syncFromDevice": "Load from device",
     "syncFromDeviceSyncing": "Sync...",
     "syncFromDeviceTitle": "Synchronize presets from device",
     "infoTitle": "Device Notes",
-    "infoItem1": "Tap an empty preset to assign a station",
-    "infoItem2": "Tap the pencil next to a station to change or delete it",
+    "infoItem1": "Tap an empty preset to assign a radio station, a stream URL or music from a media server (DLNA)",
+    "infoItem2": "Tap the pencil next to a preset to change or delete it",
+    "infoItem7": "Music from your NAS or media server: set up the server once under “DLNA” in the preset dialog, then pick a folder or track",
     "infoItem3": "Tap a preset to play it, tap again to pause. The source buttons above the cover switch between Presets, Bluetooth and AUX",
     "infoItem5": "The status icon at the top right of the device card opens the setup wizard for the device",
     "infoItem6": "\"Load from device\" syncs presets from SoundTouch",
@@ -88,6 +101,7 @@
       "tag": "e.g. Rock, Jazz, pop…"
     },
     "searchTitle": "Search Radio Stations",
+    "dialogTitle": "Set preset {{number}}",
     "loadMore": "Load more",
     "loadingMore": "Loading...",
     "maxReached": "Maximum ({{count}}) reached",
@@ -881,6 +895,34 @@
     "bitrate": "Bitrate",
     "homepage": "Homepage"
   },
+  "devices": {
+    "sourceError": {
+      "notSetUp": {
+        "title": "Source not available",
+        "body": "The speaker could not start this preset because its source is not set up. For a DLNA preset, set up its media server again in the DLNA tab of the preset dialog."
+      },
+      "notFound": {
+        "title": "Media server not found",
+        "body": "The speaker cannot see this media server right now. Make sure the server is running and in the same network; if two servers share one IP address the speaker may see only one."
+      },
+      "serviceUnreachable": {
+        "title": "Music service not reachable",
+        "body": "The speaker could not reach the server's music service. Try again in a moment."
+      },
+      "badFormat": {
+        "title": "Unsupported content",
+        "body": "The speaker cannot play this folder's content (unsupported format)."
+      },
+      "subFolders": {
+        "title": "Folder cannot be played as a whole",
+        "body": "This folder cannot be played as a whole: its first item is not a song. Choose a folder with songs first."
+      },
+      "generic": {
+        "title": "Playback could not start",
+        "body": "The speaker could not play this item. Try again or choose another one."
+      }
+    }
+  },
   "device": {
     "sourceChoose": "Choose source",
     "sourceSwitching": "Switching to {{source}}…",
@@ -1032,5 +1074,78 @@
     "pairMembers": "Left: {{left}} · Right: {{right}}",
     "dissolved": "Stereo pair “{{name}}” dissolved",
     "dissolveFailed": "The stereo pair could not be dissolved"
+  },
+  "dlna": {
+    "servers": {
+      "loading": "Loading media servers",
+      "searching": "Searching for more media servers …",
+      "stillSearching": "Searching …",
+      "searchFailed": "The search for more media servers failed.",
+      "ready": "Ready",
+      "notEnabled": "Not set up",
+      "unavailable": "Not available",
+      "enable": "Set up",
+      "enableLabel": "Set up {{name}}",
+      "openLabel": "Open {{name}}",
+      "open": "Open",
+      "remove": "Remove",
+      "removeLabel": "Remove {{name}}",
+      "enabled": "{{name}} is set up. Open the server to choose a folder or title.",
+      "enableUnavailable": "{{name}} is not available. Check that it is switched on and reachable, then try again.",
+      "enableFailed": "{{name}} could not be set up. Try again.",
+      "enableNoAccount": "{{name}} could not be set up: the speaker has no OpenCloudTouch account yet. Finish the speaker setup first.",
+      "empty": "No media servers found",
+      "emptyText": "Make sure a DLNA media server is running in your network.",
+      "rescan": "Rescan",
+      "loadError": "Media servers could not be loaded",
+      "retry": "Retry",
+      "migrationFailedTitle": "Media servers cannot be set up on this speaker",
+      "migrationFailedText": "Preparing the speaker failed: {{reason}}",
+      "sameHostTitle": "Two servers on one IP address",
+      "sameHostText": "The speaker may see only one of two servers that share an IP address. Prefer one server per IP.",
+      "removeTitle": "Remove {{name}}?",
+      "removeText": "The speaker will no longer use this media server.",
+      "removeSlots": "Presets on slots {{slots}} still play from this server. They stay saved but will not play until the server is set up again.",
+      "removeAnyway": "Remove anyway",
+      "removeFailed": "The server could not be removed. Try again."
+    },
+    "browser": {
+      "breadcrumb": "Folder path",
+      "up": "Up",
+      "loading": "Loading folder",
+      "empty": "This folder is empty",
+      "filterLabel": "Filter this folder",
+      "noMatches": "No items match the filter.",
+      "loadMore": "Load more",
+      "select": "Select",
+      "selectLabel": "Select {{title}}",
+      "selectFolderLabel": "Select whole folder {{title}}",
+      "wholeFolder": "Whole folder as preset",
+      "folderContents": "Contents",
+      "openLabel": "Open folder {{title}}",
+      "retry": "Retry",
+      "error": "The folder could not be loaded.",
+      "serverNotFound": "Server not found. Check that it is switched on.",
+      "serverTimeout": "The server did not answer. Try again.",
+      "objectGone": "That folder no longer exists. Showing the top level."
+    },
+    "album": {
+      "open": "Open album view"
+    },
+    "pane": {
+      "tab": "DLNA",
+      "loading": "Looking up the saved item",
+      "hint": "Choose a folder or song for preset {{number}}.",
+      "allServers": "All media servers",
+      "serverGone": "The media server of this preset is no longer available. Pick a server below.",
+      "objectGone": "The saved item no longer exists on the server. You are at the top level."
+    },
+    "save": {
+      "noAudioFirst": "The first item in this folder is not a song (for example a cover image). The speaker may not be able to play it. Save anyway?",
+      "hiResFlac": "This track is a high-resolution FLAC ({{khz}} kHz). The speaker cannot play it; convert it to 16 bit/48 kHz or less on the media server.",
+      "saveAnyway": "Save anyway",
+      "chooseAnother": "Choose something else",
+      "saving": "Saving to preset {{number}} …"
+    }
   }
 }

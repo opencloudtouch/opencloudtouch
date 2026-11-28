@@ -47,7 +47,7 @@ def _preset_body(slot: int = 3) -> str:
     )
 
 
-def _stored_preset(device_id, slot, source_id, name, location):
+def _stored_preset(device_id, slot, source_id, name, location, source_account=None):
     return Preset(
         device_id=device_id,
         preset_number=slot,

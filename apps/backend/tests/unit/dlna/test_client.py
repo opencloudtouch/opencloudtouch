@@ -45,8 +45,10 @@ def test_build_browse_request():
     assert "<RequestedCount>0</RequestedCount>" in request
 
 
-def test_parse_browse_response():
-    items = DlnaClient._parse_browse_response(SOAP_RESPONSE)
+def test_browse_page_parses_counts():
+    page = DlnaClient._parse_browse_response(SOAP_RESPONSE)
+    items = page.items
+    assert (page.number_returned, page.total_matches) == (2, 2)
 
     assert len(items) == 2
 
@@ -79,7 +81,7 @@ def test_parse_empty_result():
     </s:Envelope>
     """
 
-    assert DlnaClient._parse_browse_response(response) == []
+    assert DlnaClient._parse_browse_response(response).items == []
 
 
 def test_soap_fault_with_http_200_is_not_an_empty_folder():
@@ -150,3 +152,29 @@ async def test_browse_surfaces_soap_fault_with_http_200():
 
     assert exc.value.error_code == "701"
     assert str(exc.value) == "No Such Object"
+
+
+@pytest.mark.asyncio
+async def test_timeout_raises_timeout_error_and_sends_paging():
+    from unittest.mock import patch
+
+    import httpx
+
+    from opencloudtouch.dlna.client import DlnaTimeoutError
+    from opencloudtouch.dlna.models import DlnaServer
+
+    server = DlnaServer("s", "N", "http://192.0.2.1/d", "http://192.0.2.1/c")
+    seen = []
+
+    def respond(request):
+        seen.append(request.content.decode())
+        raise httpx.ReadTimeout("slow")
+
+    http_client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
+    with patch(
+        "opencloudtouch.dlna.client.httpx.AsyncClient", return_value=http_client
+    ):
+        with pytest.raises(DlnaTimeoutError):
+            await DlnaClient().browse(server, "0", 100, 25)
+    assert "<StartingIndex>100</StartingIndex>" in seen[0]
+    assert "<RequestedCount>25</RequestedCount>" in seen[0]

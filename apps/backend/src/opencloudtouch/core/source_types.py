@@ -29,17 +29,28 @@ class SourceType:
     account: str
     secret_type: str
     created_on: str
+    # Bose catalogue id (decision 14); served only once a speaker is on migration
+    # version >= 1, version 0 keeps streaming_id as provider id (decision 20).
+    provider_id: str
 
 
 BASE_SOURCES: list[SourceType] = [
-    SourceType("42", "AIRPLAY", "AIRPLAY", "", "", _TS_2018),
-    SourceType("41", "AUX", "AUX IN", "AUX", "", _TS_2013),
+    SourceType("42", "AIRPLAY", "AIRPLAY", "", "", _TS_2018, "5"),
+    SourceType("41", "AUX", "AUX IN", "AUX", "", _TS_2013, "9"),
     SourceType(
-        "11", "LOCAL_INTERNET_RADIO", "LOCAL_INTERNET_RADIO", "", "token", _TS_2014
+        "11",
+        "LOCAL_INTERNET_RADIO",
+        "LOCAL_INTERNET_RADIO",
+        "",
+        "token",
+        _TS_2014,
+        "11",
     ),
-    SourceType("53", "QPLAY", "QPLAY", "", "", _TS_2014),
-    SourceType("30", "SPOTIFY", "SPOTIFY", "", "", "2014-06-01T00:00:00.000+00:00"),
-    SourceType("50", "STORED_MUSIC", "STORED_MUSIC", "", "", _TS_2014),
+    SourceType("53", "QPLAY", "QPLAY", "", "", _TS_2014, "26"),
+    SourceType(
+        "30", "SPOTIFY", "SPOTIFY", "", "", "2014-06-01T00:00:00.000+00:00", "15"
+    ),
+    SourceType("50", "STORED_MUSIC", "STORED_MUSIC", "", "", _TS_2014, "7"),
     SourceType(
         "51",
         "STORED_MUSIC_MEDIA_RENDERER",
@@ -47,7 +58,8 @@ BASE_SOURCES: list[SourceType] = [
         "",
         "",
         _TS_2014,
+        "51",  # no catalogue id, kept (decision 15)
     ),
-    SourceType("25", "TUNEIN", "TUNEIN", "", "token", _TS_2012),
-    SourceType("52", "UPNP", "UPNP", "", "", _TS_2014),
+    SourceType("25", "TUNEIN", "TUNEIN", "", "token", _TS_2012, "25"),
+    SourceType("52", "UPNP", "UPNP", "", "", _TS_2014, "52"),
 ]

@@ -6,6 +6,7 @@
 import type { DeviceStereoInfo } from "./stereoPairs";
 import { getErrorMessage, throwIfNotOk } from "./types";
 import { SetupStatus } from "./setup";
+import type { components } from "./generated/schema";
 
 // Backend API response structure (matches Device.to_dict() from repository.py)
 interface DeviceAPIResponse extends Partial<Omit<DeviceStereoInfo, "firmware">> {
@@ -237,6 +238,15 @@ export interface NowPlayingState {
   track?: string;
   album?: string;
   artwork_url?: string;
+  /** DLNA item playing; `preset_number` is the matching slot (null when none). */
+  dlna?: boolean;
+  preset_number?: number | null;
+  /** SHUFFLE_ON/OFF and REPEAT_OFF/ALL/ONE; null when the speaker does not report them. */
+  shuffle_setting?: string | null;
+  repeat_setting?: string | null;
+  /** The speaker allows next / previous track (false without a source). */
+  skip_enabled?: boolean;
+  skip_previous_enabled?: boolean;
   /** False when the device is unreachable; fields above are then the last known state. */
   online?: boolean;
 }
@@ -257,20 +267,25 @@ export async function togglePlayPause(deviceId: string): Promise<void> {
   await throwIfNotOk(response, "Failed to toggle play/pause");
 }
 
-export async function sendKey(deviceId: string, key: string): Promise<void> {
+/** Shuffle/repeat keys are answered with the settings read back from the speaker. */
+export async function sendKey(
+  deviceId: string,
+  key: string
+): Promise<components["schemas"]["KeyPressResponse"]> {
   const response = await fetch(
     `${API_BASE_URL}/api/devices/${deviceId}/key?key=${encodeURIComponent(key)}&state=both`,
     { method: "POST" }
   );
   await throwIfNotOk(response, `Failed to send key ${key}`);
+  return response.json();
 }
 
 export async function nextTrack(deviceId: string): Promise<void> {
-  return sendKey(deviceId, "NEXT_TRACK");
+  await sendKey(deviceId, "NEXT_TRACK");
 }
 
 export async function prevTrack(deviceId: string): Promise<void> {
-  return sendKey(deviceId, "PREV_TRACK");
+  await sendKey(deviceId, "PREV_TRACK");
 }
 
 /** Input sources that can be switched to; streaming accounts and media servers start in their own app. */
@@ -286,7 +301,7 @@ export async function selectSource(deviceId: string, source: SelectableSource): 
 }
 
 export async function power(deviceId: string): Promise<void> {
-  return sendKey(deviceId, "POWER");
+  await sendKey(deviceId, "POWER");
 }
 
 export async function rebootDevice(deviceId: string): Promise<void> {

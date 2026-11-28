@@ -162,3 +162,45 @@ class TestPresetModel:
         assert "device_id='device123'" in repr_str
         assert "preset_number=5" in repr_str
         assert "station_name='Classical Radio'" in repr_str
+
+
+class TestPresetDlnaFields:
+    """DLNA identity: source_account next to the speaker location (station_url)."""
+
+    UDN_ACCOUNT = "4d696e69-0000-0000-0000-000000000001/0"
+
+    def _preset(self, **kwargs):
+        data = {
+            "device_id": "dev1",
+            "preset_number": 1,
+            "station_uuid": "obj-1",
+            "station_name": "Album",
+            "station_url": "1$4$2",
+        }
+        data.update(kwargs)
+        return Preset(**data)
+
+    def test_is_dlna_requires_stored_music_and_account(self):
+        assert self._preset(
+            source="STORED_MUSIC", source_account=self.UDN_ACCOUNT
+        ).is_dlna
+        assert not self._preset(source="STORED_MUSIC").is_dlna
+        assert not self._preset(
+            source="TUNEIN", source_account=self.UDN_ACCOUNT
+        ).is_dlna
+
+    def test_is_dlna_directory_by_track_suffix(self):
+        folder = self._preset(source="STORED_MUSIC", source_account=self.UDN_ACCOUNT)
+        track = self._preset(
+            source="STORED_MUSIC",
+            source_account=self.UDN_ACCOUNT,
+            station_url="1$4$2$7 TRACK",
+        )
+        assert folder.is_dlna_directory
+        assert not track.is_dlna_directory
+        assert not self._preset(source="TUNEIN").is_dlna_directory
+
+    def test_to_dict_has_new_fields(self):
+        assert self._preset().to_dict()["source_account"] is None
+        preset = self._preset(source="STORED_MUSIC", source_account=self.UDN_ACCOUNT)
+        assert preset.to_dict()["source_account"] == self.UDN_ACCOUNT

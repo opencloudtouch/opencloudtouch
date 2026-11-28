@@ -11,6 +11,7 @@ import json
 import logging
 from urllib.parse import urlparse
 from xml.sax.saxutils import escape as xml_escape
+from xml.sax.saxutils import quoteattr
 
 import httpx
 from bosesoundtouchapi import SoundTouchClient as BoseClient
@@ -24,12 +25,21 @@ from opencloudtouch.devices.client import (
     DeviceClient,
     DeviceInfo,
     NowPlayingInfo,
+    SpeakerSource,
+    StoredMusicBrowse,
+    StoredMusicItem,
     VolumeInfo,
 )
 from opencloudtouch.devices.models import SELECTABLE_SOURCES
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
 
 logger = logging.getLogger(__name__)
+
+# Transient speaker-side failures, retried once: 1602 service lookup (hardware
+# T13), 1608 "media server temporarily unavailable, please try again" (T29).
+BROWSE_RETRY_ERRORS = frozenset({1602, 1608})
+# /navigate of a 1000+ item folder takes far longer than other calls (T21 4c).
+NAVIGATE_TIMEOUT = 15.0
 
 
 class BoseDeviceClientAdapter(DeviceClient):
@@ -148,6 +158,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             # BoseClient uses: PLAY_STATE, PAUSE_STATE, STOP_STATE, BUFFERING_STATE
             state = now_playing.PlayStatus or "STOP_STATE"
             source = now_playing.Source or "UNKNOWN"
+            item = getattr(now_playing, "ContentItem", None)
 
             return NowPlayingInfo(
                 source=source,
@@ -157,6 +168,15 @@ class BoseDeviceClientAdapter(DeviceClient):
                 track=getattr(now_playing, "Track", None),
                 album=getattr(now_playing, "Album", None),
                 artwork_url=getattr(now_playing, "ContainerArtUrl", None),
+                location=item.Location if item else None,
+                source_account=item.SourceAccount if item else None,
+                shuffle_setting=getattr(now_playing, "ShuffleSetting", None),
+                repeat_setting=getattr(now_playing, "RepeatSetting", None),
+                # library gives None for an absent marker
+                skip_enabled=getattr(now_playing, "IsSkipEnabled", None) is True,
+                skip_previous_enabled=(
+                    getattr(now_playing, "IsSkipPreviousEnabled", None) is True
+                ),
             )
 
         except Exception as e:
@@ -700,3 +720,175 @@ class BoseDeviceClientAdapter(DeviceClient):
         except Exception as e:
             logger.exception("Failed to reboot device at %s", self.ip)
             raise DeviceConnectionError(self.ip, str(e)) from e
+
+    # ---- DLNA / STORED_MUSIC Methods ----
+
+    async def _send(
+        self, path: str, body: str | None = None, timeout: float | None = None
+    ) -> httpx.Response:
+        """GET (no body) or POST XML; transport errors raise DeviceConnectionError."""
+        try:
+            async with httpx.AsyncClient(timeout=timeout or self.timeout) as client:
+                if body is None:
+                    return await client.get(f"{self.base_url}{path}")
+                return await client.post(
+                    f"{self.base_url}{path}",
+                    content=body,
+                    headers={"Content-Type": "application/xml"},
+                )
+        except Exception as e:
+            logger.warning("Request %s failed on %s: %s", path, self.ip, e)
+            raise DeviceConnectionError(self.ip, str(e)) from e
+
+    def _parse(self, response: httpx.Response, path: str):
+        """Parse an XML answer; HTTP errors and unparsable bodies raise DeviceConnectionError."""
+        if response.is_error:
+            raise DeviceConnectionError(self.ip, f"{path} HTTP {response.status_code}")
+        try:
+            return ElementTree.fromstring(response.text)
+        except Exception as e:
+            raise DeviceConnectionError(self.ip, f"Invalid {path} response") from e
+
+    async def list_media_servers(self) -> list[str]:
+        """Media server ids exactly as the speaker lists them (case kept, decision 48)."""
+        root = self._parse(await self._send("/listMediaServers"), "/listMediaServers")
+        return [s.get("id", "") for s in root.iter("media_server") if s.get("id")]
+
+    async def get_source_list(self) -> list[SpeakerSource]:
+        """Read source accounts and availability directly from the speaker."""
+        root = self._parse(await self._send("/sources"), "/sources")
+        return [
+            SpeakerSource(
+                source=entry.get("source", ""),
+                account=entry.get("sourceAccount", ""),
+                status=entry.get("status", ""),
+                display_name=entry.text or "",
+            )
+            for entry in root.iter("sourceItem")
+        ]
+
+    async def browse_stored_music(
+        self,
+        source_account: str,
+        location: str | None = None,
+        start_item: int = 1,
+        num_items: int = 1000,
+    ) -> StoredMusicBrowse:
+        """Browse a server via /navigate; speaker errors are returned as error_code."""
+        account = quoteattr(source_account)
+        folder = (
+            f'<item Playable="1"><name>{xml_escape(location)}</name><type>dir</type>'
+            f'<ContentItem source="STORED_MUSIC" location={quoteattr(location)} '
+            f'sourceAccount={account} isPresetable="true"/></item>'
+            if location
+            else ""
+        )
+        body = (
+            f'<navigate source="STORED_MUSIC" sourceAccount={account}>'
+            f"<startItem>{start_item:d}</startItem><numItems>{num_items:d}</numItems>"
+            f"{folder}</navigate>"
+        )
+        result = await self._navigate(body)
+        if result.error_code in BROWSE_RETRY_ERRORS:
+            result = await self._navigate(body)
+        return result
+
+    async def _navigate(self, body: str) -> StoredMusicBrowse:
+        response = await self._send("/navigate", body, NAVIGATE_TIMEOUT)
+        # Speaker errors arrive as HTTP 500 with <errors><error value="N"> (T15).
+        error_value = None
+        try:
+            root = ElementTree.fromstring(response.text)
+            error = root.find("error") if root.tag == "errors" else None
+            if error is not None:
+                error_value = int(error.get("value", ""))
+        except Exception as e:
+            raise DeviceConnectionError(self.ip, "Invalid /navigate response") from e
+        if error_value is not None:
+            return StoredMusicBrowse([], error_value)
+        if response.is_error:
+            raise DeviceConnectionError(
+                self.ip, f"/navigate HTTP {response.status_code}"
+            )
+        items = []
+        for item in root.iter("item"):
+            content = item.find("ContentItem")
+            if content is None:
+                continue
+            items.append(
+                StoredMusicItem(
+                    name=item.findtext("name", ""),
+                    is_directory=item.findtext("type") == "dir",
+                    source=content.get("source", ""),
+                    location=content.get("location", ""),
+                    source_account=content.get("sourceAccount", ""),
+                    item_name=content.findtext("itemName", ""),
+                )
+            )
+        total = root.findtext("totalItems")
+        return StoredMusicBrowse(items, total=int(total) if total else None)
+
+    async def _post_account(
+        self, path: str, server_udn: str, name: str, done_error: str | None = None
+    ) -> None:
+        body = (
+            f'<credentials source="STORED_MUSIC" displayName={quoteattr(name[:64])}>'
+            f"<user>{xml_escape(server_udn)}/0</user><pass></pass></credentials>"
+        )
+        response = await self._send(path, body)
+        try:  # rejections come as HTTP 500 <errors><error> or as an <error> root
+            error = next(ElementTree.fromstring(response.text).iter("error"), None)
+        except Exception:
+            error = None
+        if error is not None and error.get("value") == done_error:
+            logger.info("%s on %s: error %s, already done", path, self.ip, done_error)
+            return
+        if error is not None:
+            raise DeviceConnectionError(
+                self.ip, f"{path} error {error.get('value', '')}"
+            )
+        self._parse(response, path)
+
+    async def register_media_server(self, server_udn: str, name: str) -> None:
+        """Register a server via setMusicServiceAccount (UDN case kept, decision 48)."""
+        await self._post_account("/setMusicServiceAccount", server_udn, name)
+
+    async def remove_media_server(self, server_udn: str) -> None:
+        """Remove a server via removeMusicServiceAccount; 1047 (already removed) is done."""
+        await self._post_account("/removeMusicServiceAccount", server_udn, "", "1047")
+
+    async def notify_sources_updated(self, device_id: str) -> None:
+        """Push sourcesUpdated (decision 16); failures are logged and swallowed."""
+        body = f"<updates deviceID={quoteattr(device_id)}><sourcesUpdated/></updates>"
+        try:
+            response = await self._send("/notification", body)
+        except DeviceConnectionError:
+            return  # _send already logged the failure at warning
+        if response.is_error:
+            logger.warning(
+                "sourcesUpdated rejected by %s: HTTP %s", self.ip, response.status_code
+            )
+
+    async def store_native_preset(
+        self, preset_number: int, item: StoredMusicItem, artwork_url: str = ""
+    ) -> None:
+        """Store the speaker's ContentItem verbatim, without a type attribute (T12)."""
+        if not 1 <= preset_number <= 6:
+            raise ValueError(f"Preset number must be 1-6, got {preset_number}")
+        art = (
+            f"<containerArt>{xml_escape(artwork_url)}</containerArt>"
+            if artwork_url
+            else ""
+        )
+        body = (
+            f'<preset id="{preset_number}" createdOn="0" updatedOn="0">'
+            f'<ContentItem source="STORED_MUSIC" location={quoteattr(item.location)} '
+            f'sourceAccount={quoteattr(item.source_account)} isPresetable="true">'
+            f"<itemName>{xml_escape(item.item_name or item.name)}</itemName>"
+            f"{art}</ContentItem></preset>"
+        )
+        response = await self._send("/storePreset", body)
+        if response.is_error:
+            raise DeviceConnectionError(
+                self.ip, f"/storePreset HTTP {response.status_code}"
+            )

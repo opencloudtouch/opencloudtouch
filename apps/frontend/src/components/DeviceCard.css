@@ -153,19 +153,13 @@
   border-color: var(--color-accent-hover);
 }
 .lc-transport .lc-key:disabled:not([aria-busy="true"]) {
-  opacity: 1;
   background: transparent;
-  border-color: var(--border-color);
-  color: var(--color-text-secondary);
-  cursor: not-allowed;
+  border-color: var(--color-disabled-fg);
 }
 .lc-transport .lc-key--primary:disabled:not([aria-busy="true"]) {
   background: var(--surface-color);
-  border-color: var(--border-color);
-  color: var(--color-text-secondary);
 }
 .lc-key[aria-busy="true"]:disabled {
-  opacity: 1;
   cursor: progress;
 }
 .lc-transport .lc-key:focus-visible {
@@ -244,9 +238,106 @@
 .dv-sec-head .ui-h3 {
   margin: 0;
 }
+/* shuffle / repeat (stage 12): second row for sources with tracks; the row is reserved so the card does not jump */
+.dv-keys--tp {
+  flex-wrap: wrap;
+  align-content: flex-start;
+  row-gap: 12px;
+  min-height: 132px;
+}
+.tp-row {
+  flex: 0 0 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  min-width: 0;
+  min-height: var(--touch-target-min);
+}
+/* off = hollow circle; on = tint + 2px ring + dot (shape cue, not colour alone) */
+.tp-key {
+  position: relative;
+  box-sizing: border-box;
+  flex: none;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--ui-control-border);
+  color: var(--text-primary);
+  transition:
+    background var(--motion-base),
+    color var(--motion-base),
+    border-color var(--motion-base);
+}
+.tp-key:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+.tp-key[aria-pressed="true"],
+.tp-key--on {
+  background: rgba(var(--primary-rgb), 0.22);
+  border-color: var(--primary-color);
+  box-shadow: inset 0 0 0 1px var(--primary-color);
+  color: var(--primary-text);
+}
+.tp-key[aria-pressed="true"]::after,
+.tp-key--on::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: currentColor;
+  pointer-events: none;
+}
+.tp-key:focus-visible {
+  outline-offset: 3px;
+}
+.tp-key:disabled:not([aria-busy="true"]) {
+  background: transparent;
+  border-color: var(--color-disabled-fg);
+}
+.tp-key[aria-pressed="true"]:disabled:not([aria-busy="true"]),
+.tp-key--on:disabled:not([aria-busy="true"]) {
+  background: var(--surface-color);
+  box-shadow: inset 0 0 0 1px var(--color-disabled-fg);
+}
+.tp-key[aria-busy="true"]:disabled {
+  cursor: progress;
+}
+/* repeat one: decorative "1" badge */
+.tp-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  box-sizing: border-box;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--surface-color);
+  font-size: var(--fs-xs);
+  font-weight: var(--font-weight-bold);
+  line-height: 18px;
+  text-align: center;
+  pointer-events: none;
+}
+.tp-key:disabled .tp-badge {
+  background: var(--color-disabled-fg);
+  color: var(--surface-color);
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .lc-key {
+  .lc-key,
+  .tp-key {
     transition: none;
   }
 }
@@ -258,5 +349,28 @@
   .lc-key--primary {
     background: Highlight;
     color: HighlightText;
+  }
+  .tp-key {
+    border: 1px solid ButtonText;
+    box-shadow: none;
+    background: ButtonFace;
+    color: ButtonText;
+  }
+  .tp-key[aria-pressed="true"],
+  .tp-key--on {
+    background: Highlight;
+    color: HighlightText;
+    border-color: Highlight;
+  }
+  .tp-key:disabled:not([aria-busy="true"]) {
+    color: GrayText;
+    border-color: GrayText;
+    background: ButtonFace;
+  }
+  .tp-badge {
+    background: HighlightText;
+    color: Highlight;
+    border: 1px solid Highlight;
+    box-shadow: none;
   }
 }

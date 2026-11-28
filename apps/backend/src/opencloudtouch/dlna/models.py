@@ -37,3 +37,29 @@ class DlnaItem:
     sample_frequency: int | None = None
     audio_channels: int | None = None
     protocol_info: str | None = None
+
+
+@dataclass(frozen=True)
+class BrowsePage:
+    """One page of ContentDirectory children."""
+
+    items: list[DlnaItem]
+    number_returned: int
+    total_matches: int | None
+
+
+@dataclass(frozen=True)
+class ObjectPath:
+    """An object with its ancestor folders, top first (root and object excluded)."""
+
+    server_name: str
+    item: DlnaItem
+    ancestors: list[DlnaItem]
+
+
+def is_audio_item(item: DlnaItem) -> bool:
+    """True for UPnP audio items (by class or protocolInfo)."""
+    return not item.is_container and (
+        (item.media_class or "").startswith("object.item.audioItem")
+        or ":audio/" in (item.protocol_info or "")
+    )

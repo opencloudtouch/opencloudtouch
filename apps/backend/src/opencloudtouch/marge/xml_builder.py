@@ -9,6 +9,7 @@ from xml.etree import ElementTree as ET
 
 from opencloudtouch.core.config import get_config
 from opencloudtouch.core.source_types import BASE_SOURCES
+from opencloudtouch.marge.source_repository import MediaServerSource
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +44,17 @@ def build_preset_xml(preset: Any) -> ET.Element:
     Returns:
         XML Element for <preset>
     """
+    native = getattr(preset, "is_dlna", False) is True
     # Determine preset type and extract attributes
-    if hasattr(preset, "slot"):
+    if native:
+        # Native DLNA item exactly as the speaker stored it (T21 4i: an Orion URL
+        # in /full overwrote the speaker's slot on every sync).
+        preset_id = str(preset.preset_number)
+        source = "STORED_MUSIC"
+        location = preset.station_url
+        name = preset.station_name
+        image_url = preset.station_favicon or ""
+    elif hasattr(preset, "slot"):
         # SoundTouch preset (mock/test format)
         preset_id = str(preset.slot)
         source = preset.source
@@ -82,9 +92,10 @@ def build_preset_xml(preset: Any) -> ET.Element:
     # ContentItem child element
     content_item = ET.SubElement(preset_elem, "ContentItem")
     content_item.set("source", source)
-    content_item.set("type", "stationurl")
+    if not native:  # the speaker's own STORED_MUSIC items carry no type (T12)
+        content_item.set("type", "stationurl")
     content_item.set("location", location)
-    content_item.set("sourceAccount", "")
+    content_item.set("sourceAccount", preset.source_account if native else "")
     content_item.set("isPresetable", "true")
 
     # itemName
@@ -210,17 +221,43 @@ def build_full_account_xml(
     return account_elem
 
 
-def _source_element(parent: ET.Element, src: Any) -> ET.Element:
+def _source_element(
+    parent: ET.Element, src: Any, catalogue_ids: bool = False
+) -> ET.Element:
     source = ET.SubElement(parent, "source", {"id": src.streaming_id, "type": "Audio"})
     ET.SubElement(source, "createdOn").text = src.created_on
     ET.SubElement(source, "credential", {"type": "token"})
     ET.SubElement(source, "name").text = src.source_type
-    ET.SubElement(source, "sourceproviderid").text = src.streaming_id
+    ET.SubElement(source, "sourceproviderid").text = (
+        src.provider_id if catalogue_ids else src.streaming_id
+    )
     ET.SubElement(source, "sourcename").text = src.source_type
     ET.SubElement(source, "sourceSettings")
     ET.SubElement(source, "updatedOn").text = src.created_on
     ET.SubElement(source, "username")
     return source
+
+
+def stored_music_source_element(
+    parent: ET.Element, src: MediaServerSource, catalogue_ids: bool = False
+) -> None:
+    """A media server registered through OCT, with the default STORED_MUSIC provider.
+
+    Version 0 serves the old id 50, the catalogue id 7 only from version 1: a
+    provider id missing from the speaker's catalogue makes it INVALID_SOURCE (T20).
+    """
+    default = _sources_by_name()["STORED_MUSIC"]
+    el = ET.SubElement(parent, "source", {"id": str(src.source_id), "type": "Audio"})
+    ET.SubElement(el, "createdOn").text = src.created_at.isoformat()
+    ET.SubElement(el, "credential", {"type": "token"})
+    ET.SubElement(el, "name").text = src.account
+    ET.SubElement(el, "sourceproviderid").text = (
+        default.provider_id if catalogue_ids else default.streaming_id
+    )
+    ET.SubElement(el, "sourcename").text = src.display_name
+    ET.SubElement(el, "sourceSettings")
+    ET.SubElement(el, "updatedOn").text = src.updated_at.isoformat()
+    ET.SubElement(el, "username").text = src.account
 
 
 _EPOCH = "2018-01-01T00:00:00.000+00:00"
@@ -259,27 +296,52 @@ def build_recent_response_xml(recent: Any) -> ET.Element:
     return element
 
 
-def _item_children(parent: ET.Element, item: ET.Element, now: str) -> None:
-    """Fill the shared preset/recent children from a ``<ContentItem>`` element."""
+def _item_children(
+    parent: ET.Element,
+    item: ET.Element,
+    now: str,
+    stored_sources: list[MediaServerSource] | None = None,
+    catalogue_ids: bool = False,
+) -> None:
+    """Fill the shared preset/recent children from a ``<ContentItem>`` element.
+
+    A STORED_MUSIC item with an account references the account's registered
+    media-server source, else the default STORED_MUSIC source carrying the account.
+    """
     content = item.find("ContentItem")
     assert content is not None
     ET.SubElement(parent, "containerArt").text = content.findtext("containerArt") or ""
-    ET.SubElement(parent, "contentItemType").text = "stationurl"
+    ET.SubElement(parent, "contentItemType").text = content.get("type", "")
     ET.SubElement(parent, "createdOn").text = now
     ET.SubElement(parent, "location").text = content.get("location", "")
     ET.SubElement(parent, "name").text = content.findtext("itemName") or ""
+    account = content.get("sourceAccount", "")
+    stored = next(
+        (s for s in stored_sources or [] if account and s.account == account), None
+    )
     src = _sources_by_name().get(content.get("source", ""))
-    if src is not None:
-        _source_element(parent, src)
+    if stored is not None:
+        stored_music_source_element(parent, stored, catalogue_ids)
+    elif src is not None:
+        # Radio keeps its old ids; only a native item follows the version (I-1).
+        el = _source_element(parent, src, catalogue_ids and bool(account))
+        if account:
+            # Without the account the speaker stores sourceAccount="" (T22 5c).
+            el.find("name").text = account  # type: ignore[union-attr]
+            el.find("username").text = account  # type: ignore[union-attr]
     ET.SubElement(parent, "updatedOn").text = now
     ET.SubElement(parent, "username")
 
 
-def build_preset_response_xml(preset: Any) -> ET.Element:
+def build_preset_response_xml(
+    preset: Any,
+    stored_sources: list[MediaServerSource] | None = None,
+    catalogue_ids: bool = False,
+) -> ET.Element:
     """One ``<preset buttonNumber>`` entry as the speaker's Marge calls expect it."""
     element = build_preset_xml(preset)
     entry = ET.Element("preset", {"buttonNumber": element.get("id", "")})
-    _item_children(entry, element, _EPOCH)
+    _item_children(entry, element, _EPOCH, stored_sources, catalogue_ids)
     return entry
 
 
@@ -300,12 +362,15 @@ def build_streaming_account_xml(
     device_id: str | None = None,
     presets: list[Any] | None = None,
     recents: list[Any] | None = None,
+    stored_sources: list[MediaServerSource] | None = None,
+    catalogue_ids: bool = False,
 ) -> ET.Element:
     """Build the ``<account>`` document the speaker's own Marge sync expects.
 
     The speaker rejects any other root element ("account expected") and then
     fails its sync, which also breaks group creation (error 5580).
-    Shape as the speaker sends and expects it.
+    Shape as the speaker sends and expects it. ``catalogue_ids`` serves the Bose
+    provider ids (migration version >= 1); stored media servers follow the defaults.
     """
     now = _EPOCH
     account = ET.Element("account", {"id": account_id})
@@ -316,7 +381,9 @@ def build_streaming_account_xml(
         ET.SubElement(device, "createdOn").text = now
         preset_list = ET.SubElement(device, "presets")
         for preset in presets or []:
-            preset_list.append(build_preset_response_xml(preset))
+            preset_list.append(
+                build_preset_response_xml(preset, stored_sources, catalogue_ids)
+            )
         device.append(build_recents_response_xml(recents))
         ET.SubElement(device, "updatedOn").text = now
     ET.SubElement(account, "mode").text = "global"
@@ -324,5 +391,7 @@ def build_streaming_account_xml(
     ET.SubElement(account, "providerSettings")
     sources = ET.SubElement(account, "sources")
     for src in BASE_SOURCES:
-        _source_element(sources, src)
+        _source_element(sources, src, catalogue_ids)
+    for stored in stored_sources or []:
+        stored_music_source_element(sources, stored, catalogue_ids)
     return account

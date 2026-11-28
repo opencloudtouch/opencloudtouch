@@ -116,6 +116,22 @@ describe("useDeviceEvents", () => {
     unmount();
   });
 
+  it("dispatches source_error to subscribers", () => {
+    const { result, unmount } = renderHook(() => useDeviceEvents());
+    const es = ControllableEventSource.instances[0];
+    const callback = vi.fn();
+    act(() => {
+      result.current.subscribe("source_error", "DEVICE_001", callback);
+    });
+    act(() => {
+      es.emit("source_error", JSON.stringify({ device_id: "DEVICE_001", code: "1005" }));
+    });
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({ device_id: "DEVICE_001", code: "1005" }),
+    );
+    unmount();
+  });
+
   it("dispatches volume events to matching subscribers", () => {
     const { result, unmount } = renderHook(() => useDeviceEvents());
     const es = ControllableEventSource.instances[0];
@@ -247,6 +263,33 @@ describe("useDeviceEvents", () => {
     expect(callback).not.toHaveBeenCalled();
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
+    unmount();
+  });
+
+  it("re-creates the EventSource after the browser closed it", () => {
+    vi.useFakeTimers();
+    try {
+      const { unmount } = renderHook(() => useDeviceEvents());
+      act(() => ControllableEventSource.instances[0].simulateError());
+      expect(ControllableEventSource.instances).toHaveLength(1);
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(ControllableEventSource.instances).toHaveLength(2);
+      expect(ControllableEventSource.instances[0].close).toHaveBeenCalled();
+      unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reconnects immediately when the tab becomes visible with a closed source", () => {
+    const { unmount } = renderHook(() => useDeviceEvents());
+    act(() => ControllableEventSource.instances[0].simulateError());
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(ControllableEventSource.instances).toHaveLength(2);
     unmount();
   });
 });
