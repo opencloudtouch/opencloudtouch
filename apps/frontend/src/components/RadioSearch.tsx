@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { HAS_TUNEIN_SUPPORT } from "../config/capabilities";
@@ -175,86 +175,97 @@ function getManualPresetFields(preset: RadioSearchProps["existingPreset"]) {
   };
 }
 
-interface SearchChipsProps {
+interface SourceSwitchProps {
   readonly query: string;
   readonly searchType: SearchType;
   readonly searchMode: SearchMode;
   readonly radioProvider: RadioProviderType;
   readonly onSearch: (query: string, provider: RadioProviderType, type: SearchType) => void;
-  readonly onSearchTypeChange: (type: SearchType) => void;
   readonly onModeChange: (mode: SearchMode) => void;
   readonly onProviderChange: (provider: RadioProviderType) => void;
   readonly onManualMode: () => void;
   readonly onDlnaMode?: () => void;
 }
 
-/** Search-type and provider chips above the result list. */
-function SearchChips({
+/** The primary switch: one joined segmented control for the providers, the stream URL and DLNA. */
+function SourceSwitch({
   query,
   searchType,
   searchMode,
   radioProvider,
   onSearch,
-  onSearchTypeChange,
   onModeChange,
   onProviderChange,
   onManualMode,
   onDlnaMode,
-}: SearchChipsProps) {
+}: SourceSwitchProps) {
   const { t } = useTranslation();
   const canSearch = query.trim().length >= 2;
 
   return (
-    <div className="rs-chips">
-      <fieldset className="ui-chips" aria-label={t("presets.searchTypeGroup")}>
+    <fieldset className="rs-src" aria-label={t("presets.providerGroup")}>
+      {PROVIDERS.map((p) => (
+        <button
+          key={p.value}
+          type="button"
+          aria-pressed={searchMode === "provider" && radioProvider === p.value}
+          onClick={() => {
+            onModeChange("provider");
+            onProviderChange(p.value);
+            if (canSearch) onSearch(query, p.value, searchType);
+          }}
+        >
+          {p.label}
+        </button>
+      ))}
+      <button
+        type="button"
+        data-test="manual-stream-mode"
+        aria-pressed={searchMode === "manual"}
+        onClick={onManualMode}
+      >
+        {t("presets.manualStreamMode")}
+      </button>
+      {onDlnaMode && (
+        <button
+          type="button"
+          data-test="dlna-mode"
+          aria-pressed={searchMode === "dlna"}
+          onClick={onDlnaMode}
+        >
+          {t("dlna.pane.tab")}
+        </button>
+      )}
+    </fieldset>
+  );
+}
+
+interface SearchTypeTabsProps {
+  readonly searchType: SearchType;
+  readonly onChange: (type: SearchType) => void;
+}
+
+/** Name / country / genre as underlined text tabs; only the providers search this way. */
+function SearchTypeTabs({ searchType, onChange }: SearchTypeTabsProps) {
+  const { t } = useTranslation();
+  const labelId = useId();
+
+  return (
+    <div className="rs-sub">
+      <span id={labelId} className="rs-sub-label">
+        {t("presets.searchTypeGroup")}
+      </span>
+      <fieldset className="rs-sub-seg" aria-labelledby={labelId}>
         {SEARCH_TYPES.map((st) => (
           <button
             key={st.value}
-            className="ui-chip"
+            type="button"
             aria-pressed={searchType === st.value}
-            disabled={searchMode !== "provider"}
-            onClick={() => {
-              onSearchTypeChange(st.value);
-              if (canSearch) onSearch(query, radioProvider, st.value);
-            }}
+            onClick={() => onChange(st.value)}
           >
             {t(`presets.searchTypeLabel.${st.value}`)}
           </button>
         ))}
-      </fieldset>
-      <fieldset className="ui-chips" aria-label={t("presets.providerGroup")}>
-        {PROVIDERS.map((p) => (
-          <button
-            key={p.value}
-            className="ui-chip"
-            aria-pressed={searchMode === "provider" && radioProvider === p.value}
-            onClick={() => {
-              onModeChange("provider");
-              onProviderChange(p.value);
-              if (canSearch) onSearch(query, p.value, searchType);
-            }}
-          >
-            {p.label}
-          </button>
-        ))}
-        <button
-          data-test="manual-stream-mode"
-          className="ui-chip"
-          aria-pressed={searchMode === "manual"}
-          onClick={onManualMode}
-        >
-          {t("presets.manualStreamMode")}
-        </button>
-        {onDlnaMode && (
-          <button
-            data-test="dlna-mode"
-            className="ui-chip"
-            aria-pressed={searchMode === "dlna"}
-            onClick={onDlnaMode}
-          >
-            {t("dlna.pane.tab")}
-          </button>
-        )}
       </fieldset>
     </div>
   );
@@ -419,6 +430,8 @@ export default function RadioSearch({
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  // Head slot the DLNA browser renders its folder navigation into.
+  const [navSlot, setNavSlot] = useState<HTMLDivElement | null>(null);
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -547,9 +560,16 @@ export default function RadioSearch({
   const urlInvalid = isInvalidUrlInput(manualUrl);
   const faviconInvalid = isInvalidUrlInput(manualFavicon);
   const manualFormIncomplete = !manualName.trim() || !isValidHttpUrl(manualUrl) || faviconInvalid;
+  const dlnaOpen = searchMode === "dlna" && !!deviceId && !!_presetNumber;
 
   return (
-    <Modal open={isOpen} onClose={() => onClose?.()} size="lg" labelledBy="rs-title">
+    <Modal
+      open={isOpen}
+      onClose={() => onClose?.()}
+      size="lg"
+      labelledBy="rs-title"
+      describedBy={dlnaOpen && !detailUuid ? "rs-dlna-hint" : undefined}
+    >
       {isOpen && deviceId && _presetNumber ? <PrefetchDlnaServers deviceId={deviceId} /> : null}
       <ConfirmDialog
         open={saveError !== null}
@@ -608,52 +628,52 @@ export default function RadioSearch({
             </button>
           </div>
 
-          <SearchChips
-            query={query}
-            searchType={searchType}
-            searchMode={searchMode}
-            radioProvider={radioProvider}
-            onSearch={handleSearch}
-            onSearchTypeChange={setSearchType}
-            onModeChange={setSearchMode}
-            onProviderChange={setRadioProvider}
-            onManualMode={() => {
-              // Keep the query and its results: switching back to a provider shows them again
-              setSearchMode("manual");
-              setError(null);
-              setDetailUuid(null);
-            }}
-            onDlnaMode={
-              deviceId && _presetNumber
-                ? () => {
-                    setSearchMode("dlna");
-                    setError(null);
-                  }
-                : undefined
-            }
-          />
-
-          {searchMode === "dlna" && deviceId && _presetNumber ? (
-            <section
-              className="rs-scroll rs-dlna"
-              tabIndex={0} // NOSONAR(S6845): scrollable region must be keyboard-focusable (WCAG 2.1.1)
-              aria-label={t("dlna.pane.tab")}
-            >
-              <DlnaPane
-                deviceId={deviceId}
-                presetNumber={_presetNumber}
-                existingPreset={existingPreset}
-                onSave={(request) => {
-                  onDlnaSave?.(request);
-                  onClose?.();
-                }}
-              />
-            </section>
-          ) : null}
-
-          <div className="rs-field" hidden={searchMode === "dlna"}>
-            {searchMode === "manual" ? (
-              <div className="rs-url-field">
+          <div className="rs-bar">
+            <SourceSwitch
+              query={query}
+              searchType={searchType}
+              searchMode={searchMode}
+              radioProvider={radioProvider}
+              onSearch={handleSearch}
+              onModeChange={setSearchMode}
+              onProviderChange={setRadioProvider}
+              onManualMode={() => {
+                // Keep the query and its results: switching back to a provider shows them again
+                setSearchMode("manual");
+                setError(null);
+                setDetailUuid(null);
+              }}
+              onDlnaMode={
+                deviceId && _presetNumber
+                  ? () => {
+                      setSearchMode("dlna");
+                      setError(null);
+                    }
+                  : undefined
+              }
+            />
+            {searchMode === "provider" && (
+              <div className="rs-ctx">
+                <SearchTypeTabs
+                  searchType={searchType}
+                  onChange={(type) => {
+                    setSearchType(type);
+                    if (query.trim().length >= 2) handleSearch(query, radioProvider, type);
+                  }}
+                />
+                <input
+                  type="search"
+                  className="ui-input rs-search"
+                  placeholder={t(`presets.searchPlaceholder.${searchType}`)}
+                  aria-label={t("presets.searchTitle")}
+                  value={query}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  data-autofocus
+                />
+              </div>
+            )}
+            {searchMode === "manual" && (
+              <div className="rs-ctx rs-url-field">
                 <input
                   type="url"
                   className="ui-input"
@@ -680,18 +700,31 @@ export default function RadioSearch({
                   </div>
                 )}
               </div>
-            ) : (
-              <input
-                type="search"
-                className="ui-input rs-search"
-                placeholder={t(`presets.searchPlaceholder.${searchType}`)}
-                aria-label={t("presets.searchTitle")}
-                value={query}
-                onChange={(e) => handleSearch(e.target.value)}
-                data-autofocus
-              />
             )}
+            {dlnaOpen && <div className="rs-ctx" ref={setNavSlot} />}
           </div>
+
+          {dlnaOpen && deviceId && _presetNumber ? (
+            <section
+              className="rs-scroll rs-dlna"
+              tabIndex={0} // NOSONAR(S6845): scrollable region must be keyboard-focusable (WCAG 2.1.1)
+              aria-label={t("dlna.pane.tab")}
+            >
+              <p id="rs-dlna-hint" className="visually-hidden">
+                {t("dlna.pane.hint", { number: _presetNumber })}
+              </p>
+              <DlnaPane
+                navTarget={navSlot}
+                deviceId={deviceId}
+                presetNumber={_presetNumber}
+                existingPreset={existingPreset}
+                onSave={(request) => {
+                  onDlnaSave?.(request);
+                  onClose?.();
+                }}
+              />
+            </section>
+          ) : null}
 
           {searchMode === "manual" && (
             <section

@@ -29,13 +29,19 @@ class DlnaTimeoutError(DlnaBrowseError):
     """Raised when the media server does not answer in time."""
 
 
+class DlnaSearchUnsupportedError(DlnaBrowseError):
+    """Raised when a media server cannot search by title."""
+
+
 class DlnaClient:
     """Browse a DLNA MediaServer ContentDirectory."""
 
     CONTENT_DIRECTORY_SERVICE = "urn:schemas-upnp-org:service:ContentDirectory:1"
 
-    def __init__(self, timeout: float = 5.0):
+    def __init__(self, timeout: float = 5.0, search_timeout: float = 15.0):
         self.timeout = timeout
+        # Measured server-side Search pages take up to ~7 s, far above browse times.
+        self.search_timeout = search_timeout
 
     async def browse(
         self,
@@ -75,15 +81,66 @@ class DlnaClient:
         body = self._build_browse_request(
             object_id, starting_index, requested_count, browse_flag
         )
+        text = await self._soap(server, "Browse", body, self.timeout)
+        return self._parse_response(server, text, "BrowseResponse")
 
+    async def get_search_capabilities(self, server: DlnaServer) -> list[str]:
+        """Properties the server can search by; empty if it lists none."""
+        if server.control_url.startswith("mock://"):
+            return mock.MOCK_SEARCH_CAPABILITIES
+        body = self._envelope(
+            f'<u:GetSearchCapabilities xmlns:u="{self.CONTENT_DIRECTORY_SERVICE}"/>'
+        )
+        text = await self._soap(server, "GetSearchCapabilities", body, self.timeout)
+        try:
+            root = parse_xml_string(text)
+        except Exception as exc:
+            raise DlnaBrowseError(
+                f"Invalid search capabilities from DLNA server: {server.name}"
+            ) from exc
+        self._raise_fault(root)
+        caps = self._find_text(root, "SearchCaps") or ""
+        return [c.strip() for c in caps.split(",") if c.strip()]
+
+    async def search(
+        self,
+        server: DlnaServer,
+        container_id: str,
+        criteria: str,
+        starting_index: int = 0,
+        requested_count: int = 50,
+    ) -> BrowsePage:
+        """Run one page of a ContentDirectory Search below a container."""
+        if server.control_url.startswith("mock://"):
+            try:
+                return mock.mock_search(
+                    container_id, criteria, starting_index, requested_count
+                )
+            except KeyError:
+                raise DlnaBrowseError("No Such Container", error_code="710") from None
+        body = self._envelope(f"""<u:Search xmlns:u="{self.CONTENT_DIRECTORY_SERVICE}">
+      <ContainerID>{self._escape_xml(container_id)}</ContainerID>
+      <SearchCriteria>{self._escape_xml(criteria)}</SearchCriteria>
+      <Filter>*</Filter>
+      <StartingIndex>{starting_index}</StartingIndex>
+      <RequestedCount>{requested_count}</RequestedCount>
+      <SortCriteria></SortCriteria>
+    </u:Search>""")
+        text = await self._soap(server, "Search", body, self.search_timeout)
+        return self._parse_response(server, text, "SearchResponse")
+
+    async def _soap(
+        self, server: DlnaServer, action: str, body: str, timeout: float
+    ) -> str:
+        """POST one ContentDirectory action; return the response text."""
         headers = {
             "Content-Type": 'text/xml; charset="utf-8"',
-            "SOAPACTION": f'"{self.CONTENT_DIRECTORY_SERVICE}#Browse"',
+            "SOAPACTION": f'"{self.CONTENT_DIRECTORY_SERVICE}#{action}"',
         }
 
         try:
             async with httpx.AsyncClient(
-                timeout=self.timeout, trust_env=False, follow_redirects=False
+                timeout=timeout, trust_env=False, follow_redirects=False
             ) as client:
                 response = await client.post(
                     server.control_url,
@@ -99,15 +156,31 @@ class DlnaClient:
 
         if response.is_error:
             raise self._parse_error_response(response)
+        return response.text
 
+    @classmethod
+    def _parse_response(
+        cls, server: DlnaServer, text: str, response_name: str
+    ) -> BrowsePage:
         try:
-            return self._parse_browse_response(response.text)
+            return cls._parse_browse_response(text, response_name)
         except DlnaBrowseError:
             raise
         except Exception as exc:
             raise DlnaBrowseError(
                 f"Invalid browse response from DLNA server: {server.name}"
             ) from exc
+
+    @staticmethod
+    def _envelope(body: str) -> str:
+        return f"""<?xml version="1.0" encoding="utf-8"?>
+<s:Envelope
+    xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
+    s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+  <s:Body>
+    {body}
+  </s:Body>
+</s:Envelope>"""
 
     @classmethod
     def _build_browse_request(
@@ -135,22 +208,29 @@ class DlnaClient:
 </s:Envelope>"""
 
     @classmethod
-    def _parse_browse_response(cls, xml: str) -> BrowsePage:
-        """Parse the SOAP response and contained DIDL-Lite document."""
+    def _raise_fault(cls, root: Element) -> None:
+        """Raise a DlnaBrowseError if the SOAP body is a fault."""
+        if cls._find_element(root, "Fault") is None:
+            return
+        error_code = cls._find_text(root, "errorCode")
+        description = cls._find_text(root, "errorDescription") or cls._find_text(
+            root, "faultstring"
+        )
+        message = description or (
+            f"DLNA SOAP fault ({error_code})" if error_code else "DLNA SOAP fault"
+        )
+        raise DlnaBrowseError(message, error_code=error_code)
+
+    @classmethod
+    def _parse_browse_response(
+        cls, xml: str, response_name: str = "BrowseResponse"
+    ) -> BrowsePage:
+        """Parse a Browse/Search SOAP response and its DIDL-Lite document."""
         root = parse_xml_string(xml)
+        cls._raise_fault(root)
 
-        if cls._find_element(root, "Fault") is not None:
-            error_code = cls._find_text(root, "errorCode")
-            description = cls._find_text(root, "errorDescription") or cls._find_text(
-                root, "faultstring"
-            )
-            message = description or (
-                f"DLNA SOAP fault ({error_code})" if error_code else "DLNA SOAP fault"
-            )
-            raise DlnaBrowseError(message, error_code=error_code)
-
-        if cls._find_element(root, "BrowseResponse") is None:
-            raise DlnaBrowseError("Invalid DLNA SOAP BrowseResponse")
+        if cls._find_element(root, response_name) is None:
+            raise DlnaBrowseError(f"Invalid DLNA SOAP {response_name}")
 
         result = cls._find_text(root, "Result")
         total = cls._parse_int(cls._find_text(root, "TotalMatches"))

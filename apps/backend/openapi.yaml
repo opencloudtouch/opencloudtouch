@@ -162,6 +162,77 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/servers/{server_id}/search:
+    get:
+      tags:
+      - dlna
+      summary: Search Dlna Server
+      description: Search the media server's library (UPnP ContentDirectory Search).
+      operationId: search_dlna_server_api_dlna_servers__server_id__search_get
+      parameters:
+      - name: server_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Server Id
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 2
+          maxLength: 100
+          title: Q
+      - name: container_id
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 512
+          default: '0'
+          title: Container Id
+      - name: kind
+        in: query
+        required: false
+        schema:
+          enum:
+          - all
+          - tracks
+          - folders
+          type: string
+          default: all
+          title: Kind
+      - name: starting_index
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Starting Index
+      - name: requested_count
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 50
+          minimum: 1
+          default: 50
+          title: Requested Count
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DlnaBrowseResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/dlna/servers/{server_id}/first-child-audio:
     get:
       tags:

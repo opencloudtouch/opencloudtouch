@@ -5,9 +5,14 @@ import logging
 import time
 from collections.abc import Callable
 from dataclasses import replace
+from typing import Literal
 from urllib.parse import urlsplit
 
-from opencloudtouch.dlna.client import DlnaBrowseError, DlnaClient
+from opencloudtouch.dlna.client import (
+    DlnaBrowseError,
+    DlnaClient,
+    DlnaSearchUnsupportedError,
+)
 from opencloudtouch.dlna.discovery import DlnaDiscovery
 from opencloudtouch.dlna.models import (
     BrowsePage,
@@ -22,7 +27,29 @@ ALBUM_SEARCH_MAX_CALLS = 20
 ALBUM_SEARCH_MAX_DEPTH = 3
 ALBUM_CLASS = "object.container.album.musicAlbum"
 
+SearchKind = Literal["all", "tracks", "folders"]
+_SEARCH_FIELDS = ("dc:title", "upnp:artist", "upnp:album")
+_KIND_CLASS = {"tracks": "object.item.audioItem", "folders": "object.container"}
+# UPnP errors for an optional action the server does not implement.
+_NO_ACTION_ERRORS = ("401", "602")
+
 logger = logging.getLogger(__name__)
+
+
+def build_search_criteria(q: str, kind: str, caps: list[str]) -> str | None:
+    """UPnP SearchCriteria using only listed properties; None without dc:title."""
+
+    def listed(prop: str) -> bool:
+        return "*" in caps or prop in caps
+
+    if not listed("dc:title"):
+        return None
+    term = q.replace("\\", "\\\\").replace('"', '\\"')
+    fields = " or ".join(f'{p} contains "{term}"' for p in _SEARCH_FIELDS if listed(p))
+    criteria = f"({fields})"
+    if kind in _KIND_CLASS and listed("upnp:class"):
+        criteria += f' and upnp:class derivedfrom "{_KIND_CLASS[kind]}"'
+    return criteria
 
 
 class DlnaService:
@@ -49,6 +76,7 @@ class DlnaService:
         self._discovery_lock = asyncio.Lock()
         self._missing_ids: dict[str, float] = {}
         self._refresh_task: asyncio.Task[None] | None = None
+        self._search_caps: dict[str, tuple[float, list[str]]] = {}
 
     async def get_servers(self) -> list[DlnaServer]:
         """Explicitly refresh the list of available DLNA media servers."""
@@ -143,10 +171,55 @@ class DlnaService:
         page = await self.client.browse(
             server, object_id, starting_index, requested_count
         )
+        return self._playable_page(server, page, "all")
+
+    async def search_page(
+        self,
+        server_id: str,
+        q: str,
+        kind: SearchKind = "all",
+        container_id: str = "0",
+        starting_index: int = 0,
+        requested_count: int = 50,
+    ) -> BrowsePage:
+        """Search the server's own index below a container (live, no cache)."""
+        server = await self.resolve(server_id)
+        criteria = build_search_criteria(q, kind, await self._search_caps_for(server))
+        if criteria is None:
+            raise DlnaSearchUnsupportedError("Media server cannot search by title")
+        page = await self.client.search(
+            server, container_id, criteria, starting_index, requested_count
+        )
+        return self._playable_page(server, page, kind)
+
+    async def _search_caps_for(self, server: DlnaServer) -> list[str]:
+        """Search capabilities, cached per server for the discovery TTL."""
+        cached = self._search_caps.get(server.id)
+        if cached is not None and self._clock() < cached[0]:
+            return cached[1]
+        try:
+            caps = await self.client.get_search_capabilities(server)
+        except DlnaBrowseError as exc:
+            if exc.error_code not in _NO_ACTION_ERRORS:
+                raise
+            caps = []
+        self._search_caps[server.id] = (self._clock() + self.cache_ttl, caps)
+        return caps
+
+    @staticmethod
+    def _playable_page(
+        server: DlnaServer, page: BrowsePage, kind: SearchKind
+    ) -> BrowsePage:
+        """Keep folders and audio (narrowed by kind); drop foreign cover URLs."""
         host = urlsplit(server.control_url).hostname
         items = []
         for item in page.items:
             if not (item.is_container or is_audio_item(item)):
+                continue
+            # Also applied locally: servers without searchable upnp:class ignore kind.
+            if (kind == "tracks" and item.is_container) or (
+                kind == "folders" and not item.is_container
+            ):
                 continue
             art = urlsplit(item.album_art_url or "")
             # A cover from another host would make the browser fetch foreign URLs.

@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../Icon";
 import { isApiErrorInstance } from "../../api/types";
@@ -18,6 +19,11 @@ interface Props {
   onPathChange?: (objectId: string) => void;
   /** Disables the select buttons while the parent saves a selection. */
   busy?: boolean;
+  /** Shows the server icon as the first crumb; it leads back to all media servers. */
+  onAllServers?: () => void;
+  /** Head slot of the dialog the navigation renders into; null = slot not mounted yet (render none),
+   * undefined = no slot (the navigation heads the browser). */
+  navTarget?: HTMLElement | null;
 }
 
 interface Crumb {
@@ -47,6 +53,8 @@ export default function DlnaBrowser({
   onSelect,
   onPathChange,
   busy = false,
+  onAllServers,
+  navTarget,
 }: Readonly<Props>) {
   const { t } = useTranslation();
   // Opens at startObjectId (editing a saved preset), else at the root.
@@ -169,49 +177,91 @@ export default function DlnaBrowser({
       ? list.find((it) => !it.is_container)
       : undefined;
   const contentsId = useId();
-  return (
-    <div className="dlb" ref={rootRef}>
-      <nav className="dlb-crumbs" aria-label={t("dlna.browser.breadcrumb")}>
-        {path.length > 0 && (
+  const allServers = onAllServers && t("dlna.pane.allServers");
+  // One row: up, the path (never wraps), the album view. Narrow screens hide the middle crumbs.
+  const nav = (
+    <nav className="rs-nav" aria-label={t("dlna.browser.breadcrumb")}>
+      {path.length > 0 && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-icon"
+          aria-label={t("dlna.browser.up")}
+          onClick={() => go(path.slice(0, -1))}
+        >
+          {Icon.ArrowLeft(18)}
+        </button>
+      )}
+      <div className="dlb-crumbs">
+        {allServers && (
           <button
             type="button"
-            className="btn btn-ghost btn-icon"
-            aria-label={t("dlna.browser.up")}
-            onClick={() => go(path.slice(0, -1))}
+            className="dlb-crumb dlb-crumb--root"
+            aria-label={allServers}
+            title={allServers}
+            onClick={onAllServers}
           >
-            {Icon.ArrowLeft(18)}
+            {Icon.Server(18)}
           </button>
         )}
-        {crumbs.map((c, i) => (
-          <Fragment
-            key={crumbs
-              .slice(0, i + 1)
-              .map((x) => x.object_id)
-              .join("/")}
-          >
-            {i > 0 && (
-              <span className="dlb-sep" aria-hidden="true">
-                {Icon.ChevronRight(14)}
-              </span>
-            )}
-            {i === crumbs.length - 1 ? (
-              <span className="dlb-crumb dlb-crumb--current" aria-current="location">
-                {c.title}
-              </span>
-            ) : (
-              <button type="button" className="dlb-crumb" onClick={() => go(path.slice(0, i))}>
-                {c.title}
-              </button>
-            )}
-          </Fragment>
-        ))}
-      </nav>
+        {crumbs.map((c, i) => {
+          const mid = i < crumbs.length - 2 ? " rs-mid" : "";
+          return (
+            <Fragment
+              key={crumbs
+                .slice(0, i + 1)
+                .map((x) => x.object_id)
+                .join("/")}
+            >
+              {(i > 0 || allServers) && (
+                <span className={`dlb-sep${mid}`} aria-hidden="true">
+                  {Icon.ChevronRight(14)}
+                </span>
+              )}
+              {i === crumbs.length - 1 ? (
+                <span
+                  className="dlb-crumb dlb-crumb--current"
+                  aria-current="location"
+                  title={c.title}
+                >
+                  {c.title}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className={`dlb-crumb${mid}`}
+                  title={c.title}
+                  onClick={() => go(path.slice(0, i))}
+                >
+                  {c.title}
+                </button>
+              )}
+            </Fragment>
+          );
+        })}
+      </div>
       <AlbumViewButton
         serverId={serverId}
         onOpen={openFolder}
         folderId={objectId}
         onBusyChange={setAlbumBusy}
       />
+    </nav>
+  );
+  return (
+    <div className="dlb" ref={rootRef}>
+      {navTarget ? createPortal(nav, navTarget) : navTarget === undefined && nav}
+      {list.length > 0 && (
+        <div className="dlb-filter">
+          <input
+            type="search"
+            className="ui-input"
+            placeholder={t("dlna.browser.filterLabel")}
+            aria-label={t("dlna.browser.filterLabel")}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+        </div>
+      )}
       {notice && (
         <div className="wz-status wz-status--warning" role="status">
           <span className="wz-icon" aria-hidden="true">
@@ -240,16 +290,6 @@ export default function DlnaBrowser({
         </div>
       )}
       {folder.data && list.length === 0 && <p className="dlb-empty">{t("dlna.browser.empty")}</p>}
-      {list.length > 0 && (
-        <input
-          type="search"
-          className="ui-input"
-          placeholder={t("dlna.browser.filterLabel")}
-          aria-label={t("dlna.browser.filterLabel")}
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        />
-      )}
       {current && wholeFolder && (
         <div className="dlb-row dlb-row--folder">
           <Cover url={wholeFolder.album_art_url} />

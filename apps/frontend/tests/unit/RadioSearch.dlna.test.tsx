@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import RadioSearch from "../../src/components/RadioSearch";
@@ -51,11 +51,44 @@ describe("RadioSearch DLNA tab", () => {
     expect(screen.getByRole("searchbox")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "DLNA" }));
     expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Search by" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "DLNA" })).toHaveAttribute("aria-pressed", "true");
     const hint = await screen.findByText(/Choose a folder or song for preset 3/);
     // The pane scrolls inside the dialog like the other modes.
     const region = screen.getByRole("region", { name: "DLNA" });
     expect(region).toHaveClass("rs-scroll");
     expect(region).toContainElement(hint);
+    // The hint is for screen readers only: it describes the dialog.
+    expect(hint).toHaveClass("visually-hidden");
+    expect(hint.closest("dialog")).toHaveAttribute("aria-describedby", hint.id);
+  });
+
+  it("shows the folder navigation in the dialog head, not in the list", async () => {
+    vi.mocked(api.getNativeServers).mockResolvedValue({
+      servers: [{ server_id: "s1", name: "Nas", state: "ready", discovered: true, host: null }],
+      migration_failed: false,
+      migration_reason: null,
+    });
+    vi.mocked(api.browseDlna).mockResolvedValue({
+      server_id: "s1",
+      object_id: "0",
+      items: [{ id: "t1", parent_id: "0", title: "Song", is_container: false }],
+      starting_index: 0,
+      number_returned: 1,
+      total_matches: null,
+      next_index: 1,
+      has_more: false,
+    });
+    setup();
+    await userEvent.click(screen.getByRole("button", { name: "DLNA" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open Nas" }));
+    const nav = await screen.findByRole("navigation", { name: "Folder path" });
+    expect(nav).toHaveClass("rs-nav");
+    expect(nav.closest(".rs-bar")).not.toBeNull();
+    expect(screen.getByRole("region", { name: "DLNA" })).not.toContainElement(nav);
+    await userEvent.click(within(nav).getByRole("button", { name: "All media servers" }));
+    expect(await screen.findByRole("button", { name: "Open Nas" })).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Folder path" })).not.toBeInTheDocument();
   });
 
   it("loads the quick media server list as soon as the dialog opens", async () => {

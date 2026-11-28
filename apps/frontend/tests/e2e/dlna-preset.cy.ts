@@ -108,7 +108,7 @@ describe("DLNA in the preset dialog", () => {
     cy.intercept("DELETE", "**/api/dlna/native/*/servers/*?force=true").as("forceRemove");
 
     cy.get('[data-testid="preset-change-3"]').click();
-    cy.contains("button", "All media servers", { timeout: 15000 }).click();
+    cy.get('button[aria-label="All media servers"]', { timeout: 15000 }).click();
     cy.get('button[aria-label="Remove Mock Media Server"]', { timeout: 15000 }).click();
     cy.get('[data-testid="confirm-dialog-confirm"]').click();
     cy.contains("Presets on slots 3 still play from this server").should("be.visible");

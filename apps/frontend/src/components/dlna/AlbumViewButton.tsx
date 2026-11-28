@@ -47,13 +47,13 @@ export default function AlbumViewButton({
   return (
     <button
       type="button"
-      className="btn btn-ghost"
+      className="btn btn-ghost rs-album"
       disabled={busy}
       aria-busy={busy}
       onClick={() => void press()}
     >
-      {busy ? <span className="spinner-small" aria-hidden="true" /> : Icon.Folder(18)}{" "}
-      {t("dlna.album.open")}
+      {busy ? <span className="spinner-small" aria-hidden="true" /> : Icon.Folder(18)}
+      <span className="dlb-lbl">{t("dlna.album.open")}</span>
     </button>
   );
 }
