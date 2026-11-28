@@ -172,7 +172,7 @@ describe("Diagnostics retry", () => {
     expect(getDiagnostics).toHaveBeenCalledTimes(1);
   });
 
-  it("ignores a pending retry after leaving and does not steal focus on return", async () => {
+  it("loads normally without stealing focus after unmounting during a pending retry", async () => {
     const retry = deferred<typeof diagnostics>();
     vi.mocked(getDiagnostics)
       .mockRejectedValueOnce(new Error("Network error"))
