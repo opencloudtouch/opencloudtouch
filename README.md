@@ -202,6 +202,7 @@ Configuration uses `OCT_` environment variables. See [docs/CONFIGURATION.md](doc
 | Devices not found | Ensure `network_mode: host` and same network; use `OCT_MANUAL_DEVICE_IPS` as fallback |
 | Port 7777 in use | `OCT_PORT=8080 docker compose -f deployment/docker-compose.yml up -d` |
 | Health check | `docker exec opencloudtouch curl -f http://localhost:7777/health` |
+| Speakers stopped working after the OCT server IP changed | See [OCT server IP changed](docs/TROUBLESHOOTING.md#oct-server-ip-changed) for recovery instructions. |
 
 ### Understanding `docker stats` memory numbers
 

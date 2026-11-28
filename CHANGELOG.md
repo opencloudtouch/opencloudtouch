@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No changes yet._
+### Documentation
+- Documented OCT server IP changes, prevention and complete recovery, including DNS redirects, device configuration, reboot and affected radio presets (#606).
 
 ---
 
