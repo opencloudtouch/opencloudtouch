@@ -421,6 +421,13 @@ describe("DlnaBrowser", () => {
     slot.remove();
   });
 
+  it("renders no navigation while the head slot is not mounted yet (no inline flash)", async () => {
+    vi.mocked(api.browseDlna).mockResolvedValue(page([track("t1", "Song")]));
+    const { container } = setupWithContainer({ navTarget: null });
+    expect(await screen.findByText("Song")).toBeInTheDocument();
+    expect(container.querySelector("nav")).toBeNull();
+  });
+
   it("shows the fallback icon when a cover fails to load", async () => {
     vi.mocked(api.browseDlna).mockResolvedValue(
       page([{ ...track("t1", "Song"), album_art_url: "http://nas/a.jpg" }])

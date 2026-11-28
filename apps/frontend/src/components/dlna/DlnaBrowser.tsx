@@ -21,7 +21,8 @@ interface Props {
   busy?: boolean;
   /** Shows the server icon as the first crumb; it leads back to all media servers. */
   onAllServers?: () => void;
-  /** Head slot of the dialog the navigation renders into; without one it heads the browser. */
+  /** Head slot of the dialog the navigation renders into; null = slot not mounted yet (render none),
+   * undefined = no slot (the navigation heads the browser). */
   navTarget?: HTMLElement | null;
 }
 
@@ -248,7 +249,7 @@ export default function DlnaBrowser({
   );
   return (
     <div className="dlb" ref={rootRef}>
-      {navTarget ? createPortal(nav, navTarget) : nav}
+      {navTarget ? createPortal(nav, navTarget) : navTarget === undefined && nav}
       {list.length > 0 && (
         <div className="dlb-filter">
           <input
