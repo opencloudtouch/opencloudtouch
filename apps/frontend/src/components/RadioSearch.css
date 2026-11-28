@@ -57,11 +57,59 @@
 }
 
 .rs-scroll {
+  --sb-thumb: rgba(255, 255, 255, 0.38); /* 3.3:1 on --color-bg-card */
+  --sb-thumb-hover: rgba(255, 255, 255, 0.6);
+  --sb-thumb-active: rgba(255, 255, 255, 0.8);
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 var(--space-md) var(--space-md) 20px;
+  /* the 12 px gutter is always reserved, so the right padding shrinks to keep the inset */
+  scrollbar-gutter: stable;
+  padding: 0 var(--space-sm) var(--space-md) 20px;
   border-top: 1px solid var(--border-color);
+}
+/* Slim, quiet scrollbar: 12 px grab area, 4 px bar at rest, 6 px on hover/drag (border, no shift) */
+.rs-scroll::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+.rs-scroll::-webkit-scrollbar-track,
+.rs-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.rs-scroll::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.rs-scroll::-webkit-scrollbar-thumb {
+  min-height: 48px;
+  border: 4px solid transparent;
+  border-radius: 999px;
+  background: var(--sb-thumb);
+  background-clip: padding-box;
+}
+.rs-scroll::-webkit-scrollbar-thumb:hover {
+  border-width: 3px;
+  background: var(--sb-thumb-hover);
+  background-clip: padding-box;
+}
+.rs-scroll::-webkit-scrollbar-thumb:active {
+  border-width: 3px;
+  background: var(--sb-thumb-active);
+  background-clip: padding-box;
+}
+@supports not selector(::-webkit-scrollbar) {
+  .rs-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--sb-thumb) transparent;
+  }
+}
+@media (forced-colors: active) {
+  .rs-scroll {
+    scrollbar-color: auto;
+    scrollbar-width: auto;
+  }
 }
 .rs-dlna {
   padding-top: var(--space-md);
